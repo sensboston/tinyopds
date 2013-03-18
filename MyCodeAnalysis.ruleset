@@ -1,0 +1,50 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<RuleSet Name="MyCodeAnalysis" ToolsVersion="10.0">
+  <Include Path="extendedcorrectnessrules.ruleset" Action="Default" />
+  <Include Path="extendeddesignguidelinerules.ruleset" Action="Default" />
+  <Include Path="minimumrecommendedrules.ruleset" Action="Default" />
+  <Rules AnalyzerId="Microsoft.Analyzers.ManagedCodeAnalysis" RuleNamespace="Microsoft.Rules.Managed">
+    <Rule Id="CA1301" Action="None" />
+    <Rule Id="CA1303" Action="None" />
+    <Rule Id="CA1308" Action="None" />
+    <Rule Id="CA2100" Action="None" />
+    <Rule Id="CA2101" Action="None" />
+    <Rule Id="CA2102" Action="None" />
+    <Rule Id="CA2104" Action="None" />
+    <Rule Id="CA2105" Action="None" />
+    <Rule Id="CA2106" Action="None" />
+    <Rule Id="CA2108" Action="None" />
+    <Rule Id="CA2111" Action="None" />
+    <Rule Id="CA2112" Action="None" />
+    <Rule Id="CA2114" Action="None" />
+    <Rule Id="CA2115" Action="None" />
+    <Rule Id="CA2116" Action="None" />
+    <Rule Id="CA2117" Action="None" />
+    <Rule Id="CA2119" Action="None" />
+    <Rule Id="CA2120" Action="None" />
+    <Rule Id="CA2121" Action="None" />
+    <Rule Id="CA2122" Action="None" />
+    <Rule Id="CA2123" Action="None" />
+    <Rule Id="CA2124" Action="None" />
+    <Rule Id="CA2126" Action="None" />
+    <Rule Id="CA2130" Action="None" />
+    <Rule Id="CA2131" Action="None" />
+    <Rule Id="CA2132" Action="None" />
+    <Rule Id="CA2133" Action="None" />
+    <Rule Id="CA2134" Action="None" />
+    <Rule Id="CA2135" Action="None" />
+    <Rule Id="CA2136" Action="None" />
+    <Rule Id="CA2137" Action="None" />
+    <Rule Id="CA2138" Action="None" />
+    <Rule Id="CA2139" Action="None" />
+    <Rule Id="CA2140" Action="None" />
+    <Rule Id="CA2141" Action="None" />
+    <Rule Id="CA2142" Action="None" />
+    <Rule Id="CA2143" Action="None" />
+    <Rule Id="CA2144" Action="None" />
+    <Rule Id="CA2145" Action="None" />
+    <Rule Id="CA2146" Action="None" />
+    <Rule Id="CA2147" Action="None" />
+    <Rule Id="CA2149" Action="None" />
+  </Rules>
+</RuleSet>

@@ -1,0 +1,45 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+using TinyOPDS.Data;
+
+namespace TinyOPDS
+{
+    public class OPDSComparer : IComparer<object>
+    {
+        private bool _cyrillcFirst;
+
+        public OPDSComparer(bool cyrillicFirst = true)
+        {
+            _cyrillcFirst = cyrillicFirst;
+        }
+
+        public int Compare(object x, object y)
+        {
+            string x1 = string.Empty, y1 = string.Empty;
+            if (x is string)
+            {
+                x1 = x as string;
+                y1 = y as string;
+            }
+            else if (x is Genre)
+            {
+                x1 = _cyrillcFirst ? (x as Genre).Translation : (x as Genre).Name;
+                y1 = _cyrillcFirst ? (y as Genre).Translation : (y as Genre).Name;
+            }
+            if (_cyrillcFirst && x1.Length > 0 && y1.Length > 0)
+            {
+                // Cyrillic letter came first
+                if (x1[0] > 400 && y1[0] < 400) return -1;
+                if (x1[0] < 400 && y1[0] > 400) return 1;
+                // Garbage came last
+                if (x1[0] < 41 && y1[0] > 41) return 1;
+                if (x1[0] > 41 && y1[0] < 41) return -1;
+            }
+            return string.Compare(x1, y1, true);
+        }
+    }
+
+}

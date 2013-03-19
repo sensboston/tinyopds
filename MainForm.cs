@@ -41,8 +41,6 @@ namespace TinyOPDS
 
             InitializeComponent();
 
-            //Localizer.Setup(this).Save("1.xml");
-
             Localizer.Init();
             Localizer.AddMenu(contextMenuStrip1);
             langCombo.DataSource = Localizer.Languages.ToArray();
@@ -64,9 +62,9 @@ namespace TinyOPDS
             _ipFinder.Start();
 
             // Start OPDS server
-            serverButton_Click(this, null);
-            _scanStartTime = DateTime.Now;
+            StartHttpServer();
 
+            _scanStartTime = DateTime.Now;
             notifyIcon1.Visible = Properties.Settings.Default.CloseToTray;
         }
 
@@ -104,7 +102,7 @@ namespace TinyOPDS
         {
             libraryPath.Text = Properties.Settings.Default.LibraryPath;
             serverName.Text = Properties.Settings.Default.ServerName;
-            serverPort.Text = Properties.Settings.Default.ServerPort;
+            serverPort.Text = Properties.Settings.Default.ServerPort.ToString();
             rootPrefix.Text = Properties.Settings.Default.RootPrefix;
             startMinimized.Checked = Properties.Settings.Default.StartMinimized;
             startWithWindows.Checked = Properties.Settings.Default.StartWithWindows;
@@ -127,7 +125,7 @@ namespace TinyOPDS
         {
             Properties.Settings.Default.LibraryPath = libraryPath.Text;
             Properties.Settings.Default.ServerName = serverName.Text;
-            Properties.Settings.Default.ServerPort = serverPort.Text;
+            Properties.Settings.Default.ServerPort = int.Parse(serverPort.Text);
             Properties.Settings.Default.RootPrefix = rootPrefix.Text;
             Properties.Settings.Default.StartMinimized = startMinimized.Checked;
             Properties.Settings.Default.StartWithWindows = startWithWindows.Checked;
@@ -171,22 +169,28 @@ namespace TinyOPDS
             }
          }
 
-        private void serverPort_TextChanged(object sender, EventArgs e)
+        private void serverPort_Validated(object sender, EventArgs e)
         {
-            if (_localIP != null && _externalIP != null)
+            int port = 8080;
+            bool valid = int.TryParse(serverPort.Text, out port);
+            if (valid && port >= 1 && port <= 65535)
             {
-                int port = int.Parse(Properties.Settings.Default.ServerPort);
-                if (!int.TryParse(serverPort.Text, out port))
+                if (port != Properties.Settings.Default.ServerPort)
                 {
-                    MessageBox.Show(Localizer.Text("Invalid port value: value must be numeric and in range from 1 to 65535"));
-                    serverPort.Text = Properties.Settings.Default.ServerPort;
+                    if (_isUPnPReady && openPort.Checked)
+                    {
+                        openPort.Checked = false;
+                        Properties.Settings.Default.ServerPort = port;
+                        openPort.Checked = true;
+                    }
+                    else Properties.Settings.Default.ServerPort = port;
+                    RestartHttpServer();
                 }
-                else
-                {
-                    Properties.Settings.Default.ServerPort = serverPort.Text;
-                    intIP.Text = string.Format(urlTemplate, _localIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
-                    extIP.Text = string.Format(urlTemplate, _externalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
-                }
+            }
+            else
+            {
+                MessageBox.Show(Localizer.Text("Invalid port value: value must be numeric and in range from 1 to 65535"));
+                serverPort.Text = Properties.Settings.Default.ServerPort.ToString();
             }
         }
 
@@ -305,40 +309,43 @@ namespace TinyOPDS
 
         private void serverButton_Click(object sender, EventArgs e)
         {
-            if (_server == null)
-            {
-                int port = 8080;
-                if (!int.TryParse(Properties.Settings.Default.ServerPort, out port))
-                {
-                    Properties.Settings.Default.ServerPort = "8080";
-                    MessageBox.Show(Localizer.Text("Invalid port value. Default value 8080 will be used"));
-                }
-                // Create and start HTTP server
-                _server = new OPDSServer(port);
+            if (_server == null) StartHttpServer(); else StopHttpServer();
+        }
 
-                serverButton.Text = serverMenuItem.Text = Localizer.Text("Stop server");
-                _serverThread = new Thread(new ThreadStart(_server.Listen));
-                _serverThread.Priority = ThreadPriority.BelowNormal;
-                _serverThread.Start();
-                
-                Log.WriteLine("HTTP server started");
-            }
-            else
-            {
-                _server.StopServer();
-                _serverThread = null;
-                _server = null;
-                serverButton.Text = serverMenuItem.Text = Localizer.Text("Start server");
+        private void StartHttpServer()
+        {
+            // Create and start HTTP server
+            _server = new OPDSServer(Properties.Settings.Default.ServerPort);
 
-                Log.WriteLine("HTTP server stopped");
-            }
+            serverButton.Text = serverMenuItem.Text = Localizer.Text("Stop server");
+            _serverThread = new Thread(new ThreadStart(_server.Listen));
+            _serverThread.Priority = ThreadPriority.BelowNormal;
+            _serverThread.Start();
+
+            Log.WriteLine("HTTP server started");
+        }
+
+        private void StopHttpServer()
+        {
+            _server.StopServer();
+            _serverThread = null;
+            _server = null;
+            serverButton.Text = serverMenuItem.Text = Localizer.Text("Start server");
+
+            Log.WriteLine("HTTP server stopped");
+        }
+
+        private void RestartHttpServer()
+        {
+            StopHttpServer();
+            StartHttpServer();
         }
 
         private void openPort_CheckedChanged(object sender, EventArgs e)
         {
             if (_externalIP != null && _isUPnPReady)
             {
-                int port = int.Parse(Properties.Settings.Default.ServerPort);
+                int port = Properties.Settings.Default.ServerPort;
                 if (openPort.Checked)
                 {
                     NAT.ForwardPort(port, System.Net.Sockets.ProtocolType.Tcp, "TinyOPDS server");

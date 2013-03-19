@@ -8,7 +8,7 @@
     <Setting Name="ServerName" Type="System.String" Scope="User">
       <Value Profile="(Default)">Моя домашняя библиотека</Value>
     </Setting>
-    <Setting Name="ServerPort" Type="System.String" Scope="User">
+    <Setting Name="ServerPort" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">8080</Value>
     </Setting>
     <Setting Name="StartWithWindows" Type="System.Boolean" Scope="User">

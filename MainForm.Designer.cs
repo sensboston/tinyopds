@@ -435,7 +435,7 @@
             // 
             this.openPort.AutoSize = true;
             this.openPort.Enabled = false;
-            this.openPort.Location = new System.Drawing.Point(284, 90);
+            this.openPort.Location = new System.Drawing.Point(260, 90);
             this.openPort.Name = "openPort";
             this.openPort.Size = new System.Drawing.Size(161, 17);
             this.openPort.TabIndex = 15;
@@ -485,7 +485,7 @@
             this.serverPort.Size = new System.Drawing.Size(59, 20);
             this.serverPort.TabIndex = 10;
             this.serverPort.Text = "8080";
-            this.serverPort.TextChanged += new System.EventHandler(this.serverPort_TextChanged);
+            this.serverPort.Validated += new System.EventHandler(this.serverPort_Validated);
             // 
             // label3
             // 

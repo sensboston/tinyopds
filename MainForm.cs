@@ -88,7 +88,7 @@ namespace TinyOPDS
                     if (_isUPnPReady)
                     {
                         openPort.Enabled = true;
-                        openPort_CheckedChanged(this, null);
+                        if (Properties.Settings.Default.OpenNATPort) openPort_CheckedChanged(this, null);
                     }
                 });
             }
@@ -350,7 +350,7 @@ namespace TinyOPDS
                 {
                     NAT.ForwardPort(port, System.Net.Sockets.ProtocolType.Tcp, "TinyOPDS server");
 
-                    Log.WriteLine("Port {0} forwarded", port);
+                    Log.WriteLine("Port {0} forwarded by UPnP", port);
                 }
                 else
                 {

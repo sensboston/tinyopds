@@ -76,7 +76,7 @@ namespace TinyOPDS.Parsers
             }
             catch (Exception e)
             {
-                Log.WriteLine(LogLevel.Error, "Parse exception: " + e.Message);
+                Log.WriteLine(LogLevel.Error, "Book.Parse() exception {0} on file: {1}", e.Message, fileName);
             }
             finally
             {
@@ -125,7 +125,7 @@ namespace TinyOPDS.Parsers
             }
             catch (Exception e)
             {
-                Log.WriteLine(LogLevel.Error, "GetCoverImage exception {0}", e.Message);
+                Log.WriteLine(LogLevel.Error, "Book.GetCoverImage() exception {0} on file: {1}", e.Message, fileName);
             }
             // Dispose xml document
             xml = null;

@@ -44,7 +44,12 @@ namespace TinyOPDS.Server
             {
                 // Parse request
                 string xml = string.Empty;
-                string request = processor.HttpUrl.Replace(Properties.Settings.Default.RootPrefix, "").Replace("//", "/").ToLower();
+                string request = processor.HttpUrl.Replace("//", "/").ToLower();
+                // Remove prefix if any
+                if (!string.IsNullOrEmpty(Properties.Settings.Default.RootPrefix))
+                {
+                    request = request.Replace(Properties.Settings.Default.RootPrefix, "");
+                }
                 string ext = Path.GetExtension(request);
                 string[] http_params = request.Split(new Char[] { '?', '=', '&' });
 
@@ -324,8 +329,9 @@ namespace TinyOPDS.Server
                 }
                 processor.WriteFailure();
             }
-            catch
+            catch (Exception e)
             {
+                Log.WriteLine(LogLevel.Error, ".HandleGETRequest() exception {0}", e.Message);
                 processor.WriteFailure();
             }
             finally

@@ -21,10 +21,14 @@ namespace TinyOPDS.Data
     /// </summary>
     public class Book
     {
-        public Book(string filePath = "") 
+        public Book(string fileName = "") 
         {
             Version = 1;
-            FilePath = filePath;
+            FileName = fileName;
+            if (!string.IsNullOrEmpty(FileName) && FileName.Length > Library.LibraryPath.Length + 1)
+            {
+                FileName = FileName.Substring(Library.LibraryPath.Length+1);
+            }
             Title = Sequence = Annotation = Language = "";
             HasCover = false;
             BookDate = DocumentDate = DateTime.MinValue;
@@ -33,19 +37,20 @@ namespace TinyOPDS.Data
             Translators = new List<string>();
             Genres = new List<string>();
         }
-        private string id = "";
+        private string _id = string.Empty;
         public string ID 
         {
-            get {  return id; }
+            get {  return _id; }
             set
             {
                 // Book ID always must be in GUID form
                 Guid guid;
-                if (Guid.TryParse(value, out guid)) id = value; else id = Utils.Create(Utils.IsoOidNamespace, value).ToString();
+                if (Guid.TryParse(value, out guid)) _id = value; else _id = Utils.Create(Utils.IsoOidNamespace, value).ToString();
             }
         }
         public float Version { get; set; }
-        public string FilePath { get; set; }
+        public string FileName { get; private set; }
+        public string FilePath { get { return Path.Combine(Library.LibraryPath, FileName); } }
         public string Title { get; set; }
         public string Language { get; set; }
         public bool HasCover { get; set; }

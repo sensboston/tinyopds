@@ -96,31 +96,20 @@ namespace TinyOPDS.Scanner
 
                             string ext = Path.GetExtension(entry.FileName).ToLower();
 
-                            if (ext.Contains(".epub"))
+                            if (Library.Contains(zipFileName.Substring(Library.LibraryPath.Length+1) + "@" + entryFileName))
                             {
-                                if (!Library.Contains(zipFileName + "@" + entryFileName))
-                                {
-                                    entry.Extract(memStream);
-                                    book = new ePubParser().Parse(memStream, zipFileName + "@" + entryFileName);
-                                }
-                                else
-                                {
-                                    SkippedFiles++;
-                                    if (OnFileSkipped != null) OnFileSkipped(this, new FileSkippedEventArgs(SkippedFiles));
-                                }
+                                SkippedFiles++;
+                                if (OnFileSkipped != null) OnFileSkipped(this, new FileSkippedEventArgs(SkippedFiles));
+                            }
+                            else if (ext.Contains(".epub"))
+                            {
+                                entry.Extract(memStream);
+                                book = new ePubParser().Parse(memStream, zipFileName + "@" + entryFileName);
                             }
                             else if (ext.Contains(".fb2"))
                             {
-                                if (!Library.Contains(zipFileName + "@" + entryFileName))
-                                {
-                                    entry.Extract(memStream);
-                                    book = new FB2Parser().Parse(memStream, zipFileName + "@" + entryFileName);
-                                }
-                                else
-                                {
-                                    SkippedFiles++;
-                                    if (OnFileSkipped != null) OnFileSkipped(this, new FileSkippedEventArgs(SkippedFiles));
-                                }
+                                entry.Extract(memStream);
+                                book = new FB2Parser().Parse(memStream, zipFileName + "@" + entryFileName);
                             }
 
                             if (book != null)

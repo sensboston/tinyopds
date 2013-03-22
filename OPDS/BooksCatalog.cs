@@ -146,7 +146,7 @@ namespace TinyOPDS.OPDS
                     bookInfo += string.Format("<b>{0}</b> {1}<br/>", Localizer.Text("Year of publication: "), book.BookDate.Year);
                 }
                 bookInfo += string.Format("<b>{0}</b> {1}<br/>", Localizer.Text("Book format:"), book.BookType == BookType.EPUB ? "epub" : "fb2");
-                bookInfo += string.Format("<b>{0}</b> {1} Kb<br/>", Localizer.Text("Book size:"), book.DocumentSize);
+                bookInfo += string.Format("<b>{0}</b> {1} Kb<br/>", Localizer.Text("Book size:"), (int) book.DocumentSize / 1024);
                 if (!string.IsNullOrEmpty(book.Sequence))
                 {
                     bookInfo += string.Format("<b>{0}{1}</b><br/>", Localizer.Text("Book series: "), book.Sequence);

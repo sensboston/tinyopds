@@ -12,24 +12,27 @@ namespace TinyOPDS.Scanner
     {
         private FileSystemWatcher _fileWatcher;
 
-        public Watcher(string path)
+        public event EventHandler OnLibraryChanged;
+
+        public Watcher(string path = "")
         {
             _fileWatcher = new FileSystemWatcher(path, "*");
             _fileWatcher.Created += new FileSystemEventHandler(_fileWatcher_Created);
             _fileWatcher.Deleted += new FileSystemEventHandler(_fileWatcher_Deleted);
             _fileWatcher.Renamed += new RenamedEventHandler(_fileWatcher_Renamed);
+            _fileWatcher.IncludeSubdirectories = true;
+        }
+
+        public string PathToWatch
+        {
+            get { return _fileWatcher.Path; }
+            set { _fileWatcher.Path = value; }
         }
 
         public bool IsEnabled
         {
-            get
-            {
-                return _fileWatcher.EnableRaisingEvents;
-            }
-            set
-            {
-                _fileWatcher.EnableRaisingEvents = value;
-            }
+            get { return _fileWatcher.EnableRaisingEvents; }
+            set { _fileWatcher.EnableRaisingEvents = value; }
         }
 
         /// <summary>
@@ -39,6 +42,17 @@ namespace TinyOPDS.Scanner
         /// <param name="e"></param>
         private void _fileWatcher_Created(object sender, FileSystemEventArgs e)
         {
+            FileScanner scanner = new FileScanner(false);
+            scanner.OnBookFound += (object s, BookFoundEventArgs be) =>
+                {
+                    if (Library.Add(be.Book))
+                    {
+                        if (OnLibraryChanged != null) OnLibraryChanged(this, new EventArgs());
+                    }
+                };
+            scanner.ScanFile(e.FullPath);
+
+            Log.WriteLine("Directory scanner started");
         }
 
         /// <summary>

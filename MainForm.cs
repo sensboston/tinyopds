@@ -23,6 +23,7 @@ namespace TinyOPDS
         OPDSServer _server;
         Thread _serverThread, _ipFinder;
         FileScanner _scanner = new FileScanner();
+        Watcher _watcher;
         DateTime _scanStartTime;
         IPAddress _localIP, _externalIP;
         bool _isUPnPReady = false;
@@ -51,6 +52,9 @@ namespace TinyOPDS
             Library.LibraryLoaded += (_, __) => 
             { 
                 UpdateInfo();
+                _watcher = new Watcher(Library.LibraryPath);
+                _watcher.OnLibraryChanged += (___, _____) => { UpdateInfo(); };
+                _watcher.IsEnabled = Properties.Settings.Default.WatchLibrary;
 
                 var allBooks = new OpenSearch().Search("ав", "books", true).ToString();
 
@@ -130,6 +134,7 @@ namespace TinyOPDS
             openPort.Checked = Properties.Settings.Default.OpenNATPort;
             langCombo.SelectedValue = Properties.Settings.Default.Language;
             saveLog.Checked = Properties.Settings.Default.SaveLogToDisk;
+            useWatcher.Checked = Properties.Settings.Default.WatchLibrary;
             notifyIcon1.Visible = Properties.Settings.Default.CloseToTray;
         }
 
@@ -146,7 +151,16 @@ namespace TinyOPDS
             Properties.Settings.Default.Language = langCombo.SelectedValue as string;
             Properties.Settings.Default.OpenNATPort = openPort.Checked;
             Properties.Settings.Default.SaveLogToDisk = saveLog.Checked;
+            Properties.Settings.Default.WatchLibrary = useWatcher.Checked;
             Properties.Settings.Default.Save();
+        }
+
+        private void useWatcher_CheckedChanged(object sender, EventArgs e)
+        {
+            if (_watcher != null && _watcher.IsEnabled != useWatcher.Checked)
+            {
+                _watcher.IsEnabled = Properties.Settings.Default.WatchLibrary = useWatcher.Checked;
+            }
         }
 
         private void closeToTray_CheckedChanged(object sender, EventArgs e)
@@ -230,6 +244,7 @@ namespace TinyOPDS
             {
                 Properties.Settings.Default.LibraryPath = libraryPath.Text;
                 Properties.Settings.Default.Save();
+                _watcher.PathToWatch = Properties.Settings.Default.LibraryPath;
             }
             else libraryPath.Text = Properties.Settings.Default.LibraryPath;
         }
@@ -264,7 +279,7 @@ namespace TinyOPDS
                 _fb2Count = _epubCount = _skippedFiles = _invalidFiles = 0;
                 _scanStartTime = DateTime.Now;
                 startTime.Text = _scanStartTime.ToString(@"hh\:mm\:ss");
-                _scanner.Scan(libraryPath.Text);
+                _scanner.ScanDirectory(libraryPath.Text);
                 scannerButton.Text = Localizer.Text("Stop scanning");
 
                 Log.WriteLine("Directory scanner started");
@@ -443,6 +458,5 @@ namespace TinyOPDS
         }
 
         #endregion
-
     }
 }

@@ -125,6 +125,10 @@
       <text lang="en">Save log to file</text>
       <text lang="ru">Сохранять лог в файл</text>
     </property>
+    <property form="MainForm" ctrl="useUPnP">
+      <text lang="en">Use UPnP</text>
+      <text lang="ru">Использовать UPnP</text>
+    </property>
     <property form="MainForm" ctrl="tabPage1">
       <text lang="en">Scanner settings</text>
       <text lang="ru">Настройки сканера</text>

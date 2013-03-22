@@ -88,6 +88,7 @@
             this.serverMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripSeparator();
             this.exitMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.useUPnP = new System.Windows.Forms.CheckBox();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.tabPage2.SuspendLayout();
@@ -544,6 +545,7 @@
             // tabPage3
             // 
             this.tabPage3.BackColor = System.Drawing.SystemColors.Control;
+            this.tabPage3.Controls.Add(this.useUPnP);
             this.tabPage3.Controls.Add(this.saveLog);
             this.tabPage3.Controls.Add(this.label11);
             this.tabPage3.Controls.Add(this.langCombo);
@@ -705,6 +707,17 @@
             this.exitMenuItem.Text = "Exit";
             this.exitMenuItem.Click += new System.EventHandler(this.exitMenuItem_Click);
             // 
+            // useUPnP
+            // 
+            this.useUPnP.AutoSize = true;
+            this.useUPnP.Location = new System.Drawing.Point(11, 202);
+            this.useUPnP.Name = "useUPnP";
+            this.useUPnP.Size = new System.Drawing.Size(76, 17);
+            this.useUPnP.TabIndex = 34;
+            this.useUPnP.Text = "Use UPnP";
+            this.useUPnP.UseVisualStyleBackColor = true;
+            this.useUPnP.CheckedChanged += new System.EventHandler(this.useUPnP_CheckedChanged);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -795,6 +808,7 @@
         private System.Windows.Forms.Label label13;
         private System.Windows.Forms.CheckBox useWatcher;
         private System.Windows.Forms.TabPage tabPage4;
+        private System.Windows.Forms.CheckBox useUPnP;
     }
 }
 

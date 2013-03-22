@@ -94,7 +94,10 @@ namespace TinyOPDS
         {
             _localIP = NAT.LocalIP;
             this.BeginInvoke((MethodInvoker)delegate { intIP.Text = string.Format(urlTemplate, _localIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix); });
-            _isUPnPReady = NAT.Discover();
+            if (Properties.Settings.Default.UseUPnP)
+            {
+                _isUPnPReady = NAT.Discover();
+            }
             _externalIP = NAT.ExternalIP;
             if (!this.IsDisposed)
             {
@@ -131,7 +134,8 @@ namespace TinyOPDS
                 }
             }
             else convertorPath.Text = Properties.Settings.Default.ConvertorPath;
-            openPort.Checked = Properties.Settings.Default.OpenNATPort;
+            useUPnP.Checked = Properties.Settings.Default.UseUPnP;
+            openPort.Checked = Properties.Settings.Default.UseUPnP ? Properties.Settings.Default.OpenNATPort : false;
             langCombo.SelectedValue = Properties.Settings.Default.Language;
             saveLog.Checked = Properties.Settings.Default.SaveLogToDisk;
             useWatcher.Checked = Properties.Settings.Default.WatchLibrary;
@@ -152,6 +156,7 @@ namespace TinyOPDS
             Properties.Settings.Default.OpenNATPort = openPort.Checked;
             Properties.Settings.Default.SaveLogToDisk = saveLog.Checked;
             Properties.Settings.Default.WatchLibrary = useWatcher.Checked;
+            Properties.Settings.Default.UseUPnP = useUPnP.Checked;
             Properties.Settings.Default.Save();
         }
 
@@ -366,6 +371,19 @@ namespace TinyOPDS
         {
             StopHttpServer();
             StartHttpServer();
+        }
+
+        private void useUPnP_CheckedChanged(object sender, EventArgs e)
+        {
+            if (Properties.Settings.Default.UseUPnP != useUPnP.Checked)
+            {
+                if (useUPnP.Checked && !NAT.IsReady)
+                {
+                    // Re-detect IP addresses using UPnP
+                    DetectIPs();
+                }
+                Properties.Settings.Default.UseUPnP = useUPnP.Checked;
+            }
         }
 
         private void openPort_CheckedChanged(object sender, EventArgs e)

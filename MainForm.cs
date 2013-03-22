@@ -48,7 +48,19 @@ namespace TinyOPDS
             LoadSettings();
 
             Library.LibraryPath = Properties.Settings.Default.LibraryPath;
-            Library.LibraryLoaded += (_, __) => { UpdateInfo(); };
+            Library.LibraryLoaded += (_, __) => 
+            { 
+                UpdateInfo();
+
+                var allBooks = new OpenSearch().Search("ав", "books", true).ToString();
+
+                var allAuthors = new OpenSearch().Search("пел", "authors", true).ToString();
+
+                var books = new OpenSearch().Search("Gene", "books", true);
+
+                if (String.IsNullOrEmpty(books.ToString()))
+                { }
+            };
 
             Log.WriteLine("TinyOPDS application started");
         }

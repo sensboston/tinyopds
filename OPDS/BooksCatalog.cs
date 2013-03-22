@@ -98,6 +98,8 @@ namespace TinyOPDS.OPDS
                     break;
             }
 
+            bool useCyrillic = Localizer.Language.Equals("ru");
+
             // Add catalog entries
             for (int i = 0; i < books.Count; i++)
             {
@@ -119,17 +121,41 @@ namespace TinyOPDS.OPDS
                     )));
                 }
 
-                foreach (string genre in book.Genres)
+                foreach (string genreStr in book.Genres)
                 {
-                    entry.Add(new XElement("category", new XAttribute("term", genre), new XAttribute("label", genre)));
+                    Genre genre = Library.Genres.Where(g => g.Tag.Equals(genreStr)).FirstOrDefault();
+                    if (genre != null)
+                        entry.Add(new XElement("category", new XAttribute("term", (useCyrillic ? genre.Translation : genre.Name)), new XAttribute("label", (useCyrillic ? genre.Translation : genre.Name))));
                 }
 
-                // Build a content HTML entry (translator(s), year, size, annotation etc.
+                // Build a content entry (translator(s), year, size, annotation etc.)
+                string bookInfo = string.Empty;
+
+                if (!string.IsNullOrEmpty(book.Annotation))
+                {
+                    bookInfo += string.Format("<p class=book>{0}</p><br/>", book.Annotation);
+                }
+                if (book.Translators.Count > 0)
+                {
+                    bookInfo += string.Format("<b>{0}</b>", Localizer.Text("Translation: "));
+                    foreach (string translator in book.Translators) bookInfo += translator + " ";
+                    bookInfo += "<br/>";
+                }
+                if (book.BookDate != DateTime.MinValue)
+                {
+                    bookInfo += string.Format("<b>{0}</b> {1}<br/>", Localizer.Text("Year of publication: "), book.BookDate.Year);
+                }
+                bookInfo += string.Format("<b>{0}</b> {1}<br/>", Localizer.Text("Book format:"), book.BookType == BookType.EPUB ? "epub" : "fb2");
+                bookInfo += string.Format("<b>{0}</b> {1} Kb<br/>", Localizer.Text("Book size:"), book.DocumentSize);
+                if (!string.IsNullOrEmpty(book.Sequence))
+                {
+                    bookInfo += string.Format("<b>{0}{1}</b><br/>", Localizer.Text("Book series: "), book.Sequence);
+                }
 
                 entry.Add(
                     new XElement(Namespaces.dc + "language", book.Language),
                     new XElement(Namespaces.dc + "format", "fb2+zip"),
-                    new XElement("content", new XAttribute("type", "text/html"), book.Annotation));
+                    new XElement("content", new XAttribute("type", "text/html"), bookInfo));
 
                 if (book.HasCover)
                 {

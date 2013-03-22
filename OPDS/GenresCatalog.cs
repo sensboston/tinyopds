@@ -59,7 +59,7 @@ namespace TinyOPDS.OPDS
                             new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                             new XElement("id", "tag:root:genre:" + (useCyrillic ? genre.Translation : genre.Name)),
                             new XElement("title", (useCyrillic ? genre.Translation : genre.Name)),
-                            new XElement("content", string.Format(Localizer.Text("Books in genre «{0}»"), genre.Name), new XAttribute("type", "text")),
+                            new XElement("content", string.Format(Localizer.Text("Books in genre «{0}»"), (useCyrillic ? genre.Translation : genre.Name)), new XAttribute("type", "text")),
                             new XElement("link", new XAttribute("href", "http://{$HOST}/" + (topLevel ? "genres/" : "genre/") + (topLevel ? HttpUtility.UrlEncode((useCyrillic ? genre.Translation : genre.Name)) : genre.Tag)), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                         )
                     );

@@ -133,6 +133,10 @@
       <text lang="en">Miscellaneous</text>
       <text lang="ru">Разное</text>
     </property>
+    <property form="MainForm" ctrl="tabPage4">
+      <text lang="en">About program</text>
+      <text lang="ru">О программе</text>
+    </property>
     <property form="MainForm" ctrl="exitMenuItem">
       <text lang="en">Exit</text>
       <text lang="ru">Выход</text>

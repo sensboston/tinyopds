@@ -101,7 +101,6 @@ namespace TinyOPDS.Data
                 if (_books.ContainsKey(id))
                 {
                     book = _books[id];
-                    book.FilePath = Path.Combine(LibraryPath, book.FilePath);
                 }
                 return book;
             }
@@ -118,9 +117,8 @@ namespace TinyOPDS.Data
                 if (!_books.ContainsKey(book.ID) || _books[book.ID].Version < book.Version)
                 {
                     // Make relative path
-                    book.FilePath = book.FilePath.Substring(_libraryPathLength);
                     _books[book.ID] = book;
-                    lock (_paths) _paths[book.FilePath] = true;
+                    lock (_paths) _paths[book.FileName] = true;
                     if (book.BookType == BookType.FB2) FB2Count++; else EPUBCount++;
                     return true;
                 }
@@ -295,8 +293,8 @@ namespace TinyOPDS.Data
                         {
                             try
                             {
-                                string filePath = reader.ReadString();
-                                Book book = new Book(filePath);
+                                string fileName = reader.ReadString();
+                                Book book = new Book(fileName);
                                 book.ID = reader.ReadString();
                                 book.Version = reader.ReadSingle();
                                 book.Title = reader.ReadString();
@@ -318,7 +316,7 @@ namespace TinyOPDS.Data
                                 book.Genres = new List<string>();
                                 for (int i = 0; i < count; i++) book.Genres.Add(reader.ReadString());
                                 lock (_books) _books[book.ID] = book;
-                                lock (_paths) _paths[book.FilePath] = true;
+                                lock (_paths) _paths[book.FileName] = true;
                             }
                             catch (EndOfStreamException)
                             {
@@ -410,7 +408,7 @@ namespace TinyOPDS.Data
 
         private static void writeBook(Book book, BinaryWriter writer)
         {
-            writer.Write(book.FilePath);
+            writer.Write(book.FileName);
             writer.Write(book.ID);
             writer.Write(book.Version);
             writer.Write(book.Title);

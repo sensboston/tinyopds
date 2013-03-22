@@ -304,7 +304,7 @@ namespace TinyOPDS
             skippedBooks.Text = _skippedFiles.ToString();
             invalidBooks.Text = _invalidFiles.ToString();
             duplicates.Text = _duplicates.ToString();
-            int totalBooksProcessed = _fb2Count + _epubCount + _skippedFiles + _invalidFiles;
+            int totalBooksProcessed = _fb2Count + _epubCount + _skippedFiles + _invalidFiles + _duplicates;
             booksProcessed.Text = totalBooksProcessed.ToString();
 
             bool isScanning = _scanner.Status == FileScannerStatus.SCANNING;

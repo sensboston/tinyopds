@@ -111,22 +111,30 @@ namespace TinyOPDS.Scanner
                 // Process accepted files
                 try
                 {
-                    if (ext.Contains(".epub"))
+                    if (Library.Contains(fullName.Substring(Library.LibraryPath.Length+1)))
                     {
-                        if (!Library.Contains(fullName)) book = new ePubParser().Parse(fullName);
-                        else { SkippedFiles++; if (OnFileSkipped != null) OnFileSkipped(this, new FileSkippedEventArgs(SkippedFiles)); }
+                        SkippedFiles++;
+                        if (OnFileSkipped != null) OnFileSkipped(this, new FileSkippedEventArgs(SkippedFiles));
+                    }
+                    else if (ext.Contains(".epub"))
+                    {
+                        book = new ePubParser().Parse(fullName);
                     }
                     else if (ext.Contains(".fb2"))
                     {
-                        if (!Library.Contains(fullName)) book = new FB2Parser().Parse(fullName);
-                        else { SkippedFiles++; if (OnFileSkipped != null) OnFileSkipped(this, new FileSkippedEventArgs(SkippedFiles)); }
+                        book = new FB2Parser().Parse(fullName);
                     }
                     else if (ext.Contains(".zip"))
                     {
                         ZipScanner zipScan = new ZipScanner(fullName);
                         zipScan.OnBookFound += ((object sender, BookFoundEventArgs e) => { if (e.Book.IsValid && OnBookFound != null) OnBookFound(sender, e); });
                         zipScan.OnInvalidBook += (object sender, InvalidBookEventArgs e) => { if (OnInvalidBook != null) OnInvalidBook(sender, e); };
-                        zipScan.OnFileSkipped += (object sender, FileSkippedEventArgs e) => { SkippedFiles++; if (OnFileSkipped != null) OnFileSkipped(sender, new FileSkippedEventArgs(SkippedFiles)); };
+                        zipScan.OnFileSkipped += (object sender, FileSkippedEventArgs e) => 
+                        { 
+                            SkippedFiles++; 
+                            if (OnFileSkipped != null) OnFileSkipped(sender, new FileSkippedEventArgs(SkippedFiles));
+                            book = null;
+                        };
                         zipScan.OnScanCompleted += (object sender, EventArgs e) =>
                         {
                             if (_zipScanners.Contains((sender as ZipScanner)))

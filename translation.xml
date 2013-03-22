@@ -9,6 +9,10 @@
       <text lang="en">Path to books folder:</text>
       <text lang="ru">Путь к книжному каталогу:</text>
     </property>
+    <property form="MainForm" ctrl="useWatcher">
+      <text lang="en">Monitor library changes</text>
+      <text lang="ru">Следить за каталогом</text>
+    </property>
     <property form="MainForm" ctrl="label16">
       <text lang="en">Duplicates:</text>
       <text lang="ru">Дупликаты:</text>

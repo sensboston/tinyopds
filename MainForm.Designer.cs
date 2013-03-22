@@ -33,6 +33,7 @@
             this.folderBrowserDialog1 = new System.Windows.Forms.FolderBrowserDialog();
             this.tabControl1 = new System.Windows.Forms.TabControl();
             this.tabPage1 = new System.Windows.Forms.TabPage();
+            this.useWatcher = new System.Windows.Forms.CheckBox();
             this.duplicates = new System.Windows.Forms.Label();
             this.label16 = new System.Windows.Forms.Label();
             this.label15 = new System.Windows.Forms.Label();
@@ -80,14 +81,13 @@
             this.closeToTray = new System.Windows.Forms.CheckBox();
             this.startMinimized = new System.Windows.Forms.CheckBox();
             this.startWithWindows = new System.Windows.Forms.CheckBox();
+            this.tabPage4 = new System.Windows.Forms.TabPage();
             this.notifyIcon1 = new System.Windows.Forms.NotifyIcon(this.components);
             this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.windowMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.serverMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripSeparator();
             this.exitMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.useWatcher = new System.Windows.Forms.CheckBox();
-            this.tabPage4 = new System.Windows.Forms.TabPage();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.tabPage2.SuspendLayout();
@@ -145,6 +145,17 @@
             this.tabPage1.Size = new System.Drawing.Size(474, 289);
             this.tabPage1.TabIndex = 0;
             this.tabPage1.Text = "Scanner settings";
+            // 
+            // useWatcher
+            // 
+            this.useWatcher.AutoSize = true;
+            this.useWatcher.Location = new System.Drawing.Point(332, 34);
+            this.useWatcher.Name = "useWatcher";
+            this.useWatcher.Size = new System.Drawing.Size(135, 17);
+            this.useWatcher.TabIndex = 30;
+            this.useWatcher.Text = "Monitor library changes";
+            this.useWatcher.UseVisualStyleBackColor = true;
+            this.useWatcher.CheckedChanged += new System.EventHandler(this.useWatcher_CheckedChanged);
             // 
             // duplicates
             // 
@@ -545,7 +556,7 @@
             this.tabPage3.Location = new System.Drawing.Point(4, 34);
             this.tabPage3.Name = "tabPage3";
             this.tabPage3.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage3.Size = new System.Drawing.Size(474, 274);
+            this.tabPage3.Size = new System.Drawing.Size(474, 289);
             this.tabPage3.TabIndex = 2;
             this.tabPage3.Text = "Miscellaneous";
             // 
@@ -641,6 +652,16 @@
             this.startWithWindows.UseVisualStyleBackColor = true;
             this.startWithWindows.CheckedChanged += new System.EventHandler(this.startWithWindows_CheckedChanged);
             // 
+            // tabPage4
+            // 
+            this.tabPage4.BackColor = System.Drawing.SystemColors.Control;
+            this.tabPage4.Location = new System.Drawing.Point(4, 34);
+            this.tabPage4.Name = "tabPage4";
+            this.tabPage4.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage4.Size = new System.Drawing.Size(474, 289);
+            this.tabPage4.TabIndex = 3;
+            this.tabPage4.Text = "About program";
+            // 
             // notifyIcon1
             // 
             this.notifyIcon1.ContextMenuStrip = this.contextMenuStrip1;
@@ -683,26 +704,6 @@
             this.exitMenuItem.Size = new System.Drawing.Size(144, 22);
             this.exitMenuItem.Text = "Exit";
             this.exitMenuItem.Click += new System.EventHandler(this.exitMenuItem_Click);
-            // 
-            // useWatcher
-            // 
-            this.useWatcher.AutoSize = true;
-            this.useWatcher.Location = new System.Drawing.Point(332, 34);
-            this.useWatcher.Name = "useWatcher";
-            this.useWatcher.Size = new System.Drawing.Size(135, 17);
-            this.useWatcher.TabIndex = 30;
-            this.useWatcher.Text = "Monitor library changes";
-            this.useWatcher.UseVisualStyleBackColor = true;
-            // 
-            // tabPage4
-            // 
-            this.tabPage4.BackColor = System.Drawing.SystemColors.Control;
-            this.tabPage4.Location = new System.Drawing.Point(4, 34);
-            this.tabPage4.Name = "tabPage4";
-            this.tabPage4.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage4.Size = new System.Drawing.Size(474, 289);
-            this.tabPage4.TabIndex = 3;
-            this.tabPage4.Text = "About program";
             // 
             // MainForm
             // 

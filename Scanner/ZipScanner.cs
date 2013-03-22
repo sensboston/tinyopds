@@ -56,7 +56,7 @@ namespace TinyOPDS.Scanner
         public void Scan()
         {
             BackgroundWorker scanner = new BackgroundWorker();
-            scanner.DoWork += (__, ___) => { ScanDirectory(ZipFileName); };
+            scanner.DoWork += (__, ___) => { ScanZipFile(ZipFileName); };
             scanner.RunWorkerCompleted += (__, ___) =>
             {
                 Status = FileScannerStatus.STOPPED;
@@ -72,7 +72,7 @@ namespace TinyOPDS.Scanner
         /// </summary>
         /// <param name="directory"></param>
         /// <param name="IsRoot"></param>
-        private void ScanDirectory(string zipFileName)
+        private void ScanZipFile(string zipFileName)
         {
             ZipFile zipFile = null;
             string entryFileName = string.Empty;

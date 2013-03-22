@@ -31,8 +31,9 @@ namespace TinyOPDS.Parsers
                 for (int i = 0; i < book.Authors.Count; i++) book.Authors[i] = book.Authors[i].Capitalize();
                 book.Genres = new List<string>(); 
                 book.Genres.AddRange(epub.Subject);
-                book.Annotation = epub.Description.First();
-                book.Language = epub.Language.First();
+                if (book.Genres.Count < 1) book.Genres.Add("prose");
+                if (epub.Description != null && epub.Description.Count > 0) book.Annotation = epub.Description.First();
+                if (epub.Language != null && epub.Language.Count > 0) book.Language = epub.Language.First();
             }
             catch (Exception e)
             {

@@ -15,7 +15,7 @@
     </property>
     <property form="MainForm" ctrl="label16">
       <text lang="en">Duplicates:</text>
-      <text lang="ru">Дупликаты:</text>
+      <text lang="ru">Дубликаты:</text>
     </property>
     <property form="MainForm" ctrl="status">
       <text lang="en">STOPPED</text>

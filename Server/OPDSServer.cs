@@ -44,7 +44,7 @@ namespace TinyOPDS.Server
             {
                 // Parse request
                 string xml = string.Empty;
-                string request = processor.HttpUrl.Replace("//", "/").ToLower();
+                string request = processor.HttpUrl.Replace("//", "/");
                 // Remove prefix if any
                 if (!string.IsNullOrEmpty(Properties.Settings.Default.RootPrefix))
                 {
@@ -54,13 +54,13 @@ namespace TinyOPDS.Server
                 string[] http_params = request.Split(new Char[] { '?', '=', '&' });
 
                 // User-agent check: some e-book readers can handle fb2 files (no conversion is  needed)
-                bool fb2Only = false;
+                bool acceptFB2 = false;
                 if (!string.IsNullOrEmpty(processor.HttpHeaders["User-Agent"] as string))
                 {
                     foreach (string userAgent in fb2Clients)
                     {
-                        fb2Only |= (processor.HttpHeaders["User-Agent"] as string).ToUpper().Contains(userAgent);
-                        if (fb2Only) break;
+                        acceptFB2 |= (processor.HttpHeaders["User-Agent"] as string).ToUpper().Contains(userAgent);
+                        if (acceptFB2) break;
                     }
                 }
 
@@ -81,7 +81,7 @@ namespace TinyOPDS.Server
                         }
                         else if (request.StartsWith("/author/"))
                         {
-                            xml = new BooksCatalog().GetCatalogByAuthor(request.Substring(8), fb2Only).ToString();
+                            xml = new BooksCatalog().GetCatalogByAuthor(request.Substring(8), acceptFB2).ToString();
                         }
                         else if (request.StartsWith("/sequencesindex"))
                         {
@@ -90,7 +90,7 @@ namespace TinyOPDS.Server
                         }
                         else if (request.Contains("/sequence/"))
                         {
-                            xml = new BooksCatalog().GetCatalogBySequence(request.Substring(10), fb2Only).ToString();
+                            xml = new BooksCatalog().GetCatalogBySequence(request.Substring(10), acceptFB2).ToString();
                         }
                         else if (request.StartsWith("/genres"))
                         {
@@ -99,17 +99,17 @@ namespace TinyOPDS.Server
                         }
                         else if (request.StartsWith("/genre/"))
                         {
-                            xml = new BooksCatalog().GetCatalogByGenre(request.Substring(7), fb2Only).ToString();
+                            xml = new BooksCatalog().GetCatalogByGenre(request.Substring(7), acceptFB2).ToString();
                         }
                         else if (request.StartsWith("/search"))
                         {
                             if (http_params[1].Equals("searchTerm"))
                             {
-                                xml = new OpenSearch().Search(http_params[2], "", fb2Only).ToString();
+                                xml = new OpenSearch().Search(http_params[2], "", acceptFB2).ToString();
                             }
                             else if (http_params[1].Equals("searchType"))
                             {
-                                xml = new OpenSearch().Search(http_params[4], http_params[2], fb2Only).ToString();
+                                xml = new OpenSearch().Search(http_params[4], http_params[2], acceptFB2).ToString();
                             }
                         }
 

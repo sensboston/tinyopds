@@ -66,7 +66,7 @@ namespace TinyOPDS.OPDS
         /// <param name="searchPattern"></param>
         /// <param name="searchFor"></param>
         /// <returns></returns>
-        private XDocument GetCatalog(string searchPattern, SearchFor searchFor, bool fb2Only)
+        private XDocument GetCatalog(string searchPattern, SearchFor searchFor, bool acceptFB2)
         {
             if (!string.IsNullOrEmpty(searchPattern)) searchPattern = HttpUtility.UrlDecode(searchPattern);
 
@@ -154,7 +154,7 @@ namespace TinyOPDS.OPDS
 
                 entry.Add(
                     new XElement(Namespaces.dc + "language", book.Language),
-                    new XElement(Namespaces.dc + "format", "fb2+zip"),
+                    new XElement(Namespaces.dc + "format", book.BookType == BookType.FB2 ? "fb2+zip" : "epub+zip"),
                     new XElement("content", new XAttribute("type", "text/html"), bookInfo));
 
                 if (book.HasCover)
@@ -170,7 +170,7 @@ namespace TinyOPDS.OPDS
                 }
 
                 string url = "http://{$HOST}/" + Transliteration.Front(string.Format("{0}/{1}_{2}", book.ID, book.Authors.First(), book.Title));
-                if (!fb2Only && (book.BookType == BookType.EPUB || !string.IsNullOrEmpty(Properties.Settings.Default.ConvertorPath)))
+                if (book.BookType == BookType.EPUB || !(acceptFB2 && string.IsNullOrEmpty(Properties.Settings.Default.ConvertorPath)))
                 {
                     entry.Add(new XElement("link", new XAttribute("href", url+".epub"), new XAttribute("rel", "http://opds-spec.org/acquisition/open-access"), new XAttribute("type", "application/epub+zip")));
                 }

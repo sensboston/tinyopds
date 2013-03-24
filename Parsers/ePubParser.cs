@@ -3,6 +3,7 @@ using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Drawing;
+using System.Drawing.Imaging;
 
 using TinyOPDS.Data;
 using eBdb.EpubReader;
@@ -25,6 +26,16 @@ namespace TinyOPDS.Parsers
                 book.DocumentSize = (UInt32)stream.Length;
                 stream.Position = 0;
                 Epub epub = new Epub(stream);
+                book.ID = epub.UUID;
+                if (epub.Date != null && epub.Date.Count > 0)
+                {
+                    try { book.BookDate = DateTime.Parse(epub.Date.First().Date); }
+                    catch
+                    {
+                        int year;
+                        if (int.TryParse(epub.Date.First().Date, out year)) book.BookDate = new DateTime(year, 1, 1);
+                    }
+                }
                 book.Title = epub.Title[0];
                 book.Authors = new List<string>();
                 book.Authors.AddRange(epub.Creator);
@@ -34,6 +45,23 @@ namespace TinyOPDS.Parsers
                 if (book.Genres.Count < 1) book.Genres.Add("prose");
                 if (epub.Description != null && epub.Description.Count > 0) book.Annotation = epub.Description.First();
                 if (epub.Language != null && epub.Language.Count > 0) book.Language = epub.Language.First();
+
+                // Lookup cover
+                if (epub.ExtendedData != null)
+                {
+                    foreach (ExtendedData value in epub.ExtendedData.Values)
+                    {
+                        string s = value.FileName.ToLower();
+                        if (s.Contains(".jpeg") || s.Contains(".jpg") || s.Contains(".png"))
+                        {
+                            if (value.ID.ToLower().Contains("cover"))
+                            {
+                                book.HasCover = true;
+                                break;
+                            }
+                        }
+                    }
+                }
             }
             catch (Exception e)
             {
@@ -50,16 +78,43 @@ namespace TinyOPDS.Parsers
         /// <returns></returns>
         public override Image GetCoverImage(Stream stream, string fileName)
         {
+            Image image = null;
             try
             {
                 stream.Position = 0;
                 Epub epub = new Epub(stream);
+                if (epub.ExtendedData != null)
+                {
+                    foreach (ExtendedData value in epub.ExtendedData.Values)
+                    {
+                        string s = value.FileName.ToLower();
+                        if (s.Contains(".jpeg") || s.Contains(".jpg") || s.Contains(".png"))
+                        {
+                            if (value.ID.ToLower().Contains("cover"))
+                            {
+                                using (MemoryStream memStream = new MemoryStream(value.GetContentAsBinary()))
+                                {
+                                    image = Image.FromStream(memStream);
+                                    // Convert image to jpeg
+                                    string mimeType = value.MimeType.ToLower();
+                                    ImageFormat fmt = mimeType.Contains("png") ? ImageFormat.Png : ImageFormat.Gif;
+                                    if (!mimeType.Contains("jpeg"))
+                                    {
+                                        image = Image.FromStream(image.ToStream(fmt));
+                                    }
+                                    image = image.Resize(CoverImage.CoverSize);
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
             }
             catch (Exception e)
             {
                 Log.WriteLine("GetCoverImage exception {0}", e.Message);
             }
-            return null;
+            return image;
         }
     }
 }

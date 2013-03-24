@@ -45,7 +45,7 @@ namespace TinyOPDS.Data
             {
                 // Book ID always must be in GUID form
                 Guid guid;
-                if (Guid.TryParse(value, out guid)) _id = value; else _id = Utils.Create(Utils.IsoOidNamespace, value).ToString();
+                if (!string.IsNullOrEmpty(value) && Guid.TryParse(value, out guid)) _id = value; else _id = Utils.Create(Utils.IsoOidNamespace, FileName).ToString();
             }
         }
         public float Version { get; set; }

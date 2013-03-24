@@ -37,7 +37,7 @@ namespace TinyOPDS.Parsers
 
                 if (fb2.DocumentInfo != null)
                 {
-                    book.ID = (!string.IsNullOrEmpty(fb2.DocumentInfo.ID) ? fb2.DocumentInfo.ID : Utils.Create(Utils.IsoOidNamespace, fileName).ToString());
+                    book.ID = fb2.DocumentInfo.ID;
                     if (fb2.DocumentInfo.DocumentVersion != null) book.Version = (float) fb2.DocumentInfo.DocumentVersion;
                     if (fb2.DocumentInfo.DocumentDate != null) book.DocumentDate = fb2.DocumentInfo.DocumentDate.DateValue;
                 }

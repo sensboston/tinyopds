@@ -56,11 +56,14 @@ namespace TinyOPDS
                 _watcher.OnLibraryChanged += (___, _____) => { UpdateInfo(); };
                 _watcher.IsEnabled = Properties.Settings.Default.WatchLibrary;
 
+                var abooks = new BooksCatalog().GetCatalogByAuthor("Boothman, Nicholas", true);
+                
                 var allBooks = new OpenSearch().Search("ав", "books", true).ToString();
 
                 var allAuthors = new OpenSearch().Search("пел", "authors", true).ToString();
 
                 var books = new OpenSearch().Search("Gene", "books", true);
+
 
                 if (String.IsNullOrEmpty(books.ToString()))
                 { }

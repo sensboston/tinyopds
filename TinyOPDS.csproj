@@ -91,9 +91,6 @@
     <StartupObject>TinyOPDS.Program</StartupObject>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="eBdb.EpubReader, Version=1.0.0.6, Culture=neutral, processorArchitecture=MSIL" />
-    <Reference Include="FB2Library, Version=1.0.22.0, Culture=neutral, processorArchitecture=MSIL" />
-    <Reference Include="Ionic.Zip.Reduced, Version=1.9.1.9000, Culture=neutral, processorArchitecture=MSIL" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Web" />
@@ -193,7 +190,6 @@
       <Install>true</Install>
     </BootstrapperPackage>
   </ItemGroup>
-  <ItemGroup />
   <ItemGroup>
     <EmbeddedResource Include="translation.xml" />
     <EmbeddedResource Include="Icons\authors.ico" />
@@ -203,11 +199,31 @@
     <EmbeddedResource Include="genres.xml" />
     <Content Include="Icons\lib.png" />
     <Content Include="Icons\TinyOPDS.ico" />
-    <None Include="Libs\gzip.exe" />
+    <Content Include="TinyOPDS.ico" />
+  </ItemGroup>
+  <ItemGroup Condition=" '$(Configuration)' == 'Debug' ">
     <None Include="Libs\eBdb.EpubReader.dll" />
     <None Include="Libs\FB2Library.dll" />
     <None Include="Libs\Ionic.Zip.Reduced.dll" />
-    <Content Include="TinyOPDS.ico" />
+  </ItemGroup>
+  <ItemGroup Condition=" '$(Configuration)' == 'Release' ">
+    <None Include="Libs\eBdb.EpubReader.dll" />
+    <None Include="Libs\FB2Library.dll" />
+    <None Include="Libs\Ionic.Zip.Reduced.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\dotNetZip\Zip Reduced\Zip Reduced.csproj">
+      <Project>{49A128D3-C3F2-46B1-8F7A-EECD209EA860}</Project>
+      <Name>Zip Reduced</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ePubReader\ePubReader\ePubReader.csproj">
+      <Project>{B5D1C9DA-D5F6-42CD-B639-E6796DD2BDBB}</Project>
+      <Name>ePubReader</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\fb2library\FB2Library.csproj">
+      <Project>{4DEC5888-E71A-4D00-93B7-7F11C92D0A3F}</Project>
+      <Name>FB2Library</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

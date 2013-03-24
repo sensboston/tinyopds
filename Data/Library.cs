@@ -84,7 +84,7 @@ namespace TinyOPDS.Data
         {
             lock (_paths)
             {
-                return _paths.ContainsKey(bookPath.Substring(_libraryPathLength));
+                return _paths.ContainsKey(bookPath);
             }
         }
 
@@ -294,7 +294,7 @@ namespace TinyOPDS.Data
                             try
                             {
                                 string fileName = reader.ReadString();
-                                Book book = new Book(fileName);
+                                Book book = new Book(Path.Combine(LibraryPath,fileName));
                                 book.ID = reader.ReadString();
                                 book.Version = reader.ReadSingle();
                                 book.Title = reader.ReadString();

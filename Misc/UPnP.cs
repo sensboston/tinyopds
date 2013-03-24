@@ -7,6 +7,7 @@ using System.Net;
 using System.Xml;
 using System.IO;
 using System.Net.NetworkInformation;
+using Microsoft.Win32;
 
 namespace UPnP
 {
@@ -56,6 +57,13 @@ namespace UPnP
 
         private static string GetServiceUrl(string resp)
         {
+            // Prevent IOException 
+            // See https://connect.microsoft.com/VisualStudio/feedback/details/773666/webrequest-create-eats-an-ioexception-on-the-first-call#details
+            RegistryKey registryKey = null;
+            registryKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Wow6432Node\\Microsoft\\.NETFramework", true);
+            if (registryKey == null) registryKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\.NETFramework", true);
+            if (registryKey.GetValue("LegacyWPADSupport") == null) registryKey.SetValue("LegacyWPADSupport", 0);
+
             try
             {
                 XmlDocument desc = new XmlDocument();
@@ -163,9 +171,12 @@ namespace UPnP
                     XmlDocument xdoc = SOAPRequest(_serviceUrl,
                         "<u:GetExternalIPAddress xmlns:u=\"urn:schemas-upnp-org:service:WANIPConnection:1\">" +
                         "</u:GetExternalIPAddress>", "GetExternalIPAddress");
-                    XmlNamespaceManager nsMgr = new XmlNamespaceManager(xdoc.NameTable);
-                    nsMgr.AddNamespace("tns", "urn:schemas-upnp-org:device-1-0");
-                    ip = xdoc.SelectSingleNode("//NewExternalIPAddress/text()", nsMgr).Value;
+                    if (xdoc.OuterXml.Contains("NewExternalIPAddress"))
+                    {
+                        XmlNamespaceManager nsMgr = new XmlNamespaceManager(xdoc.NameTable);
+                        nsMgr.AddNamespace("tns", "urn:schemas-upnp-org:device-1-0");
+                        ip = xdoc.SelectSingleNode("//NewExternalIPAddress/text()", nsMgr).Value;
+                    }
                 }
                 // Let's use non-UPnP method
                 else

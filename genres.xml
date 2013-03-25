@@ -94,7 +94,7 @@
 		<subgenre tag="adv_geo" ru="Путешествия и география">Travel &amp; Geography</subgenre>
 		<subgenre tag="adv_animal" ru="Природа и животные">Nature &amp; Animals</subgenre>
 		<subgenre tag="adventure" ru="Приключения: прочее">Misk Adventures</subgenre>
-		<subgenre tag="child_adv" ru="Детские приключения">Adventures for Kids</subgenre>
+		<subgenre tag="child_adv" ru="Детские приключения">Kids Adventures</subgenre>
 	</genre>
 	<genre ru="Детское" name="Children's">
 		<subgenre tag="child_tale" ru="Сказка">Fairy Tales</subgenre>
@@ -102,7 +102,7 @@
 		<subgenre tag="child_prose" ru="Детская проза">Prose for Kids</subgenre>
 		<subgenre tag="child_sf" ru="Детская фантастика">Science Fiction for Kids</subgenre>
 		<subgenre tag="child_det" ru="Детские остросюжетные">Detective for Kids</subgenre>
-		<subgenre tag="child_adv" ru="Детские приключения">Adventures for Kids</subgenre>
+		<subgenre tag="child_adv" ru="Детские приключения">Kids Adventures</subgenre>
 		<subgenre tag="child_education" ru="Образовательная литература">Education for Kids</subgenre>
 		<subgenre tag="children" ru="Детская литература: прочее">For Kids: Misk</subgenre>
 		<subgenre tag="child_folklore" ru="Детский фольклор">Child Folklore</subgenre>

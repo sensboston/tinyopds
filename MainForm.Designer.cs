@@ -72,6 +72,7 @@
             this.label3 = new System.Windows.Forms.Label();
             this.serverButton = new System.Windows.Forms.Button();
             this.tabPage3 = new System.Windows.Forms.TabPage();
+            this.useUPnP = new System.Windows.Forms.CheckBox();
             this.saveLog = new System.Windows.Forms.CheckBox();
             this.label11 = new System.Windows.Forms.Label();
             this.langCombo = new System.Windows.Forms.ComboBox();
@@ -88,7 +89,6 @@
             this.serverMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripSeparator();
             this.exitMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.useUPnP = new System.Windows.Forms.CheckBox();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.tabPage2.SuspendLayout();
@@ -562,6 +562,17 @@
             this.tabPage3.TabIndex = 2;
             this.tabPage3.Text = "Miscellaneous";
             // 
+            // useUPnP
+            // 
+            this.useUPnP.AutoSize = true;
+            this.useUPnP.Location = new System.Drawing.Point(11, 202);
+            this.useUPnP.Name = "useUPnP";
+            this.useUPnP.Size = new System.Drawing.Size(76, 17);
+            this.useUPnP.TabIndex = 34;
+            this.useUPnP.Text = "Use UPnP";
+            this.useUPnP.UseVisualStyleBackColor = true;
+            this.useUPnP.CheckedChanged += new System.EventHandler(this.useUPnP_CheckedChanged);
+            // 
             // saveLog
             // 
             this.saveLog.AutoSize = true;
@@ -707,17 +718,6 @@
             this.exitMenuItem.Text = "Exit";
             this.exitMenuItem.Click += new System.EventHandler(this.exitMenuItem_Click);
             // 
-            // useUPnP
-            // 
-            this.useUPnP.AutoSize = true;
-            this.useUPnP.Location = new System.Drawing.Point(11, 202);
-            this.useUPnP.Name = "useUPnP";
-            this.useUPnP.Size = new System.Drawing.Size(76, 17);
-            this.useUPnP.TabIndex = 34;
-            this.useUPnP.Text = "Use UPnP";
-            this.useUPnP.UseVisualStyleBackColor = true;
-            this.useUPnP.CheckedChanged += new System.EventHandler(this.useUPnP_CheckedChanged);
-            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -731,10 +731,8 @@
             this.Name = "MainForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "TinyOPDS server";
-            this.Activated += new System.EventHandler(this.MainForm_Activated);
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainForm_FormClosing);
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.MainForm_FormClosed);
-            this.Load += new System.EventHandler(this.MainForm_Load);
             this.Resize += new System.EventHandler(this.MainForm_Resize);
             this.tabControl1.ResumeLayout(false);
             this.tabPage1.ResumeLayout(false);

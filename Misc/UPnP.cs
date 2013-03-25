@@ -7,55 +7,126 @@ using System.Net;
 using System.Xml;
 using System.IO;
 using System.Net.NetworkInformation;
+using System.ComponentModel;
 using Microsoft.Win32;
 
 namespace UPnP
 {
-    public class NAT
+    public class UPnPController : IDisposable
     {
-        public static bool IsReady { get { return !string.IsNullOrEmpty(_serviceUrl); } }
+        private bool _disposed = false;
+        private string _descUrl, _serviceUrl, _eventUrl;
+        private BackgroundWorker _worker;
+        private WebClient _webClient;
 
-        private static string _descUrl, _serviceUrl, _eventUrl;
+        public bool Discovered { get; private set; }
+        public event EventHandler DiscoverCompleted;
 
-        public static bool Discover()
+        public bool UPnPReady { get { return !string.IsNullOrEmpty(_serviceUrl); } }
+
+        public UPnPController ()
         {
-            using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp))
-            {
-                socket.ReceiveTimeout = 2000;
-                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, 1);
-                string req = "M-SEARCH * HTTP/1.1\r\n" +
-                             "HOST: 239.255.255.250:1900\r\n" +
-                             "ST:upnp:rootdevice\r\n" +
-                             "MAN:\"ssdp:discover\"\r\n" +
-                             "MX:3\r\n\r\n";
-                byte[] data = Encoding.ASCII.GetBytes(req);
-                IPEndPoint ipe = new IPEndPoint(IPAddress.Broadcast, 1900);
-                byte[] buffer = new byte[0x1000];
-
-                for (int i = 0; i < 3; i++) socket.SendTo(data, ipe);
-
-                int length = 0;
-                do
-                {
-                    try { length = socket.Receive(buffer); }
-                    catch { return false; }
-                    string resp = Encoding.ASCII.GetString(buffer, 0, length).ToLower();
-                    if (resp.Contains("upnp:rootdevice"))
-                    {
-                        resp = resp.Substring(resp.ToLower().IndexOf("location:") + 9);
-                        resp = resp.Substring(0, resp.IndexOf("\r")).Trim();
-                        if (!string.IsNullOrEmpty(_serviceUrl = GetServiceUrl(resp)))
-                        {
-                            _descUrl = resp;
-                            return true;
-                        }
-                    }
-                } while (length > 0);
-            }
-            return false;
+            LocalIP = DetectLocalIP();
+            Discovered = false;
         }
 
-        private static string GetServiceUrl(string resp)
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!this._disposed && disposing)
+            {
+                if (_webClient != null && _webClient.IsBusy)
+                {
+                    _webClient.CancelAsync();
+                    _webClient.Dispose();
+                }
+                DiscoverCompleted = null;
+                _disposed = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        public void DiscoverAsync(bool useUPnP)
+        {
+            _worker = new BackgroundWorker();
+            _worker.DoWork += new DoWorkEventHandler(_worker_DoWork);
+            _worker.RunWorkerAsync(useUPnP);
+        }
+
+        void _worker_DoWork(object sender, DoWorkEventArgs e)
+        {
+            bool detectUPnP = (bool) e.Argument;
+            if (detectUPnP)
+            {
+                using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp))
+                {
+                    socket.ReceiveTimeout = 2000;
+                    socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, 1);
+                    string req = "M-SEARCH * HTTP/1.1\r\n" +
+                                 "HOST: 239.255.255.250:1900\r\n" +
+                                 "ST:upnp:rootdevice\r\n" +
+                                 "MAN:\"ssdp:discover\"\r\n" +
+                                 "MX:3\r\n\r\n";
+                    byte[] data = Encoding.ASCII.GetBytes(req);
+                    IPEndPoint ipe = new IPEndPoint(IPAddress.Broadcast, 1900);
+                    byte[] buffer = new byte[0x1000];
+
+                    for (int i = 0; i < 2; i++) socket.SendTo(data, ipe);
+
+                    int length = 0;
+                    do
+                    {
+                        try { length = socket.Receive(buffer); }
+                        catch { break; }
+                        string resp = Encoding.ASCII.GetString(buffer, 0, length).ToLower();
+                        if (resp.Contains("upnp:rootdevice"))
+                        {
+                            resp = resp.Substring(resp.ToLower().IndexOf("location:") + 9);
+                            resp = resp.Substring(0, resp.IndexOf("\r")).Trim();
+                            if (!string.IsNullOrEmpty(_serviceUrl = GetServiceUrl(resp)))
+                            {
+                                _descUrl = resp;
+                                break;
+                            }
+                        }
+                    } while (length > 0);
+                }
+                Discovered = true;
+
+                string ip = "127.0.0.0";
+                XmlDocument xdoc = SOAPRequest(_serviceUrl,
+                    "<u:GetExternalIPAddress xmlns:u=\"urn:schemas-upnp-org:service:WANIPConnection:1\">" +
+                    "</u:GetExternalIPAddress>", "GetExternalIPAddress");
+                if (xdoc.OuterXml.Contains("NewExternalIPAddress"))
+                {
+                    XmlNamespaceManager nsMgr = new XmlNamespaceManager(xdoc.NameTable);
+                    nsMgr.AddNamespace("tns", "urn:schemas-upnp-org:device-1-0");
+                    ip = xdoc.SelectSingleNode("//NewExternalIPAddress/text()", nsMgr).Value;
+                }
+                ExternalIP = IPAddress.Parse(ip);
+                if (DiscoverCompleted != null) DiscoverCompleted(this, new EventArgs());
+            }
+            // Just detect external IP address
+            else
+            {
+                _webClient = new WebClient();
+                _webClient.DownloadStringCompleted += (object o, DownloadStringCompletedEventArgs ea) =>
+                    {
+                        if (!_disposed)
+                        {
+                            ExternalIP = IPAddress.Parse(ea.Result);
+                            if (DiscoverCompleted != null) DiscoverCompleted(this, new EventArgs());
+                        }
+                    };
+                _webClient.DownloadStringAsync(new Uri("http://myip.dnsdynamic.org")); 
+            }
+        }
+
+        private string GetServiceUrl(string resp)
         {
             // Prevent IOException 
             // See https://connect.microsoft.com/VisualStudio/feedback/details/773666/webrequest-create-eats-an-ioexception-on-the-first-call#details
@@ -84,16 +155,16 @@ namespace UPnP
             }
         }
 
-        private static string CombineUrls(string resp, string p)
+        private string CombineUrls(string resp, string p)
         {
             int n = resp.IndexOf("://");
             n = resp.IndexOf('/', n + 3);
             return resp.Substring(0, n) + p;
         }
 
-        public static void ForwardPort(int port, ProtocolType protocol, string description)
+        public void ForwardPort(int port, ProtocolType protocol, string description)
         {
-            if (IsReady)
+            if (UPnPReady)
             {
                 XmlDocument xdoc = SOAPRequest(_serviceUrl, 
                     "<u:AddPortMapping xmlns:u=\"urn:schemas-upnp-org:service:WANIPConnection:1\">" +
@@ -104,9 +175,9 @@ namespace UPnP
             }
         }
 
-        public static void DeleteForwardingRule(int port, ProtocolType protocol)
+        public void DeleteForwardingRule(int port, ProtocolType protocol)
         {
-            if (IsReady)
+            if (UPnPReady)
             {
                 XmlDocument xdoc = SOAPRequest(_serviceUrl,
                     "<u:DeletePortMapping xmlns:u=\"urn:schemas-upnp-org:service:WANIPConnection:1\">" +
@@ -119,76 +190,48 @@ namespace UPnP
         }
 
         /// <summary>
-        /// Detect local IP address
+        /// Local IP address
         /// </summary>
         /// <returns></returns>
-        public static IPAddress LocalIP
-        {
-            get
-            {
-                IPAddress address = IPAddress.Any;
-                try
-                {
-                    string ip = "127.0.0.0";
-                    foreach (NetworkInterface networkCard in NetworkInterface.GetAllNetworkInterfaces())
-                    {
-                        foreach (GatewayIPAddressInformation gatewayAddr in networkCard.GetIPProperties().GatewayAddresses)
-                        {
-                            if (gatewayAddr.Address.ToString() != "0.0.0.0")
-                            {
-                                ip = gatewayAddr.Address.ToString();
-                                ip = ip.Substring(0, ip.LastIndexOf('.'));
-                                break;
-                            }
-                        }
-                    }
+        public IPAddress LocalIP { get; private set; }
 
-                    IPAddress[] addresses = Dns.GetHostAddresses(Dns.GetHostName());
-                    foreach (IPAddress addr in addresses)
-                    {
-                        if (addr.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-                        {
-                            if (addr.ToString().Contains(ip))
-                            {
-                                address = addr;
-                                break;
-                            }
-                        }
-                    }
-                }
-                catch { }
-                return address;
-            }
-        }
-
-        public static IPAddress ExternalIP
+        private IPAddress DetectLocalIP()
         {
-            get
+            IPAddress address = IPAddress.Any;
+            try
             {
                 string ip = "127.0.0.0";
-                if (IsReady)
+                foreach (NetworkInterface networkCard in NetworkInterface.GetAllNetworkInterfaces())
                 {
-                    XmlDocument xdoc = SOAPRequest(_serviceUrl,
-                        "<u:GetExternalIPAddress xmlns:u=\"urn:schemas-upnp-org:service:WANIPConnection:1\">" +
-                        "</u:GetExternalIPAddress>", "GetExternalIPAddress");
-                    if (xdoc.OuterXml.Contains("NewExternalIPAddress"))
+                    foreach (GatewayIPAddressInformation gatewayAddr in networkCard.GetIPProperties().GatewayAddresses)
                     {
-                        XmlNamespaceManager nsMgr = new XmlNamespaceManager(xdoc.NameTable);
-                        nsMgr.AddNamespace("tns", "urn:schemas-upnp-org:device-1-0");
-                        ip = xdoc.SelectSingleNode("//NewExternalIPAddress/text()", nsMgr).Value;
+                        if (gatewayAddr.Address.ToString() != "0.0.0.0")
+                        {
+                            ip = gatewayAddr.Address.ToString();
+                            ip = ip.Substring(0, ip.LastIndexOf('.'));
+                            break;
+                        }
                     }
                 }
-                // Let's use non-UPnP method
-                else
+
+                IPAddress[] addresses = Dns.GetHostAddresses(Dns.GetHostName());
+                foreach (IPAddress addr in addresses)
                 {
-                    using (WebClient client = new WebClient())
+                    if (addr.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
                     {
-                        try { ip = client.DownloadString("http://myip.dnsdynamic.org"); } catch { }
+                        if (addr.ToString().Contains(ip))
+                        {
+                            address = addr;
+                            break;
+                        }
                     }
                 }
-                return IPAddress.Parse(ip);
             }
+            catch { }
+            return address;
         }
+
+        public IPAddress ExternalIP { get; private set;}
 
         private static XmlDocument SOAPRequest(string url, string soap, string function)
         {

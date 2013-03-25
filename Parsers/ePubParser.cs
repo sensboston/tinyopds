@@ -40,9 +40,7 @@ namespace TinyOPDS.Parsers
                 book.Authors = new List<string>();
                 book.Authors.AddRange(epub.Creator);
                 for (int i = 0; i < book.Authors.Count; i++) book.Authors[i] = book.Authors[i].Capitalize();
-                book.Genres = new List<string>(); 
-                book.Genres.AddRange(epub.Subject);
-                if (book.Genres.Count < 1) book.Genres.Add("prose");
+                book.Genres = LookupGenres(epub.Subject);
                 if (epub.Description != null && epub.Description.Count > 0) book.Annotation = epub.Description.First();
                 if (epub.Language != null && epub.Language.Count > 0) book.Language = epub.Language.First();
 
@@ -68,6 +66,31 @@ namespace TinyOPDS.Parsers
                 Log.WriteLine(LogLevel.Error, "exception {0}" , e.Message);
             }
             return book;
+        }
+
+        /// <summary>
+        /// Epub's "subjects" are non-formal and extremely messy :( 
+        /// This function will try to find a corresponding genres from the FB2 standard genres by using Soundex algorithm
+        /// </summary>
+        /// <param name="subjects"></param>
+        /// <returns></returns>
+        private List<string> LookupGenres(List<string> subjects)
+        {
+            List<string> genres = new List<string>();
+            if (subjects == null || subjects.Count < 1)
+            {
+                genres.Add("prose");
+            }
+            else
+            {
+                foreach (string subj in subjects)
+                {
+                    var genre = Library.SoundexedGenres.Where(g => g.Key.StartsWith(subj.SoundexByWord()) && g.Key.WordsCount() <= subj.WordsCount()+1).FirstOrDefault();
+                    if (genre.Key != null) genres.Add(genre.Value);
+                }
+                if (genres.Count < 1) genres.Add("prose");
+            }
+            return genres;
         }
 
         /// <summary>

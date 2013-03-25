@@ -21,12 +21,11 @@ namespace TinyOPDS
     public partial class MainForm : Form
     {
         OPDSServer _server;
-        Thread _serverThread, _ipFinder;
+        Thread _serverThread;
         FileScanner _scanner = new FileScanner();
         Watcher _watcher;
         DateTime _scanStartTime;
-        IPAddress _localIP, _externalIP;
-        bool _isUPnPReady = false;
+        UPnPController _upnpController = new UPnPController();
 
         #region Statistical information
         int _fb2Count, _epubCount, _skippedFiles, _invalidFiles, _duplicates;
@@ -56,58 +55,34 @@ namespace TinyOPDS
                 _watcher.OnLibraryChanged += (___, _____) => { UpdateInfo(); };
                 _watcher.IsEnabled = Properties.Settings.Default.WatchLibrary;
 
-                var abooks = new BooksCatalog().GetCatalogByAuthor("Boothman, Nicholas", true);
-                
                 var allBooks = new OpenSearch().Search("ав", "books", true).ToString();
-
-                var allAuthors = new OpenSearch().Search("пел", "authors", true).ToString();
-
                 var books = new OpenSearch().Search("Gene", "books", true);
-
 
                 if (String.IsNullOrEmpty(books.ToString()))
                 { }
             };
 
-            Log.WriteLine("TinyOPDS application started");
-        }
-
-        private void MainForm_Load(object sender, EventArgs e)
-        {
-            // Detect IP addresses
-            _ipFinder = new Thread(new ThreadStart(DetectIPs));
-            _ipFinder.Name = "IPDetector";
-            _ipFinder.Priority = ThreadPriority.AboveNormal;
-            _ipFinder.Start();
+            intIP.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
+            _upnpController.DiscoverCompleted += new EventHandler(_upnpController_DiscoverCompleted);
+            _upnpController.DiscoverAsync(Properties.Settings.Default.UseUPnP);
 
             // Start OPDS server
             StartHttpServer();
 
             _scanStartTime = DateTime.Now;
             notifyIcon1.Visible = Properties.Settings.Default.CloseToTray;
+
+            Log.WriteLine("TinyOPDS application started");
         }
 
-        private void MainForm_Activated(object sender, EventArgs e)
+        void _upnpController_DiscoverCompleted(object sender, EventArgs e)
         {
-            windowMenuItem.Text = Localizer.Text(this.Visible ? "Hide window" : "Show window");
-            serverMenuItem.Text = Localizer.Text(_server == null ? "Start server" : "Stop server");
-        }
-
-        private void DetectIPs()
-        {
-            _localIP = NAT.LocalIP;
-            this.BeginInvoke((MethodInvoker)delegate { intIP.Text = string.Format(urlTemplate, _localIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix); });
-            if (Properties.Settings.Default.UseUPnP)
-            {
-                _isUPnPReady = NAT.Discover();
-            }
-            _externalIP = NAT.ExternalIP;
-            if (!this.IsDisposed)
+            if (!IsDisposed && _upnpController != null)
             {
                 this.BeginInvoke((MethodInvoker)delegate
                 {
-                    extIP.Text = string.Format(urlTemplate, _externalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
-                    if (_isUPnPReady)
+                    extIP.Text = string.Format(urlTemplate, _upnpController.ExternalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
+                    if (_upnpController.UPnPReady)
                     {
                         openPort.Enabled = true;
                         if (Properties.Settings.Default.OpenNATPort) openPort_CheckedChanged(this, null);
@@ -194,12 +169,12 @@ namespace TinyOPDS
 
         private void rootPrefix_TextChanged(object sender, EventArgs e)
         {
-            if (_localIP != null && _externalIP != null)
+            if (_upnpController != null && _upnpController.UPnPReady)
             {
                 if (rootPrefix.Text.EndsWith("/")) rootPrefix.Text = rootPrefix.Text.Remove(rootPrefix.Text.Length - 1);
                 Properties.Settings.Default.RootPrefix = rootPrefix.Text;
-                intIP.Text = string.Format(urlTemplate, _localIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
-                extIP.Text = string.Format(urlTemplate, _externalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
+                intIP.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
+                extIP.Text = string.Format(urlTemplate, _upnpController.ExternalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
             }
          }
 
@@ -211,7 +186,7 @@ namespace TinyOPDS
             {
                 if (port != Properties.Settings.Default.ServerPort)
                 {
-                    if (_isUPnPReady && openPort.Checked)
+                    if (_upnpController != null && _upnpController.UPnPReady && openPort.Checked)
                     {
                         openPort.Checked = false;
                         Properties.Settings.Default.ServerPort = port;
@@ -380,10 +355,10 @@ namespace TinyOPDS
         {
             if (Properties.Settings.Default.UseUPnP != useUPnP.Checked)
             {
-                if (useUPnP.Checked && !NAT.IsReady)
+                if (useUPnP.Checked && !_upnpController.Discovered)
                 {
                     // Re-detect IP addresses using UPnP
-                    DetectIPs();
+                    _upnpController.DiscoverAsync(true);
                 }
                 Properties.Settings.Default.UseUPnP = useUPnP.Checked;
             }
@@ -391,18 +366,18 @@ namespace TinyOPDS
 
         private void openPort_CheckedChanged(object sender, EventArgs e)
         {
-            if (_externalIP != null && _isUPnPReady)
+            if (_upnpController != null && _upnpController.UPnPReady)
             {
                 int port = Properties.Settings.Default.ServerPort;
                 if (openPort.Checked)
                 {
-                    NAT.ForwardPort(port, System.Net.Sockets.ProtocolType.Tcp, "TinyOPDS server");
+                    _upnpController.ForwardPort(port, System.Net.Sockets.ProtocolType.Tcp, "TinyOPDS server");
 
                     Log.WriteLine("Port {0} forwarded by UPnP", port);
                 }
                 else
                 {
-                    NAT.DeleteForwardingRule(port, System.Net.Sockets.ProtocolType.Tcp);
+                    _upnpController.DeleteForwardingRule(port, System.Net.Sockets.ProtocolType.Tcp);
 
                     Log.WriteLine("Port {0} closed", port);
                 }
@@ -460,10 +435,10 @@ namespace TinyOPDS
                 _scanner.Stop();
                 Library.Save();
             }
-            if (_ipFinder != null && _ipFinder.IsAlive)
+            if (_upnpController != null)
             {
-                _ipFinder.Abort();
-                _ipFinder = null;
+                _upnpController.DiscoverCompleted -= _upnpController_DiscoverCompleted;
+                _upnpController.Dispose();
             }
 
             // Remove port forwarding

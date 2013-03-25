@@ -6,6 +6,12 @@ namespace TinyOPDS
 {
     public static class StringExtensions
     {
+
+        public static int WordsCount(this string s)
+        {
+            return s.Split(' ', ',').Length;
+        }
+
         public static string UrlCombine(this string uri1, string uri2)
         {
             uri1 = uri1.TrimEnd('/');
@@ -23,14 +29,14 @@ namespace TinyOPDS
         public static string SoundexByWord(this string data)
         {
             var soundexes = new List<string>();
-            foreach (var str in data.Split(' '))
+            foreach (var str in data.Split(' ', ','))
             {
                 soundexes.Add(Soundex(str));
             }
             return string.Join(" ", soundexes);
         }
 
-        internal static string Soundex(string word)
+        public static string Soundex(string word)
         {
             word = Transliteration.Front(word, TransliterationType.ISO);
             StringBuilder result = new StringBuilder();
@@ -71,7 +77,7 @@ namespace TinyOPDS
         ISO
     }
 
-    internal static class Transliteration
+    public static class Transliteration
     {
         //ГОСТ 16876-71
         private static Dictionary<char, string> gostFront = new Dictionary<char, string>() { 

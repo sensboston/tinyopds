@@ -15,6 +15,7 @@ namespace TinyOPDS.Data
         private static Dictionary<string, Book> _books = new Dictionary<string, Book>();
         private static string _databaseFileName;
         private static List<Genre> _genres;
+        private static Dictionary<string, string> _soundexedGenres;
 
         /// <summary>
         /// Default constructor
@@ -50,6 +51,16 @@ namespace TinyOPDS.Data
                                 Translation = sg.Attribute("ru").Value,
                             }).ToList()
                     }).ToList();
+
+                _soundexedGenres = new Dictionary<string, string>();
+                foreach (Genre genre in _genres)
+                    foreach (Genre subgenre in genre.Subgenres)
+                    {
+                        _soundexedGenres[subgenre.Name.SoundexByWord()] = subgenre.Tag;
+                        string reversed = string.Join(" ", subgenre.Name.Split(' ', ',').Reverse()).Trim();
+                        _soundexedGenres[reversed.SoundexByWord()] = subgenre.Tag;
+                    }
+
             }
             catch { }
         }
@@ -161,14 +172,6 @@ namespace TinyOPDS.Data
             }
         }
 
-        public static List<string> BooksWithCover
-        {
-            get
-            {
-                return _books.Values.Where(b => b.HasCover).Select(b => b.Title).Distinct().OrderBy(a => a, new OPDSComparer(Localizer.Language.Equals("ru"))).ToList();
-            }
-        }
-
         /// <summary>
         /// Returns list of the library books authors sorted in alphabetical order 
         /// </summary>
@@ -205,6 +208,14 @@ namespace TinyOPDS.Data
             get
             {
                 return _genres;
+            }
+        }
+
+        public static Dictionary<string, string> SoundexedGenres
+        {
+            get
+            {
+                return _soundexedGenres;
             }
         }
 

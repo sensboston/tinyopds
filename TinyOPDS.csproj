@@ -191,14 +191,17 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
+    <None Include="TinyOPDS.png" />
     <EmbeddedResource Include="translation.xml" />
     <EmbeddedResource Include="Icons\authors.ico" />
     <EmbeddedResource Include="Icons\books.ico" />
     <EmbeddedResource Include="Icons\favicon.ico" />
     <EmbeddedResource Include="Icons\genres.ico" />
     <EmbeddedResource Include="genres.xml" />
+    <None Include="donate.png" />
     <Content Include="Icons\lib.png" />
     <Content Include="Icons\TinyOPDS.ico" />
+    <Content Include="License.txt" />
     <Content Include="TinyOPDS.ico" />
   </ItemGroup>
   <ItemGroup Condition=" '$(Configuration)' == 'Debug' ">

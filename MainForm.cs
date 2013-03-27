@@ -62,7 +62,7 @@ namespace TinyOPDS
                 { }
             };
 
-            intIP.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
+            intLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
             _upnpController.DiscoverCompleted += new EventHandler(_upnpController_DiscoverCompleted);
             _upnpController.DiscoverAsync(Properties.Settings.Default.UseUPnP);
 
@@ -81,7 +81,7 @@ namespace TinyOPDS
             {
                 this.BeginInvoke((MethodInvoker)delegate
                 {
-                    extIP.Text = string.Format(urlTemplate, _upnpController.ExternalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
+                    extLink.Text = string.Format(urlTemplate, _upnpController.ExternalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
                     if (_upnpController.UPnPReady)
                     {
                         openPort.Enabled = true;
@@ -112,6 +112,8 @@ namespace TinyOPDS
                 }
             }
             else convertorPath.Text = Properties.Settings.Default.ConvertorPath;
+            converterLinkLabel.Links.Add(0, converterLinkLabel.Text.Length, "http://fb2epub.net/files/Fb2ePubSetup_1_1_3.zip");
+            converterLinkLabel.Visible = string.IsNullOrEmpty(convertorPath.Text);
             useUPnP.Checked = Properties.Settings.Default.UseUPnP;
             openPort.Checked = Properties.Settings.Default.UseUPnP ? Properties.Settings.Default.OpenNATPort : false;
             langCombo.SelectedValue = Properties.Settings.Default.Language;
@@ -136,85 +138,6 @@ namespace TinyOPDS
             Properties.Settings.Default.WatchLibrary = useWatcher.Checked;
             Properties.Settings.Default.UseUPnP = useUPnP.Checked;
             Properties.Settings.Default.Save();
-        }
-
-        private void useWatcher_CheckedChanged(object sender, EventArgs e)
-        {
-            if (_watcher != null && _watcher.IsEnabled != useWatcher.Checked)
-            {
-                _watcher.IsEnabled = Properties.Settings.Default.WatchLibrary = useWatcher.Checked;
-            }
-        }
-
-        private void closeToTray_CheckedChanged(object sender, EventArgs e)
-        {
-            notifyIcon1.Visible = Properties.Settings.Default.CloseToTray = closeToTray.Checked;
-        }
-
-        private void startWithWindows_CheckedChanged(object sender, EventArgs e)
-        {
-            Microsoft.Win32.RegistryKey registryKey = Microsoft.Win32.Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
-            bool exists = (registryKey.GetValue("TinyOPDS") != null);
-            if (startWithWindows.Checked && !exists) registryKey.SetValue("TinyOPDS", Application.ExecutablePath);
-            else if (exists && !startWithWindows.Checked) registryKey.DeleteValue("TinyOPDS");
-        }
-
-        private void saveLog_CheckedChanged(object sender, EventArgs e)
-        {
-            if (Properties.Settings.Default.SaveLogToDisk != saveLog.Checked)
-            {
-                Log.SaveToFile = Properties.Settings.Default.SaveLogToDisk = saveLog.Checked;
-            }
-        }
-
-        private void rootPrefix_TextChanged(object sender, EventArgs e)
-        {
-            if (_upnpController != null && _upnpController.UPnPReady)
-            {
-                if (rootPrefix.Text.EndsWith("/")) rootPrefix.Text = rootPrefix.Text.Remove(rootPrefix.Text.Length - 1);
-                Properties.Settings.Default.RootPrefix = rootPrefix.Text;
-                intIP.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
-                extIP.Text = string.Format(urlTemplate, _upnpController.ExternalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
-            }
-         }
-
-        private void serverPort_Validated(object sender, EventArgs e)
-        {
-            int port = 8080;
-            bool valid = int.TryParse(serverPort.Text, out port);
-            if (valid && port >= 1 && port <= 65535)
-            {
-                if (port != Properties.Settings.Default.ServerPort)
-                {
-                    if (_upnpController != null && _upnpController.UPnPReady && openPort.Checked)
-                    {
-                        openPort.Checked = false;
-                        Properties.Settings.Default.ServerPort = port;
-                        openPort.Checked = true;
-                    }
-                    else Properties.Settings.Default.ServerPort = port;
-                    RestartHttpServer();
-                }
-            }
-            else
-            {
-                MessageBox.Show(Localizer.Text("Invalid port value: value must be numeric and in range from 1 to 65535"));
-                serverPort.Text = Properties.Settings.Default.ServerPort.ToString();
-            }
-        }
-
-        /// <summary>
-        /// Set UI language
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void langCombo_SelectedValueChanged(object sender, EventArgs e)
-        {
-            Localizer.SetLanguage(this, langCombo.SelectedValue as string);
-            if (!Properties.Settings.Default.ServerName.Equals(serverName.Text))
-            {
-                serverName.Text = Properties.Settings.Default.ServerName;
-            }
         }
 
         #endregion
@@ -355,10 +278,14 @@ namespace TinyOPDS
         {
             if (Properties.Settings.Default.UseUPnP != useUPnP.Checked)
             {
-                if (useUPnP.Checked && !_upnpController.Discovered)
+                if (useUPnP.Checked)
                 {
                     // Re-detect IP addresses using UPnP
-                    _upnpController.DiscoverAsync(true);
+                    if (!_upnpController.Discovered) _upnpController.DiscoverAsync(true);
+                }
+                else
+                {
+                    openPort.Checked = openPort.Enabled = false;
                 }
                 Properties.Settings.Default.UseUPnP = useUPnP.Checked;
             }
@@ -451,6 +378,122 @@ namespace TinyOPDS
         {
             realExit = true;
             Close();
+        }
+
+        #endregion
+
+        #region Form controls handling
+
+        private void converterLinkLabel_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            System.Diagnostics.Process.Start(e.Link.LinkData as string);
+        }
+
+        private void useWatcher_CheckedChanged(object sender, EventArgs e)
+        {
+            if (_watcher != null && _watcher.IsEnabled != useWatcher.Checked)
+            {
+                _watcher.IsEnabled = Properties.Settings.Default.WatchLibrary = useWatcher.Checked;
+            }
+        }
+
+        private void closeToTray_CheckedChanged(object sender, EventArgs e)
+        {
+            notifyIcon1.Visible = Properties.Settings.Default.CloseToTray = closeToTray.Checked;
+        }
+
+        private void startWithWindows_CheckedChanged(object sender, EventArgs e)
+        {
+            Microsoft.Win32.RegistryKey registryKey = Microsoft.Win32.Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
+            bool exists = (registryKey.GetValue("TinyOPDS") != null);
+            if (startWithWindows.Checked && !exists) registryKey.SetValue("TinyOPDS", Application.ExecutablePath);
+            else if (exists && !startWithWindows.Checked) registryKey.DeleteValue("TinyOPDS");
+        }
+
+        private void saveLog_CheckedChanged(object sender, EventArgs e)
+        {
+            if (Properties.Settings.Default.SaveLogToDisk != saveLog.Checked)
+            {
+                Log.SaveToFile = Properties.Settings.Default.SaveLogToDisk = saveLog.Checked;
+            }
+        }
+
+        /// <summary>
+        /// Handle server's root prefix change
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void rootPrefix_TextChanged(object sender, EventArgs e)
+        {
+            if (_upnpController != null && _upnpController.UPnPReady)
+            {
+                if (rootPrefix.Text.EndsWith("/")) rootPrefix.Text = rootPrefix.Text.Remove(rootPrefix.Text.Length - 1);
+                Properties.Settings.Default.RootPrefix = rootPrefix.Text;
+                intLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
+                extLink.Text = string.Format(urlTemplate, _upnpController.ExternalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
+            }
+        }
+
+        /// <summary>
+        /// Validate server port
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void serverPort_Validated(object sender, EventArgs e)
+        {
+            int port = 8080;
+            bool valid = int.TryParse(serverPort.Text, out port);
+            if (valid && port >= 1 && port <= 65535)
+            {
+                if (port != Properties.Settings.Default.ServerPort)
+                {
+                    if (_upnpController != null && _upnpController.UPnPReady && openPort.Checked)
+                    {
+                        openPort.Checked = false;
+                        Properties.Settings.Default.ServerPort = port;
+                        openPort.Checked = true;
+                    }
+                    else Properties.Settings.Default.ServerPort = port;
+                    RestartHttpServer();
+                }
+            }
+            else
+            {
+                MessageBox.Show(Localizer.Text("Invalid port value: value must be numeric and in range from 1 to 65535"));
+                serverPort.Text = Properties.Settings.Default.ServerPort.ToString();
+            }
+        }
+
+        /// <summary>
+        /// Set UI language
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void langCombo_SelectedValueChanged(object sender, EventArgs e)
+        {
+            Localizer.SetLanguage(this, langCombo.SelectedValue as string);
+            if (!Properties.Settings.Default.ServerName.Equals(serverName.Text))
+            {
+                serverName.Text = Properties.Settings.Default.ServerName;
+            }
+        }
+
+        /// <summary>
+        /// Handle PayPal donation
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void donateButton_Click(object sender, EventArgs e)
+        {
+            const string business = "sens.boston@gmail.com", description = "Donation%20for%20the%20TinyOPDS", country = "US", currency = "USD";
+            string url = string.Format("https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business={0}&lc={1}&item_name={2}&currency_code={3}&bn=PP%2dDonationsBF",
+                business, country, description, currency);
+            System.Diagnostics.Process.Start(url);
+        }
+
+        private void linkLabel_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            System.Diagnostics.Process.Start((sender as LinkLabel).Text);
         }
 
         #endregion

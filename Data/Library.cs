@@ -281,9 +281,9 @@ namespace TinyOPDS.Data
         /// </summary>
         public static void Load()
         {
-#if DEBUG
+            int numRecords = 0;
             DateTime start = DateTime.Now;
-#endif
+
             // MemoryStream can save us about 1 second on 106 Mb database load
             MemoryStream memStream = null;
             if (File.Exists(_databaseFileName))
@@ -328,6 +328,7 @@ namespace TinyOPDS.Data
                                 for (int i = 0; i < count; i++) book.Genres.Add(reader.ReadString());
                                 lock (_books) _books[book.ID] = book;
                                 lock (_paths) _paths[book.FileName] = true;
+                                numRecords++;
                             }
                             catch (EndOfStreamException)
                             {
@@ -359,9 +360,8 @@ namespace TinyOPDS.Data
                     EPUBCount = _books.Count(b => b.Value.BookType == BookType.EPUB);
                 }
             }
-#if DEBUG
-            Log.WriteLine("Database load time = {0}", DateTime.Now.Subtract(start));
-#endif
+
+            Log.WriteLine("Database load time = {0}, {1} book records loaded", DateTime.Now.Subtract(start), numRecords);
         }
 
         /// <summary>
@@ -369,6 +369,9 @@ namespace TinyOPDS.Data
         /// </summary>
         public static void Save()
         {
+            int numRecords = 0;
+            DateTime start = DateTime.Now;
+
             Stream fileStream = null;
             try
             {
@@ -377,7 +380,10 @@ namespace TinyOPDS.Data
                 {
                     fileStream = null;
                     foreach (Book book in _books.Values)
+                    {
                         writeBook(book, writer);
+                        numRecords++;
+                    }
                 }
             }
             catch (Exception e)
@@ -387,6 +393,7 @@ namespace TinyOPDS.Data
             finally
             {
                 if (fileStream != null) fileStream.Dispose();
+                Log.WriteLine("Database save time = {0}, {1} book records written to disk", DateTime.Now.Subtract(start), numRecords);
             }
         }
 

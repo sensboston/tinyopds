@@ -59,5 +59,19 @@ namespace TinyOPDS.Properties {
                 resourceCulture = value;
             }
         }
+        
+        internal static System.Drawing.Bitmap donate {
+            get {
+                object obj = ResourceManager.GetObject("donate", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        internal static System.Drawing.Bitmap TinyOPDS {
+            get {
+                object obj = ResourceManager.GetObject("TinyOPDS", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
     }
 }

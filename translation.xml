@@ -165,6 +165,26 @@
       <text lang="en">External OPDS url:</text>
       <text lang="ru">Внешняя OPDS ссылка:</text>
     </property>
+    <property form="MainForm" ctrl="converterLinkLabel">
+      <text lang="en">Click here to download latest version of ePub converter</text>
+      <text lang="ru">Кликните для закачки последней версии конвертера ePub</text>
+    </property>
+    <property form="MainForm" ctrl="appName">
+      <text lang="en">TinyOPDS server</text>
+      <text lang="ru">TinyOPDS сервер</text>
+    </property>
+    <property form="MainForm" ctrl="label17">
+      <text lang="en">Project home page:</text>
+      <text lang="ru">Домашняя страница:</text>
+    </property>
+    <property form="MainForm" ctrl="label18">
+      <text lang="en">Project license:</text>
+      <text lang="ru">Лицензия проекта:</text>
+    </property>
+    <property form="MainForm" ctrl="label20">
+      <text lang="en">Special thanks:</text>
+      <text lang="ru">Отдельное спасибо:</text>
+    </property>
     <property>
       <text lang="en">Books by authors</text>
       <text lang="ru">Книги по авторам</text>      

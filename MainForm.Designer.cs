@@ -59,10 +59,9 @@
             this.scannerButton = new System.Windows.Forms.Button();
             this.libraryPath = new System.Windows.Forms.TextBox();
             this.tabPage2 = new System.Windows.Forms.TabPage();
+            this.useUPnP = new System.Windows.Forms.CheckBox();
             this.rootPrefix = new System.Windows.Forms.TextBox();
             this.label13 = new System.Windows.Forms.Label();
-            this.extIP = new System.Windows.Forms.Label();
-            this.intIP = new System.Windows.Forms.Label();
             this.openPort = new System.Windows.Forms.CheckBox();
             this.extIPlabel = new System.Windows.Forms.Label();
             this.intIPlabel = new System.Windows.Forms.Label();
@@ -72,7 +71,7 @@
             this.label3 = new System.Windows.Forms.Label();
             this.serverButton = new System.Windows.Forms.Button();
             this.tabPage3 = new System.Windows.Forms.TabPage();
-            this.useUPnP = new System.Windows.Forms.CheckBox();
+            this.converterLinkLabel = new System.Windows.Forms.LinkLabel();
             this.saveLog = new System.Windows.Forms.CheckBox();
             this.label11 = new System.Windows.Forms.Label();
             this.langCombo = new System.Windows.Forms.ComboBox();
@@ -83,16 +82,30 @@
             this.startMinimized = new System.Windows.Forms.CheckBox();
             this.startWithWindows = new System.Windows.Forms.CheckBox();
             this.tabPage4 = new System.Windows.Forms.TabPage();
+            this.label20 = new System.Windows.Forms.Label();
+            this.label19 = new System.Windows.Forms.Label();
+            this.linkLabel2 = new System.Windows.Forms.LinkLabel();
+            this.label18 = new System.Windows.Forms.Label();
+            this.linkLabel1 = new System.Windows.Forms.LinkLabel();
+            this.label17 = new System.Windows.Forms.Label();
+            this.appVer = new System.Windows.Forms.Label();
+            this.appName = new System.Windows.Forms.Label();
+            this.pictureBox1 = new System.Windows.Forms.PictureBox();
+            this.donateButton = new System.Windows.Forms.Button();
             this.notifyIcon1 = new System.Windows.Forms.NotifyIcon(this.components);
             this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.windowMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.serverMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripSeparator();
             this.exitMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.intLink = new System.Windows.Forms.LinkLabel();
+            this.extLink = new System.Windows.Forms.LinkLabel();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.tabPage2.SuspendLayout();
             this.tabPage3.SuspendLayout();
+            this.tabPage4.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.contextMenuStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -109,7 +122,7 @@
             this.tabControl1.Location = new System.Drawing.Point(-3, -1);
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
-            this.tabControl1.Size = new System.Drawing.Size(482, 327);
+            this.tabControl1.Size = new System.Drawing.Size(482, 309);
             this.tabControl1.TabIndex = 8;
             // 
             // tabPage1
@@ -143,14 +156,14 @@
             this.tabPage1.Location = new System.Drawing.Point(4, 34);
             this.tabPage1.Name = "tabPage1";
             this.tabPage1.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage1.Size = new System.Drawing.Size(474, 289);
+            this.tabPage1.Size = new System.Drawing.Size(474, 271);
             this.tabPage1.TabIndex = 0;
             this.tabPage1.Text = "Scanner settings";
             // 
             // useWatcher
             // 
             this.useWatcher.AutoSize = true;
-            this.useWatcher.Location = new System.Drawing.Point(332, 34);
+            this.useWatcher.Location = new System.Drawing.Point(329, 34);
             this.useWatcher.Name = "useWatcher";
             this.useWatcher.Size = new System.Drawing.Size(135, 17);
             this.useWatcher.TabIndex = 30;
@@ -162,7 +175,7 @@
             // 
             this.duplicates.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.duplicates.AutoSize = true;
-            this.duplicates.Location = new System.Drawing.Point(123, 207);
+            this.duplicates.Location = new System.Drawing.Point(123, 189);
             this.duplicates.MinimumSize = new System.Drawing.Size(50, 0);
             this.duplicates.Name = "duplicates";
             this.duplicates.Size = new System.Drawing.Size(50, 13);
@@ -173,7 +186,7 @@
             // 
             this.label16.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label16.AutoSize = true;
-            this.label16.Location = new System.Drawing.Point(15, 207);
+            this.label16.Location = new System.Drawing.Point(15, 189);
             this.label16.Name = "label16";
             this.label16.Size = new System.Drawing.Size(60, 13);
             this.label16.TabIndex = 28;
@@ -192,7 +205,7 @@
             // 
             this.status.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.status.AutoSize = true;
-            this.status.Location = new System.Drawing.Point(360, 205);
+            this.status.Location = new System.Drawing.Point(360, 187);
             this.status.MinimumSize = new System.Drawing.Size(50, 0);
             this.status.Name = "status";
             this.status.Size = new System.Drawing.Size(58, 13);
@@ -203,7 +216,7 @@
             // 
             this.label14.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label14.AutoSize = true;
-            this.label14.Location = new System.Drawing.Point(253, 205);
+            this.label14.Location = new System.Drawing.Point(253, 187);
             this.label14.Name = "label14";
             this.label14.Size = new System.Drawing.Size(40, 13);
             this.label14.TabIndex = 25;
@@ -213,7 +226,7 @@
             // 
             this.rate.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.rate.AutoSize = true;
-            this.rate.Location = new System.Drawing.Point(360, 175);
+            this.rate.Location = new System.Drawing.Point(360, 157);
             this.rate.MinimumSize = new System.Drawing.Size(50, 0);
             this.rate.Name = "rate";
             this.rate.Size = new System.Drawing.Size(66, 13);
@@ -224,7 +237,7 @@
             // 
             this.label12.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label12.AutoSize = true;
-            this.label12.Location = new System.Drawing.Point(253, 175);
+            this.label12.Location = new System.Drawing.Point(253, 157);
             this.label12.Name = "label12";
             this.label12.Size = new System.Drawing.Size(33, 13);
             this.label12.TabIndex = 23;
@@ -234,7 +247,7 @@
             // 
             this.elapsedTime.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.elapsedTime.AutoSize = true;
-            this.elapsedTime.Location = new System.Drawing.Point(360, 145);
+            this.elapsedTime.Location = new System.Drawing.Point(360, 127);
             this.elapsedTime.MinimumSize = new System.Drawing.Size(50, 0);
             this.elapsedTime.Name = "elapsedTime";
             this.elapsedTime.Size = new System.Drawing.Size(50, 13);
@@ -245,7 +258,7 @@
             // 
             this.label10.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label10.AutoSize = true;
-            this.label10.Location = new System.Drawing.Point(253, 145);
+            this.label10.Location = new System.Drawing.Point(253, 127);
             this.label10.Name = "label10";
             this.label10.Size = new System.Drawing.Size(70, 13);
             this.label10.TabIndex = 21;
@@ -255,7 +268,7 @@
             // 
             this.startTime.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.startTime.AutoSize = true;
-            this.startTime.Location = new System.Drawing.Point(360, 115);
+            this.startTime.Location = new System.Drawing.Point(360, 97);
             this.startTime.MinimumSize = new System.Drawing.Size(50, 0);
             this.startTime.Name = "startTime";
             this.startTime.Size = new System.Drawing.Size(50, 13);
@@ -266,7 +279,7 @@
             // 
             this.label6.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(253, 115);
+            this.label6.Location = new System.Drawing.Point(253, 97);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(54, 13);
             this.label6.TabIndex = 19;
@@ -276,7 +289,7 @@
             // 
             this.booksProcessed.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.booksProcessed.AutoSize = true;
-            this.booksProcessed.Location = new System.Drawing.Point(123, 237);
+            this.booksProcessed.Location = new System.Drawing.Point(123, 219);
             this.booksProcessed.MinimumSize = new System.Drawing.Size(50, 0);
             this.booksProcessed.Name = "booksProcessed";
             this.booksProcessed.Size = new System.Drawing.Size(50, 13);
@@ -287,7 +300,7 @@
             // 
             this.label5.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label5.AutoSize = true;
-            this.label5.Location = new System.Drawing.Point(15, 237);
+            this.label5.Location = new System.Drawing.Point(15, 219);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(92, 13);
             this.label5.TabIndex = 17;
@@ -297,7 +310,7 @@
             // 
             this.invalidBooks.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.invalidBooks.AutoSize = true;
-            this.invalidBooks.Location = new System.Drawing.Point(123, 147);
+            this.invalidBooks.Location = new System.Drawing.Point(123, 129);
             this.invalidBooks.MinimumSize = new System.Drawing.Size(50, 0);
             this.invalidBooks.Name = "invalidBooks";
             this.invalidBooks.Size = new System.Drawing.Size(50, 13);
@@ -308,7 +321,7 @@
             // 
             this.label9.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label9.AutoSize = true;
-            this.label9.Location = new System.Drawing.Point(15, 147);
+            this.label9.Location = new System.Drawing.Point(15, 129);
             this.label9.Name = "label9";
             this.label9.Size = new System.Drawing.Size(73, 13);
             this.label9.TabIndex = 15;
@@ -318,7 +331,7 @@
             // 
             this.skippedBooks.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.skippedBooks.AutoSize = true;
-            this.skippedBooks.Location = new System.Drawing.Point(123, 177);
+            this.skippedBooks.Location = new System.Drawing.Point(123, 159);
             this.skippedBooks.MinimumSize = new System.Drawing.Size(50, 0);
             this.skippedBooks.Name = "skippedBooks";
             this.skippedBooks.Size = new System.Drawing.Size(50, 13);
@@ -329,7 +342,7 @@
             // 
             this.label7.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(15, 177);
+            this.label7.Location = new System.Drawing.Point(15, 159);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(81, 13);
             this.label7.TabIndex = 13;
@@ -339,7 +352,7 @@
             // 
             this.booksFound.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.booksFound.AutoSize = true;
-            this.booksFound.Location = new System.Drawing.Point(123, 117);
+            this.booksFound.Location = new System.Drawing.Point(123, 99);
             this.booksFound.MinimumSize = new System.Drawing.Size(50, 0);
             this.booksFound.Name = "booksFound";
             this.booksFound.Size = new System.Drawing.Size(79, 13);
@@ -350,7 +363,7 @@
             // 
             this.booksInDB.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.booksInDB.AutoSize = true;
-            this.booksInDB.Location = new System.Drawing.Point(123, 81);
+            this.booksInDB.Location = new System.Drawing.Point(123, 63);
             this.booksInDB.MinimumSize = new System.Drawing.Size(50, 0);
             this.booksInDB.Name = "booksInDB";
             this.booksInDB.Size = new System.Drawing.Size(127, 13);
@@ -372,7 +385,7 @@
             // 
             this.label2.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(15, 82);
+            this.label2.Location = new System.Drawing.Point(15, 64);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(101, 13);
             this.label2.TabIndex = 9;
@@ -382,7 +395,7 @@
             // 
             this.label1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(15, 117);
+            this.label1.Location = new System.Drawing.Point(15, 99);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(70, 13);
             this.label1.TabIndex = 8;
@@ -391,7 +404,7 @@
             // scannerButton
             // 
             this.scannerButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.scannerButton.Location = new System.Drawing.Point(262, 241);
+            this.scannerButton.Location = new System.Drawing.Point(262, 223);
             this.scannerButton.Name = "scannerButton";
             this.scannerButton.Size = new System.Drawing.Size(205, 40);
             this.scannerButton.TabIndex = 7;
@@ -413,10 +426,11 @@
             // tabPage2
             // 
             this.tabPage2.BackColor = System.Drawing.SystemColors.Control;
+            this.tabPage2.Controls.Add(this.extLink);
+            this.tabPage2.Controls.Add(this.intLink);
+            this.tabPage2.Controls.Add(this.useUPnP);
             this.tabPage2.Controls.Add(this.rootPrefix);
             this.tabPage2.Controls.Add(this.label13);
-            this.tabPage2.Controls.Add(this.extIP);
-            this.tabPage2.Controls.Add(this.intIP);
             this.tabPage2.Controls.Add(this.openPort);
             this.tabPage2.Controls.Add(this.extIPlabel);
             this.tabPage2.Controls.Add(this.intIPlabel);
@@ -428,50 +442,43 @@
             this.tabPage2.Location = new System.Drawing.Point(4, 34);
             this.tabPage2.Name = "tabPage2";
             this.tabPage2.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage2.Size = new System.Drawing.Size(474, 289);
+            this.tabPage2.Size = new System.Drawing.Size(474, 271);
             this.tabPage2.TabIndex = 1;
             this.tabPage2.Text = "OPDS server settings";
             // 
+            // useUPnP
+            // 
+            this.useUPnP.AutoSize = true;
+            this.useUPnP.Location = new System.Drawing.Point(284, 65);
+            this.useUPnP.Name = "useUPnP";
+            this.useUPnP.Size = new System.Drawing.Size(76, 17);
+            this.useUPnP.TabIndex = 35;
+            this.useUPnP.Text = "Use UPnP";
+            this.useUPnP.UseVisualStyleBackColor = true;
+            this.useUPnP.CheckedChanged += new System.EventHandler(this.useUPnP_CheckedChanged);
+            // 
             // rootPrefix
             // 
-            this.rootPrefix.Location = new System.Drawing.Point(22, 85);
+            this.rootPrefix.Location = new System.Drawing.Point(22, 88);
             this.rootPrefix.Name = "rootPrefix";
-            this.rootPrefix.Size = new System.Drawing.Size(152, 20);
+            this.rootPrefix.Size = new System.Drawing.Size(190, 20);
             this.rootPrefix.TabIndex = 19;
             this.rootPrefix.TextChanged += new System.EventHandler(this.rootPrefix_TextChanged);
             // 
             // label13
             // 
             this.label13.AutoSize = true;
-            this.label13.Location = new System.Drawing.Point(19, 65);
+            this.label13.Location = new System.Drawing.Point(19, 68);
             this.label13.Name = "label13";
             this.label13.Size = new System.Drawing.Size(127, 13);
             this.label13.TabIndex = 18;
             this.label13.Text = "OPDS root catalog prefix:";
             // 
-            // extIP
-            // 
-            this.extIP.AutoSize = true;
-            this.extIP.Location = new System.Drawing.Point(172, 147);
-            this.extIP.Name = "extIP";
-            this.extIP.Size = new System.Drawing.Size(40, 13);
-            this.extIP.TabIndex = 17;
-            this.extIP.Text = "- - - - - -";
-            // 
-            // intIP
-            // 
-            this.intIP.AutoSize = true;
-            this.intIP.Location = new System.Drawing.Point(172, 121);
-            this.intIP.Name = "intIP";
-            this.intIP.Size = new System.Drawing.Size(40, 13);
-            this.intIP.TabIndex = 16;
-            this.intIP.Text = "- - - - - -";
-            // 
             // openPort
             // 
             this.openPort.AutoSize = true;
             this.openPort.Enabled = false;
-            this.openPort.Location = new System.Drawing.Point(260, 85);
+            this.openPort.Location = new System.Drawing.Point(284, 91);
             this.openPort.Name = "openPort";
             this.openPort.Size = new System.Drawing.Size(161, 17);
             this.openPort.TabIndex = 15;
@@ -482,7 +489,7 @@
             // extIPlabel
             // 
             this.extIPlabel.AutoSize = true;
-            this.extIPlabel.Location = new System.Drawing.Point(19, 147);
+            this.extIPlabel.Location = new System.Drawing.Point(19, 160);
             this.extIPlabel.Name = "extIPlabel";
             this.extIPlabel.Size = new System.Drawing.Size(95, 13);
             this.extIPlabel.TabIndex = 14;
@@ -491,7 +498,7 @@
             // intIPlabel
             // 
             this.intIPlabel.AutoSize = true;
-            this.intIPlabel.Location = new System.Drawing.Point(19, 121);
+            this.intIPlabel.Location = new System.Drawing.Point(19, 134);
             this.intIPlabel.Name = "intIPlabel";
             this.intIPlabel.Size = new System.Drawing.Size(83, 13);
             this.intIPlabel.TabIndex = 13;
@@ -535,7 +542,7 @@
             // serverButton
             // 
             this.serverButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.serverButton.Location = new System.Drawing.Point(262, 241);
+            this.serverButton.Location = new System.Drawing.Point(262, 223);
             this.serverButton.Name = "serverButton";
             this.serverButton.Size = new System.Drawing.Size(205, 40);
             this.serverButton.TabIndex = 8;
@@ -545,7 +552,7 @@
             // tabPage3
             // 
             this.tabPage3.BackColor = System.Drawing.SystemColors.Control;
-            this.tabPage3.Controls.Add(this.useUPnP);
+            this.tabPage3.Controls.Add(this.converterLinkLabel);
             this.tabPage3.Controls.Add(this.saveLog);
             this.tabPage3.Controls.Add(this.label11);
             this.tabPage3.Controls.Add(this.langCombo);
@@ -558,25 +565,26 @@
             this.tabPage3.Location = new System.Drawing.Point(4, 34);
             this.tabPage3.Name = "tabPage3";
             this.tabPage3.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage3.Size = new System.Drawing.Size(474, 289);
+            this.tabPage3.Size = new System.Drawing.Size(474, 271);
             this.tabPage3.TabIndex = 2;
             this.tabPage3.Text = "Miscellaneous";
             // 
-            // useUPnP
+            // converterLinkLabel
             // 
-            this.useUPnP.AutoSize = true;
-            this.useUPnP.Location = new System.Drawing.Point(11, 202);
-            this.useUPnP.Name = "useUPnP";
-            this.useUPnP.Size = new System.Drawing.Size(76, 17);
-            this.useUPnP.TabIndex = 34;
-            this.useUPnP.Text = "Use UPnP";
-            this.useUPnP.UseVisualStyleBackColor = true;
-            this.useUPnP.CheckedChanged += new System.EventHandler(this.useUPnP_CheckedChanged);
+            this.converterLinkLabel.AutoSize = true;
+            this.converterLinkLabel.Location = new System.Drawing.Point(12, 55);
+            this.converterLinkLabel.Name = "converterLinkLabel";
+            this.converterLinkLabel.Size = new System.Drawing.Size(268, 13);
+            this.converterLinkLabel.TabIndex = 34;
+            this.converterLinkLabel.TabStop = true;
+            this.converterLinkLabel.Text = "Click here to download latest version of ePub converter";
+            this.converterLinkLabel.Visible = false;
+            this.converterLinkLabel.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.converterLinkLabel_LinkClicked);
             // 
             // saveLog
             // 
             this.saveLog.AutoSize = true;
-            this.saveLog.Location = new System.Drawing.Point(11, 169);
+            this.saveLog.Location = new System.Drawing.Point(11, 187);
             this.saveLog.Name = "saveLog";
             this.saveLog.Size = new System.Drawing.Size(96, 17);
             this.saveLog.TabIndex = 33;
@@ -587,7 +595,7 @@
             // label11
             // 
             this.label11.AutoSize = true;
-            this.label11.Location = new System.Drawing.Point(261, 76);
+            this.label11.Location = new System.Drawing.Point(261, 94);
             this.label11.Name = "label11";
             this.label11.Size = new System.Drawing.Size(130, 13);
             this.label11.TabIndex = 32;
@@ -598,7 +606,7 @@
             this.langCombo.DisplayMember = "Value";
             this.langCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.langCombo.FormattingEnabled = true;
-            this.langCombo.Location = new System.Drawing.Point(264, 101);
+            this.langCombo.Location = new System.Drawing.Point(264, 119);
             this.langCombo.Name = "langCombo";
             this.langCombo.Size = new System.Drawing.Size(127, 21);
             this.langCombo.TabIndex = 31;
@@ -636,7 +644,7 @@
             // closeToTray
             // 
             this.closeToTray.AutoSize = true;
-            this.closeToTray.Location = new System.Drawing.Point(11, 137);
+            this.closeToTray.Location = new System.Drawing.Point(11, 155);
             this.closeToTray.Name = "closeToTray";
             this.closeToTray.Size = new System.Drawing.Size(138, 17);
             this.closeToTray.TabIndex = 2;
@@ -647,7 +655,7 @@
             // startMinimized
             // 
             this.startMinimized.AutoSize = true;
-            this.startMinimized.Location = new System.Drawing.Point(11, 105);
+            this.startMinimized.Location = new System.Drawing.Point(11, 123);
             this.startMinimized.Name = "startMinimized";
             this.startMinimized.Size = new System.Drawing.Size(96, 17);
             this.startMinimized.TabIndex = 1;
@@ -657,7 +665,7 @@
             // startWithWindows
             // 
             this.startWithWindows.AutoSize = true;
-            this.startWithWindows.Location = new System.Drawing.Point(11, 72);
+            this.startWithWindows.Location = new System.Drawing.Point(11, 90);
             this.startWithWindows.Name = "startWithWindows";
             this.startWithWindows.Size = new System.Drawing.Size(117, 17);
             this.startWithWindows.TabIndex = 0;
@@ -668,12 +676,120 @@
             // tabPage4
             // 
             this.tabPage4.BackColor = System.Drawing.SystemColors.Control;
+            this.tabPage4.Controls.Add(this.label20);
+            this.tabPage4.Controls.Add(this.label19);
+            this.tabPage4.Controls.Add(this.linkLabel2);
+            this.tabPage4.Controls.Add(this.label18);
+            this.tabPage4.Controls.Add(this.linkLabel1);
+            this.tabPage4.Controls.Add(this.label17);
+            this.tabPage4.Controls.Add(this.appVer);
+            this.tabPage4.Controls.Add(this.appName);
+            this.tabPage4.Controls.Add(this.pictureBox1);
+            this.tabPage4.Controls.Add(this.donateButton);
             this.tabPage4.Location = new System.Drawing.Point(4, 34);
             this.tabPage4.Name = "tabPage4";
             this.tabPage4.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage4.Size = new System.Drawing.Size(474, 289);
+            this.tabPage4.Size = new System.Drawing.Size(474, 271);
             this.tabPage4.TabIndex = 3;
             this.tabPage4.Text = "About program";
+            // 
+            // label20
+            // 
+            this.label20.AutoSize = true;
+            this.label20.Location = new System.Drawing.Point(12, 176);
+            this.label20.Name = "label20";
+            this.label20.Size = new System.Drawing.Size(80, 13);
+            this.label20.TabIndex = 9;
+            this.label20.Text = "Special thanks:";
+            // 
+            // label19
+            // 
+            this.label19.AutoSize = true;
+            this.label19.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.label19.Location = new System.Drawing.Point(180, 89);
+            this.label19.Name = "label19";
+            this.label19.Size = new System.Drawing.Size(220, 20);
+            this.label19.TabIndex = 8;
+            this.label19.Text = "Copyright © 2013, SeNSSoFT";
+            // 
+            // linkLabel2
+            // 
+            this.linkLabel2.AutoSize = true;
+            this.linkLabel2.Location = new System.Drawing.Point(135, 152);
+            this.linkLabel2.Name = "linkLabel2";
+            this.linkLabel2.Size = new System.Drawing.Size(192, 13);
+            this.linkLabel2.TabIndex = 7;
+            this.linkLabel2.TabStop = true;
+            this.linkLabel2.Text = "http://opensource.org/licenses/MS-PL";
+            this.linkLabel2.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel_LinkClicked);
+            // 
+            // label18
+            // 
+            this.label18.AutoSize = true;
+            this.label18.Location = new System.Drawing.Point(12, 152);
+            this.label18.Name = "label18";
+            this.label18.Size = new System.Drawing.Size(79, 13);
+            this.label18.TabIndex = 6;
+            this.label18.Text = "Project license:";
+            // 
+            // linkLabel1
+            // 
+            this.linkLabel1.AutoSize = true;
+            this.linkLabel1.Location = new System.Drawing.Point(135, 130);
+            this.linkLabel1.Name = "linkLabel1";
+            this.linkLabel1.Size = new System.Drawing.Size(151, 13);
+            this.linkLabel1.TabIndex = 5;
+            this.linkLabel1.TabStop = true;
+            this.linkLabel1.Text = "http://tinyopds.codeplex.com/";
+            this.linkLabel1.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel_LinkClicked);
+            // 
+            // label17
+            // 
+            this.label17.AutoSize = true;
+            this.label17.Location = new System.Drawing.Point(12, 130);
+            this.label17.Name = "label17";
+            this.label17.Size = new System.Drawing.Size(99, 13);
+            this.label17.TabIndex = 4;
+            this.label17.Text = "Project home page:";
+            // 
+            // appVer
+            // 
+            this.appVer.AutoSize = true;
+            this.appVer.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.appVer.Location = new System.Drawing.Point(246, 58);
+            this.appVer.Name = "appVer";
+            this.appVer.Size = new System.Drawing.Size(85, 20);
+            this.appVer.TabIndex = 3;
+            this.appVer.Text = "version 1.0";
+            // 
+            // appName
+            // 
+            this.appName.AutoSize = true;
+            this.appName.Font = new System.Drawing.Font("Microsoft Sans Serif", 20F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.appName.Location = new System.Drawing.Point(178, 17);
+            this.appName.Name = "appName";
+            this.appName.Size = new System.Drawing.Size(226, 31);
+            this.appName.TabIndex = 2;
+            this.appName.Text = "TinyOPDS server";
+            // 
+            // pictureBox1
+            // 
+            this.pictureBox1.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox1.Image")));
+            this.pictureBox1.Location = new System.Drawing.Point(8, 9);
+            this.pictureBox1.Name = "pictureBox1";
+            this.pictureBox1.Size = new System.Drawing.Size(103, 103);
+            this.pictureBox1.TabIndex = 1;
+            this.pictureBox1.TabStop = false;
+            // 
+            // donateButton
+            // 
+            this.donateButton.Image = global::TinyOPDS.Properties.Resources.donate;
+            this.donateButton.Location = new System.Drawing.Point(304, 205);
+            this.donateButton.Name = "donateButton";
+            this.donateButton.Size = new System.Drawing.Size(157, 56);
+            this.donateButton.TabIndex = 0;
+            this.donateButton.UseVisualStyleBackColor = true;
+            this.donateButton.Click += new System.EventHandler(this.donateButton_Click);
             // 
             // notifyIcon1
             // 
@@ -718,11 +834,33 @@
             this.exitMenuItem.Text = "Exit";
             this.exitMenuItem.Click += new System.EventHandler(this.exitMenuItem_Click);
             // 
+            // intLink
+            // 
+            this.intLink.AutoSize = true;
+            this.intLink.Location = new System.Drawing.Point(172, 134);
+            this.intLink.Name = "intLink";
+            this.intLink.Size = new System.Drawing.Size(40, 13);
+            this.intLink.TabIndex = 36;
+            this.intLink.TabStop = true;
+            this.intLink.Text = "- - - - - -";
+            this.intLink.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel_LinkClicked);
+            // 
+            // extLink
+            // 
+            this.extLink.AutoSize = true;
+            this.extLink.Location = new System.Drawing.Point(172, 160);
+            this.extLink.Name = "extLink";
+            this.extLink.Size = new System.Drawing.Size(40, 13);
+            this.extLink.TabIndex = 37;
+            this.extLink.TabStop = true;
+            this.extLink.Text = "- - - - - -";
+            this.extLink.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel_LinkClicked);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(475, 322);
+            this.ClientSize = new System.Drawing.Size(475, 304);
             this.Controls.Add(this.tabControl1);
             this.DoubleBuffered = true;
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
@@ -741,6 +879,9 @@
             this.tabPage2.PerformLayout();
             this.tabPage3.ResumeLayout(false);
             this.tabPage3.PerformLayout();
+            this.tabPage4.ResumeLayout(false);
+            this.tabPage4.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             this.contextMenuStrip1.ResumeLayout(false);
             this.ResumeLayout(false);
 
@@ -797,8 +938,6 @@
         private System.Windows.Forms.ToolStripMenuItem serverMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripMenuItem1;
         private System.Windows.Forms.ToolStripMenuItem exitMenuItem;
-        private System.Windows.Forms.Label intIP;
-        private System.Windows.Forms.Label extIP;
         private System.Windows.Forms.CheckBox saveLog;
         private System.Windows.Forms.Label duplicates;
         private System.Windows.Forms.Label label16;
@@ -807,6 +946,19 @@
         private System.Windows.Forms.CheckBox useWatcher;
         private System.Windows.Forms.TabPage tabPage4;
         private System.Windows.Forms.CheckBox useUPnP;
+        private System.Windows.Forms.LinkLabel converterLinkLabel;
+        private System.Windows.Forms.Button donateButton;
+        private System.Windows.Forms.PictureBox pictureBox1;
+        private System.Windows.Forms.Label label19;
+        private System.Windows.Forms.LinkLabel linkLabel2;
+        private System.Windows.Forms.Label label18;
+        private System.Windows.Forms.LinkLabel linkLabel1;
+        private System.Windows.Forms.Label label17;
+        private System.Windows.Forms.Label appVer;
+        private System.Windows.Forms.Label appName;
+        private System.Windows.Forms.Label label20;
+        private System.Windows.Forms.LinkLabel intLink;
+        private System.Windows.Forms.LinkLabel extLink;
     }
 }
 

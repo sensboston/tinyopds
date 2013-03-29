@@ -13,7 +13,7 @@ namespace TinyOPDS.Data
         public static event EventHandler LibraryLoaded;
         private static Dictionary<string, bool> _paths = new Dictionary<string, bool>();
         private static Dictionary<string, Book> _books = new Dictionary<string, Book>();
-        private static string _databaseFileName;
+        private static string _databaseFullPath;
         private static List<Genre> _genres;
         private static Dictionary<string, string> _soundexedGenres;
 
@@ -23,16 +23,7 @@ namespace TinyOPDS.Data
         /// </summary>
         static Library()
         {
-            // Load database in the background thread
-            _databaseFileName = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\books.db";
-            BackgroundWorker worker = new BackgroundWorker();
-            worker.DoWork += (_, __) =>
-            {
-                Load();
-                if (LibraryLoaded != null) LibraryLoaded(null, null);
-                worker.Dispose();
-            };
-            worker.RunWorkerAsync();
+            LoadAsync();
 
             // Load and parse genres
             try
@@ -63,6 +54,30 @@ namespace TinyOPDS.Data
 
             }
             catch { }
+        }
+
+        /// <summary>
+        /// Load library database in background
+        /// </summary>
+        public static void LoadAsync()
+        {
+            // Clear library and free memory
+            _books.Clear();
+            _paths.Clear();
+            GC.Collect();
+
+            // Create unique database name, based on library path
+            string databaseFileName = Utils.Create(Utils.IsoOidNamespace, Properties.Settings.Default.LibraryPath).ToString()+".db";
+            _databaseFullPath = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), databaseFileName);
+            // Load database in the background thread
+            BackgroundWorker worker = new BackgroundWorker();
+            worker.DoWork += (_, __) =>
+            {
+                Load();
+                if (LibraryLoaded != null) LibraryLoaded(null, null);
+                worker.Dispose();
+            };
+            worker.RunWorkerAsync();
         }
 
         /// <summary>
@@ -136,6 +151,56 @@ namespace TinyOPDS.Data
                 return false;
             }
         }
+
+        /// <summary>
+        /// Delete all books with specific file path from the library
+        /// </summary>
+        /// <param name="pathName"></param>
+        public static bool Delete(string fileName)
+        {
+            bool result = false;
+            lock (_books)
+            {
+                if (!string.IsNullOrEmpty(fileName) && fileName.Length > Library.LibraryPath.Length + 1)
+                {
+                    // Extract relative file name
+                    fileName = fileName.Substring(Library.LibraryPath.Length + 1);
+                    string ext = Path.GetExtension(fileName.ToLower());
+
+                    // Assume it's a single file
+                    if (ext.Equals(".epub") || ext.Equals(".fb2") || (ext.Equals(".zip") && fileName.ToLower().Contains(".fb2.zip")))
+                    {
+                        if (Contains(fileName))
+                        {
+                            Book book = _books.FirstOrDefault(b => b.Value.FileName.Equals(fileName)).Value;
+                            if (book != null)
+                            {
+                                _books.Remove(book.ID);
+                                _paths.Remove(fileName);
+                                result = true;
+                                Log.WriteLine(LogLevel.Info, "Book \"{0}\" deleted from the library", book.FileName);
+                            }
+                        }
+                    }
+                    // removed object should be archive or directory: let's remove all books with that path or zip
+                    {
+                        List<Book> booksForRemove = _books.Where(b => b.Value.FileName.Contains(fileName)).Select(b => b.Value).ToList();
+                        foreach (Book book in booksForRemove)
+                        {
+                            _books.Remove(book.ID);
+                            _paths.Remove(fileName);
+                            Log.WriteLine(LogLevel.Info, "Book \"{0}\" deleted from the library", book.FileName);
+                        }
+                        if (booksForRemove.Count > 0)
+                        {
+                            result = true;
+                        }
+                    }
+                }
+            }
+            return result;
+        }
+
 
         /// <summary>
         /// Total number of books in library
@@ -286,13 +351,13 @@ namespace TinyOPDS.Data
 
             // MemoryStream can save us about 1 second on 106 Mb database load
             MemoryStream memStream = null;
-            if (File.Exists(_databaseFileName))
+            if (File.Exists(_databaseFullPath))
             {
                 _books.Clear();
                 memStream = new MemoryStream();
                 try
                 {
-                    using (Stream fileStream = new FileStream(_databaseFileName, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    using (Stream fileStream = new FileStream(_databaseFullPath, FileMode.Open, FileAccess.Read, FileShare.Read))
                     {
                         fileStream.CopyTo(memStream);
                     }
@@ -361,7 +426,7 @@ namespace TinyOPDS.Data
                 }
             }
 
-            Log.WriteLine("Database load time = {0}, {1} book records loaded", DateTime.Now.Subtract(start), numRecords);
+            Log.WriteLine(LogLevel.Info, "Database load time = {0}, {1} book records loaded", DateTime.Now.Subtract(start), numRecords);
         }
 
         /// <summary>
@@ -375,7 +440,7 @@ namespace TinyOPDS.Data
             Stream fileStream = null;
             try
             {
-                fileStream = new FileStream(_databaseFileName, FileMode.Create, FileAccess.Write, FileShare.Write);
+                fileStream = new FileStream(_databaseFullPath, FileMode.Create, FileAccess.Write, FileShare.Write);
                 using (BinaryWriter writer = new BinaryWriter(fileStream))
                 {
                     fileStream = null;
@@ -393,7 +458,7 @@ namespace TinyOPDS.Data
             finally
             {
                 if (fileStream != null) fileStream.Dispose();
-                Log.WriteLine("Database save time = {0}, {1} book records written to disk", DateTime.Now.Subtract(start), numRecords);
+                Log.WriteLine(LogLevel.Info, "Database save time = {0}, {1} book records written to disk", DateTime.Now.Subtract(start), numRecords);
             }
         }
 
@@ -406,7 +471,7 @@ namespace TinyOPDS.Data
             Stream fileStream = null;
             try
             {
-                fileStream = new FileStream(_databaseFileName, FileMode.Append, FileAccess.Write, FileShare.Write);
+                fileStream = new FileStream(_databaseFullPath, FileMode.Append, FileAccess.Write, FileShare.Write);
                 using (BinaryWriter writer = new BinaryWriter(fileStream))
                 {
                     fileStream = null;

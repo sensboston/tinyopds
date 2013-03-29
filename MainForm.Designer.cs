@@ -59,6 +59,8 @@
             this.scannerButton = new System.Windows.Forms.Button();
             this.libraryPath = new System.Windows.Forms.TextBox();
             this.tabPage2 = new System.Windows.Forms.TabPage();
+            this.extLink = new System.Windows.Forms.LinkLabel();
+            this.intLink = new System.Windows.Forms.LinkLabel();
             this.useUPnP = new System.Windows.Forms.CheckBox();
             this.rootPrefix = new System.Windows.Forms.TextBox();
             this.label13 = new System.Windows.Forms.Label();
@@ -98,8 +100,6 @@
             this.serverMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripSeparator();
             this.exitMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.intLink = new System.Windows.Forms.LinkLabel();
-            this.extLink = new System.Windows.Forms.LinkLabel();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.tabPage2.SuspendLayout();
@@ -418,6 +418,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.libraryPath.Location = new System.Drawing.Point(17, 32);
             this.libraryPath.Name = "libraryPath";
+            this.libraryPath.ReadOnly = true;
             this.libraryPath.Size = new System.Drawing.Size(269, 20);
             this.libraryPath.TabIndex = 6;
             this.libraryPath.Text = "P:\\My eBooks";
@@ -445,6 +446,28 @@
             this.tabPage2.Size = new System.Drawing.Size(474, 271);
             this.tabPage2.TabIndex = 1;
             this.tabPage2.Text = "OPDS server settings";
+            // 
+            // extLink
+            // 
+            this.extLink.AutoSize = true;
+            this.extLink.Location = new System.Drawing.Point(172, 160);
+            this.extLink.Name = "extLink";
+            this.extLink.Size = new System.Drawing.Size(40, 13);
+            this.extLink.TabIndex = 37;
+            this.extLink.TabStop = true;
+            this.extLink.Text = "- - - - - -";
+            this.extLink.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel_LinkClicked);
+            // 
+            // intLink
+            // 
+            this.intLink.AutoSize = true;
+            this.intLink.Location = new System.Drawing.Point(172, 134);
+            this.intLink.Name = "intLink";
+            this.intLink.Size = new System.Drawing.Size(40, 13);
+            this.intLink.TabIndex = 36;
+            this.intLink.TabStop = true;
+            this.intLink.Text = "- - - - - -";
+            this.intLink.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel_LinkClicked);
             // 
             // useUPnP
             // 
@@ -833,28 +856,6 @@
             this.exitMenuItem.Size = new System.Drawing.Size(144, 22);
             this.exitMenuItem.Text = "Exit";
             this.exitMenuItem.Click += new System.EventHandler(this.exitMenuItem_Click);
-            // 
-            // intLink
-            // 
-            this.intLink.AutoSize = true;
-            this.intLink.Location = new System.Drawing.Point(172, 134);
-            this.intLink.Name = "intLink";
-            this.intLink.Size = new System.Drawing.Size(40, 13);
-            this.intLink.TabIndex = 36;
-            this.intLink.TabStop = true;
-            this.intLink.Text = "- - - - - -";
-            this.intLink.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel_LinkClicked);
-            // 
-            // extLink
-            // 
-            this.extLink.AutoSize = true;
-            this.extLink.Location = new System.Drawing.Point(172, 160);
-            this.extLink.Name = "extLink";
-            this.extLink.Size = new System.Drawing.Size(40, 13);
-            this.extLink.TabIndex = 37;
-            this.extLink.TabStop = true;
-            this.extLink.Text = "- - - - - -";
-            this.extLink.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel_LinkClicked);
             // 
             // MainForm
             // 

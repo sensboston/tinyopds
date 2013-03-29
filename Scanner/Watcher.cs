@@ -48,11 +48,10 @@ namespace TinyOPDS.Scanner
                     if (Library.Add(be.Book))
                     {
                         if (OnLibraryChanged != null) OnLibraryChanged(this, new EventArgs());
+                        Log.WriteLine(LogLevel.Info,"Book \"{0}\" added to the library", be.Book.FileName);
                     }
                 };
             scanner.ScanFile(e.FullPath);
-
-            Log.WriteLine("Directory scanner started");
         }
 
         /// <summary>
@@ -62,6 +61,10 @@ namespace TinyOPDS.Scanner
         /// <param name="e"></param>
         private void _fileWatcher_Renamed(object sender, RenamedEventArgs e)
         {
+            if (Library.Delete(e.FullPath))
+            {
+                if (OnLibraryChanged != null) OnLibraryChanged(this, new EventArgs());
+            }
         }
 
         /// <summary>
@@ -71,6 +74,10 @@ namespace TinyOPDS.Scanner
         /// <param name="e"></param>
         private void _fileWatcher_Deleted(object sender, FileSystemEventArgs e)
         {
+            if (Library.Delete(e.FullPath))
+            {
+                if (OnLibraryChanged != null) OnLibraryChanged(this, new EventArgs());
+            }
         }
     }
 }

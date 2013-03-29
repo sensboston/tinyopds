@@ -51,8 +51,7 @@ namespace TinyOPDS
             Library.LibraryLoaded += (_, __) => 
             { 
                 UpdateInfo();
-                _watcher = new Watcher(Library.LibraryPath);
-                _watcher.OnLibraryChanged += (___, _____) => { UpdateInfo(); };
+                _watcher.PathToWatch = Library.LibraryPath;
                 _watcher.IsEnabled = Properties.Settings.Default.WatchLibrary;
 
                 var allBooks = new OpenSearch().Search("ав", "books", true).ToString();
@@ -61,6 +60,11 @@ namespace TinyOPDS
                 if (String.IsNullOrEmpty(books.ToString()))
                 { }
             };
+
+            // Create file watcher
+            _watcher = new Watcher(Library.LibraryPath);
+            _watcher.OnLibraryChanged += (___, _____) => { UpdateInfo(); };
+            _watcher.IsEnabled = false;
 
             intLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
             _upnpController.DiscoverCompleted += new EventHandler(_upnpController_DiscoverCompleted);
@@ -150,6 +154,8 @@ namespace TinyOPDS
             {
                 Properties.Settings.Default.LibraryPath = libraryPath.Text;
                 Properties.Settings.Default.Save();
+                // Reload library
+                Library.LoadAsync();
                 _watcher.PathToWatch = Properties.Settings.Default.LibraryPath;
             }
             else libraryPath.Text = Properties.Settings.Default.LibraryPath;
@@ -182,7 +188,7 @@ namespace TinyOPDS
 
                     Log.WriteLine("Directory scanner completed");
                 };
-                _fb2Count = _epubCount = _skippedFiles = _invalidFiles = 0;
+                _fb2Count = _epubCount = _skippedFiles = _invalidFiles = _duplicates = 0;
                 _scanStartTime = DateTime.Now;
                 startTime.Text = _scanStartTime.ToString(@"hh\:mm\:ss");
                 _scanner.ScanDirectory(libraryPath.Text);

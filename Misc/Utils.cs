@@ -48,14 +48,21 @@ namespace TinyOPDS
 
     public class Utils
     {
+        public static Version Version
+        {
+            get
+            {
+                return System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+            }
+        }
+
         public static string ServerVersionName
         {
             get
             {
-                return string.Format("running on TinyOPDS server version {0}", System.Reflection.Assembly.GetExecutingAssembly().GetName().Version); 
+                return string.Format("running on TinyOPDS server version {0}.{1}", Version.Major, Version.Minor); 
             }
         }
-
 
 		/// <summary>
 		/// Creates a name-based UUID using the algorithm from RFC 4122 §4.3.

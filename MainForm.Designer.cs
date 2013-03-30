@@ -84,13 +84,16 @@
             this.startMinimized = new System.Windows.Forms.CheckBox();
             this.startWithWindows = new System.Windows.Forms.CheckBox();
             this.tabPage4 = new System.Windows.Forms.TabPage();
+            this.linkLabel5 = new System.Windows.Forms.LinkLabel();
+            this.linkLabel4 = new System.Windows.Forms.LinkLabel();
+            this.linkLabel3 = new System.Windows.Forms.LinkLabel();
             this.label20 = new System.Windows.Forms.Label();
             this.label19 = new System.Windows.Forms.Label();
             this.linkLabel2 = new System.Windows.Forms.LinkLabel();
             this.label18 = new System.Windows.Forms.Label();
             this.linkLabel1 = new System.Windows.Forms.LinkLabel();
             this.label17 = new System.Windows.Forms.Label();
-            this.appVer = new System.Windows.Forms.Label();
+            this.appVersion = new System.Windows.Forms.Label();
             this.appName = new System.Windows.Forms.Label();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.donateButton = new System.Windows.Forms.Button();
@@ -602,7 +605,7 @@
             this.converterLinkLabel.TabStop = true;
             this.converterLinkLabel.Text = "Click here to download latest version of ePub converter";
             this.converterLinkLabel.Visible = false;
-            this.converterLinkLabel.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.converterLinkLabel_LinkClicked);
+            this.converterLinkLabel.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel3_LinkClicked);
             // 
             // saveLog
             // 
@@ -699,13 +702,16 @@
             // tabPage4
             // 
             this.tabPage4.BackColor = System.Drawing.SystemColors.Control;
+            this.tabPage4.Controls.Add(this.linkLabel5);
+            this.tabPage4.Controls.Add(this.linkLabel4);
+            this.tabPage4.Controls.Add(this.linkLabel3);
             this.tabPage4.Controls.Add(this.label20);
             this.tabPage4.Controls.Add(this.label19);
             this.tabPage4.Controls.Add(this.linkLabel2);
             this.tabPage4.Controls.Add(this.label18);
             this.tabPage4.Controls.Add(this.linkLabel1);
             this.tabPage4.Controls.Add(this.label17);
-            this.tabPage4.Controls.Add(this.appVer);
+            this.tabPage4.Controls.Add(this.appVersion);
             this.tabPage4.Controls.Add(this.appName);
             this.tabPage4.Controls.Add(this.pictureBox1);
             this.tabPage4.Controls.Add(this.donateButton);
@@ -716,20 +722,53 @@
             this.tabPage4.TabIndex = 3;
             this.tabPage4.Text = "About program";
             // 
+            // linkLabel5
+            // 
+            this.linkLabel5.AutoSize = true;
+            this.linkLabel5.Location = new System.Drawing.Point(195, 198);
+            this.linkLabel5.Name = "linkLabel5";
+            this.linkLabel5.Size = new System.Drawing.Size(97, 13);
+            this.linkLabel5.TabIndex = 12;
+            this.linkLabel5.TabStop = true;
+            this.linkLabel5.Text = "ePubReader library";
+            this.linkLabel5.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel3_LinkClicked);
+            // 
+            // linkLabel4
+            // 
+            this.linkLabel4.AutoSize = true;
+            this.linkLabel4.Location = new System.Drawing.Point(195, 221);
+            this.linkLabel4.Name = "linkLabel4";
+            this.linkLabel4.Size = new System.Drawing.Size(86, 13);
+            this.linkLabel4.TabIndex = 11;
+            this.linkLabel4.TabStop = true;
+            this.linkLabel4.Text = "DotNetZip library";
+            this.linkLabel4.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel3_LinkClicked);
+            // 
+            // linkLabel3
+            // 
+            this.linkLabel3.AutoSize = true;
+            this.linkLabel3.Location = new System.Drawing.Point(193, 176);
+            this.linkLabel3.Name = "linkLabel3";
+            this.linkLabel3.Size = new System.Drawing.Size(267, 13);
+            this.linkLabel3.TabIndex = 10;
+            this.linkLabel3.TabStop = true;
+            this.linkLabel3.Text = "Lord KiRon, author of fb2librarynet library and converter";
+            this.linkLabel3.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel3_LinkClicked);
+            // 
             // label20
             // 
-            this.label20.AutoSize = true;
-            this.label20.Location = new System.Drawing.Point(12, 176);
+            this.label20.Location = new System.Drawing.Point(9, 176);
             this.label20.Name = "label20";
-            this.label20.Size = new System.Drawing.Size(80, 13);
+            this.label20.Size = new System.Drawing.Size(161, 13);
             this.label20.TabIndex = 9;
             this.label20.Text = "Special thanks:";
+            this.label20.TextAlign = System.Drawing.ContentAlignment.TopRight;
             // 
             // label19
             // 
             this.label19.AutoSize = true;
             this.label19.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.label19.Location = new System.Drawing.Point(180, 89);
+            this.label19.Location = new System.Drawing.Point(192, 89);
             this.label19.Name = "label19";
             this.label19.Size = new System.Drawing.Size(220, 20);
             this.label19.TabIndex = 8;
@@ -738,27 +777,27 @@
             // linkLabel2
             // 
             this.linkLabel2.AutoSize = true;
-            this.linkLabel2.Location = new System.Drawing.Point(135, 152);
+            this.linkLabel2.Location = new System.Drawing.Point(193, 153);
             this.linkLabel2.Name = "linkLabel2";
-            this.linkLabel2.Size = new System.Drawing.Size(192, 13);
+            this.linkLabel2.Size = new System.Drawing.Size(184, 13);
             this.linkLabel2.TabIndex = 7;
             this.linkLabel2.TabStop = true;
-            this.linkLabel2.Text = "http://opensource.org/licenses/MS-PL";
+            this.linkLabel2.Text = "http://tinyopds.codeplex.com/license";
             this.linkLabel2.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel_LinkClicked);
             // 
             // label18
             // 
-            this.label18.AutoSize = true;
-            this.label18.Location = new System.Drawing.Point(12, 152);
+            this.label18.Location = new System.Drawing.Point(11, 153);
             this.label18.Name = "label18";
-            this.label18.Size = new System.Drawing.Size(79, 13);
+            this.label18.Size = new System.Drawing.Size(159, 13);
             this.label18.TabIndex = 6;
             this.label18.Text = "Project license:";
+            this.label18.TextAlign = System.Drawing.ContentAlignment.TopRight;
             // 
             // linkLabel1
             // 
             this.linkLabel1.AutoSize = true;
-            this.linkLabel1.Location = new System.Drawing.Point(135, 130);
+            this.linkLabel1.Location = new System.Drawing.Point(193, 130);
             this.linkLabel1.Name = "linkLabel1";
             this.linkLabel1.Size = new System.Drawing.Size(151, 13);
             this.linkLabel1.TabIndex = 5;
@@ -768,28 +807,28 @@
             // 
             // label17
             // 
-            this.label17.AutoSize = true;
-            this.label17.Location = new System.Drawing.Point(12, 130);
+            this.label17.Location = new System.Drawing.Point(8, 130);
             this.label17.Name = "label17";
-            this.label17.Size = new System.Drawing.Size(99, 13);
+            this.label17.Size = new System.Drawing.Size(162, 13);
             this.label17.TabIndex = 4;
             this.label17.Text = "Project home page:";
+            this.label17.TextAlign = System.Drawing.ContentAlignment.TopRight;
             // 
-            // appVer
+            // appVersion
             // 
-            this.appVer.AutoSize = true;
-            this.appVer.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.appVer.Location = new System.Drawing.Point(246, 58);
-            this.appVer.Name = "appVer";
-            this.appVer.Size = new System.Drawing.Size(85, 20);
-            this.appVer.TabIndex = 3;
-            this.appVer.Text = "version 1.0";
+            this.appVersion.AutoSize = true;
+            this.appVersion.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.appVersion.Location = new System.Drawing.Point(259, 58);
+            this.appVersion.Name = "appVersion";
+            this.appVersion.Size = new System.Drawing.Size(85, 20);
+            this.appVersion.TabIndex = 3;
+            this.appVersion.Text = "version 1.0";
             // 
             // appName
             // 
             this.appName.AutoSize = true;
             this.appName.Font = new System.Drawing.Font("Microsoft Sans Serif", 20F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.appName.Location = new System.Drawing.Point(178, 17);
+            this.appName.Location = new System.Drawing.Point(190, 14);
             this.appName.Name = "appName";
             this.appName.Size = new System.Drawing.Size(226, 31);
             this.appName.TabIndex = 2;
@@ -807,7 +846,7 @@
             // donateButton
             // 
             this.donateButton.Image = global::TinyOPDS.Properties.Resources.donate;
-            this.donateButton.Location = new System.Drawing.Point(304, 205);
+            this.donateButton.Location = new System.Drawing.Point(9, 204);
             this.donateButton.Name = "donateButton";
             this.donateButton.Size = new System.Drawing.Size(157, 56);
             this.donateButton.TabIndex = 0;
@@ -955,11 +994,14 @@
         private System.Windows.Forms.Label label18;
         private System.Windows.Forms.LinkLabel linkLabel1;
         private System.Windows.Forms.Label label17;
-        private System.Windows.Forms.Label appVer;
+        private System.Windows.Forms.Label appVersion;
         private System.Windows.Forms.Label appName;
         private System.Windows.Forms.Label label20;
         private System.Windows.Forms.LinkLabel intLink;
         private System.Windows.Forms.LinkLabel extLink;
+        private System.Windows.Forms.LinkLabel linkLabel5;
+        private System.Windows.Forms.LinkLabel linkLabel4;
+        private System.Windows.Forms.LinkLabel linkLabel3;
     }
 }
 

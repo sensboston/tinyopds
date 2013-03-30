@@ -63,7 +63,16 @@ namespace TinyOPDS
 
             // Create file watcher
             _watcher = new Watcher(Library.LibraryPath);
-            _watcher.OnLibraryChanged += (___, _____) => { UpdateInfo(); };
+            _watcher.OnBookAdded += (object sender, BookAddedEventArgs e) => 
+                {
+                    UpdateInfo();
+                    Log.WriteLine(LogLevel.Info, "Book {0} added to the library", e.BookPath);
+                };
+            _watcher.OnBookDeleted += (object sender, BookDeletedEventArgs e) => 
+                {
+                    UpdateInfo();
+                    Log.WriteLine(LogLevel.Info, "Book {0} deleted from the library", e.BookPath);
+                };
             _watcher.IsEnabled = false;
 
             intLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
@@ -101,6 +110,13 @@ namespace TinyOPDS
 
         private void LoadSettings()
         {
+            // Setup link labels
+            converterLinkLabel.Links.Add(0, converterLinkLabel.Text.Length, "http://fb2epub.net/files/Fb2ePubSetup_1_1_3.zip");
+            linkLabel3.Links.Add(0, linkLabel3.Text.Length, "https://code.google.com/p/fb2librarynet/");
+            linkLabel5.Links.Add(0, linkLabel5.Text.Length, "http://epubreader.codeplex.com/");
+            linkLabel4.Links.Add(0, linkLabel4.Text.Length, "http://dotnetzip.codeplex.com/");
+            appVersion.Text = string.Format(Localizer.Text("version {0}.{1}"), Utils.Version.Major, Utils.Version.Minor);
+            // Setup settings controls
             libraryPath.Text = Properties.Settings.Default.LibraryPath;
             serverName.Text = Properties.Settings.Default.ServerName;
             serverPort.Text = Properties.Settings.Default.ServerPort.ToString();
@@ -116,7 +132,6 @@ namespace TinyOPDS
                 }
             }
             else convertorPath.Text = Properties.Settings.Default.ConvertorPath;
-            converterLinkLabel.Links.Add(0, converterLinkLabel.Text.Length, "http://fb2epub.net/files/Fb2ePubSetup_1_1_3.zip");
             converterLinkLabel.Visible = string.IsNullOrEmpty(convertorPath.Text);
             useUPnP.Checked = Properties.Settings.Default.UseUPnP;
             openPort.Checked = Properties.Settings.Default.UseUPnP ? Properties.Settings.Default.OpenNATPort : false;
@@ -390,11 +405,6 @@ namespace TinyOPDS
 
         #region Form controls handling
 
-        private void converterLinkLabel_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
-        {
-            System.Diagnostics.Process.Start(e.Link.LinkData as string);
-        }
-
         private void useWatcher_CheckedChanged(object sender, EventArgs e)
         {
             if (_watcher != null && _watcher.IsEnabled != useWatcher.Checked)
@@ -482,6 +492,7 @@ namespace TinyOPDS
             {
                 serverName.Text = Properties.Settings.Default.ServerName;
             }
+            appVersion.Text = string.Format(Localizer.Text("version {0}.{1}"), Utils.Version.Major, Utils.Version.Minor);
         }
 
         /// <summary>
@@ -500,6 +511,11 @@ namespace TinyOPDS
         private void linkLabel_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
             System.Diagnostics.Process.Start((sender as LinkLabel).Text);
+        }
+
+        private void linkLabel3_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            System.Diagnostics.Process.Start((sender as LinkLabel).Links[0].LinkData as string);
         }
 
         #endregion

@@ -25,8 +25,26 @@ namespace TinyOPDS.Scanner
         public FileSkippedEventArgs(int count) { Count = count; }
     }
 
+    public class BookAddedEventArgs : EventArgs
+    {
+        public string BookPath;
+        public BookType Type;
+        public BookAddedEventArgs(string bookPath) 
+        { 
+            BookPath = bookPath;
+            Type = BookPath.ToLower().Contains(".epub") ? BookType.EPUB : BookType.FB2;
+        }
+    }
+
+    public class BookDeletedEventArgs : BookAddedEventArgs 
+    {
+        public BookDeletedEventArgs(string bookPath) : base(bookPath) {}
+    }
+
     public delegate void BookFoundEventHandler(object sender, BookFoundEventArgs e);
     public delegate void InvalidBookEventHandler(object sender, InvalidBookEventArgs e);
     public delegate void FileSkippedEventHandler(object sender, FileSkippedEventArgs e);
     public delegate void ScanCompletedEventHandler(object sender, EventArgs e);
+    public delegate void BookAddedEventHandler(object sender, BookAddedEventArgs e);
+    public delegate void BookDeletedEventHandler(object sender, BookDeletedEventArgs e);
 }

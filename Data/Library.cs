@@ -176,9 +176,9 @@ namespace TinyOPDS.Data
                             if (book != null)
                             {
                                 _books.Remove(book.ID);
-                                _paths.Remove(fileName);
+                                _paths.Remove(book.FileName);
+                                if (book.BookType == BookType.FB2) FB2Count--; else EPUBCount--;
                                 result = true;
-                                Log.WriteLine(LogLevel.Info, "Book \"{0}\" deleted from the library", book.FileName);
                             }
                         }
                     }
@@ -188,8 +188,8 @@ namespace TinyOPDS.Data
                         foreach (Book book in booksForRemove)
                         {
                             _books.Remove(book.ID);
-                            _paths.Remove(fileName);
-                            Log.WriteLine(LogLevel.Info, "Book \"{0}\" deleted from the library", book.FileName);
+                            _paths.Remove(book.FileName);
+                            if (book.BookType == BookType.FB2) FB2Count--; else EPUBCount--;
                         }
                         if (booksForRemove.Count > 0)
                         {

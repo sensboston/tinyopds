@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.IO;
+using System.Threading;
+using System.ComponentModel;
 
 using TinyOPDS.Data;
 
@@ -10,13 +12,22 @@ namespace TinyOPDS.Scanner
 {
     public class Watcher
     {
+        private class TimerObject
+        {
+            internal FileScanner scanner;
+            internal Timer timer;
+            internal string path;
+        }
+
         private FileSystemWatcher _fileWatcher;
 
-        public event EventHandler OnLibraryChanged;
+        public event BookAddedEventHandler OnBookAdded;
+        public event BookDeletedEventHandler OnBookDeleted;
 
         public Watcher(string path = "")
         {
             _fileWatcher = new FileSystemWatcher(path, "*");
+            _fileWatcher.InternalBufferSize = 1024 * 64;
             _fileWatcher.Created += new FileSystemEventHandler(_fileWatcher_Created);
             _fileWatcher.Deleted += new FileSystemEventHandler(_fileWatcher_Deleted);
             _fileWatcher.Renamed += new RenamedEventHandler(_fileWatcher_Renamed);
@@ -44,14 +55,27 @@ namespace TinyOPDS.Scanner
         {
             FileScanner scanner = new FileScanner(false);
             scanner.OnBookFound += (object s, BookFoundEventArgs be) =>
+            {
+                if (Library.Add(be.Book))
                 {
-                    if (Library.Add(be.Book))
-                    {
-                        if (OnLibraryChanged != null) OnLibraryChanged(this, new EventArgs());
-                        Log.WriteLine(LogLevel.Info,"Book \"{0}\" added to the library", be.Book.FileName);
-                    }
-                };
-            scanner.ScanFile(e.FullPath);
+                    if (OnBookAdded != null) OnBookAdded(this, new BookAddedEventArgs(be.Book.FileName));
+                    //Log.WriteLine(LogLevel.Info, "Book \"{0}\" added to the library", be.Book.FileName);
+                }
+            };
+
+            TimerObject timerObject = new TimerObject();
+            Timer delayedTimer = new Timer(new TimerCallback(DelayedScan), timerObject, Timeout.Infinite, Timeout.Infinite);
+            timerObject.scanner = scanner;
+            timerObject.path = e.FullPath;
+            timerObject.timer = delayedTimer;
+            delayedTimer.Change(500, Timeout.Infinite);
+        }
+
+        private void DelayedScan(object state)
+        {
+            TimerObject timerObject = state as TimerObject;
+            timerObject.timer.Dispose();
+            timerObject.scanner.ScanFile(timerObject.path);
         }
 
         /// <summary>
@@ -61,10 +85,7 @@ namespace TinyOPDS.Scanner
         /// <param name="e"></param>
         private void _fileWatcher_Renamed(object sender, RenamedEventArgs e)
         {
-            if (Library.Delete(e.FullPath))
-            {
-                if (OnLibraryChanged != null) OnLibraryChanged(this, new EventArgs());
-            }
+            DeleteBookAsync(e.FullPath);
         }
 
         /// <summary>
@@ -74,10 +95,20 @@ namespace TinyOPDS.Scanner
         /// <param name="e"></param>
         private void _fileWatcher_Deleted(object sender, FileSystemEventArgs e)
         {
-            if (Library.Delete(e.FullPath))
+            DeleteBookAsync(e.FullPath);
+        }
+
+        private void DeleteBookAsync(string bookPath)
+        {
+            BackgroundWorker worker = new BackgroundWorker();
+            worker.DoWork += ((object s, DoWorkEventArgs ea) =>
             {
-                if (OnLibraryChanged != null) OnLibraryChanged(this, new EventArgs());
-            }
+                if (Library.Delete(ea.Argument as string))
+                {
+                    if (OnBookDeleted != null) OnBookDeleted(this, new BookDeletedEventArgs(ea.Argument as string));
+                }
+            });
+            worker.RunWorkerAsync(bookPath);
         }
     }
 }

@@ -258,8 +258,8 @@
       <text lang="ru">Неверный номер порта. Будет использован номер 8080</text>
     </property>
     <property>
-      <text lang="en"></text>
-      <text lang="ru"></text>
+      <text lang="en">version {0}</text>
+      <text lang="ru">версия {0}</text>
     </property>
     <property>
       <text lang="en"></text>

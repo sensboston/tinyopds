@@ -1,4 +1,18 @@
-﻿using System;
+﻿/***********************************************************
+ * This file is a part of TinyOPDS server project
+ * 
+ * Copyright (c) 2013 SeNSSoFT
+ * All rights reserved.
+ *
+ * This code is licensed under the Microsoft Public License, 
+ * see http://tinyopds.codeplex.com/license for the details.
+ *
+ * One of the base project classes, the Library class
+ * We are using static dictionaries instead of database
+ * 
+ ************************************************************/
+
+using System;
 using System.IO;
 using System.Collections.Generic;
 using System.ComponentModel;

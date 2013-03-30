@@ -1,4 +1,18 @@
-﻿using System;
+﻿/***********************************************************
+ * This file is a part of TinyOPDS server project
+ * 
+ * Copyright (c) 2013 SeNSSoFT
+ * All rights reserved.
+ *
+ * This code is licensed under the Microsoft Public License, 
+ * see http://tinyopds.codeplex.com/license for the details.
+ *
+ * This module defines helper to run console processes in 
+ * background, with output (including errout) collection
+ * 
+ ************************************************************/
+
+using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;

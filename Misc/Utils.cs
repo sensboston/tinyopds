@@ -1,4 +1,17 @@
-﻿using System;
+﻿/***********************************************************
+ * This file is a part of TinyOPDS server project
+ * 
+ * Copyright (c) 2013 SeNSSoFT
+ * All rights reserved.
+ *
+ * This code is licensed under the Microsoft Public License, 
+ * see http://tinyopds.codeplex.com/license for the details.
+ *
+ * This module contains string extensions and some helpers
+ * 
+ ************************************************************/
+
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Security.Cryptography;

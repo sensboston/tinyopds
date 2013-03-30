@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("SeNSSoFT, Ltd")]
 [assembly: AssemblyProduct("TinyOPDS server")]
-[assembly: AssemblyCopyright("Copyright ©  2013, SeNSSoFT Ltd.")]
+[assembly: AssemblyCopyright("Copyright © 2013, SeNSSoFT Ltd.")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

@@ -9,6 +9,8 @@
  *
  * This module contains OPDS OpenSearch implementation
  * 
+ * TODO: implement SOUNDEX search
+ * 
  ************************************************************/
 
 using System;

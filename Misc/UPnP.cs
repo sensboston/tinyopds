@@ -55,6 +55,10 @@ namespace UPnP
                     _webClient.CancelAsync();
                     _webClient.Dispose();
                 }
+                if (_worker != null)
+                {
+                    _worker.Dispose();
+                }
                 DiscoverCompleted = null;
                 _disposed = true;
             }
@@ -91,7 +95,7 @@ namespace UPnP
                     IPEndPoint ipe = new IPEndPoint(IPAddress.Broadcast, 1900);
                     byte[] buffer = new byte[0x1000];
 
-                    for (int i = 0; i < 2; i++) socket.SendTo(data, ipe);
+                    for (int i = 0; i < 3; i++) socket.SendTo(data, ipe);
 
                     int length = 0;
                     do
@@ -111,19 +115,21 @@ namespace UPnP
                         }
                     } while (length > 0);
                 }
-                Discovered = true;
-
-                string ip = "127.0.0.0";
-                XmlDocument xdoc = SOAPRequest(_serviceUrl,
-                    "<u:GetExternalIPAddress xmlns:u=\"urn:schemas-upnp-org:service:WANIPConnection:1\">" +
-                    "</u:GetExternalIPAddress>", "GetExternalIPAddress");
-                if (xdoc.OuterXml.Contains("NewExternalIPAddress"))
+                if (UPnPReady)
                 {
-                    XmlNamespaceManager nsMgr = new XmlNamespaceManager(xdoc.NameTable);
-                    nsMgr.AddNamespace("tns", "urn:schemas-upnp-org:device-1-0");
-                    ip = xdoc.SelectSingleNode("//NewExternalIPAddress/text()", nsMgr).Value;
+                    string ip = "127.0.0.0";
+                    XmlDocument xdoc = SOAPRequest(_serviceUrl,
+                        "<u:GetExternalIPAddress xmlns:u=\"urn:schemas-upnp-org:service:WANIPConnection:1\">" +
+                        "</u:GetExternalIPAddress>", "GetExternalIPAddress");
+                    if (xdoc.OuterXml.Contains("NewExternalIPAddress"))
+                    {
+                        XmlNamespaceManager nsMgr = new XmlNamespaceManager(xdoc.NameTable);
+                        nsMgr.AddNamespace("tns", "urn:schemas-upnp-org:device-1-0");
+                        ip = xdoc.SelectSingleNode("//NewExternalIPAddress/text()", nsMgr).Value;
+                    }
+                    ExternalIP = IPAddress.Parse(ip);
                 }
-                ExternalIP = IPAddress.Parse(ip);
+                Discovered = true;
                 if (DiscoverCompleted != null) DiscoverCompleted(this, new EventArgs());
             }
             // Just detect external IP address
@@ -144,12 +150,15 @@ namespace UPnP
 
         private string GetServiceUrl(string resp)
         {
+#if false
+            // UPDATE: registry fix eliminate the IOException but completely ruins UPnP detection (after reboot)
             // Prevent IOException 
             // See https://connect.microsoft.com/VisualStudio/feedback/details/773666/webrequest-create-eats-an-ioexception-on-the-first-call#details
             RegistryKey registryKey = null;
             registryKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Wow6432Node\\Microsoft\\.NETFramework", true);
             if (registryKey == null) registryKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\.NETFramework", true);
             if (registryKey.GetValue("LegacyWPADSupport") == null) registryKey.SetValue("LegacyWPADSupport", 0);
+#endif
 
             try
             {

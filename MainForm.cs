@@ -64,10 +64,10 @@ namespace TinyOPDS
             Library.LibraryLoaded += (_, __) => 
             { 
                 UpdateInfo();
-                _watcher.PathToWatch = Library.LibraryPath;
+                _watcher.DirectoryToWatch = Library.LibraryPath;
                 _watcher.IsEnabled = Properties.Settings.Default.WatchLibrary;
 
-                var allBooks = new OpenSearch().Search("ав", "books", true).ToString();
+                var allBooks = new OpenSearch().Search("а", "books", true).ToString();
                 var books = new OpenSearch().Search("Gene", "books", true);
 
                 if (String.IsNullOrEmpty(books.ToString()))
@@ -128,7 +128,6 @@ namespace TinyOPDS
             linkLabel3.Links.Add(0, linkLabel3.Text.Length, "https://code.google.com/p/fb2librarynet/");
             linkLabel5.Links.Add(0, linkLabel5.Text.Length, "http://epubreader.codeplex.com/");
             linkLabel4.Links.Add(0, linkLabel4.Text.Length, "http://dotnetzip.codeplex.com/");
-            appVersion.Text = string.Format(Localizer.Text("version {0}.{1}"), Utils.Version.Major, Utils.Version.Minor);
             // Setup settings controls
             libraryPath.Text = Properties.Settings.Default.LibraryPath;
             serverName.Text = Properties.Settings.Default.ServerName;
@@ -184,7 +183,7 @@ namespace TinyOPDS
                 Properties.Settings.Default.Save();
                 // Reload library
                 Library.LoadAsync();
-                _watcher.PathToWatch = Properties.Settings.Default.LibraryPath;
+                _watcher.DirectoryToWatch = Properties.Settings.Default.LibraryPath;
             }
             else libraryPath.Text = Properties.Settings.Default.LibraryPath;
         }
@@ -505,7 +504,7 @@ namespace TinyOPDS
             {
                 serverName.Text = Properties.Settings.Default.ServerName;
             }
-            appVersion.Text = string.Format(Localizer.Text("version {0}.{1}"), Utils.Version.Major, Utils.Version.Minor);
+            appVersion.Text = string.Format(Localizer.Text("version {0}.{1} {2}"), Utils.Version.Major, Utils.Version.Minor, Utils.Version.Major == 0?" (beta)":"");
         }
 
         /// <summary>

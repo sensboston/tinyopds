@@ -41,7 +41,7 @@ namespace TinyOPDS
         /// <param name="arguments"></param>
         /// <param name="ParseOutput"></param>
         /// <param name="priority"></param>
-        [PermissionSet(SecurityAction.LinkDemand, Name = "FullTrust")]
+        [PermissionSetAttribute(SecurityAction.LinkDemand, Unrestricted = true)]
         public ProcessHelper(string commandPath, string arguments)
         {
             _process = new Process();
@@ -60,7 +60,7 @@ namespace TinyOPDS
             _process.Exited += (__, ____) => { if (OnExited != null) OnExited(this, new EventArgs()); };
         }
 
-        [PermissionSet(SecurityAction.LinkDemand, Name = "FullTrust")]
+        [PermissionSetAttribute(SecurityAction.LinkDemand, Unrestricted = true)]
         protected virtual void Dispose(bool disposing)
         {
             if (!this._disposed && disposing)
@@ -74,7 +74,7 @@ namespace TinyOPDS
             }
         }
 
-        [PermissionSet(SecurityAction.LinkDemand, Name = "FullTrust")]
+        [PermissionSetAttribute(SecurityAction.LinkDemand, Unrestricted = true)]
         public void Dispose()
         {
             Dispose(true);

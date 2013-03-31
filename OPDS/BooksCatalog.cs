@@ -71,7 +71,7 @@ namespace TinyOPDS.OPDS
         /// <returns></returns>
         public XDocument GetCatalogByTitle(string title, bool fb2Only)
         {
-            return GetCatalog(title, SearchFor.Title, fb2Only);
+            return GetCatalog(title, SearchFor.Title, fb2Only, true);
         }
 
         /// <summary>
@@ -80,7 +80,7 @@ namespace TinyOPDS.OPDS
         /// <param name="searchPattern"></param>
         /// <param name="searchFor"></param>
         /// <returns></returns>
-        private XDocument GetCatalog(string searchPattern, SearchFor searchFor, bool acceptFB2)
+        private XDocument GetCatalog(string searchPattern, SearchFor searchFor, bool acceptFB2, bool isOpenSearch = false)
         {
             if (!string.IsNullOrEmpty(searchPattern)) searchPattern = HttpUtility.UrlDecode(searchPattern);
 

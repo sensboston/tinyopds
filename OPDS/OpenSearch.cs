@@ -26,7 +26,7 @@ namespace TinyOPDS.OPDS
 {
     public class OpenSearch
     {
-        public XDocument Search(string searchPattern, string searchType = "", bool fb2Only = false, int threshold = 50)
+        public XDocument Search(string searchPattern, string searchType = "", bool fb2Only = false, int pageNumber = 0, int threshold = 50)
         {
             if (!string.IsNullOrEmpty(searchPattern)) searchPattern = HttpUtility.UrlDecode(searchPattern).ToLower();
 
@@ -68,6 +68,7 @@ namespace TinyOPDS.OPDS
             }
             else if (searchType.Equals("books") || (titles.Count > 0 && authors.Count == 0))
             {
+                if (pageNumber > 0) searchPattern += "/" + pageNumber;
                 return new BooksCatalog().GetCatalogByTitle(searchPattern, fb2Only);
             }
             return doc;

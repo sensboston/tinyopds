@@ -30,7 +30,7 @@ namespace TinyOPDS
         {
             uri1 = uri1.TrimEnd('/');
             uri2 = uri2.TrimStart('/');
-            return string.Format("{0}/{1}", uri1, uri2);
+            return string.Format("{0}/{1}", uri1, uri2).TrimEnd('/');
         }
 
         public static bool IsValidUTF(this string s)

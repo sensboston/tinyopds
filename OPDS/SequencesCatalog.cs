@@ -38,7 +38,7 @@ namespace TinyOPDS.OPDS
                     new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                     new XElement("icon", "http://{$HOST}/series.ico"),
                 // Add links
-                    Links.opensearch, Links.search, Links.start, Links.self)
+                    Links.opensearch, Links.search, Links.start)
                 );
 
             // Get all authors names starting with searchPattern

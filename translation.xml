@@ -262,20 +262,20 @@
       <text lang="ru">версия {0}.{1} {2}</text>
     </property>
     <property>
-      <text lang="en"></text>
-      <text lang="ru"></text>
+      <text lang="en">Search authors</text>
+      <text lang="ru">Поиск авторов</text>
     </property>
     <property>
-      <text lang="en"></text>
-      <text lang="ru"></text>
+      <text lang="en">Search authors by name</text>
+      <text lang="ru">Поиск авторов по имени</text>
     </property>
     <property>
-      <text lang="en"></text>
-      <text lang="ru"></text>
+      <text lang="en">Search books</text>
+      <text lang="ru">Поиск книг</text>
     </property>
     <property>
-      <text lang="en"></text>
-      <text lang="ru"></text>
+      <text lang="en">Search books by title</text>
+      <text lang="ru">Поиск книг по названию</text>
     </property>
     <property>
       <text lang="en"></text>

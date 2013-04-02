@@ -38,7 +38,7 @@ namespace TinyOPDS.OPDS
                 new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                 new XElement("icon", "http://{$HOST}/genres.ico"),
                 // Add links
-                Links.opensearch, Links.search, Links.start, Links.self)
+                Links.opensearch, Links.search, Links.start)
             );
 
             bool topLevel = true;

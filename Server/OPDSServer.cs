@@ -122,7 +122,12 @@ namespace TinyOPDS.Server
                             }
                             else if (http_params[1].Equals("searchType"))
                             {
-                                xml = new OpenSearch().Search(http_params[4], http_params[2], acceptFB2).ToString();
+                                int pageNumber = 0;
+                                if (http_params.Length > 6 && http_params[5].Equals("pageNumber"))
+                                {
+                                    int.TryParse(http_params[6], out pageNumber);
+                                }
+                                xml = new OpenSearch().Search(http_params[4], http_params[2], acceptFB2, pageNumber).ToString();
                             }
                         }
 

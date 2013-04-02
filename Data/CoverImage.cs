@@ -62,15 +62,8 @@ namespace TinyOPDS.Data
                             stream.CopyTo(memStream);
                     }
 
-                    string ext = Path.GetExtension(book.FilePath).ToLower();
-                    if (ext.Contains(".epub"))
-                    {
-                        _cover = new ePubParser().GetCoverImage(memStream, book.FilePath);
-                    }
-                    else if (ext.Contains(".fb2"))
-                    {
-                        _cover = new FB2Parser().GetCoverImage(memStream, book.FilePath);
-                    }
+                    _cover = (book.BookType == BookType.EPUB) ? new ePubParser().GetCoverImage(memStream, book.FilePath) 
+                                                              : new FB2Parser().GetCoverImage(memStream, book.FilePath);
                 }
             }
             catch (Exception e)

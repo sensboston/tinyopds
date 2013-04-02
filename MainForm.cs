@@ -67,10 +67,11 @@ namespace TinyOPDS
                 _watcher.DirectoryToWatch = Library.LibraryPath;
                 _watcher.IsEnabled = Properties.Settings.Default.WatchLibrary;
 
-                var allBooks = new OpenSearch().Search("а", "books", true).ToString();
-                var books = new OpenSearch().Search("Gene", "books", true);
+                //var allBooks = new OpenSearch().Search("а", "books", true).ToString();
+                //var books = new OpenSearch().Search("Gene", "books", true);
+                //var books = new BooksCatalog().GetCatalogByAuthor("Пелевин Виктор/1", false);
 
-                if (String.IsNullOrEmpty(books.ToString()))
+                //if (String.IsNullOrEmpty(books.ToString()))
                 { }
             };
 

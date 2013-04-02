@@ -69,7 +69,7 @@ namespace TinyOPDS.OPDS
         /// </summary>
         /// <param name="author"></param>
         /// <returns></returns>
-        public XDocument GetCatalogByTitle(string title, bool fb2Only)
+        public XDocument GetCatalogByTitle(string title, bool fb2Only, int pageNumber = 0)
         {
             return GetCatalog(title, SearchFor.Title, fb2Only, true);
         }
@@ -80,7 +80,7 @@ namespace TinyOPDS.OPDS
         /// <param name="searchPattern"></param>
         /// <param name="searchFor"></param>
         /// <returns></returns>
-        private XDocument GetCatalog(string searchPattern, SearchFor searchFor, bool acceptFB2, bool isOpenSearch = false)
+        private XDocument GetCatalog(string searchPattern, SearchFor searchFor, bool acceptFB2, bool isOpenSearch = false, int threshold = 50)
         {
             if (!string.IsNullOrEmpty(searchPattern)) searchPattern = HttpUtility.UrlDecode(searchPattern);
 
@@ -91,31 +91,71 @@ namespace TinyOPDS.OPDS
                     new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                     new XElement("icon", "http://{$HOST}/icons/books.ico"),
                     // Add links
-                    Links.opensearch, Links.search, Links.start, Links.self)
+                    Links.opensearch, Links.search, Links.start)
                 );
 
+            int pageNumber = 0;
+            // Extract and remove page number from the search patter
+            int j = searchPattern.IndexOf('/');
+            if (j > 0)
+            {
+                int.TryParse(searchPattern.Substring(j + 1), out pageNumber);
+                searchPattern = searchPattern.Substring(0, j);
+            }
+
             // Get author's books
+            string catalogType = string.Empty;
             List<Book> books = new List<Book>();
             switch (searchFor)
             {
                 case SearchFor.Author:
                     books = Library.GetBooksByAuthor(searchPattern);
+                    catalogType = "/author/" + HttpUtility.UrlEncode(searchPattern);
                     break;
                 case SearchFor.Sequence:
                     books = Library.GetBooksBySequence(searchPattern);
+                    catalogType = "/sequence/" + HttpUtility.UrlEncode(searchPattern);
                     break;
                 case SearchFor.Genre:
                     books = Library.GetBooksByGenre(searchPattern);
+                    catalogType = "/genre/" + HttpUtility.UrlEncode(searchPattern);
                     break;
                 case SearchFor.Title:
                     books = Library.GetBooksByTitle(searchPattern);
                     break;
             }
 
+            // Sort books by title
+            books = books.OrderBy(b => b.Title, new OPDSComparer(Localizer.Language.Equals("ru"))).ToList();
+
+            int startIndex = pageNumber * threshold;
+            int endIndex = startIndex + ((books.Count / threshold == 0) ? books.Count : Math.Min(threshold, books.Count - startIndex));
+
+            if (isOpenSearch)
+            {
+                if ((pageNumber + 1) * threshold < books.Count)
+                {
+                    catalogType = string.Format("/search?searchType=books&searchTerm={0}&pageNumber={1}", HttpUtility.UrlEncode(searchPattern), pageNumber + 1);
+                    doc.Root.Add(new XElement("link",
+                                    new XAttribute("href", "http://{$HOST}" + catalogType),
+                                    new XAttribute("rel", "next"),
+                                    new XAttribute("type", "application/atom+xml;profile=opds-catalog")));
+                }
+            }
+            else if ((pageNumber + 1) * threshold < books.Count)
+            {
+                catalogType += "/" + (pageNumber + 1);
+                doc.Root.Add(new XElement("link",
+                                new XAttribute("href", "http://{$HOST}" + catalogType),
+                                new XAttribute("rel", "next"),
+                                new XAttribute("type", "application/atom+xml;profile=opds-catalog")));
+
+            }
+
             bool useCyrillic = Localizer.Language.Equals("ru");
 
             // Add catalog entries
-            for (int i = 0; i < books.Count; i++)
+            for (int i = startIndex; i < endIndex; i++)
             {
                 Book book = books.ElementAt(i);
 

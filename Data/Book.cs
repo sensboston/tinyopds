@@ -38,7 +38,7 @@ namespace TinyOPDS.Data
         {
             Version = 1;
             FileName = fileName;
-            if (!string.IsNullOrEmpty(FileName) && FileName.Length > Library.LibraryPath.Length)
+            if (!string.IsNullOrEmpty(FileName) && FileName.IndexOf(Library.LibraryPath)==0)
             {
                 FileName = FileName.Substring(Library.LibraryPath.Length+1);
             }

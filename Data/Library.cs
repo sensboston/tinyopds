@@ -320,7 +320,7 @@ namespace TinyOPDS.Data
         /// <returns></returns>
         public static List<Book> GetBooksByTitle(string title)
         {
-            lock (_books) return _books.Values.Where(b => b.Title.StartsWith(title, StringComparison.OrdinalIgnoreCase)).ToList();
+            lock (_books) return _books.Values.Where(b => b.Title.IndexOf(title, StringComparison.OrdinalIgnoreCase) >= 0 || b.Sequence.IndexOf(title, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
         }
 
         /// <summary>

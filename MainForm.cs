@@ -67,12 +67,13 @@ namespace TinyOPDS
                 _watcher.DirectoryToWatch = Library.LibraryPath;
                 _watcher.IsEnabled = Properties.Settings.Default.WatchLibrary;
 
-                //var allBooks = new OpenSearch().Search("а", "books", true).ToString();
-                //var books = new OpenSearch().Search("Gene", "books", true);
-                //var books = new BooksCatalog().GetCatalogByAuthor("Пелевин Виктор/1", false);
+                DateTime start = DateTime.Now;
 
-                //if (String.IsNullOrEmpty(books.ToString()))
-                { }
+                var books = Library.GetBooksByTitle("дортмундер");
+
+                TimeSpan elapsedTime = start.Subtract(DateTime.Now);
+
+                int i = books.Count;
             };
 
             // Create file watcher
@@ -180,7 +181,7 @@ namespace TinyOPDS
         {
             if (!libraryPath.Text.Equals(Properties.Settings.Default.LibraryPath) && Directory.Exists(libraryPath.Text))
             {
-                Properties.Settings.Default.LibraryPath = libraryPath.Text;
+                Properties.Settings.Default.LibraryPath = Library.LibraryPath = libraryPath.Text;
                 Properties.Settings.Default.Save();
                 // Reload library
                 Library.LoadAsync();
@@ -429,6 +430,7 @@ namespace TinyOPDS
         private void closeToTray_CheckedChanged(object sender, EventArgs e)
         {
             notifyIcon1.Visible = Properties.Settings.Default.CloseToTray = closeToTray.Checked;
+            windowMenuItem.Text = Localizer.Text(Visible ? "Hide window" : "Show window");
         }
 
         private void startWithWindows_CheckedChanged(object sender, EventArgs e)

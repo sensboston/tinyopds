@@ -130,7 +130,7 @@ namespace UPnP
                     ExternalIP = IPAddress.Parse(ip);
                 }
                 Discovered = true;
-                if (DiscoverCompleted != null) DiscoverCompleted(this, new EventArgs());
+                if (UPnPReady && DiscoverCompleted != null) DiscoverCompleted(this, new EventArgs());
             }
             // Just detect external IP address
             else

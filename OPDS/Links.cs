@@ -25,7 +25,7 @@ namespace TinyOPDS.OPDS
         public static XElement search = new XElement("link", 
                                                 new XAttribute("href","http://{$HOST}/search?searchTerm={searchTerms}"),
                                                 new XAttribute("rel","search"),
-                                                new XAttribute("type","application/atom+xml;profile=opds-catalog"));
+                                                new XAttribute("type","application/atom+xml"));
 
         public static XElement start = new XElement("link",
                                                 new XAttribute("href", "http://{$HOST}"),

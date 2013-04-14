@@ -71,7 +71,7 @@ namespace TinyOPDS.OPDS
         /// <returns></returns>
         public XDocument GetCatalogByTitle(string title, bool fb2Only, int pageNumber = 0)
         {
-            return GetCatalog(title, SearchFor.Title, fb2Only, true);
+            return GetCatalog(title, SearchFor.Title, fb2Only);
         }
 
         /// <summary>
@@ -80,7 +80,7 @@ namespace TinyOPDS.OPDS
         /// <param name="searchPattern"></param>
         /// <param name="searchFor"></param>
         /// <returns></returns>
-        private XDocument GetCatalog(string searchPattern, SearchFor searchFor, bool acceptFB2, bool isOpenSearch = false, int threshold = 50)
+        private XDocument GetCatalog(string searchPattern, SearchFor searchFor, bool acceptFB2, int threshold = 50)
         {
             if (!string.IsNullOrEmpty(searchPattern)) searchPattern = HttpUtility.UrlDecode(searchPattern);
 
@@ -131,7 +131,7 @@ namespace TinyOPDS.OPDS
             int startIndex = pageNumber * threshold;
             int endIndex = startIndex + ((books.Count / threshold == 0) ? books.Count : Math.Min(threshold, books.Count - startIndex));
 
-            if (isOpenSearch)
+            if (searchFor == SearchFor.Title)
             {
                 if ((pageNumber + 1) * threshold < books.Count)
                 {
@@ -191,19 +191,19 @@ namespace TinyOPDS.OPDS
                 }
                 if (book.Translators.Count > 0)
                 {
-                    bookInfo += string.Format("<b>{0}</b>", Localizer.Text("Translation: "));
+                    bookInfo += string.Format("<b>{0} </b>", Localizer.Text("Translation:"));
                     foreach (string translator in book.Translators) bookInfo += translator + " ";
                     bookInfo += "<br/>";
                 }
                 if (book.BookDate != DateTime.MinValue)
                 {
-                    bookInfo += string.Format("<b>{0}</b> {1}<br/>", Localizer.Text("Year of publication: "), book.BookDate.Year);
+                    bookInfo += string.Format("<b>{0}</b> {1}<br/>", Localizer.Text("Year of publication:"), book.BookDate.Year);
                 }
-                bookInfo += string.Format("<b>{0}</b> {1}<br/>", Localizer.Text("Book format:"), book.BookType == BookType.EPUB ? "epub" : "fb2");
-                bookInfo += string.Format("<b>{0}</b> {1} Kb<br/>", Localizer.Text("Book size:"), (int) book.DocumentSize / 1024);
+                bookInfo += string.Format("<b>{0}</b> {1}<br/>", Localizer.Text("Format:"), book.BookType == BookType.EPUB ? "epub" : "fb2");
+                bookInfo += string.Format("<b>{0}</b> {1} Kb<br/>", Localizer.Text("Size:"), (int) book.DocumentSize / 1024);
                 if (!string.IsNullOrEmpty(book.Sequence))
                 {
-                    bookInfo += string.Format("<b>{0}{1}</b><br/>", Localizer.Text("Book series: "), book.Sequence);
+                    bookInfo += string.Format("<b>{0} {1} #{2}</b><br/>", Localizer.Text("Series:"), book.Sequence, book.NumberInSequence);
                 }
 
                 entry.Add(
@@ -224,7 +224,7 @@ namespace TinyOPDS.OPDS
                 }
 
                 string url = "http://{$HOST}/" + Transliteration.Front(string.Format("{0}/{1}_{2}", book.ID, book.Authors.First(), book.Title));
-                if (book.BookType == BookType.EPUB || !(acceptFB2 && string.IsNullOrEmpty(Properties.Settings.Default.ConvertorPath)))
+                if (book.BookType == BookType.EPUB || (!acceptFB2 && string.IsNullOrEmpty(Properties.Settings.Default.ConvertorPath)))
                 {
                     entry.Add(new XElement("link", new XAttribute("href", url+".epub"), new XAttribute("rel", "http://opds-spec.org/acquisition/open-access"), new XAttribute("type", "application/epub+zip")));
                 }
@@ -234,6 +234,28 @@ namespace TinyOPDS.OPDS
                     entry.Add(new XElement("link", new XAttribute("href", url+".fb2.zip"), new XAttribute("rel", "http://opds-spec.org/acquisition/open-access"), new XAttribute("type", "application/fb2+zip")));
                 }
 
+                // For search requests, lets add navigation links for author and series (if any)
+                if (searchFor != SearchFor.Author)
+                {
+                    foreach (string author in book.Authors)
+                    {
+                        entry.Add(new XElement("link", 
+                                        new XAttribute("href", "http://{$HOST}/author/" + HttpUtility.UrlEncode(author)),
+                                        new XAttribute("rel", "related"), 
+                                        new XAttribute("type", "application/atom+xml;profile=opds-catalog"),
+                                        new XAttribute("title", string.Format(Localizer.Text("All books by author {0}"), author))));
+                    }
+                }
+
+                if (searchFor != SearchFor.Sequence && !string.IsNullOrEmpty(book.Sequence))
+                {
+                   entry.Add(new XElement("link", 
+                                new XAttribute("href", "http://{$HOST}/sequence/" + HttpUtility.UrlEncode(book.Sequence)),
+                                new XAttribute("rel", "related"),
+                                new XAttribute("type", "application/atom+xml;profile=opds-catalog"),
+                                new XAttribute("title", string.Format(Localizer.Text("All books by series {0}"), book.Sequence))));
+                }
+                
                 doc.Root.Add(entry);
             }
             return doc;

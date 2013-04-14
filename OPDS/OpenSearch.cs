@@ -41,8 +41,8 @@ namespace TinyOPDS.OPDS
                     Links.opensearch, Links.search, Links.start, Links.self)
                 );
 
-            List<string> authors = (from a in Library.Authors where a.ToLower().StartsWith(searchPattern) select a).ToList();
-            List<string> titles = (from t in Library.Titles where t.ToLower().StartsWith(searchPattern) select t).ToList();
+            List<string> authors = Library.Authors.Where(a=> a.IndexOf(searchPattern, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
+            List<Book> titles = Library.GetBooksByTitle(searchPattern);
 
             if (string.IsNullOrEmpty(searchType) && authors.Count > 0 && titles.Count > 0)
             {

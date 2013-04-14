@@ -278,8 +278,32 @@
       <text lang="ru">Поиск книг по названию</text>
     </property>
     <property>
-      <text lang="en"></text>
-      <text lang="ru"></text>
+      <text lang="en">Translation:</text>
+      <text lang="ru">Перевод:</text>
+    </property>
+    <property>
+      <text lang="en">Year of publication:</text>
+      <text lang="ru">Год публикации:</text>
+    </property>
+    <property>
+      <text lang="en">Format:</text>
+      <text lang="ru">Формат:</text>
+    </property>
+    <property>
+      <text lang="en">Size:</text>
+      <text lang="ru">Размер:</text>
+    </property>
+    <property>
+      <text lang="en">Series:</text>
+      <text lang="ru">Серия:</text>
+    </property>
+    <property>
+      <text lang="en">All books by author {0}</text>
+      <text lang="ru">Все книги автора {0}</text>
+    </property>
+    <property>
+      <text lang="en">All books by series {0}</text>
+      <text lang="ru">Все книги серии {0}</text>
     </property>
     <property>
       <text lang="en"></text>

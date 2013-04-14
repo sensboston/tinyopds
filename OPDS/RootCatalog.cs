@@ -33,7 +33,8 @@ namespace TinyOPDS.OPDS
                 return new XDocument(
                     // Add root element with namespaces
                     new XElement("feed", new XAttribute(XNamespace.Xmlns + "dc", Namespaces.dc), 
-                                         new XAttribute(XNamespace.Xmlns + "os", Namespaces.os), new XAttribute(XNamespace.Xmlns + "opds", Namespaces.opds),
+                                         new XAttribute(XNamespace.Xmlns + "os", Namespaces.os), 
+                                         new XAttribute(XNamespace.Xmlns + "opds", Namespaces.opds),
 
                           new XElement("id", "tag:root"),
                           new XElement("title", Properties.Settings.Default.ServerName),

@@ -57,12 +57,13 @@ namespace TinyOPDS.Server
             {
                 // Parse request
                 string xml = string.Empty;
-                string request = processor.HttpUrl.Replace("//", "/");
+                string request = processor.HttpUrl;
                 // Remove prefix if any
                 if (!string.IsNullOrEmpty(Properties.Settings.Default.RootPrefix))
                 {
                     request = request.Replace(Properties.Settings.Default.RootPrefix, "");
                 }
+                request = request.Replace("//", "/");
                 string ext = Path.GetExtension(request);
                 string[] http_params = request.Split(new Char[] { '?', '=', '&' });
 
@@ -129,6 +130,12 @@ namespace TinyOPDS.Server
                                 }
                                 xml = new OpenSearch().Search(http_params[4], http_params[2], acceptFB2, pageNumber).ToString();
                             }
+                        }
+
+                        if (string.IsNullOrEmpty(xml))
+                        {
+                            processor.WriteFailure();
+                            return;
                         }
 
                         // Modify and send xml back to the client app

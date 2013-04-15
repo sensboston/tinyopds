@@ -66,14 +66,6 @@ namespace TinyOPDS
                 UpdateInfo();
                 _watcher.DirectoryToWatch = Library.LibraryPath;
                 _watcher.IsEnabled = Properties.Settings.Default.WatchLibrary;
-
-                DateTime start = DateTime.Now;
-
-                var books = Library.GetBooksByTitle("дортмундер");
-
-                TimeSpan elapsedTime = start.Subtract(DateTime.Now);
-
-                int i = books.Count;
             };
 
             // Create file watcher
@@ -132,6 +124,7 @@ namespace TinyOPDS
             linkLabel4.Links.Add(0, linkLabel4.Text.Length, "http://dotnetzip.codeplex.com/");
             // Setup settings controls
             libraryPath.Text = Properties.Settings.Default.LibraryPath;
+            databaseFileName.Text = Utils.Create(Utils.IsoOidNamespace, Properties.Settings.Default.LibraryPath).ToString() + ".db";
             serverName.Text = Properties.Settings.Default.ServerName;
             serverPort.Text = Properties.Settings.Default.ServerPort.ToString();
             rootPrefix.Text = Properties.Settings.Default.RootPrefix;
@@ -183,6 +176,8 @@ namespace TinyOPDS
             {
                 Properties.Settings.Default.LibraryPath = Library.LibraryPath = libraryPath.Text;
                 Properties.Settings.Default.Save();
+                booksInDB.Text = string.Format("{0}       fb2: {1}      epub: {2}", 0, 0, 0);
+                databaseFileName.Text = Utils.Create(Utils.IsoOidNamespace, Library.LibraryPath).ToString() + ".db";
                 // Reload library
                 Library.LoadAsync();
                 _watcher.DirectoryToWatch = Properties.Settings.Default.LibraryPath;

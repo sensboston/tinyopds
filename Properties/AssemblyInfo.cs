@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("TinyOPDS server")]
 [assembly: AssemblyDescription("Standalone and small OPDS server for Windows")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("SeNSSoFT, Ltd")]
+[assembly: AssemblyCompany("SeNSSoFT")]
 [assembly: AssemblyProduct("TinyOPDS server")]
 [assembly: AssemblyCopyright("Copyright © 2013, SeNSSoFT Ltd.")]
 [assembly: AssemblyTrademark("")]

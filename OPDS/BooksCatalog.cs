@@ -75,10 +75,12 @@ namespace TinyOPDS.OPDS
         }
 
         /// <summary>
-        /// 
+        /// Returns books catalog for specific search
         /// </summary>
-        /// <param name="searchPattern"></param>
-        /// <param name="searchFor"></param>
+        /// <param name="searchPattern">Keyword to search</param>
+        /// <param name="searchFor">Type of search</param>
+        /// <param name="acceptFB2">Client can accept fb2 files</param>
+        /// <param name="threshold">Items per page</param>
         /// <returns></returns>
         private XDocument GetCatalog(string searchPattern, SearchFor searchFor, bool acceptFB2, int threshold = 50)
         {
@@ -232,7 +234,7 @@ namespace TinyOPDS.OPDS
                 }
 
                 string url = "http://{$HOST}/" + Transliteration.Front(string.Format("{0}/{1}_{2}", book.ID, book.Authors.First(), book.Title));
-                if (book.BookType == BookType.EPUB || (!acceptFB2 && string.IsNullOrEmpty(Properties.Settings.Default.ConvertorPath)))
+                if (book.BookType == BookType.EPUB || (book.BookType == BookType.FB2 && !acceptFB2 && !string.IsNullOrEmpty(Properties.Settings.Default.ConvertorPath)))
                 {
                     entry.Add(new XElement("link", new XAttribute("href", url+".epub"), new XAttribute("rel", "http://opds-spec.org/acquisition/open-access"), new XAttribute("type", "application/epub+zip")));
                 }

@@ -59,15 +59,15 @@ namespace TinyOPDS.OPDS
                           new XElement("entry",
                               new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                               new XElement("id", "tag:root:sequences"),
-                              new XElement("title", Localizer.Text("По сериям"), new XAttribute("type", "text")),
-                              new XElement("content", string.Format("{0} книг в {1} сериях", Library.Count, Library.Sequences.Count), new XAttribute("type", "text")),
+                              new XElement("title", Localizer.Text("By series"), new XAttribute("type", "text")),
+                              new XElement("content", string.Format(Localizer.Text("{0} books by {1} series"), Library.Count, Library.Sequences.Count), new XAttribute("type", "text")),
                               new XElement("link", new XAttribute("href", "http://{$HOST}/sequencesindex"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                               ),
                           new XElement("entry",
                               new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                               new XElement("id", "tag:root:genre"),
-                              new XElement("title", Localizer.Text("По жанрам"), new XAttribute("type", "text")),
-                              new XElement("content", Localizer.Text("поиск книг по жанрам"), new XAttribute("type", "text")),
+                              new XElement("title", Localizer.Text("By genres"), new XAttribute("type", "text")),
+                              new XElement("content", Localizer.Text("Books grouped by genres"), new XAttribute("type", "text")),
                               new XElement("link", new XAttribute("href", "http://{$HOST}/genres"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                           )
                       )

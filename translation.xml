@@ -185,6 +185,10 @@
       <text lang="en">Special thanks:</text>
       <text lang="ru">Отдельное спасибо:</text>
     </property>
+    <property form="MainForm" ctrl="label21">
+      <text lang="en">Database file name:</text>
+      <text lang="ru">Файл базы данных:</text>
+    </property>
     <property>
       <text lang="en">Books by authors</text>
       <text lang="ru">Книги по авторам</text>      
@@ -210,6 +214,22 @@
       <text lang="ru">{0} книг от {1} авторов</text>
     </property>
     <property>
+      <text lang="en">By series</text>
+      <text lang="ru">По сериям</text>
+    </property>
+    <property>
+      <text lang="en">{0} books by {1} series</text>
+      <text lang="ru">{0} книг в {1} сериях</text>
+    </property>
+    <property>
+      <text lang="en">By genres</text>
+      <text lang="ru">По жанрам</text>
+    </property>
+    <property>
+      <text lang="en">Books grouped by genres</text>
+      <text lang="ru">Книги, сгруппированные по жанрам</text>
+    </property>
+    <property>
       <text lang="en">Book series</text>
       <text lang="ru">Книжные серии</text>
     </property>
@@ -220,10 +240,6 @@
     <property>
       <text lang="en">{0} books in {1}</text>
       <text lang="ru">{0} книг в {1}</text>
-    </property>
-    <property>
-      <text lang="en">Books by genres</text>
-      <text lang="ru">Книги по жанрам</text>
     </property>
     <property>
       <text lang="en">Books in genre «{0}»</text>

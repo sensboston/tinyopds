@@ -125,8 +125,16 @@ namespace TinyOPDS.OPDS
                     break;
             }
 
-            // Sort books by title
-            books = books.OrderBy(b => b.Title, new OPDSComparer(Localizer.Language.Equals("ru"))).ToList();
+            // For sequences, sort books by sequence number
+            if (searchFor == SearchFor.Sequence)
+            {
+                books = books.OrderBy(b => b.NumberInSequence).ToList();
+            }
+            // else sort by title
+            else
+            {
+                books = books.OrderBy(b => b.Title, new OPDSComparer(Localizer.Language.Equals("ru"))).ToList();
+            }
 
             int startIndex = pageNumber * threshold;
             int endIndex = startIndex + ((books.Count / threshold == 0) ? books.Count : Math.Min(threshold, books.Count - startIndex));

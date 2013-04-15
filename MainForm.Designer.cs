@@ -683,6 +683,7 @@
             this.convertorFolder.Size = new System.Drawing.Size(29, 23);
             this.convertorFolder.TabIndex = 29;
             this.convertorFolder.UseVisualStyleBackColor = true;
+            this.convertorFolder.Click += new System.EventHandler(this.convertorFolder_Click);
             // 
             // convertorPath
             // 

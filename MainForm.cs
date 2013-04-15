@@ -414,6 +414,15 @@ namespace TinyOPDS
 
         #region Form controls handling
 
+        private void convertorFolder_Click(object sender, EventArgs e)
+        {
+            folderBrowserDialog1.SelectedPath = convertorPath.Text;
+            if (folderBrowserDialog1.ShowDialog() == DialogResult.OK)
+            {
+                convertorPath.Text = folderBrowserDialog1.SelectedPath;
+            }
+        }
+
         private void useWatcher_CheckedChanged(object sender, EventArgs e)
         {
             if (_watcher != null && _watcher.IsEnabled != useWatcher.Checked)
@@ -529,5 +538,6 @@ namespace TinyOPDS
         }
 
         #endregion
+
     }
 }

@@ -17,11 +17,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
 using System.Reflection;
+using System.Threading;
 
 namespace TinyOPDS
 {
     static class Program
     {
+        static Mutex mutex = new Mutex(false, "tiny_opds_mutex");
+
         /// <summary>
         /// The main entry point for the application.
         /// </summary>
@@ -32,11 +35,20 @@ namespace TinyOPDS
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            using (MainForm mainForm = new MainForm())
+            if (!mutex.WaitOne(TimeSpan.FromSeconds(1), false)) return;
+
+            try
             {
-                if (Properties.Settings.Default.StartMinimized) mainForm.WindowState = FormWindowState.Minimized;
-                if (Properties.Settings.Default.CloseToTray) mainForm.ShowInTaskbar = false;
-                Application.Run(mainForm);
+                using (MainForm mainForm = new MainForm())
+                {
+                    if (Properties.Settings.Default.StartMinimized) mainForm.WindowState = FormWindowState.Minimized;
+                    if (Properties.Settings.Default.CloseToTray) mainForm.ShowInTaskbar = false;
+                    Application.Run(mainForm);
+                }
+            }
+            finally
+            {
+                mutex.ReleaseMutex();
             }
         }
 

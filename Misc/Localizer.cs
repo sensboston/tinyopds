@@ -86,9 +86,19 @@ namespace TinyOPDS
                                          .Descendants("text").Where(b => b.Attribute("lang").Value == "en" || b.Attribute("lang").Value == _lang)
                                          .Select(c => c.Value).ToList();
                     _translations.Clear();
-                    for (int i = 0; i < t.Count / 2; i++) 
-                        if (!string.IsNullOrEmpty(t[i*2]))
-                            _translations.Add(t[i * 2], t[i * 2 + 1]);
+
+                    if (lang.Equals("en"))
+                    {
+                        for (int i = 0; i < t.Count; i++)
+                            if (!string.IsNullOrEmpty(t[i]))
+                                _translations.Add(t[i], t[i]);
+                    }
+                    else
+                    {
+                        for (int i = 0; i < t.Count / 2; i++)
+                            if (!string.IsNullOrEmpty(t[i * 2])) 
+                                _translations.Add(t[i * 2], t[i * 2 + 1]);
+                    }
 
                     // Update form controls
                     UpdateControls(form);
@@ -125,7 +135,7 @@ namespace TinyOPDS
                                                                       e.Attribute("ctrl") != null && e.Attribute("ctrl").Value == ctrl.Name);
                 if (xmlProp != null && xmlProp.Count() > 0)
                 {
-                    var trans = xmlProp.First().Descendants("text").Where(p => p.Attribute("lang").Value == _lang).Select(p => p.Value);
+                    var trans = xmlProp.FirstOrDefault().Descendants("text").Where(p => p.Attribute("lang").Value == _lang).Select(p => p.Value);
                     if (trans != null && trans.Count() > 0) ctrl.Text = trans.First() as string;
                 }
             }

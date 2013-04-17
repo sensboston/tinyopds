@@ -214,7 +214,7 @@ namespace TinyOPDS
                 _fb2Count = _epubCount = _skippedFiles = _invalidFiles = _duplicates = 0;
                 _scanStartTime = DateTime.Now;
                 startTime.Text = _scanStartTime.ToString(@"hh\:mm\:ss");
-                _scanner.ScanDirectory(libraryPath.Text);
+                _scanner.Start(libraryPath.Text);
                 scannerButton.Text = Localizer.Text("Stop scanning");
 
                 Log.WriteLine("Directory scanner started");

@@ -80,17 +80,11 @@ namespace TinyOPDS.Scanner
         /// 
         /// </summary>
         /// <param name="Path"></param>
-        public void ScanDirectory(string Path)
+        public void Start(string Path)
         {
             SkippedFiles = 0;
             BackgroundWorker scanner = new BackgroundWorker();
             scanner.DoWork += (__, ___) => { ScanDirectory(new DirectoryInfo(Path)); };
-            scanner.RunWorkerCompleted += (__, ___) =>
-            {
-                Status = FileScannerStatus.STOPPED;
-                if (OnScanCompleted != null) OnScanCompleted(this, new EventArgs());
-                scanner.Dispose();
-            };
             Status = FileScannerStatus.SCANNING;
             scanner.RunWorkerAsync();
         }
@@ -113,10 +107,7 @@ namespace TinyOPDS.Scanner
             if (_isRecursive)
                 foreach (DirectoryInfo subDirectory in subDirectories)
                     if (Status != FileScannerStatus.STOPPED)
-                        ScanDirectory(subDirectory.FullName);
-
-            // Wait for all zip scanners
-            while (_zipScanners.Count > 0 && Status != FileScannerStatus.STOPPED) Thread.Sleep(100);
+                        ScanDirectory(new DirectoryInfo(subDirectory.FullName));
         }
 
         /// <summary>
@@ -147,7 +138,7 @@ namespace TinyOPDS.Scanner
                 else if (ext.Contains(".zip"))
                 {
                     ZipScanner zipScan = new ZipScanner(fullName);
-                    zipScan.OnBookFound += ((object sender, BookFoundEventArgs e) => { if (e.Book.IsValid && OnBookFound != null) OnBookFound(sender, e); });
+                    zipScan.OnBookFound += (object sender, BookFoundEventArgs e) => { if (e.Book.IsValid && OnBookFound != null) OnBookFound(sender, e); };
                     zipScan.OnInvalidBook += (object sender, InvalidBookEventArgs e) => { if (OnInvalidBook != null) OnInvalidBook(sender, e); };
                     zipScan.OnFileSkipped += (object sender, FileSkippedEventArgs e) =>
                     {
@@ -162,8 +153,15 @@ namespace TinyOPDS.Scanner
                             _zipScanners.Remove((sender as ZipScanner));
                             sender = null;
                         }
-                        if (_zipScanners.Count > 0) _zipScanners.First().Scan();
-                        else if (Status == FileScannerStatus.STOPPED && (OnScanCompleted != null)) OnScanCompleted(this, e);
+                        if (_zipScanners.Count > 0)
+                        {
+                            _zipScanners.First().Scan();
+                        }
+                        else
+                        {
+                            Status = FileScannerStatus.STOPPED;
+                            if (OnScanCompleted != null) OnScanCompleted(this, e);
+                        }
                     };
                     if (_zipScanners.Count == 0) zipScan.Scan();
                     _zipScanners.Add(zipScan);

@@ -75,6 +75,7 @@ namespace TinyOPDS.Data
         public static void LoadAsync()
         {
             // Clear library and free memory
+            FB2Count = EPUBCount = 0;
             _books.Clear();
             _paths.Clear();
             GC.Collect();

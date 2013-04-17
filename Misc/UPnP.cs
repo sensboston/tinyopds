@@ -23,7 +23,6 @@ using System.Xml;
 using System.IO;
 using System.Net.NetworkInformation;
 using System.ComponentModel;
-using Microsoft.Win32;
 
 namespace UPnP
 {
@@ -222,36 +221,25 @@ namespace UPnP
         private IPAddress DetectLocalIP()
         {
             IPAddress address = IPAddress.Any;
-            try
-            {
-                string ip = "127.0.0.0";
-                foreach (NetworkInterface networkCard in NetworkInterface.GetAllNetworkInterfaces())
-                {
-                    foreach (GatewayIPAddressInformation gatewayAddr in networkCard.GetIPProperties().GatewayAddresses)
-                    {
-                        if (gatewayAddr.Address.ToString() != "0.0.0.0")
-                        {
-                            ip = gatewayAddr.Address.ToString();
-                            ip = ip.Substring(0, ip.LastIndexOf('.'));
-                            break;
-                        }
-                    }
-                }
 
-                IPAddress[] addresses = Dns.GetHostAddresses(Dns.GetHostName());
-                foreach (IPAddress addr in addresses)
+            foreach (NetworkInterface netif in NetworkInterface.GetAllNetworkInterfaces())
+            {
+                IPInterfaceProperties properties = netif.GetIPProperties();
+
+                foreach (GatewayIPAddressInformation gw in properties.GatewayAddresses)
                 {
-                    if (addr.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                    if (!gw.Address.ToString().Equals("0.0.0.0"))
                     {
-                        if (addr.ToString().Contains(ip))
+                        foreach (IPAddressInformation unicast in properties.UnicastAddresses)
                         {
-                            address = addr;
-                            break;
+                            if (unicast.Address.AddressFamily == AddressFamily.InterNetwork)
+                            {
+                                return unicast.Address;
+                            }
                         }
                     }
                 }
             }
-            catch { }
             return address;
         }
 

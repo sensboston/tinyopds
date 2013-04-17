@@ -526,14 +526,27 @@ namespace TinyOPDS
             System.Diagnostics.Process.Start(url);
         }
 
+        private bool checkUrl(string uriName)
+        {
+            Uri uriResult;
+            bool result = Uri.TryCreate(uriName, UriKind.Absolute, out uriResult);
+            return result && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
+        }
+
         private void linkLabel_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            System.Diagnostics.Process.Start((sender as LinkLabel).Text);
+            if (sender is LinkLabel && checkUrl((sender as LinkLabel).Text))
+            {
+                System.Diagnostics.Process.Start((sender as LinkLabel).Text);
+            }
         }
 
         private void linkLabel3_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            System.Diagnostics.Process.Start((sender as LinkLabel).Links[0].LinkData as string);
+            if (sender is LinkLabel && checkUrl((sender as LinkLabel).Text))
+            {
+                System.Diagnostics.Process.Start((sender as LinkLabel).Links[0].LinkData as string);
+            }
         }
 
         #endregion

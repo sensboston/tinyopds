@@ -69,10 +69,6 @@
       <text lang="en">Start scanning</text>
       <text lang="ru">Начать сканирование</text>
     </property>
-    <property>
-      <text lang="en">Stop scanning</text>
-      <text lang="ru">Остановить сканирование</text>
-    </property>
     <property form="MainForm" ctrl="serverName">
       <text lang="en">My home OPDS server</text>
       <text lang="ru">Мой домашний OPDS сервер</text>
@@ -96,6 +92,10 @@
     <property>
       <text lang="en">FINISHED</text>
       <text lang="ru">ЗАКОНЧИЛ</text>
+    </property>
+    <property>
+      <text lang="en">Stop scanning</text>
+      <text lang="ru">Остановить сканирование</text>
     </property>
     <property>
       <text lang="en">Stop server</text>

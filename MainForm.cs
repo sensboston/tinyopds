@@ -511,6 +511,8 @@ namespace TinyOPDS
                 serverName.Text = Properties.Settings.Default.ServerName;
             }
             appVersion.Text = string.Format(Localizer.Text("version {0}.{1} {2}"), Utils.Version.Major, Utils.Version.Minor, Utils.Version.Major == 0?" (beta)":"");
+            scannerButton.Text = (_scanner.Status == FileScannerStatus.STOPPED) ? Localizer.Text("Start scanning") : Localizer.Text("Stop scanning");
+            serverButton.Text = (_server == null) ? Localizer.Text("Start server") : Localizer.Text("Stop server");
         }
 
         /// <summary>

@@ -17,6 +17,7 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Net.Sockets;
 using System.Net;
 using System.Xml;
@@ -136,13 +137,16 @@ namespace UPnP
                 _webClient = new WebClient();
                 _webClient.DownloadStringCompleted += (object o, DownloadStringCompletedEventArgs ea) =>
                     {
-                        if (!_disposed)
+                        if (!_disposed && ea.Error == null && ea.Result != null)
                         {
-                            ExternalIP = IPAddress.Parse(ea.Result);
+                            Regex ip = new Regex(@"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b");
+                            MatchCollection result = ip.Matches(ea.Result);
+                            try { ExternalIP = IPAddress.Parse(result[0].Value); }
+                            catch { ExternalIP = IPAddress.Parse("0.0.0.0"); }
                             if (DiscoverCompleted != null) DiscoverCompleted(this, new EventArgs());
                         }
                     };
-                _webClient.DownloadStringAsync(new Uri("http://myip.dnsdynamic.org")); 
+                _webClient.DownloadStringAsync(new Uri("http://myip.dnsdynamic.org")); //new Uri("http://checkip.dyndns.org"));
             }
         }
 

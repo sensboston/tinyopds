@@ -154,6 +154,13 @@ namespace TinyOPDS.Data
         {
             lock (_books)
             {
+                // Prevent incorrect duplicates detection (same ID but different titles)
+                if (_books.ContainsKey(book.ID) && !book.Title.Equals(_books[book.ID].Title))
+                {
+                    book.ID = Utils.Create(Utils.IsoOidNamespace, book.FileName).ToString();
+                }
+
+                // Check for duplicates
                 if (!_books.ContainsKey(book.ID) || _books[book.ID].Version < book.Version)
                 {
                     // Make relative path
@@ -448,6 +455,9 @@ namespace TinyOPDS.Data
         /// </summary>
         public static void Save()
         {
+            // Do nothing if we have no records
+            if (_books.Count == 0) return;
+
             int numRecords = 0;
             DateTime start = DateTime.Now;
 

@@ -53,6 +53,9 @@ namespace TinyOPDS
             Log.SaveToFile = Properties.Settings.Default.SaveLogToDisk;
 
             InitializeComponent();
+
+            this.Icon = Properties.Resources.trayIcon;
+
             _notifyIcon.ContextMenuStrip = this.contextMenuStrip1;
             _notifyIcon.Icon = Properties.Resources.trayIcon;
 
@@ -126,7 +129,10 @@ namespace TinyOPDS
             linkLabel4.Links.Add(0, linkLabel4.Text.Length, "http://dotnetzip.codeplex.com/");
             // Setup settings controls
             libraryPath.Text = Properties.Settings.Default.LibraryPath;
-            databaseFileName.Text = Utils.Create(Utils.IsoOidNamespace, Properties.Settings.Default.LibraryPath).ToString() + ".db";
+            if (!string.IsNullOrEmpty(Properties.Settings.Default.LibraryPath))
+            {
+                databaseFileName.Text = Utils.Create(Utils.IsoOidNamespace, Properties.Settings.Default.LibraryPath).ToString() + ".db";
+            }
             serverName.Text = Properties.Settings.Default.ServerName;
             serverPort.Text = Properties.Settings.Default.ServerPort.ToString();
             rootPrefix.Text = Properties.Settings.Default.RootPrefix;
@@ -176,17 +182,20 @@ namespace TinyOPDS
 
         #region Library scanning support
 
-        private void libraryPath_TextChanged(object sender, EventArgs e)
+        private void libraryPath_Validated(object sender, EventArgs e)
         {
             if (!libraryPath.Text.Equals(Properties.Settings.Default.LibraryPath) && Directory.Exists(libraryPath.Text))
             {
                 Properties.Settings.Default.LibraryPath = Library.LibraryPath = libraryPath.Text;
                 Properties.Settings.Default.Save();
                 booksInDB.Text = string.Format("{0}       fb2: {1}      epub: {2}", 0, 0, 0);
-                databaseFileName.Text = Utils.Create(Utils.IsoOidNamespace, Library.LibraryPath).ToString() + ".db";
-                // Reload library
-                Library.LoadAsync();
-                _watcher.DirectoryToWatch = Properties.Settings.Default.LibraryPath;
+                if (!string.IsNullOrEmpty(Properties.Settings.Default.LibraryPath))
+                {
+                    databaseFileName.Text = Utils.Create(Utils.IsoOidNamespace, Properties.Settings.Default.LibraryPath).ToString() + ".db";
+                    // Reload library
+                    Library.LoadAsync();
+                    _watcher.DirectoryToWatch = Properties.Settings.Default.LibraryPath;
+                }
             }
             else libraryPath.Text = Properties.Settings.Default.LibraryPath;
         }
@@ -198,8 +207,16 @@ namespace TinyOPDS
                 dialog.SelectedPath = (sender as Button == folderButton) ? libraryPath.Text : convertorPath.Text;
                 if (dialog.ShowDialog() == DialogResult.OK)
                 {
-                    if (sender as Button == folderButton) libraryPath.Text = dialog.SelectedPath;
-                    else convertorPath.Text = dialog.SelectedPath;
+                    if (sender as Button == folderButton)
+                    {
+                        libraryPath.Text = dialog.SelectedPath;
+                        libraryPath_Validated(sender, e);
+                    }
+                    else
+                    {
+                        convertorPath.Text = dialog.SelectedPath;
+                        convertorPath_Validated(sender, e);
+                    }
                 }
             }
         }
@@ -424,6 +441,18 @@ namespace TinyOPDS
 
         #region Form controls handling
 
+        private void convertorPath_Validated(object sender, EventArgs e)
+        {
+            if (Directory.Exists(convertorPath.Text) && File.Exists(Path.Combine(convertorPath.Text, Utils.IsLinux ? "fb2toepub" : "Fb2ePub.exe")))
+            {
+                Properties.Settings.Default.ConvertorPath = convertorPath.Text;
+            }
+            else 
+            {
+                convertorPath.Text = Properties.Settings.Default.ConvertorPath;
+            }
+        }
+
         private void useWatcher_CheckedChanged(object sender, EventArgs e)
         {
             if (_watcher != null && _watcher.IsEnabled != useWatcher.Checked)
@@ -554,6 +583,5 @@ namespace TinyOPDS
         }
 
         #endregion
-
     }
 }

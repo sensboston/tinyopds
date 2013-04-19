@@ -447,7 +447,7 @@
             this.libraryPath.Size = new System.Drawing.Size(269, 20);
             this.libraryPath.TabIndex = 6;
             this.libraryPath.Text = "P:\\My eBooks";
-            this.libraryPath.TextChanged += new System.EventHandler(this.libraryPath_TextChanged);
+            this.libraryPath.Validated += new System.EventHandler(this.libraryPath_Validated);
             // 
             // tabPage2
             // 
@@ -689,6 +689,7 @@
             this.convertorPath.Name = "convertorPath";
             this.convertorPath.Size = new System.Drawing.Size(416, 20);
             this.convertorPath.TabIndex = 28;
+            this.convertorPath.Validated += new System.EventHandler(this.convertorPath_Validated);
             // 
             // closeToTray
             // 

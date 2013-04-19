@@ -60,6 +60,15 @@ namespace TinyOPDS
 
     public class Utils
     {
+        public static bool IsLinux
+        {
+            get
+            {
+                int p = (int)Environment.OSVersion.Platform;
+                return (p == 4) || (p == 6) || (p == 128);
+            }
+        }
+
         public static Version Version
         {
             get

@@ -31,8 +31,6 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
-            this.folderBrowserDialog1 = new System.Windows.Forms.FolderBrowserDialog();
             this.tabControl1 = new System.Windows.Forms.TabControl();
             this.tabPage1 = new System.Windows.Forms.TabPage();
             this.databaseFileName = new System.Windows.Forms.TextBox();
@@ -101,7 +99,6 @@
             this.appName = new System.Windows.Forms.Label();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.donateButton = new System.Windows.Forms.Button();
-            this.notifyIcon1 = new System.Windows.Forms.NotifyIcon(this.components);
             this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.windowMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.serverMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -402,7 +399,7 @@
             // folderButton
             // 
             this.folderButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.folderButton.Image = ((System.Drawing.Image)(resources.GetObject("folderButton.Image")));
+            this.folderButton.Image = global::TinyOPDS.Properties.Resources.folder;
             this.folderButton.Location = new System.Drawing.Point(288, 30);
             this.folderButton.Name = "folderButton";
             this.folderButton.Size = new System.Drawing.Size(29, 23);
@@ -447,7 +444,6 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.libraryPath.Location = new System.Drawing.Point(17, 32);
             this.libraryPath.Name = "libraryPath";
-            this.libraryPath.ReadOnly = true;
             this.libraryPath.Size = new System.Drawing.Size(269, 20);
             this.libraryPath.TabIndex = 6;
             this.libraryPath.Text = "P:\\My eBooks";
@@ -677,13 +673,13 @@
             // convertorFolder
             // 
             this.convertorFolder.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.convertorFolder.Image = ((System.Drawing.Image)(resources.GetObject("convertorFolder.Image")));
+            this.convertorFolder.Image = global::TinyOPDS.Properties.Resources.folder;
             this.convertorFolder.Location = new System.Drawing.Point(431, 26);
             this.convertorFolder.Name = "convertorFolder";
             this.convertorFolder.Size = new System.Drawing.Size(29, 23);
             this.convertorFolder.TabIndex = 29;
             this.convertorFolder.UseVisualStyleBackColor = true;
-            this.convertorFolder.Click += new System.EventHandler(this.convertorFolder_Click);
+            this.convertorFolder.Click += new System.EventHandler(this.folderButton_Click);
             // 
             // convertorPath
             // 
@@ -863,7 +859,8 @@
             // 
             // pictureBox1
             // 
-            this.pictureBox1.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox1.Image")));
+            this.pictureBox1.ErrorImage = null;
+            this.pictureBox1.Image = global::TinyOPDS.Properties.Resources.TinyOPDS;
             this.pictureBox1.Location = new System.Drawing.Point(8, 9);
             this.pictureBox1.Name = "pictureBox1";
             this.pictureBox1.Size = new System.Drawing.Size(103, 103);
@@ -879,13 +876,6 @@
             this.donateButton.TabIndex = 0;
             this.donateButton.UseVisualStyleBackColor = true;
             this.donateButton.Click += new System.EventHandler(this.donateButton_Click);
-            // 
-            // notifyIcon1
-            // 
-            this.notifyIcon1.ContextMenuStrip = this.contextMenuStrip1;
-            this.notifyIcon1.Icon = ((System.Drawing.Icon)(resources.GetObject("notifyIcon1.Icon")));
-            this.notifyIcon1.Text = "TinyOPDS";
-            this.notifyIcon1.MouseClick += new System.Windows.Forms.MouseEventHandler(this.notifyIcon1_MouseClick);
             // 
             // contextMenuStrip1
             // 
@@ -931,7 +921,6 @@
             this.Controls.Add(this.tabControl1);
             this.DoubleBuffered = true;
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
-            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MaximizeBox = false;
             this.Name = "MainForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
@@ -956,7 +945,6 @@
 
         #endregion
 
-        private System.Windows.Forms.FolderBrowserDialog folderBrowserDialog1;
         private System.Windows.Forms.TabControl tabControl1;
         private System.Windows.Forms.TabPage tabPage1;
         private System.Windows.Forms.Button folderButton;
@@ -999,7 +987,6 @@
         private System.Windows.Forms.CheckBox openPort;
         private System.Windows.Forms.Label extIPlabel;
         private System.Windows.Forms.Label intIPlabel;
-        private System.Windows.Forms.NotifyIcon notifyIcon1;
         private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
         private System.Windows.Forms.ToolStripMenuItem windowMenuItem;
         private System.Windows.Forms.ToolStripMenuItem serverMenuItem;

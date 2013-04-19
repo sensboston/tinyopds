@@ -38,6 +38,7 @@ namespace TinyOPDS
         Watcher _watcher;
         DateTime _scanStartTime;
         UPnPController _upnpController = new UPnPController();
+        NotifyIcon _notifyIcon = new NotifyIcon();
 
         #region Statistical information
         int _fb2Count, _epubCount, _skippedFiles, _invalidFiles, _duplicates;
@@ -52,6 +53,8 @@ namespace TinyOPDS
             Log.SaveToFile = Properties.Settings.Default.SaveLogToDisk;
 
             InitializeComponent();
+            _notifyIcon.ContextMenuStrip = this.contextMenuStrip1;
+            _notifyIcon.Icon = Properties.Resources.trayIcon;
 
             Localizer.Init();
             Localizer.AddMenu(contextMenuStrip1);
@@ -89,7 +92,7 @@ namespace TinyOPDS
             StartHttpServer();
 
             _scanStartTime = DateTime.Now;
-            notifyIcon1.Visible = Properties.Settings.Default.CloseToTray;
+            _notifyIcon.Visible = Properties.Settings.Default.CloseToTray;
 
             Log.WriteLine("TinyOPDS application started");
         }
@@ -128,13 +131,17 @@ namespace TinyOPDS
             serverPort.Text = Properties.Settings.Default.ServerPort.ToString();
             rootPrefix.Text = Properties.Settings.Default.RootPrefix;
             startMinimized.Checked = Properties.Settings.Default.StartMinimized;
-            startWithWindows.Checked = Properties.Settings.Default.StartWithWindows;
+            if (Utils.IsLinux) startWithWindows.Enabled = false;
+            else startWithWindows.Checked = Properties.Settings.Default.StartWithWindows;
             closeToTray.Checked = Properties.Settings.Default.CloseToTray;
             if (string.IsNullOrEmpty(Properties.Settings.Default.ConvertorPath))
             {
-                if (File.Exists(Path.Combine(Environment.GetEnvironmentVariable("ProgramFiles"), "FB2ePub\\Fb2ePub.exe")))
+                if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ProgramFiles")))
                 {
-                    convertorPath.Text = Properties.Settings.Default.ConvertorPath = Path.Combine(Environment.GetEnvironmentVariable("ProgramFiles"), "FB2ePub");
+                    if (File.Exists(Path.Combine(Environment.GetEnvironmentVariable("ProgramFiles"), "FB2ePub\\Fb2ePub.exe")))
+                    {
+                        convertorPath.Text = Properties.Settings.Default.ConvertorPath = Path.Combine(Environment.GetEnvironmentVariable("ProgramFiles"), "FB2ePub");
+                    }
                 }
             }
             else convertorPath.Text = Properties.Settings.Default.ConvertorPath;
@@ -144,7 +151,7 @@ namespace TinyOPDS
             langCombo.SelectedValue = Properties.Settings.Default.Language;
             saveLog.Checked = Properties.Settings.Default.SaveLogToDisk;
             useWatcher.Checked = Properties.Settings.Default.WatchLibrary;
-            notifyIcon1.Visible = Properties.Settings.Default.CloseToTray;
+            _notifyIcon.Visible = Properties.Settings.Default.CloseToTray;
         }
 
         private void SaveSettings()
@@ -186,10 +193,14 @@ namespace TinyOPDS
 
         private void folderButton_Click(object sender, EventArgs e)
         {
-            folderBrowserDialog1.SelectedPath = libraryPath.Text;
-            if (folderBrowserDialog1.ShowDialog() == DialogResult.OK)
+            using (FolderBrowserDialog dialog = new FolderBrowserDialog())
             {
-                libraryPath.Text = folderBrowserDialog1.SelectedPath;
+                dialog.SelectedPath = (sender as Button == folderButton) ? libraryPath.Text : convertorPath.Text;
+                if (dialog.ShowDialog() == DialogResult.OK)
+                {
+                    if (sender as Button == folderButton) libraryPath.Text = dialog.SelectedPath;
+                    else convertorPath.Text = dialog.SelectedPath;
+                }
             }
         }
 
@@ -413,15 +424,6 @@ namespace TinyOPDS
 
         #region Form controls handling
 
-        private void convertorFolder_Click(object sender, EventArgs e)
-        {
-            folderBrowserDialog1.SelectedPath = convertorPath.Text;
-            if (folderBrowserDialog1.ShowDialog() == DialogResult.OK)
-            {
-                convertorPath.Text = folderBrowserDialog1.SelectedPath;
-            }
-        }
-
         private void useWatcher_CheckedChanged(object sender, EventArgs e)
         {
             if (_watcher != null && _watcher.IsEnabled != useWatcher.Checked)
@@ -432,7 +434,7 @@ namespace TinyOPDS
 
         private void closeToTray_CheckedChanged(object sender, EventArgs e)
         {
-            notifyIcon1.Visible = Properties.Settings.Default.CloseToTray = closeToTray.Checked;
+            _notifyIcon.Visible = Properties.Settings.Default.CloseToTray = closeToTray.Checked;
             windowMenuItem.Text = Localizer.Text(Visible ? "Hide window" : "Show window");
         }
 

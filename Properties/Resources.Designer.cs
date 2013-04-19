@@ -67,10 +67,24 @@ namespace TinyOPDS.Properties {
             }
         }
         
+        internal static System.Drawing.Bitmap folder {
+            get {
+                object obj = ResourceManager.GetObject("folder", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
         internal static System.Drawing.Bitmap TinyOPDS {
             get {
                 object obj = ResourceManager.GetObject("TinyOPDS", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        internal static System.Drawing.Icon trayIcon {
+            get {
+                object obj = ResourceManager.GetObject("trayIcon", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
             }
         }
     }

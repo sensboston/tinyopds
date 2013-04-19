@@ -7,9 +7,9 @@
  * see http://tinyopds.codeplex.com/license for the details.
  *
  * This module defines custom settings provider, to define
- * staightforward settings folder
+ * straightforward settings folder
  * 
- * Tha code was copied from the StackOverflow site:
+ * That code was copied from the StackOverflow site:
  * http://stackoverflow.com/questions/2265271/custom-path-of-the-user-config
  * 
  * 
@@ -243,7 +243,7 @@ namespace TinyOPDS
         {
             get
             {
-                return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TinyOPDS\\user.config");
+                return Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), "user.config");
             }
         }
 

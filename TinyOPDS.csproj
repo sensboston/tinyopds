@@ -218,9 +218,11 @@
     <EmbeddedResource Include="Icons\genres.ico" />
     <EmbeddedResource Include="genres.xml" />
     <None Include="donate.png" />
+    <None Include="Icons\folder.png" />
     <Content Include="Icons\lib.png" />
     <Content Include="Icons\TinyOPDS.ico" />
     <Content Include="License.txt" />
+    <None Include="Resources\trayIcon.ico" />
     <Content Include="TinyOPDS.ico" />
   </ItemGroup>
   <ItemGroup Condition=" '$(Configuration)' == 'Debug' ">

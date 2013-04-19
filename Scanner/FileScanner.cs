@@ -99,7 +99,7 @@ namespace TinyOPDS.Scanner
             foreach (FileInfo file in directory.GetFiles())
             {
                 if (Status != FileScannerStatus.SCANNING) break;
-                ScanFile(directory.FullName + "\\" + file.Name);
+                ScanFile(file.FullName);
             }
 
             // Recursively scan all subdirectories

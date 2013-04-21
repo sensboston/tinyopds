@@ -11,6 +11,7 @@
  ************************************************************/
 
 using System;
+using System.IO;
 using System.Collections;
 using System.Collections.Generic;
 using System.Security.Cryptography;
@@ -60,6 +61,9 @@ namespace TinyOPDS
 
     public class Utils
     {
+        /// <summary>
+        /// Helper for project Mono
+        /// </summary>
         public static bool IsLinux
         {
             get
@@ -69,6 +73,17 @@ namespace TinyOPDS
             }
         }
 
+        // Default path to service files: databases, log, setting
+        public static string ServiceFilesLocation
+        {
+            get
+            {
+                //return Properties.Settings.Default.ServiceFilesPath;
+                return Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            }
+        }
+
+        // Assembly version
         public static Version Version
         {
             get

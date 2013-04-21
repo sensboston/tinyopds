@@ -88,6 +88,20 @@ namespace TinyOPDS
             }
         }
 
+        public void Run()
+        {
+            if (_process.Start())
+            {
+                _process.PriorityClass = ProcessPriorityClass.Normal;
+                _process.BeginErrorReadLine();
+                _process.BeginOutputReadLine();
+                _isRunning = true;
+                _process.WaitForExit();
+                ExitCode = _process.ExitCode;
+                _isRunning = false;
+            }
+        }
+
         public void RunAsync(AutoResetEvent waitEvent)
         {
             BackgroundWorker worker = new BackgroundWorker();
@@ -102,9 +116,7 @@ namespace TinyOPDS
                         _process.BeginOutputReadLine();
                         _isRunning = true;
                         _process.WaitForExit();
-                        _isRunning = false;
                         ExitCode = _process.ExitCode;
-                        if (waitEvent != null) waitEvent.Set();
                     }
                 }
                 catch(Exception e)
@@ -113,6 +125,7 @@ namespace TinyOPDS
                 }
                 finally
                 {
+                    if (waitEvent != null) waitEvent.Set();
                     _isRunning = false;
                     worker.Dispose();
                 }

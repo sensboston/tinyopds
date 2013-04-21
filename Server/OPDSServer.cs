@@ -48,10 +48,6 @@ namespace TinyOPDS.Server
         public override void HandleGETRequest(HttpProcessor processor)
         {
             Log.WriteLine("HTTP GET request from {0}: {1}", ((System.Net.IPEndPoint) processor.Socket.Client.RemoteEndPoint).Address, processor.HttpUrl);
-#if DEBUG
-            DateTime startTime = DateTime.Now;
-#endif
-
             try
             {
                 // Parse request
@@ -201,7 +197,7 @@ namespace TinyOPDS.Server
                         // Compress fb2 document to zip
                         using (ZipFile zip = new ZipFile())
                         {
-                            ZipEntry e = zip.AddEntry(Transliteration.Front(string.Format("{0}_{1}.fb2", book.Authors.First(), book.Title)), memStream);
+                            zip.AddEntry(Transliteration.Front(string.Format("{0}_{1}.fb2", book.Authors.First(), book.Title)), memStream);
                             using (MemoryStream outputStream = new MemoryStream())
                             {
                                 zip.Save(outputStream);
@@ -217,6 +213,7 @@ namespace TinyOPDS.Server
                     }
                     finally
                     {
+                        processor.OutputStream.BaseStream.Flush();
                         if (memStream != null) memStream.Dispose();
                     }
                     return;
@@ -247,7 +244,6 @@ namespace TinyOPDS.Server
                         }
                         memStream.Position = 0;
                         // At this moment, memStream has a copy of requested book
-
                         // For fb2, we need convert book to epub
                         if (book.BookType == BookType.FB2 && !string.IsNullOrEmpty(Properties.Settings.Default.ConvertorPath))
                         {
@@ -257,23 +253,12 @@ namespace TinyOPDS.Server
                                 memStream.CopyTo(stream);
 
                             // Run converter 
-#if DEBUG
-                            DateTime convertStartTime = DateTime.Now;
-#endif
-                            string converterPath = Path.Combine(Properties.Settings.Default.ConvertorPath, "Fb2ePub.exe");
-                            using (ProcessHelper converter = new ProcessHelper(converterPath, inFileName))
-                            {
-                                using (AutoResetEvent waitEvent = new AutoResetEvent(false))
-                                {
-                                    converter.RunAsync(waitEvent);
-                                    waitEvent.WaitOne(10000);
-                                }
-#if DEBUG
-                                Log.WriteLine("EPUB conversion time = {0}", DateTime.Now.Subtract(convertStartTime));
-#endif
-                            }
-
                             string outFileName = Path.Combine(Path.GetTempPath(), book.ID + ".epub");
+                            string command = Path.Combine(Properties.Settings.Default.ConvertorPath, Utils.IsLinux ? "fb2toepub" : "Fb2ePub.exe");
+                            string arguments = string.Format("{0} {1}", inFileName, outFileName);
+
+                            using (ProcessHelper converter = new ProcessHelper(command, arguments)) converter.Run();
+
                             if (File.Exists(outFileName))
                             {
                                 memStream = new MemoryStream();
@@ -297,6 +282,7 @@ namespace TinyOPDS.Server
                     }
                     finally
                     {
+                        processor.OutputStream.BaseStream.Flush();
                         if (memStream != null) memStream.Dispose();
                     }
                     return;
@@ -334,6 +320,7 @@ namespace TinyOPDS.Server
                             {
                                 processor.WriteSuccess("image/jpeg");
                                 (getCover ? image.CoverImageStream : image.ThumbnailImageStream).CopyTo(processor.OutputStream.BaseStream);
+                                processor.OutputStream.BaseStream.Flush();
                                 return;
                             }
                         }
@@ -348,6 +335,7 @@ namespace TinyOPDS.Server
                     {
                         processor.WriteSuccess("image/x-icon");
                         stream.CopyTo(processor.OutputStream.BaseStream);
+                        processor.OutputStream.BaseStream.Flush();
                         return;
                     }
                 }
@@ -357,12 +345,6 @@ namespace TinyOPDS.Server
             {
                 Log.WriteLine(LogLevel.Error, ".HandleGETRequest() exception {0}", e.Message);
                 processor.WriteFailure();
-            }
-            finally
-            {
-#if DEBUG
-                //Log.WriteLine("HTTP request handling time = {0}", DateTime.Now.Subtract(startTime));
-#endif
             }
         }
     }

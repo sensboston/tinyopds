@@ -99,7 +99,7 @@
             this.appName = new System.Windows.Forms.Label();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.donateButton = new System.Windows.Forms.Button();
-            this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.contextMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.windowMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.serverMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripSeparator();
@@ -110,7 +110,7 @@
             this.tabPage3.SuspendLayout();
             this.tabPage4.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
-            this.contextMenuStrip1.SuspendLayout();
+            this.contextMenuStrip.SuspendLayout();
             this.SuspendLayout();
             // 
             // tabControl1
@@ -842,7 +842,7 @@
             // 
             this.appVersion.AutoSize = true;
             this.appVersion.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.appVersion.Location = new System.Drawing.Point(259, 58);
+            this.appVersion.Location = new System.Drawing.Point(262, 58);
             this.appVersion.Name = "appVersion";
             this.appVersion.Size = new System.Drawing.Size(85, 20);
             this.appVersion.TabIndex = 3;
@@ -878,15 +878,15 @@
             this.donateButton.UseVisualStyleBackColor = true;
             this.donateButton.Click += new System.EventHandler(this.donateButton_Click);
             // 
-            // contextMenuStrip1
+            // contextMenuStrip
             // 
-            this.contextMenuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.contextMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.windowMenuItem,
             this.serverMenuItem,
             this.toolStripMenuItem1,
             this.exitMenuItem});
-            this.contextMenuStrip1.Name = "contextMenuStrip1";
-            this.contextMenuStrip1.Size = new System.Drawing.Size(145, 76);
+            this.contextMenuStrip.Name = "contextMenuStrip1";
+            this.contextMenuStrip.Size = new System.Drawing.Size(145, 76);
             // 
             // windowMenuItem
             // 
@@ -939,7 +939,7 @@
             this.tabPage4.ResumeLayout(false);
             this.tabPage4.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
-            this.contextMenuStrip1.ResumeLayout(false);
+            this.contextMenuStrip.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }
@@ -988,7 +988,7 @@
         private System.Windows.Forms.CheckBox openPort;
         private System.Windows.Forms.Label extIPlabel;
         private System.Windows.Forms.Label intIPlabel;
-        private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
+        private System.Windows.Forms.ContextMenuStrip contextMenuStrip;
         private System.Windows.Forms.ToolStripMenuItem windowMenuItem;
         private System.Windows.Forms.ToolStripMenuItem serverMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripMenuItem1;

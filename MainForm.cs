@@ -56,12 +56,13 @@ namespace TinyOPDS
 
             // Manually assign icons from resources (fix for Mono)
             this.Icon = Properties.Resources.trayIcon;
-            _notifyIcon.ContextMenuStrip = this.contextMenuStrip1;
+            _notifyIcon.ContextMenuStrip = this.contextMenuStrip;
             _notifyIcon.Icon = Properties.Resources.trayIcon;
+            _notifyIcon.MouseClick += new MouseEventHandler(notifyIcon1_MouseClick);
 
             // Init localization service
             Localizer.Init();
-            Localizer.AddMenu(contextMenuStrip1);
+            Localizer.AddMenu(contextMenuStrip);
             langCombo.DataSource = Localizer.Languages.ToArray();
 
             // Load application settings
@@ -426,6 +427,8 @@ namespace TinyOPDS
                 _upnpController.Dispose();
             }
 
+            _notifyIcon.Visible = false;
+
             // Remove port forwarding
             openPort.Checked = false;
 
@@ -465,7 +468,6 @@ namespace TinyOPDS
         private void closeToTray_CheckedChanged(object sender, EventArgs e)
         {
             _notifyIcon.Visible = Properties.Settings.Default.CloseToTray = closeToTray.Checked;
-            windowMenuItem.Text = Localizer.Text(Visible ? "Hide window" : "Show window");
         }
 
         private void startWithWindows_CheckedChanged(object sender, EventArgs e)
@@ -543,8 +545,10 @@ namespace TinyOPDS
                 serverName.Text = Properties.Settings.Default.ServerName;
             }
             appVersion.Text = string.Format(Localizer.Text("version {0}.{1} {2}"), Utils.Version.Major, Utils.Version.Minor, Utils.Version.Major == 0?" (beta)":"");
-            scannerButton.Text = (_scanner.Status == FileScannerStatus.STOPPED) ? Localizer.Text("Start scanning") : Localizer.Text("Stop scanning");
-            serverButton.Text = (_server == null) ? Localizer.Text("Start server") : Localizer.Text("Stop server");
+            scannerButton.Text = Localizer.Text( (_scanner.Status == FileScannerStatus.STOPPED) ? "Start scanning" : "Stop scanning");
+            serverButton.Text = Localizer.Text((_server == null) ? "Start server" : "Stop server");
+            serverMenuItem.Text = Localizer.Text((_server == null) ? "Start server" : "Stop server");
+            windowMenuItem.Text = Localizer.Text(Visible || ShowInTaskbar ? "Hide window" : "Show window");
         }
 
         /// <summary>

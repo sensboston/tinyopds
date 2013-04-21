@@ -243,7 +243,7 @@ namespace TinyOPDS
         {
             get
             {
-                return Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), "user.config");
+                return Path.Combine(Utils.ServiceFilesLocation, "user.config");
             }
         }
 

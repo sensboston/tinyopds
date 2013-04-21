@@ -39,7 +39,7 @@ namespace TinyOPDS
             get { return _saveToFile; }
             set 
             {
-                _logFileName = Path.Combine(Properties.Settings.Default.ServiceFilesPath, "TinyOPDS.log");
+                _logFileName = Path.Combine(Utils.ServiceFilesLocation, "TinyOPDS.log");
                 _saveToFile = value;
             }
         }

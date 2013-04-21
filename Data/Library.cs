@@ -82,7 +82,8 @@ namespace TinyOPDS.Data
 
             // Create unique database name, based on library path
             string databaseFileName = Utils.Create(Utils.IsoOidNamespace, Properties.Settings.Default.LibraryPath).ToString()+".db";
-            _databaseFullPath = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), databaseFileName);
+            _databaseFullPath = Path.Combine(Utils.ServiceFilesLocation, databaseFileName);
+
             // Load database in the background thread
             BackgroundWorker worker = new BackgroundWorker();
             worker.DoWork += (_, __) =>
@@ -97,23 +98,7 @@ namespace TinyOPDS.Data
         /// <summary>
         /// 
         /// </summary>
-        private static string _libraryPath = string.Empty;
-        private static int _libraryPathLength = 0;
-        public static string LibraryPath
-        {
-            get 
-            { 
-                return _libraryPath; 
-            }
-            set
-            {
-                _libraryPath = value;
-                if (!string.IsNullOrEmpty(_libraryPath))
-                {
-                    _libraryPathLength = (_libraryPath.Last() == '\\') ? _libraryPath.Length : _libraryPath.Length + 1;
-                }
-            }
-        }
+        public static string LibraryPath { get; set; }
 
         /// <summary>
         /// 

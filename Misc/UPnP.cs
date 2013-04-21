@@ -30,7 +30,7 @@ namespace UPnP
     public class UPnPController : IDisposable
     {
         private bool _disposed = false;
-        private string _descUrl, _serviceUrl, _eventUrl;
+        private string _serviceUrl;
         private BackgroundWorker _worker;
         private WebClient _webClient;
 
@@ -108,7 +108,6 @@ namespace UPnP
                             resp = resp.Substring(0, resp.IndexOf("\r")).Trim();
                             if (!string.IsNullOrEmpty(_serviceUrl = GetServiceUrl(resp)))
                             {
-                                _descUrl = resp;
                                 break;
                             }
                         }
@@ -172,8 +171,6 @@ namespace UPnP
                 if (!typen.Value.Contains("InternetGatewayDevice")) return null;
                 XmlNode node = desc.SelectSingleNode("//tns:service[tns:serviceType=\"urn:schemas-upnp-org:service:WANIPConnection:1\"]/tns:controlURL/text()", nsMgr);
                 if (node == null) return null;
-                XmlNode eventnode = desc.SelectSingleNode("//tns:service[tns:serviceType=\"urn:schemas-upnp-org:service:WANIPConnection:1\"]/tns:eventSubURL/text()", nsMgr);
-                _eventUrl = CombineUrls(resp, eventnode.Value);
                 return CombineUrls(resp, node.Value);
             }
             catch 
@@ -193,7 +190,7 @@ namespace UPnP
         {
             if (UPnPReady)
             {
-                XmlDocument xdoc = SOAPRequest(_serviceUrl, 
+                SOAPRequest(_serviceUrl, 
                     "<u:AddPortMapping xmlns:u=\"urn:schemas-upnp-org:service:WANIPConnection:1\">" +
                     "<NewRemoteHost></NewRemoteHost><NewExternalPort>" + port.ToString() + "</NewExternalPort><NewProtocol>" + protocol.ToString().ToUpper() + "</NewProtocol>" +
                     "<NewInternalPort>" + port.ToString() + "</NewInternalPort><NewInternalClient>" + LocalIP.ToString() +
@@ -206,7 +203,7 @@ namespace UPnP
         {
             if (UPnPReady)
             {
-                XmlDocument xdoc = SOAPRequest(_serviceUrl,
+                SOAPRequest(_serviceUrl,
                     "<u:DeletePortMapping xmlns:u=\"urn:schemas-upnp-org:service:WANIPConnection:1\">" +
                     "<NewRemoteHost>" +
                     "</NewRemoteHost>" +

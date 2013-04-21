@@ -54,15 +54,17 @@ namespace TinyOPDS
 
             InitializeComponent();
 
+            // Manually assign icons from resources (fix for Mono)
             this.Icon = Properties.Resources.trayIcon;
-
             _notifyIcon.ContextMenuStrip = this.contextMenuStrip1;
             _notifyIcon.Icon = Properties.Resources.trayIcon;
 
+            // Init localization service
             Localizer.Init();
             Localizer.AddMenu(contextMenuStrip1);
             langCombo.DataSource = Localizer.Languages.ToArray();
 
+            // Load application settings
             LoadSettings();
 
             Library.LibraryPath = Properties.Settings.Default.LibraryPath;
@@ -285,7 +287,6 @@ namespace TinyOPDS
             int totalBooksProcessed = _fb2Count + _epubCount + _skippedFiles + _invalidFiles + _duplicates;
             booksProcessed.Text = totalBooksProcessed.ToString();
 
-            bool isScanning = _scanner.Status == FileScannerStatus.SCANNING;
             TimeSpan dt = DateTime.Now.Subtract(_scanStartTime);
             elapsedTime.Text = dt.ToString(@"hh\:mm\:ss");
             rate.Text = (dt.TotalSeconds) > 0 ? string.Format("{0:0.} books/min", totalBooksProcessed / dt.TotalSeconds * 60) : "---";

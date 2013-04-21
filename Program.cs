@@ -18,6 +18,7 @@ using System.Linq;
 using System.Windows.Forms;
 using System.Reflection;
 using System.Threading;
+using System.Diagnostics;
 
 namespace TinyOPDS
 {
@@ -35,7 +36,15 @@ namespace TinyOPDS
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            if (!mutex.WaitOne(TimeSpan.FromSeconds(1), false)) return;
+            // Check for single instance 
+            if (Utils.IsLinux)
+            {
+                if (IsApplicationRunningOnMono("TinyOPDS.exe")) return;
+            }
+            else
+            {
+                if (!mutex.WaitOne(TimeSpan.FromSeconds(1), false)) return;
+            }
 
             try
             {
@@ -51,6 +60,33 @@ namespace TinyOPDS
                 mutex.ReleaseMutex();
             }
         }
+
+        static bool IsApplicationRunningOnMono(string processName)
+        {
+            var processFound = 0;
+
+            Process[] monoProcesses;
+            ProcessModuleCollection processModuleCollection;
+
+            // find all processes called 'mono', that's necessary because our app runs under the mono process! 
+            monoProcesses = Process.GetProcessesByName("mono");
+
+            for (var i = 0; i <= monoProcesses.GetUpperBound(0); ++i)
+            {
+                processModuleCollection = monoProcesses[i].Modules;
+
+                for (var j = 0; j < processModuleCollection.Count; ++j)
+                {
+                    if (processModuleCollection[j].FileName.EndsWith(processName))
+                    {
+                        processFound++;
+                    }
+                }
+            }
+
+            //we don't find the current process, but if there is already another one running, return true! 
+            return (processFound == 1);
+        } 
 
         static Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
         {

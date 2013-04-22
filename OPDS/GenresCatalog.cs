@@ -28,7 +28,7 @@ namespace TinyOPDS.OPDS
     {
         public XDocument GetCatalog(string searchPattern, int threshold = 50)
         {
-            if (!string.IsNullOrEmpty(searchPattern)) searchPattern = HttpUtility.UrlDecode(searchPattern);
+            if (!string.IsNullOrEmpty(searchPattern)) searchPattern = Uri.UnescapeDataString(searchPattern);
 
             XDocument doc = new XDocument(
                 // Add root element and namespaces
@@ -72,7 +72,7 @@ namespace TinyOPDS.OPDS
                             new XElement("id", "tag:root:genre:" + (useCyrillic ? genre.Translation : genre.Name)),
                             new XElement("title", (useCyrillic ? genre.Translation : genre.Name)),
                             new XElement("content", string.Format(Localizer.Text("Books in genre «{0}»"), (useCyrillic ? genre.Translation : genre.Name)), new XAttribute("type", "text")),
-                            new XElement("link", new XAttribute("href", "http://{$HOST}/" + (topLevel ? "genres/" : "genre/") + (topLevel ? HttpUtility.UrlEncode((useCyrillic ? genre.Translation : genre.Name)) : genre.Tag)), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
+                            new XElement("link", new XAttribute("href", "http://{$HOST}/" + (topLevel ? "genres/" : "genre/") + (topLevel ? Uri.EscapeDataString((useCyrillic ? genre.Translation : genre.Name)) : genre.Tag)), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                         )
                     );
                 }

@@ -84,7 +84,15 @@ namespace TinyOPDS.Scanner
         {
             SkippedFiles = 0;
             BackgroundWorker scanner = new BackgroundWorker();
-            scanner.DoWork += (__, ___) => { ScanDirectory(new DirectoryInfo(Path)); };
+            scanner.DoWork += (__, ___) => 
+            { 
+                ScanDirectory(new DirectoryInfo(Path));
+                if (_zipScanners.Count == 0)
+                {
+                    Status = FileScannerStatus.STOPPED;
+                    if (OnScanCompleted != null) OnScanCompleted(this, new EventArgs());
+                }
+            };
             Status = FileScannerStatus.SCANNING;
             scanner.RunWorkerAsync();
         }

@@ -27,7 +27,7 @@ namespace TinyOPDS.OPDS
     {
         public XDocument Search(string searchPattern, string searchType = "", bool fb2Only = false, int pageNumber = 0, int threshold = 50)
         {
-            if (!string.IsNullOrEmpty(searchPattern)) searchPattern = HttpUtility.UrlDecode(searchPattern).ToLower();
+            if (!string.IsNullOrEmpty(searchPattern)) searchPattern = Uri.UnescapeDataString(searchPattern).ToLower();
 
             XDocument doc = new XDocument(
                 // Add root element and namespaces
@@ -52,13 +52,13 @@ namespace TinyOPDS.OPDS
                         new XElement("id", "tag:search:author"),
                         new XElement("title", Localizer.Text("Search authors")),
                         new XElement("content", Localizer.Text("Search authors by name"), new XAttribute("type", "text")),
-                        new XElement("link", new XAttribute("href", "http://{$HOST}/search?searchType=authors&searchTerm=" + HttpUtility.UrlEncode(searchPattern)), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))),
+                        new XElement("link", new XAttribute("href", "http://{$HOST}/search?searchType=authors&searchTerm=" + Uri.EscapeDataString(searchPattern)), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))),
                     new XElement("entry",
                         new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                         new XElement("id", "tag:search:title"),
                         new XElement("title", Localizer.Text("Search books")),
                         new XElement("content", Localizer.Text("Search books by title"), new XAttribute("type", "text")),
-                        new XElement("link", new XAttribute("href", "http://{$HOST}/search?searchType=books&searchTerm=" + HttpUtility.UrlEncode(searchPattern)), new XAttribute("type", "application/atom+xml;profile=opds-catalog")))
+                        new XElement("link", new XAttribute("href", "http://{$HOST}/search?searchType=books&searchTerm=" + Uri.EscapeDataString(searchPattern)), new XAttribute("type", "application/atom+xml;profile=opds-catalog")))
                     );
             }
             else if (searchType.Equals("authors") || (authors.Count > 0 && titles.Count == 0))

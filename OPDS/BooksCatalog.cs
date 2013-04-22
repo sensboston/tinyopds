@@ -83,7 +83,7 @@ namespace TinyOPDS.OPDS
         /// <returns></returns>
         private XDocument GetCatalog(string searchPattern, SearchFor searchFor, bool acceptFB2, int threshold = 50)
         {
-            if (!string.IsNullOrEmpty(searchPattern)) searchPattern = HttpUtility.UrlDecode(searchPattern);
+            if (!string.IsNullOrEmpty(searchPattern)) searchPattern = Uri.UnescapeDataString(searchPattern);
 
             XDocument doc = new XDocument(
                 // Add root element and namespaces
@@ -111,15 +111,15 @@ namespace TinyOPDS.OPDS
             {
                 case SearchFor.Author:
                     books = Library.GetBooksByAuthor(searchPattern);
-                    catalogType = "/author/" + HttpUtility.UrlEncode(searchPattern);
+                    catalogType = "/author/" + Uri.EscapeDataString(searchPattern);
                     break;
                 case SearchFor.Sequence:
                     books = Library.GetBooksBySequence(searchPattern);
-                    catalogType = "/sequence/" + HttpUtility.UrlEncode(searchPattern);
+                    catalogType = "/sequence/" + Uri.EscapeDataString(searchPattern);
                     break;
                 case SearchFor.Genre:
                     books = Library.GetBooksByGenre(searchPattern);
-                    catalogType = "/genre/" + HttpUtility.UrlEncode(searchPattern);
+                    catalogType = "/genre/" + Uri.EscapeDataString(searchPattern);
                     break;
                 case SearchFor.Title:
                     books = Library.GetBooksByTitle(searchPattern);
@@ -144,7 +144,7 @@ namespace TinyOPDS.OPDS
             {
                 if ((pageNumber + 1) * threshold < books.Count)
                 {
-                    catalogType = string.Format("/search?searchType=books&searchTerm={0}&pageNumber={1}", HttpUtility.UrlEncode(searchPattern), pageNumber + 1);
+                    catalogType = string.Format("/search?searchType=books&searchTerm={0}&pageNumber={1}", Uri.EscapeDataString(searchPattern), pageNumber + 1);
                     doc.Root.Add(new XElement("link",
                                     new XAttribute("href", "http://{$HOST}" + catalogType),
                                     new XAttribute("rel", "next"),
@@ -180,7 +180,7 @@ namespace TinyOPDS.OPDS
                     entry.Add(
                         new XElement("author",
                             new XElement("name", author),
-                            new XElement("uri", "http://{$HOST}/author/" + HttpUtility.UrlEncode(author)
+                            new XElement("uri", "http://{$HOST}/author/" + Uri.EscapeDataString(author)
                     )));
                 }
 
@@ -248,8 +248,8 @@ namespace TinyOPDS.OPDS
                 {
                     foreach (string author in book.Authors)
                     {
-                        entry.Add(new XElement("link", 
-                                        new XAttribute("href", "http://{$HOST}/author/" + HttpUtility.UrlEncode(author)),
+                        entry.Add(new XElement("link",
+                                        new XAttribute("href", "http://{$HOST}/author/" + Uri.EscapeDataString(author)),
                                         new XAttribute("rel", "related"), 
                                         new XAttribute("type", "application/atom+xml;profile=opds-catalog"),
                                         new XAttribute("title", string.Format(Localizer.Text("All books by author {0}"), author))));
@@ -258,8 +258,8 @@ namespace TinyOPDS.OPDS
 
                 if (searchFor != SearchFor.Sequence && !string.IsNullOrEmpty(book.Sequence))
                 {
-                   entry.Add(new XElement("link", 
-                                new XAttribute("href", "http://{$HOST}/sequence/" + HttpUtility.UrlEncode(book.Sequence)),
+                   entry.Add(new XElement("link",
+                                new XAttribute("href", "http://{$HOST}/sequence/" + Uri.EscapeDataString(book.Sequence)),
                                 new XAttribute("rel", "related"),
                                 new XAttribute("type", "application/atom+xml;profile=opds-catalog"),
                                 new XAttribute("title", string.Format(Localizer.Text("All books by series {0}"), book.Sequence))));

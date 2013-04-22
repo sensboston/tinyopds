@@ -28,7 +28,7 @@ namespace TinyOPDS.OPDS
     {
         public XDocument GetCatalog(string searchPattern, int threshold = 50)
         {
-            if (!string.IsNullOrEmpty(searchPattern)) searchPattern = HttpUtility.UrlDecode(searchPattern);
+            if (!string.IsNullOrEmpty(searchPattern)) searchPattern = Uri.UnescapeDataString(searchPattern);
 
             XDocument doc = new XDocument(
                 // Add root element and namespaces
@@ -59,7 +59,7 @@ namespace TinyOPDS.OPDS
                             new XElement("id", "tag:sequences:" + sequence.Key),
                             new XElement("title", sequence.Key),
                             new XElement("content", string.Format(Localizer.Text("Total series on {0}: {1}"), sequence.Key, sequence.Value), new XAttribute("type", "text")),
-                            new XElement("link", new XAttribute("href", "http://{$HOST}/sequencesindex/" + HttpUtility.UrlEncode(sequence.Key)), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
+                            new XElement("link", new XAttribute("href", "http://{$HOST}/sequencesindex/" + Uri.EscapeDataString(sequence.Key)), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                         )
                     );
                 }
@@ -79,7 +79,7 @@ namespace TinyOPDS.OPDS
                             new XElement("id", "tag:sequences:" + sequence),
                             new XElement("title", sequence),
                             new XElement("content", string.Format(Localizer.Text("{0} books in {1}"), seriesCount, sequence), new XAttribute("type", "text")),
-                            new XElement("link", new XAttribute("href", "http://{$HOST}/sequence/" + HttpUtility.UrlEncode(sequence)), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
+                            new XElement("link", new XAttribute("href", "http://{$HOST}/sequence/" + Uri.EscapeDataString(sequence)), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                         )
                     );
                 }

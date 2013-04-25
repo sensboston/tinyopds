@@ -19,6 +19,10 @@ namespace TinyOPDS
 {
     public static class StringExtensions
     {
+        public static string SanitizeFileName(this string fileName)
+        {
+            return String.Join("", fileName.Split(System.IO.Path.GetInvalidFileNameChars()));
+        }
 
         public static int WordsCount(this string s)
         {

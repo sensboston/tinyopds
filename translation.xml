@@ -145,6 +145,10 @@
       <text lang="en">About program</text>
       <text lang="ru">О программе</text>
     </property>
+    <property form="MainForm" ctrl="tabPage5">
+      <text lang="en">Authentication</text>
+      <text lang="ru">Авторизация</text>
+    </property>
     <property form="MainForm" ctrl="exitMenuItem">
       <text lang="en">Exit</text>
       <text lang="ru">Выход</text>
@@ -321,14 +325,17 @@
       <text lang="en">All books by series {0}</text>
       <text lang="ru">Все книги серии {0}</text>
     </property>
-    <property>
-      <text lang="en"></text>
-      <text lang="ru"></text>
+    <property form="MainForm" ctrl="useHTTPAuth">>
+      <text lang="en">Use HTTP basic authentication</text>
+      <text lang="ru">Использовать базовую авторизацию HTTP</text>
     </property>
     <property>
       <text lang="en"></text>
       <text lang="ru"></text>
     </property>
-
+    <property>
+      <text lang="en"></text>
+      <text lang="ru"></text>
+    </property>
   </properties>
 </root>

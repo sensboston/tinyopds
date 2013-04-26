@@ -19,9 +19,17 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.ComponentModel;
 
 namespace TinyOPDS.Server
 {
+    public class Credential
+    {
+        public string User { get; set; }
+        public string Password { get; set; }
+        public Credential(string user, string password) { User = user; Password = password; }
+    }
+
     /// <summary>
     /// Simple HTTP processor
     /// </summary>
@@ -37,6 +45,8 @@ namespace TinyOPDS.Server
         public String HttpUrl;
         public String HttpProtocolVersion;
         public Hashtable HttpHeaders = new Hashtable();
+
+        static public BindingList<Credential> Credentials = new BindingList<Credential>();
 
         // Maximum post size, 1 Mb
         private const int MAX_POST_SIZE = 1024 * 1024;
@@ -98,20 +108,50 @@ namespace TinyOPDS.Server
             OutputStream = new StreamWriter(new BufferedStream(Socket.GetStream(), OUTPUT_BUFFER_SIZE));
             OutputStream.AutoFlush = true;
 
-            try 
+            try
             {
                 ParseRequest();
                 ReadHeaders();
-                if (HttpMethod.Equals("GET")) 
+
+                bool authorized = true;
+
+                if (Properties.Settings.Default.UseHTTPAuth)
                 {
-                    HandleGETRequest();
-                } 
-                else if (HttpMethod.Equals("POST")) 
-                {
-                    HandlePOSTRequest();
+                    authorized = false;
+                    if (HttpHeaders.ContainsKey("Authorization"))
+                    {
+                        string hash = HttpHeaders["Authorization"].ToString();
+                        if (hash.StartsWith("Basic "))
+                        {
+                            try
+                            {
+                                string[] credential = hash.Substring(6).DecodeFromBase64().Split(':');
+                                foreach (Credential cred in Credentials)
+                                    if (cred.User.Equals(credential[0]))
+                                    {
+                                        authorized = cred.Password.Equals(credential[1]);
+                                        break;
+                                    }
+                            }
+                            catch { }
+                        }
+                    }
                 }
-            } 
-            catch (Exception e) 
+
+                if (authorized)
+                {
+                    if (HttpMethod.Equals("GET"))
+                    {
+                        HandleGETRequest();
+                    }
+                    else if (HttpMethod.Equals("POST"))
+                    {
+                        HandlePOSTRequest();
+                    }
+                }
+                else WriteNotAuthorized();
+            }
+            catch (Exception e)
             {
                 Log.WriteLine(".Process(object param) exception: {0}", e.Message);
                 WriteFailure();
@@ -200,9 +240,7 @@ namespace TinyOPDS.Server
                     int to_read = content_len;
                     while (to_read > 0)
                     {
-                        Log.WriteLine("starting Read, to_read={0}", to_read);
                         int numread = this._inputStream.Read(buf, 0, Math.Min(BUF_SIZE, to_read));
-                        Log.WriteLine("Read finished, bytes read={0}", numread);
                         if (numread == 0)
                         {
                             if (to_read == 0) break;
@@ -250,6 +288,20 @@ namespace TinyOPDS.Server
             catch (Exception e)
             {
                 Log.WriteLine(LogLevel.Error, ".WriteFailure() exception: {0}", e.Message);
+            }
+        }
+
+        public void WriteNotAuthorized()
+        {
+            try
+            {
+                OutputStream.Write("HTTP/1.1 401 Unauthorized\n");
+                OutputStream.Write("WWW-Authenticate: Basic realm=TinyOPDS\n");
+                OutputStream.Write("Connection: close\n\n");
+            }
+            catch (Exception e)
+            {
+                Log.WriteLine(LogLevel.Error, ".WriteNotAuthorized() exception: {0}", e.Message);
             }
         }
     }

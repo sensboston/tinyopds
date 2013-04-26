@@ -130,6 +130,7 @@
     <Compile Include="MainForm.Designer.cs">
       <DependentUpon>MainForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="Misc\Crypt.cs" />
     <Compile Include="Misc\CustomSettingsProvider.cs" />
     <Compile Include="Misc\Localizer.cs" />
     <Compile Include="Misc\Log.cs" />

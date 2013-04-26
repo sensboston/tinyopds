@@ -39,6 +39,7 @@ namespace TinyOPDS
         DateTime _scanStartTime;
         UPnPController _upnpController = new UPnPController();
         NotifyIcon _notifyIcon = new NotifyIcon();
+        BindingSource bs = new BindingSource();
 
         #region Statistical information
         int _fb2Count, _epubCount, _skippedFiles, _invalidFiles, _duplicates;
@@ -67,6 +68,14 @@ namespace TinyOPDS
 
             // Load application settings
             LoadSettings();
+
+            // Setup credentials grid
+            bs.AddingNew += new AddingNewEventHandler(bs_AddingNew);
+            bs.AllowNew = true;
+            bs.DataSource = HttpProcessor.Credentials;
+            dataGridView1.DataSource = bs;
+            bs.CurrentItemChanged += new EventHandler(bs_CurrentItemChanged);
+            foreach (DataGridViewColumn col in dataGridView1.Columns) col.Width = 180;
 
             Library.LibraryPath = Properties.Settings.Default.LibraryPath;
             Library.LibraryLoaded += (_, __) => 
@@ -161,6 +170,20 @@ namespace TinyOPDS
             saveLog.Checked = Properties.Settings.Default.SaveLogToDisk;
             useWatcher.Checked = Properties.Settings.Default.WatchLibrary;
             _notifyIcon.Visible = Properties.Settings.Default.CloseToTray;
+
+            useHTTPAuth.Checked = dataGridView1.Enabled = Properties.Settings.Default.UseHTTPAuth;
+            // Load saved credentials
+            try
+            {
+                HttpProcessor.Credentials.Clear();
+                string[] pairs = Crypt.DecryptStringAES(Properties.Settings.Default.Credentials, urlTemplate).Split(';');
+                foreach (string pair in pairs)
+                {
+                    string[] cred = pair.Split(':');
+                    if (cred.Length == 2) HttpProcessor.Credentials.Add( new Credential(cred[0], cred[1]));
+                }
+            }
+            catch { }
         }
 
         private void SaveSettings()
@@ -178,7 +201,41 @@ namespace TinyOPDS
             Properties.Settings.Default.SaveLogToDisk = saveLog.Checked;
             Properties.Settings.Default.WatchLibrary = useWatcher.Checked;
             Properties.Settings.Default.UseUPnP = useUPnP.Checked;
+            Properties.Settings.Default.UseHTTPAuth = useHTTPAuth.Checked;
+
             Properties.Settings.Default.Save();
+        }
+
+        #endregion
+
+        #region Credentials handling
+
+        private void dataGridView1_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        {
+            if (dataGridView1.Columns[e.ColumnIndex].Name == "Password" && e.Value != null)
+            {
+                dataGridView1.Rows[e.RowIndex].Tag = e.Value;
+                e.Value = new String('*', e.Value.ToString().Length);
+            }
+        }
+
+        void bs_AddingNew(object sender, AddingNewEventArgs e)
+        {
+            e.NewObject = new Credential("", "");
+        }
+
+        void bs_CurrentItemChanged(object sender, EventArgs e)
+        {
+            string s = string.Empty;
+            foreach (Credential cred in HttpProcessor.Credentials) s += cred.User + ":" + cred.Password + ";";
+            try 
+            {
+                Properties.Settings.Default.Credentials = string.IsNullOrEmpty(s) ? string.Empty : Crypt.EncryptStringAES(s, urlTemplate); 
+            }
+            finally 
+            { 
+                Properties.Settings.Default.Save(); 
+            }
         }
 
         #endregion
@@ -585,6 +642,11 @@ namespace TinyOPDS
             {
                 System.Diagnostics.Process.Start((sender as LinkLabel).Links[0].LinkData as string);
             }
+        }
+
+        private void useHTTPAuth_CheckedChanged(object sender, EventArgs e)
+        {
+            dataGridView1.Enabled = Properties.Settings.Default.UseHTTPAuth = useHTTPAuth.Checked;
         }
 
         #endregion

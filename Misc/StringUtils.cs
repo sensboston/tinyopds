@@ -19,6 +19,12 @@ namespace TinyOPDS
 {
     public static class StringExtensions
     {
+        public static string DecodeFromBase64(this string encodedData)
+        {
+            byte[] encodedDataAsBytes = Convert.FromBase64String(encodedData);
+            return Encoding.UTF8.GetString(encodedDataAsBytes);
+        }
+
         public static string SanitizeFileName(this string fileName)
         {
             return String.Join("", fileName.Split(System.IO.Path.GetInvalidFileNameChars()));

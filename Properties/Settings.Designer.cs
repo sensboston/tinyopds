@@ -191,5 +191,29 @@ namespace TinyOPDS.Properties {
                 this["UseUPnP"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool UseHTTPAuth {
+            get {
+                return ((bool)(this["UseHTTPAuth"]));
+            }
+            set {
+                this["UseHTTPAuth"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string Credentials {
+            get {
+                return ((string)(this["Credentials"]));
+            }
+            set {
+                this["Credentials"] = value;
+            }
+        }
     }
 }

@@ -638,7 +638,7 @@ namespace TinyOPDS
 
         private void linkLabel3_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            if (sender is LinkLabel && checkUrl((sender as LinkLabel).Text))
+            if (sender is LinkLabel && checkUrl((sender as LinkLabel).Links[0].LinkData as string))
             {
                 System.Diagnostics.Process.Start((sender as LinkLabel).Links[0].LinkData as string);
             }

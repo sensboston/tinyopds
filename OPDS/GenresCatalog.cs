@@ -55,8 +55,11 @@ namespace TinyOPDS.OPDS
             else
             {
                 Genre genre = Library.FB2Genres.Where(g => g.Name.Equals(searchPattern) || g.Translation.Equals(searchPattern)).FirstOrDefault();
-                genres = (from g in libGenres where genre.Subgenres.Contains(g) select g).Distinct().ToList();
-                topLevel = false;
+                if (genre != null)
+                {
+                    genres = (from g in libGenres where genre.Subgenres.Contains(g) select g).Distinct().ToList();
+                    topLevel = false;
+                }
             }
 
             if (genres != null)

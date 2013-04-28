@@ -68,9 +68,9 @@ namespace TinyOPDS.OPDS
         /// </summary>
         /// <param name="author"></param>
         /// <returns></returns>
-        public XDocument GetCatalogByTitle(string title, bool fb2Only, int pageNumber = 0)
+        public XDocument GetCatalogByTitle(string title, bool fb2Only, int pageNumber = 0, int threshold = 50)
         {
-            return GetCatalog(title, SearchFor.Title, fb2Only);
+            return GetCatalog(title, SearchFor.Title, fb2Only, threshold);
         }
 
         /// <summary>
@@ -163,6 +163,8 @@ namespace TinyOPDS.OPDS
 
             bool useCyrillic = Localizer.Language.Equals("ru");
 
+            List<Genre> genres = Library.Genres;
+
             // Add catalog entries
             for (int i = startIndex; i < endIndex; i++)
             {
@@ -186,7 +188,7 @@ namespace TinyOPDS.OPDS
 
                 foreach (string genreStr in book.Genres)
                 {
-                    Genre genre = Library.Genres.Where(g => g.Tag.Equals(genreStr)).FirstOrDefault();
+                    Genre genre = genres.Where(g => g.Tag.Equals(genreStr)).FirstOrDefault();
                     if (genre != null)
                         entry.Add(new XElement("category", new XAttribute("term", (useCyrillic ? genre.Translation : genre.Name)), new XAttribute("label", (useCyrillic ? genre.Translation : genre.Name))));
                 }

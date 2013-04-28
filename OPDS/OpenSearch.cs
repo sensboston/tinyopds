@@ -40,8 +40,14 @@ namespace TinyOPDS.OPDS
                     Links.opensearch, Links.search, Links.start, Links.self)
                 );
 
-            List<string> authors = Library.Authors.Where(a=> a.IndexOf(searchPattern, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
-            List<Book> titles = Library.GetBooksByTitle(searchPattern);
+            List<string> authors = new List<string>();
+            List<Book> titles = new List<Book>();
+
+            if (string.IsNullOrEmpty(searchType))
+            {
+                authors = Library.Authors.Where(a => a.IndexOf(searchPattern, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
+                titles = Library.GetBooksByTitle(searchPattern);
+            }
 
             if (string.IsNullOrEmpty(searchType) && authors.Count > 0 && titles.Count > 0)
             {
@@ -68,7 +74,7 @@ namespace TinyOPDS.OPDS
             else if (searchType.Equals("books") || (titles.Count > 0 && authors.Count == 0))
             {
                 if (pageNumber > 0) searchPattern += "/" + pageNumber;
-                return new BooksCatalog().GetCatalogByTitle(searchPattern, fb2Only);
+                return new BooksCatalog().GetCatalogByTitle(searchPattern, fb2Only, 0, 1000);
             }
             return doc;
         }

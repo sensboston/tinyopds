@@ -52,7 +52,7 @@ namespace TinyOPDS.Server
         private const int MAX_POST_SIZE = 1024 * 1024;
 
         // Output buffer size, 64 Kb max
-        private const int OUTPUT_BUFFER_SIZE = 1024 * 32;
+        private const int OUTPUT_BUFFER_SIZE = 1024 * 1024;
 
         private bool _disposed = false;
 
@@ -85,16 +85,19 @@ namespace TinyOPDS.Server
 
         private string StreamReadLine(Stream inputStream) 
         {
-            int next_char;
+            int next_char = -1;
             string data = string.Empty;
-            while (true) 
+            if (inputStream.CanRead)
             {
-                next_char = inputStream.ReadByte();
-                if (next_char == '\n') { break; }
-                if (next_char == '\r') { continue; }
-                if (next_char == -1) { Thread.Sleep(1); continue; };
-                data += Convert.ToChar(next_char);
-            }            
+                while (true)
+                {
+                    try { next_char = inputStream.ReadByte(); } catch { break; }
+                    if (next_char == '\n') { break; }
+                    if (next_char == '\r') { continue; }
+                    if (next_char == -1) { Thread.Sleep(10); continue; };
+                    data += Convert.ToChar(next_char);
+                }
+            }
             return data;
         }
 
@@ -104,62 +107,72 @@ namespace TinyOPDS.Server
             // "processed" view of the world, and we want the data raw after the headers
             _inputStream = new BufferedStream(Socket.GetStream());
 
-            // We probably shouldn't be using a StreamWriter for all output from handlers either
-            OutputStream = new StreamWriter(new BufferedStream(Socket.GetStream(), OUTPUT_BUFFER_SIZE));
-            OutputStream.AutoFlush = true;
-
-            try
+            if (ParseRequest())
             {
-                ParseRequest();
-                ReadHeaders();
+                // We probably shouldn't be using a StreamWriter for all output from handlers either
+                OutputStream = new StreamWriter(new BufferedStream(Socket.GetStream(), OUTPUT_BUFFER_SIZE));
+                OutputStream.AutoFlush = true;
 
-                bool authorized = true;
-
-                if (Properties.Settings.Default.UseHTTPAuth)
+                try
                 {
-                    authorized = false;
-                    if (HttpHeaders.ContainsKey("Authorization"))
+                    ReadHeaders();
+
+                    bool authorized = true;
+
+                    if (Properties.Settings.Default.UseHTTPAuth)
                     {
-                        string hash = HttpHeaders["Authorization"].ToString();
-                        if (hash.StartsWith("Basic "))
+                        authorized = false;
+                        if (HttpHeaders.ContainsKey("Authorization"))
                         {
-                            try
+                            string hash = HttpHeaders["Authorization"].ToString();
+                            if (hash.StartsWith("Basic "))
                             {
-                                string[] credential = hash.Substring(6).DecodeFromBase64().Split(':');
-                                foreach (Credential cred in Credentials)
-                                    if (cred.User.Equals(credential[0]))
+                                try
+                                {
+                                    string[] credential = hash.Substring(6).DecodeFromBase64().Split(':');
+                                    if (credential.Length == 2)
                                     {
-                                        authorized = cred.Password.Equals(credential[1]);
-                                        break;
+                                        foreach (Credential cred in Credentials)
+                                            if (cred.User.Equals(credential[0]))
+                                            {
+                                                authorized = cred.Password.Equals(credential[1]);
+                                                break;
+                                            }
+                                        if (!authorized)
+                                            Log.WriteLine("Authentication failed! user: {0} pass: {1}", credential[0], credential[1]);
                                     }
+                                }
+                                catch (Exception e)
+                                {
+                                    Log.WriteLine("Authentication exception: {0}", e.Message);
+                                }
                             }
-                            catch { }
                         }
                     }
-                }
 
-                if (authorized)
-                {
-                    if (HttpMethod.Equals("GET"))
+                    if (authorized)
                     {
-                        HandleGETRequest();
+                        if (HttpMethod.Equals("GET"))
+                        {
+                            HandleGETRequest();
+                        }
+                        else if (HttpMethod.Equals("POST"))
+                        {
+                            HandlePOSTRequest();
+                        }
                     }
-                    else if (HttpMethod.Equals("POST"))
-                    {
-                        HandlePOSTRequest();
-                    }
+                    else WriteNotAuthorized();
                 }
-                else WriteNotAuthorized();
-            }
-            catch (Exception e)
-            {
-                Log.WriteLine(".Process(object param) exception: {0}", e.Message);
-                WriteFailure();
+                catch (Exception e)
+                {
+                    Log.WriteLine(".Process(object param) exception: {0}", e.Message);
+                    WriteFailure();
+                }
             }
 
             try
             {
-                if (OutputStream.BaseStream.CanWrite)
+                if (OutputStream != null && OutputStream.BaseStream.CanWrite)
                 {
                     try
                     {
@@ -180,17 +193,16 @@ namespace TinyOPDS.Server
             }
         }
 
-        public void ParseRequest() 
+        public bool ParseRequest() 
         {
             String request = StreamReadLine(_inputStream);
+            if (string.IsNullOrEmpty(request)) return false;
             string[] tokens = request.Split(' ');
-            if (tokens.Length != 3) 
-            {
-                throw new Exception("ParseRequest(): invalid HTTP request line");
-            }
+            if (tokens.Length != 3) return false;
             HttpMethod = tokens[0].ToUpper();
             HttpUrl = tokens[1];
             HttpProtocolVersion = tokens[2];
+            return true;
         }
 
         public void ReadHeaders() 

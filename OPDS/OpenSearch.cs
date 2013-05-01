@@ -27,7 +27,7 @@ namespace TinyOPDS.OPDS
     {
         public XDocument Search(string searchPattern, string searchType = "", bool fb2Only = false, int pageNumber = 0, int threshold = 50)
         {
-            if (!string.IsNullOrEmpty(searchPattern)) searchPattern = Uri.UnescapeDataString(searchPattern).ToLower();
+            if (!string.IsNullOrEmpty(searchPattern)) searchPattern = Uri.UnescapeDataString(searchPattern).Replace('+', ' ').ToLower();
 
             XDocument doc = new XDocument(
                 // Add root element and namespaces
@@ -45,7 +45,7 @@ namespace TinyOPDS.OPDS
 
             if (string.IsNullOrEmpty(searchType))
             {
-                authors = Library.Authors.Where(a => a.IndexOf(searchPattern, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
+                authors = Library.GetAuthorsByName(searchPattern);
                 titles = Library.GetBooksByTitle(searchPattern);
             }
 

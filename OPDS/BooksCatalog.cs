@@ -90,7 +90,7 @@ namespace TinyOPDS.OPDS
                 new XElement("feed", new XAttribute(XNamespace.Xmlns + "dc", Namespaces.dc), new XAttribute(XNamespace.Xmlns + "os", Namespaces.os), new XAttribute(XNamespace.Xmlns + "opds", Namespaces.opds),
                     new XElement("title", Localizer.Text("Books by author ") + searchPattern),
                     new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                    new XElement("icon", "http://{$HOST}/icons/books.ico"),
+                    new XElement("icon", "/icons/books.ico"),
                     // Add links
                     Links.opensearch, Links.search, Links.start)
                 );
@@ -146,7 +146,7 @@ namespace TinyOPDS.OPDS
                 {
                     catalogType = string.Format("/search?searchType=books&searchTerm={0}&pageNumber={1}", Uri.EscapeDataString(searchPattern), pageNumber + 1);
                     doc.Root.Add(new XElement("link",
-                                    new XAttribute("href", "http://{$HOST}" + catalogType),
+                                    new XAttribute("href", catalogType),
                                     new XAttribute("rel", "next"),
                                     new XAttribute("type", "application/atom+xml;profile=opds-catalog")));
                 }
@@ -155,7 +155,7 @@ namespace TinyOPDS.OPDS
             {
                 catalogType += "/" + (pageNumber + 1);
                 doc.Root.Add(new XElement("link",
-                                new XAttribute("href", "http://{$HOST}" + catalogType),
+                                new XAttribute("href", catalogType),
                                 new XAttribute("rel", "next"),
                                 new XAttribute("type", "application/atom+xml;profile=opds-catalog")));
 
@@ -182,7 +182,7 @@ namespace TinyOPDS.OPDS
                     entry.Add(
                         new XElement("author",
                             new XElement("name", author),
-                            new XElement("uri", "http://{$HOST}/author/" + Uri.EscapeDataString(author)
+                            new XElement("uri", "/author/" + Uri.EscapeDataString(author)
                     )));
                 }
 
@@ -226,16 +226,16 @@ namespace TinyOPDS.OPDS
                 {
                     entry.Add(
                         // Adding cover page and thumbnail links
-                        new XElement("link", new XAttribute("href", "http://{$HOST}/cover/" + book.ID + ".jpeg"), new XAttribute("rel", "http://opds-spec.org/image"), new XAttribute("type", "image/jpeg")),
-                        new XElement("link", new XAttribute("href", "http://{$HOST}/cover/" + book.ID + ".jpeg"), new XAttribute("rel", "x-stanza-cover-image"), new XAttribute("type", "image/jpeg")),
-                        new XElement("link", new XAttribute("href", "http://{$HOST}/thumbnail/" + book.ID + ".jpeg"), new XAttribute("rel", "http://opds-spec.org/thumbnail"), new XAttribute("type", "image/jpeg")),
-                        new XElement("link", new XAttribute("href", "http://{$HOST}/thumbnail/" + book.ID + ".jpeg"), new XAttribute("rel", "x-stanza-cover-image-thumbnail"), new XAttribute("type", "image/jpeg"))
+                        new XElement("link", new XAttribute("href", "/cover/" + book.ID + ".jpeg"), new XAttribute("rel", "http://opds-spec.org/image"), new XAttribute("type", "image/jpeg")),
+                        new XElement("link", new XAttribute("href", "/cover/" + book.ID + ".jpeg"), new XAttribute("rel", "x-stanza-cover-image"), new XAttribute("type", "image/jpeg")),
+                        new XElement("link", new XAttribute("href", "/thumbnail/" + book.ID + ".jpeg"), new XAttribute("rel", "http://opds-spec.org/thumbnail"), new XAttribute("type", "image/jpeg")),
+                        new XElement("link", new XAttribute("href", "/thumbnail/" + book.ID + ".jpeg"), new XAttribute("rel", "x-stanza-cover-image-thumbnail"), new XAttribute("type", "image/jpeg"))
                         // Adding download links
                     );
                 }
 
                 string fileName = Transliteration.Front(string.Format("{0}_{1}", book.Authors.First(), book.Title)).SanitizeFileName();
-                string url = "http://{$HOST}/" + string.Format("{0}/{1}", book.ID, fileName);
+                string url = "/" + string.Format("{0}/{1}", book.ID, fileName);
                 if (book.BookType == BookType.EPUB || (book.BookType == BookType.FB2 && !acceptFB2 && !string.IsNullOrEmpty(Properties.Settings.Default.ConvertorPath)))
                 {
                     entry.Add(new XElement("link", new XAttribute("href", url+".epub"), new XAttribute("rel", "http://opds-spec.org/acquisition/open-access"), new XAttribute("type", "application/epub+zip")));
@@ -252,7 +252,7 @@ namespace TinyOPDS.OPDS
                     foreach (string author in book.Authors)
                     {
                         entry.Add(new XElement("link",
-                                        new XAttribute("href", "http://{$HOST}/author/" + Uri.EscapeDataString(author)),
+                                        new XAttribute("href", "/author/" + Uri.EscapeDataString(author)),
                                         new XAttribute("rel", "related"), 
                                         new XAttribute("type", "application/atom+xml;profile=opds-catalog"),
                                         new XAttribute("title", string.Format(Localizer.Text("All books by author {0}"), author))));
@@ -262,7 +262,7 @@ namespace TinyOPDS.OPDS
                 if (searchFor != SearchFor.Sequence && !string.IsNullOrEmpty(book.Sequence))
                 {
                    entry.Add(new XElement("link",
-                                new XAttribute("href", "http://{$HOST}/sequence/" + Uri.EscapeDataString(book.Sequence)),
+                                new XAttribute("href", "/sequence/" + Uri.EscapeDataString(book.Sequence)),
                                 new XAttribute("rel", "related"),
                                 new XAttribute("type", "application/atom+xml;profile=opds-catalog"),
                                 new XAttribute("title", string.Format(Localizer.Text("All books by series {0}"), book.Sequence))));

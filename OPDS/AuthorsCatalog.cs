@@ -41,7 +41,7 @@ namespace TinyOPDS.OPDS
                 new XElement("feed", new XAttribute(XNamespace.Xmlns + "dc", Namespaces.dc), new XAttribute(XNamespace.Xmlns + "os", Namespaces.os), new XAttribute(XNamespace.Xmlns + "opds", Namespaces.opds),
                     new XElement("title", Localizer.Text("Books by authors")),
                     new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                    new XElement("icon", "http://{$HOST}/authors.ico"),
+                    new XElement("icon", "/authors.ico"),
                     // Add links
                     Links.opensearch, Links.search, Links.start)
                 );
@@ -70,7 +70,7 @@ namespace TinyOPDS.OPDS
                             new XElement("id", "tag:authors:" + author.Key),
                             new XElement("title", author.Key),
                             new XElement("content", string.Format(Localizer.Text("Total authors on {0}: {1}"), author.Key, author.Value), new XAttribute("type", "text")),
-                            new XElement("link", new XAttribute("href", "http://{$HOST}/authorsindex/" + Uri.EscapeDataString(author.Key)), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
+                            new XElement("link", new XAttribute("href", "/authorsindex/" + Uri.EscapeDataString(author.Key)), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                         )
                     );
                 }
@@ -89,7 +89,7 @@ namespace TinyOPDS.OPDS
                             new XElement("id", "tag:authors:" + author),
                             new XElement("title", author),
                             new XElement("content", string.Format(Localizer.Text("Books: {0}"), booksCount), new XAttribute("type", "text")),
-                            new XElement("link", new XAttribute("href", "http://{$HOST}/author/" + Uri.EscapeDataString(author)), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
+                            new XElement("link", new XAttribute("href", "/author/" + Uri.EscapeDataString(author)), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                         )
                     );
                 }

@@ -135,10 +135,6 @@ namespace TinyOPDS.Server
 
                         // Modify and send xml back to the client app
                         xml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" + xml.Insert(5, " xmlns=\"http://www.w3.org/2005/Atom\"");
-                        string host = string.Empty;
-                        try { host = processor.HttpHeaders["Host"].ToString(); } catch { }
-                        xml = xml.Replace("{$HOST}", host.UrlCombine(Properties.Settings.Default.RootPrefix));
-
                         /// Unfortunately, current OPDS-enabled apps don't support this feature, even those that pretend to (like FBReader for Android)
 #if USE_GZIP_ENCODING
                 // Compress xml if compression supported

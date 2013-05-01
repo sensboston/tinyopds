@@ -35,7 +35,7 @@ namespace TinyOPDS.OPDS
                     new XElement("id", "tag:search:"+searchPattern),
                     new XElement("title", Localizer.Text("Search results")),
                     new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                    new XElement("icon", "http://{$HOST}/series.ico"),
+                    new XElement("icon", "/series.ico"),
                     // Add links
                     Links.opensearch, Links.search, Links.start, Links.self)
                 );
@@ -58,13 +58,13 @@ namespace TinyOPDS.OPDS
                         new XElement("id", "tag:search:author"),
                         new XElement("title", Localizer.Text("Search authors")),
                         new XElement("content", Localizer.Text("Search authors by name"), new XAttribute("type", "text")),
-                        new XElement("link", new XAttribute("href", "http://{$HOST}/search?searchType=authors&searchTerm=" + Uri.EscapeDataString(searchPattern)), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))),
+                        new XElement("link", new XAttribute("href", "/search?searchType=authors&searchTerm=" + Uri.EscapeDataString(searchPattern)), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))),
                     new XElement("entry",
                         new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                         new XElement("id", "tag:search:title"),
                         new XElement("title", Localizer.Text("Search books")),
                         new XElement("content", Localizer.Text("Search books by title"), new XAttribute("type", "text")),
-                        new XElement("link", new XAttribute("href", "http://{$HOST}/search?searchType=books&searchTerm=" + Uri.EscapeDataString(searchPattern)), new XAttribute("type", "application/atom+xml;profile=opds-catalog")))
+                        new XElement("link", new XAttribute("href", "/search?searchType=books&searchTerm=" + Uri.EscapeDataString(searchPattern)), new XAttribute("type", "application/atom+xml;profile=opds-catalog")))
                     );
             }
             else if (searchType.Equals("authors") || (authors.Count > 0 && titles.Count == 0))

@@ -35,7 +35,7 @@ namespace TinyOPDS.OPDS
                 new XElement("feed", new XAttribute(XNamespace.Xmlns + "dc", Namespaces.dc), new XAttribute(XNamespace.Xmlns + "os", Namespaces.os), new XAttribute(XNamespace.Xmlns + "opds", Namespaces.opds),
                 new XElement("title", Localizer.Text("Books by genres")),
                 new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                new XElement("icon", "http://{$HOST}/genres.ico"),
+                new XElement("icon", "/genres.ico"),
                 // Add links
                 Links.opensearch, Links.search, Links.start)
             );
@@ -75,7 +75,7 @@ namespace TinyOPDS.OPDS
                             new XElement("id", "tag:root:genre:" + (useCyrillic ? genre.Translation : genre.Name)),
                             new XElement("title", (useCyrillic ? genre.Translation : genre.Name)),
                             new XElement("content", string.Format(Localizer.Text("Books in genre «{0}»"), (useCyrillic ? genre.Translation : genre.Name)), new XAttribute("type", "text")),
-                            new XElement("link", new XAttribute("href", "http://{$HOST}/" + (topLevel ? "genres/" : "genre/") + (topLevel ? Uri.EscapeDataString((useCyrillic ? genre.Translation : genre.Name)) : genre.Tag)), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
+                            new XElement("link", new XAttribute("href", "/" + (topLevel ? "genres/" : "genre/") + (topLevel ? Uri.EscapeDataString((useCyrillic ? genre.Translation : genre.Name)) : genre.Tag)), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                         )
                     );
                 }

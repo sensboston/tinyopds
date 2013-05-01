@@ -103,13 +103,13 @@ namespace TinyOPDS
             _upnpController.DiscoverCompleted += new EventHandler(_upnpController_DiscoverCompleted);
             _upnpController.DiscoverAsync(Properties.Settings.Default.UseUPnP);
 
+            Log.WriteLine("TinyOPDS version {0}.{1} started", Utils.Version.Major, Utils.Version.Minor);
+
             // Start OPDS server
             StartHttpServer();
 
             _scanStartTime = DateTime.Now;
             _notifyIcon.Visible = Properties.Settings.Default.CloseToTray;
-
-            Log.WriteLine("TinyOPDS application started");
         }
 
         void _upnpController_DiscoverCompleted(object sender, EventArgs e)
@@ -489,7 +489,7 @@ namespace TinyOPDS
             // Remove port forwarding
             openPort.Checked = false;
 
-            Log.WriteLine("TinyOPDS application closed\n");
+            Log.WriteLine("TinyOPDS closed\n");
         }
 
         private void exitMenuItem_Click(object sender, EventArgs e)

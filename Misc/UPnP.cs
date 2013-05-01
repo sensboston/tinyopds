@@ -233,6 +233,8 @@ namespace UPnP
                     {
                         foreach (IPAddressInformation unicast in properties.UnicastAddresses)
                         {
+                            // Lets skip "link local" addresses (RFC 3927), probably this address is disabled
+                            if (unicast.Address.ToString().StartsWith("169.254")) break;
                             if (unicast.Address.AddressFamily == AddressFamily.InterNetwork)
                             {
                                 return unicast.Address;

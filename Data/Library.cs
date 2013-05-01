@@ -306,6 +306,32 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
+        /// Search authors by name
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public static List<string> GetAuthorsByName(string name)
+        {
+            lock (_books)
+            {
+                List<string> authors = Authors.Where(a => a.StartsWith(name, StringComparison.OrdinalIgnoreCase)).ToList();
+                if (authors.Count == 0)
+                {
+                    string[] words = name.ReverseWords().Split(' ');
+                    if (words.Length > 1)
+                    {
+                        authors = Authors.Where(a => a.StartsWith(words[0], StringComparison.OrdinalIgnoreCase)).ToList();
+                        if (authors.Count > 0)
+                        {
+                            authors = authors.Where(a => a.IndexOf(words[1], StringComparison.OrdinalIgnoreCase) >= 0).ToList();
+                        }
+                    }
+                }
+                return authors;
+            }
+        }
+
+        /// <summary>
         /// Return books by title
         /// </summary>
         /// <param name="title"></param>

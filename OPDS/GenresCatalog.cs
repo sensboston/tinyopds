@@ -28,7 +28,7 @@ namespace TinyOPDS.OPDS
     {
         public XDocument GetCatalog(string searchPattern, int threshold = 50)
         {
-            if (!string.IsNullOrEmpty(searchPattern)) searchPattern = Uri.UnescapeDataString(searchPattern);
+            if (!string.IsNullOrEmpty(searchPattern)) searchPattern = Uri.UnescapeDataString(searchPattern).Replace('+', ' ');
 
             XDocument doc = new XDocument(
                 // Add root element and namespaces

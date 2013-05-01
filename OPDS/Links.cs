@@ -16,8 +16,8 @@ namespace TinyOPDS.OPDS
 {
     public class Links
     {
-        public static XElement opensearch = new XElement("link", 
-                                                new XAttribute("href","http://www.w3.org/2005/Atom"),
+        public static XElement opensearch = new XElement("link",
+                                                new XAttribute("href", "/opds-opensearch.xml"),
                                                 new XAttribute("rel","search"),
                                                 new XAttribute("type","application/opensearchdescription+xml"));
 

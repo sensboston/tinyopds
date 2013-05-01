@@ -19,6 +19,13 @@ namespace TinyOPDS
 {
     public static class StringExtensions
     {
+        public static string ReverseWords(this string sentence)
+        {
+            string[] words = sentence.Split(' ');
+            Array.Reverse(words);
+            return string.Join(" ", words);
+        }
+
         public static string DecodeFromBase64(this string encodedData)
         {
             byte[] encodedDataAsBytes = Convert.FromBase64String(encodedData);

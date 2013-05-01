@@ -34,7 +34,7 @@ namespace TinyOPDS.OPDS
         /// <returns></returns>
         public XDocument GetCatalog(string searchPattern, int threshold = 50)
         {
-            if (!string.IsNullOrEmpty(searchPattern)) searchPattern = Uri.UnescapeDataString(searchPattern).ToLower();
+            if (!string.IsNullOrEmpty(searchPattern)) searchPattern = Uri.UnescapeDataString(searchPattern).Replace('+', ' ').ToLower();
 
             XDocument doc = new XDocument(
                 // Add root element and namespaces
@@ -47,7 +47,7 @@ namespace TinyOPDS.OPDS
                 );
 
             // Get all authors names starting with searchPattern
-            List<string> Authors = (from a in Library.Authors where a.ToLower().StartsWith(searchPattern) && a.Length > searchPattern.Length + 1 select a).ToList();
+            List<string> Authors = Library.GetAuthorsByName(searchPattern);
 
             if (Authors.Count > threshold)
             {

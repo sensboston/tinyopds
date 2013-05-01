@@ -22,17 +22,17 @@ namespace TinyOPDS.OPDS
                                                 new XAttribute("type","application/opensearchdescription+xml"));
 
         public static XElement search = new XElement("link", 
-                                                new XAttribute("href","http://{$HOST}/search?searchTerm={searchTerms}"),
+                                                new XAttribute("href","/search?searchTerm={searchTerms}"),
                                                 new XAttribute("rel","search"),
                                                 new XAttribute("type","application/atom+xml"));
 
         public static XElement start = new XElement("link",
-                                                new XAttribute("href", "http://{$HOST}"),
+                                                new XAttribute("href", ""),
                                                 new XAttribute("rel","start"),
                                                 new XAttribute("type","application/atom+xml"));
 
         public static XElement self = new XElement("link",
-                                                new XAttribute("href", "http://{$HOST}"),
+                                                new XAttribute("href", ""),
                                                 new XAttribute("rel","self"),
                                                 new XAttribute("type","application/atom+xml"));
     }

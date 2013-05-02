@@ -143,7 +143,7 @@ namespace TinyOPDS
             libraryPath.Text = Properties.Settings.Default.LibraryPath;
             if (!string.IsNullOrEmpty(Properties.Settings.Default.LibraryPath))
             {
-                databaseFileName.Text = Utils.Create(Utils.IsoOidNamespace, Properties.Settings.Default.LibraryPath).ToString() + ".db";
+                databaseFileName.Text = Utils.CreateGuid(Utils.IsoOidNamespace, Properties.Settings.Default.LibraryPath).ToString() + ".db";
             }
             serverName.Text = Properties.Settings.Default.ServerName;
             serverPort.Text = Properties.Settings.Default.ServerPort.ToString();
@@ -171,7 +171,8 @@ namespace TinyOPDS
             useWatcher.Checked = Properties.Settings.Default.WatchLibrary;
             _notifyIcon.Visible = Properties.Settings.Default.CloseToTray;
 
-            useHTTPAuth.Checked = dataGridView1.Enabled = Properties.Settings.Default.UseHTTPAuth;
+            useHTTPAuth.Checked = rememberClients.Enabled = dataGridView1.Enabled = Properties.Settings.Default.UseHTTPAuth;
+            rememberClients.Checked = Properties.Settings.Default.RememberClients;
             // Load saved credentials
             try
             {
@@ -202,6 +203,7 @@ namespace TinyOPDS
             Properties.Settings.Default.WatchLibrary = useWatcher.Checked;
             Properties.Settings.Default.UseUPnP = useUPnP.Checked;
             Properties.Settings.Default.UseHTTPAuth = useHTTPAuth.Checked;
+            Properties.Settings.Default.RememberClients = rememberClients.Checked;
 
             Properties.Settings.Default.Save();
         }
@@ -251,7 +253,7 @@ namespace TinyOPDS
                 booksInDB.Text = string.Format("{0}       fb2: {1}      epub: {2}", 0, 0, 0);
                 if (!string.IsNullOrEmpty(Properties.Settings.Default.LibraryPath))
                 {
-                    databaseFileName.Text = Utils.Create(Utils.IsoOidNamespace, Properties.Settings.Default.LibraryPath).ToString() + ".db";
+                    databaseFileName.Text = Utils.CreateGuid(Utils.IsoOidNamespace, Properties.Settings.Default.LibraryPath).ToString() + ".db";
                     // Reload library
                     Library.LoadAsync();
                     _watcher.DirectoryToWatch = Properties.Settings.Default.LibraryPath;
@@ -364,24 +366,47 @@ namespace TinyOPDS
         private void StartHttpServer()
         {
             // Create and start HTTP server
+            HttpProcessor.AuthorizedClients.Clear();
             _server = new OPDSServer(Properties.Settings.Default.ServerPort);
 
-            serverButton.Text = serverMenuItem.Text = Localizer.Text("Stop server");
             _serverThread = new Thread(new ThreadStart(_server.Listen));
             _serverThread.Priority = ThreadPriority.BelowNormal;
             _serverThread.Start();
-
-            Log.WriteLine("HTTP server started");
+            _server.ServerReady.WaitOne(TimeSpan.FromMilliseconds(500));
+            if (!_server.IsActive)
+            {
+                if (_server.ServerException != null)
+                {
+                    if (_server.ServerException is System.Net.Sockets.SocketException)
+                    {
+                        MessageBox.Show(string.Format(Localizer.Text("Probably, port {0} is already in use. Please try different port value."), Properties.Settings.Default.ServerPort));
+                    }
+                    else
+                    {
+                        MessageBox.Show(_server.ServerException.Message);
+                    }
+                    _server.StopServer();
+                    _serverThread = null;
+                    _server = null;
+                }
+            }
+            else
+            {
+                serverButton.Text = serverMenuItem.Text = Localizer.Text("Stop server");
+                Log.WriteLine("HTTP server started");
+            }
         }
 
         private void StopHttpServer()
         {
-            _server.StopServer();
-            _serverThread = null;
-            _server = null;
+            if (_server != null)
+            {
+                _server.StopServer();
+                _serverThread = null;
+                _server = null;
+                Log.WriteLine("HTTP server stopped");
+            }
             serverButton.Text = serverMenuItem.Text = Localizer.Text("Start server");
-
-            Log.WriteLine("HTTP server stopped");
         }
 
         private void RestartHttpServer()
@@ -543,6 +568,17 @@ namespace TinyOPDS
             }
         }
 
+        private void UpdateServerLinks()
+        {
+            if (_upnpController != null)
+            {
+                if (_upnpController.LocalIP != null)
+                    intLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
+                if (_upnpController.ExternalIP != null)
+                    extLink.Text = string.Format(urlTemplate, _upnpController.ExternalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
+            }
+        }
+
         /// <summary>
         /// Handle server's root prefix change
         /// </summary>
@@ -554,8 +590,7 @@ namespace TinyOPDS
             {
                 if (rootPrefix.Text.EndsWith("/")) rootPrefix.Text = rootPrefix.Text.Remove(rootPrefix.Text.Length - 1);
                 Properties.Settings.Default.RootPrefix = rootPrefix.Text;
-                intLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
-                extLink.Text = string.Format(urlTemplate, _upnpController.ExternalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
+                UpdateServerLinks();
             }
         }
 
@@ -579,7 +614,10 @@ namespace TinyOPDS
                         openPort.Checked = true;
                     }
                     else Properties.Settings.Default.ServerPort = port;
-                    RestartHttpServer();
+                    if (_server != null && _server.IsActive)
+                    {
+                        RestartHttpServer();
+                    }
                 }
             }
             else
@@ -587,6 +625,8 @@ namespace TinyOPDS
                 MessageBox.Show(Localizer.Text("Invalid port value: value must be numeric and in range from 1 to 65535"));
                 serverPort.Text = Properties.Settings.Default.ServerPort.ToString();
             }
+            // Update link labels
+            UpdateServerLinks();
         }
 
         /// <summary>
@@ -646,7 +686,12 @@ namespace TinyOPDS
 
         private void useHTTPAuth_CheckedChanged(object sender, EventArgs e)
         {
-            dataGridView1.Enabled = Properties.Settings.Default.UseHTTPAuth = useHTTPAuth.Checked;
+            dataGridView1.Enabled = rememberClients.Enabled = Properties.Settings.Default.UseHTTPAuth = useHTTPAuth.Checked;
+        }
+
+        private void rememberClients_CheckedChanged(object sender, EventArgs e)
+        {
+            Properties.Settings.Default.RememberClients = rememberClients.Checked;
         }
 
         #endregion

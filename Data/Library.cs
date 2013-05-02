@@ -81,7 +81,7 @@ namespace TinyOPDS.Data
             GC.Collect();
 
             // Create unique database name, based on library path
-            string databaseFileName = Utils.Create(Utils.IsoOidNamespace, Properties.Settings.Default.LibraryPath).ToString()+".db";
+            string databaseFileName = Utils.CreateGuid(Utils.IsoOidNamespace, Properties.Settings.Default.LibraryPath).ToString()+".db";
             _databaseFullPath = Path.Combine(Utils.ServiceFilesLocation, databaseFileName);
 
             // Load database in the background thread
@@ -142,7 +142,7 @@ namespace TinyOPDS.Data
                 // Prevent incorrect duplicates detection (same ID but different titles)
                 if (_books.ContainsKey(book.ID) && !book.Title.Equals(_books[book.ID].Title))
                 {
-                    book.ID = Utils.Create(Utils.IsoOidNamespace, book.FileName).ToString();
+                    book.ID = Utils.CreateGuid(Utils.IsoOidNamespace, book.FileName).ToString();
                 }
 
                 // Check for duplicates

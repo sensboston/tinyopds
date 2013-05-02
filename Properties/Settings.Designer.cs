@@ -215,5 +215,20 @@ namespace TinyOPDS.Properties {
                 this["Credentials"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool RememberClients
+        {
+            get
+            {
+                return ((bool)(this["RememberClients"]));
+            }
+            set
+            {
+                this["RememberClients"] = value;
+            }
+        }
     }
 }

@@ -329,6 +329,18 @@
       <text lang="en">Use HTTP basic authentication</text>
       <text lang="ru">Использовать базовую авторизацию HTTP</text>
     </property>
+    <property form="MainForm" ctrl="rememberClients">
+      <text lang="en">Remember authorized clients</text>
+      <text lang="ru">Помнить авторизованных клиентов</text>
+    </property>
+    <property>
+      <text lang="en">Probably, port {0} is already in use. Please try different port value.</text>
+      <text lang="ru">Вероятно, порт {0} уже используется. Попробуйте другое значение.</text>
+    </property>
+    <property>
+      <text lang="en"></text>
+      <text lang="ru"></text>
+    </property>
     <property>
       <text lang="en"></text>
       <text lang="ru"></text>

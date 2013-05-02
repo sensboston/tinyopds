@@ -15,6 +15,7 @@
 
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -46,7 +47,8 @@ namespace TinyOPDS.Server
         public String HttpProtocolVersion;
         public Hashtable HttpHeaders = new Hashtable();
 
-        static public BindingList<Credential> Credentials = new BindingList<Credential>();
+        public static BindingList<Credential> Credentials = new BindingList<Credential>();
+        public static List<string> AuthorizedClients = new List<string>();
 
         // Maximum post size, 1 Mb
         private const int MAX_POST_SIZE = 1024 * 1024;
@@ -122,7 +124,23 @@ namespace TinyOPDS.Server
                     if (Properties.Settings.Default.UseHTTPAuth)
                     {
                         authorized = false;
-                        if (HttpHeaders.ContainsKey("Authorization"))
+
+                        // Compute client hash string based on User-Agent + IP address
+                        string clientHash = string.Empty;
+                        if (HttpHeaders.ContainsKey("User-Agent")) clientHash += HttpHeaders["User-Agent"];
+                        clientHash += (Socket.Client.RemoteEndPoint as IPEndPoint).Address.ToString();
+                        clientHash = Utils.CreateGuid(Utils.IsoOidNamespace, clientHash).ToString();
+
+                        // First, check authorized client list (if enabled)
+                        if (Properties.Settings.Default.RememberClients)
+                        {
+                            if (AuthorizedClients.Contains(clientHash))
+                            {
+                                authorized = true;
+                            }
+                        }
+
+                        if (!authorized && HttpHeaders.ContainsKey("Authorization"))
                         {
                             string hash = HttpHeaders["Authorization"].ToString();
                             if (hash.StartsWith("Basic "))
@@ -136,6 +154,7 @@ namespace TinyOPDS.Server
                                             if (cred.User.Equals(credential[0]))
                                             {
                                                 authorized = cred.Password.Equals(credential[1]);
+                                                AuthorizedClients.Add(clientHash);
                                                 break;
                                             }
                                         if (!authorized)
@@ -327,11 +346,15 @@ namespace TinyOPDS.Server
         protected int _timeout;
         TcpListener _listener;
         internal bool _isActive = false;
+        public bool IsActive { get { return _isActive; } }
+        public Exception ServerException = null;
+        public AutoResetEvent ServerReady = null;
        
         public HttpServer(int Port, int Timeout = 5000) 
         {
             _port = Port;
             _timeout = Timeout;
+            ServerReady = new AutoResetEvent(false);
         }
 
         ~HttpServer()
@@ -347,6 +370,11 @@ namespace TinyOPDS.Server
                 _listener.Stop();
                 _listener = null;
             }
+            if (ServerReady != null)
+            {
+                ServerReady.Dispose();
+                ServerReady = null;
+            }
         }
 
         /// <summary>
@@ -355,11 +383,13 @@ namespace TinyOPDS.Server
         public void Listen() 
         {
             HttpProcessor processor = null;
+            ServerException = null;
             try
             {
-                _isActive = true;
                 _listener = new TcpListener(IPAddress.Any, _port);
                 _listener.Start();
+                _isActive = true;
+                ServerReady.Set();
                 while (_isActive)
                 {
                     if (_listener.Pending())
@@ -376,11 +406,14 @@ namespace TinyOPDS.Server
             catch (Exception e)
             {
                 Log.WriteLine(LogLevel.Error, ".Listen() exception: {0}", e.Message);
+                ServerException = e;
                 _isActive = false;
+                ServerReady.Set();
             }
             finally
             {
                 if (processor != null) processor.Dispose();
+                _isActive = false;
             }
         }
 

@@ -107,6 +107,7 @@
             this.serverMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripSeparator();
             this.exitMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.rememberClients = new System.Windows.Forms.CheckBox();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.tabPage2.SuspendLayout();
@@ -606,6 +607,7 @@
             // tabPage5
             // 
             this.tabPage5.BackColor = System.Drawing.SystemColors.Control;
+            this.tabPage5.Controls.Add(this.rememberClients);
             this.tabPage5.Controls.Add(this.dataGridView1);
             this.tabPage5.Controls.Add(this.useHTTPAuth);
             this.tabPage5.Location = new System.Drawing.Point(4, 34);
@@ -618,9 +620,9 @@
             // dataGridView1
             // 
             this.dataGridView1.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.dataGridView1.Location = new System.Drawing.Point(26, 61);
+            this.dataGridView1.Location = new System.Drawing.Point(26, 79);
             this.dataGridView1.Name = "dataGridView1";
-            this.dataGridView1.Size = new System.Drawing.Size(419, 161);
+            this.dataGridView1.Size = new System.Drawing.Size(419, 172);
             this.dataGridView1.TabIndex = 1;
             this.dataGridView1.CellFormatting += new System.Windows.Forms.DataGridViewCellFormattingEventHandler(this.dataGridView1_CellFormatting);
             // 
@@ -952,6 +954,17 @@
             this.exitMenuItem.Text = "Exit";
             this.exitMenuItem.Click += new System.EventHandler(this.exitMenuItem_Click);
             // 
+            // rememberClients
+            // 
+            this.rememberClients.AutoSize = true;
+            this.rememberClients.Location = new System.Drawing.Point(26, 46);
+            this.rememberClients.Name = "rememberClients";
+            this.rememberClients.Size = new System.Drawing.Size(162, 17);
+            this.rememberClients.TabIndex = 2;
+            this.rememberClients.Text = "Remember authorized clients";
+            this.rememberClients.UseVisualStyleBackColor = true;
+            this.rememberClients.CheckedChanged += new System.EventHandler(this.rememberClients_CheckedChanged);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -1063,6 +1076,7 @@
         private System.Windows.Forms.TabPage tabPage5;
         private System.Windows.Forms.CheckBox useHTTPAuth;
         private System.Windows.Forms.DataGridView dataGridView1;
+        private System.Windows.Forms.CheckBox rememberClients;
     }
 }
 

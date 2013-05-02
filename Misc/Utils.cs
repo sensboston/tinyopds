@@ -107,7 +107,7 @@ namespace TinyOPDS
 		/// <param name="name">The name (within that namespace).</param>
 		/// <param name="version">The version number of the UUID to create; this value must be either
 		/// <returns>A UUID derived from the namespace and name.</returns>
-		public static Guid Create(Guid namespaceId, string name)
+		public static Guid CreateGuid(Guid namespaceId, string name)
 		{
 			if (name == null) throw new ArgumentNullException("name");
 			// convert the name to a sequence of octets (as defined by the standard or conventions of its namespace) (step 3)

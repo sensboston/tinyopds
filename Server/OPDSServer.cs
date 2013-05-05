@@ -202,6 +202,7 @@ namespace TinyOPDS.Server
                                 outputStream.CopyTo(processor.OutputStream.BaseStream);
                             }
                         }
+                        HttpServer.ServerStatistics.BooksSent++;
                     }
                     catch (Exception e)
                     {
@@ -271,6 +272,7 @@ namespace TinyOPDS.Server
                         processor.WriteSuccess("application/epub+zip");
                         memStream.Position = 0;
                         memStream.CopyTo(processor.OutputStream.BaseStream);
+                        HttpServer.ServerStatistics.BooksSent++;
                     }
                     catch (Exception e)
                     {
@@ -317,6 +319,7 @@ namespace TinyOPDS.Server
                                 processor.WriteSuccess("image/jpeg");
                                 (getCover ? image.CoverImageStream : image.ThumbnailImageStream).CopyTo(processor.OutputStream.BaseStream);
                                 processor.OutputStream.BaseStream.Flush();
+                                HttpServer.ServerStatistics.ImagesSent++;
                                 return;
                             }
                         }

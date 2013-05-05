@@ -8,8 +8,8 @@
  *
  * This module contains simple HTTP processor implementation
  * and abstract class for HTTP server
+ * Also, couple additional service classes are specified
  * 
- * TODO: add HTTP authentification
  * 
  ************************************************************/
 
@@ -24,6 +24,9 @@ using System.ComponentModel;
 
 namespace TinyOPDS.Server
 {
+    /// <summary>
+    /// Basic credentials (unencrypted)
+    /// </summary>
     public class Credential
     {
         public string User { get; set; }
@@ -155,6 +158,7 @@ namespace TinyOPDS.Server
                                             {
                                                 authorized = cred.Password.Equals(credential[1]);
                                                 AuthorizedClients.Add(clientHash);
+                                                HttpServer.ServerStatistics.SuccessfulLoginAttempts++;
                                                 break;
                                             }
                                         if (!authorized)
@@ -173,14 +177,20 @@ namespace TinyOPDS.Server
                     {
                         if (HttpMethod.Equals("GET"))
                         {
+                            HttpServer.ServerStatistics.GetRequests++;
                             HandleGETRequest();
                         }
                         else if (HttpMethod.Equals("POST"))
                         {
+                            HttpServer.ServerStatistics.PostRequests++;
                             HandlePOSTRequest();
                         }
                     }
-                    else WriteNotAuthorized();
+                    else
+                    {
+                        HttpServer.ServerStatistics.WrongLoginAttempts++;
+                        WriteNotAuthorized();
+                    }
                 }
                 catch (Exception e)
                 {
@@ -338,6 +348,34 @@ namespace TinyOPDS.Server
     }
 
     /// <summary>
+    /// Server statistics class
+    /// </summary>
+    public class Statistics
+    {
+        public event EventHandler StatisticsUpdated;
+        private long _bytesSent = 0;
+        private long _bytesReceived = 0;
+        private int _booksSent  = 0;
+        private int _imagesSent = 0;
+        private int _getRequests  = 0;
+        private int _postRequests  = 0;
+        private int _successfulLoginAttempts = 0;
+        private int _wrongLoginAttempts = 0;
+        public long BytesSent { get { return _bytesSent; } set { _bytesSent = value; if (StatisticsUpdated != null) StatisticsUpdated(this, null); } }
+        public long BytesReceived { get { return _bytesReceived; } set { _bytesReceived = value; if (StatisticsUpdated != null) StatisticsUpdated(this, null); } }
+        public int BooksSent { get { return _booksSent; } set { _booksSent = value; if (StatisticsUpdated != null) StatisticsUpdated(this, null); } }
+        public int ImagesSent { get { return _imagesSent; } set { _imagesSent = value; if (StatisticsUpdated != null) StatisticsUpdated(this, null); } }
+        public int GetRequests { get { return _getRequests; } set { _getRequests = value; if (StatisticsUpdated != null) StatisticsUpdated(this, null); } }
+        public int PostRequests { get { return _postRequests; } set { _postRequests = value; if (StatisticsUpdated != null) StatisticsUpdated(this, null); } }
+        public int SuccessfulLoginAttempts { get { return _successfulLoginAttempts; } set { _successfulLoginAttempts = value; if (StatisticsUpdated != null) StatisticsUpdated(this, null); } }
+        public int WrongLoginAttempts { get { return _wrongLoginAttempts; } set { _wrongLoginAttempts = value; if (StatisticsUpdated != null) StatisticsUpdated(this, null); } }
+        public void Clear()
+        {
+            _bytesSent = _bytesReceived = _booksSent = _imagesSent = _getRequests = _postRequests = _successfulLoginAttempts = _wrongLoginAttempts = 0;
+        }
+    }
+
+    /// <summary>
     /// Simple HTTP server
     /// </summary>
     public abstract class HttpServer
@@ -349,12 +387,14 @@ namespace TinyOPDS.Server
         public bool IsActive { get { return _isActive; } }
         public Exception ServerException = null;
         public AutoResetEvent ServerReady = null;
+        public static Statistics ServerStatistics = new Statistics();
        
         public HttpServer(int Port, int Timeout = 5000) 
         {
             _port = Port;
             _timeout = Timeout;
             ServerReady = new AutoResetEvent(false);
+            ServerStatistics.Clear();
         }
 
         ~HttpServer()

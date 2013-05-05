@@ -154,20 +154,20 @@
       <text lang="ru">Выход</text>
     </property>
     <property form="MainForm" ctrl="openPort">
-      <text lang="en">Forward port on UPnP router</text>
-      <text lang="ru">Открыть порт на UPnP роутере</text>
+      <text lang="en">Forward port on router</text>
+      <text lang="ru">Открыть порт на роутере</text>
     </property>
     <property form="MainForm" ctrl="label13">
       <text lang="en">OPDS root catalog prefix:</text>
       <text lang="ru">Префикс корневого каталога OPDS:</text>
     </property>
     <property form="MainForm" ctrl="intIPlabel">
-      <text lang="en">Local OPDS url:</text>
-      <text lang="ru">Локальная OPDS ссылка:</text>
+      <text lang="en">Local URL:</text>
+      <text lang="ru">Локальный URL:</text>
     </property>
     <property form="MainForm" ctrl="extIPlabel">
-      <text lang="en">External OPDS url:</text>
-      <text lang="ru">Внешняя OPDS ссылка:</text>
+      <text lang="en">External URL:</text>
+      <text lang="ru">Внешний URL:</text>
     </property>
     <property form="MainForm" ctrl="converterLinkLabel">
       <text lang="en">Click here to download latest version of ePub converter</text>
@@ -325,7 +325,7 @@
       <text lang="en">All books by series {0}</text>
       <text lang="ru">Все книги серии {0}</text>
     </property>
-    <property form="MainForm" ctrl="useHTTPAuth">>
+    <property form="MainForm" ctrl="useHTTPAuth">
       <text lang="en">Use HTTP basic authentication</text>
       <text lang="ru">Использовать базовую авторизацию HTTP</text>
     </property>
@@ -337,9 +337,9 @@
       <text lang="en">Probably, port {0} is already in use. Please try different port value.</text>
       <text lang="ru">Вероятно, порт {0} уже используется. Попробуйте другое значение.</text>
     </property>
-    <property>
-      <text lang="en"></text>
-      <text lang="ru"></text>
+    <property form="MainForm" ctrl="label22">
+      <text lang="en">Log verbosity level</text>
+      <text lang="ru">Детализация лог-файла</text>
     </property>
     <property>
       <text lang="en"></text>

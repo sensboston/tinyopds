@@ -29,6 +29,7 @@ namespace TinyOPDS.Data
         private static string _databaseFullPath;
         private static List<Genre> _genres;
         private static Dictionary<string, string> _soundexedGenres;
+        private static bool _converted = false;
 
         /// <summary>
         /// Default constructor
@@ -88,8 +89,14 @@ namespace TinyOPDS.Data
             BackgroundWorker worker = new BackgroundWorker();
             worker.DoWork += (_, __) =>
             {
+                _converted = false;
                 Load();
                 if (LibraryLoaded != null) LibraryLoaded(null, null);
+                if (_converted)
+                {
+                    Save();
+                    Log.WriteLine(LogLevel.Info, "Database successfully converted to the format 1.1");
+                }
                 worker.Dispose();
             };
             worker.RunWorkerAsync();
@@ -146,13 +153,16 @@ namespace TinyOPDS.Data
                 }
 
                 // Check for duplicates
-                if (!_books.ContainsKey(book.ID) || _books[book.ID].Version < book.Version)
+                if (!_books.ContainsKey(book.ID) || (_books.ContainsKey(book.ID) && _books[book.ID].Version < book.Version))
                 {
+                    // Remember duplicate flag
+                    bool isDuplicate = _books.ContainsKey(book.ID);
+                    book.AddedDate = DateTime.Now;
                     // Make relative path
                     _books[book.ID] = book;
                     lock (_paths) _paths[book.FileName] = true;
                     if (book.BookType == BookType.FB2) FB2Count++; else EPUBCount++;
-                    return true;
+                    return !isDuplicate;
                 }
                 return false;
             }
@@ -230,7 +240,7 @@ namespace TinyOPDS.Data
         public static int EPUBCount { get; private set; }
 
         /// <summary>
-        /// Returns list of the library books titles sorted in alphabetical order
+        /// Returns list of the books titles sorted in alphabetical order
         /// </summary>
         public static List<string> Titles
         {
@@ -244,7 +254,7 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Returns list of the library books authors sorted in alphabetical order 
+        /// Returns list of the authors sorted in alphabetical order 
         /// </summary>
         public static List<string> Authors
         {
@@ -381,7 +391,7 @@ namespace TinyOPDS.Data
             int numRecords = 0;
             DateTime start = DateTime.Now;
 
-            // MemoryStream can save us about 1 second on 106 Mb database load
+            // MemoryStream can save us about 1 second on 106 Mb database load time
             MemoryStream memStream = null;
             if (File.Exists(_databaseFullPath))
             {
@@ -397,6 +407,15 @@ namespace TinyOPDS.Data
                     using (BinaryReader reader = new BinaryReader(memStream))
                     {
                         memStream = null;
+                        bool newFormat = reader.ReadString().Equals("VER1.1");
+                        if (!newFormat)
+                        {
+                            reader.BaseStream.Position = 0;
+                            _converted = true;
+                        }
+
+                        DateTime now = DateTime.Now;
+
                         while (reader.BaseStream.Position < reader.BaseStream.Length)
                         {
                             try
@@ -415,16 +434,15 @@ namespace TinyOPDS.Data
                                 book.Annotation = reader.ReadString();
                                 book.DocumentSize = reader.ReadUInt32();
                                 int count = reader.ReadInt32();
-                                book.Authors = new List<string>();
                                 for (int i = 0; i < count; i++) book.Authors.Add(reader.ReadString());
                                 count = reader.ReadInt32();
-                                book.Translators = new List<string>();
                                 for (int i = 0; i < count; i++) book.Translators.Add(reader.ReadString());
                                 count = reader.ReadInt32();
-                                book.Genres = new List<string>();
                                 for (int i = 0; i < count; i++) book.Genres.Add(reader.ReadString());
                                 lock (_books) _books[book.ID] = book;
                                 lock (_paths) _paths[book.FileName] = true;
+                                book.AddedDate = newFormat ? DateTime.FromBinary(reader.ReadInt64()) : now;
+
                                 numRecords++;
                             }
                             catch (EndOfStreamException)
@@ -464,6 +482,7 @@ namespace TinyOPDS.Data
         /// <summary>
         /// Save whole library
         /// </summary>
+        /// Remark: new database format is used!
         public static void Save()
         {
             // Do nothing if we have no records
@@ -479,6 +498,7 @@ namespace TinyOPDS.Data
                 using (BinaryWriter writer = new BinaryWriter(fileStream))
                 {
                     fileStream = null;
+                    writer.Write("VER1.1");
                     foreach (Book book in _books.Values)
                     {
                         writeBook(book, writer);
@@ -512,7 +532,6 @@ namespace TinyOPDS.Data
                     fileStream = null;
                     writeBook(book, writer);
                 }
-
             }
             catch (Exception e)
             {
@@ -544,6 +563,7 @@ namespace TinyOPDS.Data
             foreach (string translator in book.Translators) writer.Write(translator);
             writer.Write((Int32)book.Genres.Count);
             foreach (string genre in book.Genres) writer.Write(genre);
+            writer.Write(book.AddedDate.ToBinary());
         }
 
         #endregion

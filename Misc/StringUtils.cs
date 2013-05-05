@@ -168,6 +168,7 @@ namespace TinyOPDS
                     }
                     s = s.Remove(s.Length - 1);
                 } while (s.Length > 0);
+                i += s.Length == 0 ? 3 : 0;
             }
             return output;
         }

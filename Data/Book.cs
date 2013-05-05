@@ -41,7 +41,7 @@ namespace TinyOPDS.Data
             {
                 FileName = FileName.Substring(Library.LibraryPath.Length+1);
             }
-            Title = Sequence = Annotation = Language = "";
+            Title = Sequence = Annotation = Language = string.Empty;
             HasCover = false;
             BookDate = DocumentDate = DateTime.MinValue;
             NumberInSequence = 0;
@@ -77,5 +77,6 @@ namespace TinyOPDS.Data
         public List<string> Genres { get; set; }
         public BookType BookType { get { return Path.GetExtension(FilePath).ToLower().Contains("epub") ? BookType.EPUB : Data.BookType.FB2; } }
         public bool IsValid { get { return (!string.IsNullOrEmpty(Title) && Title.IsValidUTF() && Authors.Count > 0 && Genres.Count > 0); } }
+        public DateTime AddedDate { get; set; }
     }
 }

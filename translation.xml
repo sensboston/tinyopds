@@ -342,6 +342,18 @@
       <text lang="ru">Детализация лог-файла</text>
     </property>
     <property>
+      <text lang="en">Info, warnings and errors</text>
+      <text lang="ru">Информация, предупреждения и ошибки</text>
+    </property>
+    <property>
+      <text lang="en">Warnings and errors</text>
+      <text lang="ru">Предупреждения и ошибки</text>
+    </property>
+    <property>
+      <text lang="en">Errors only</text>
+      <text lang="ru">Только ошибки</text>
+    </property>
+    <property>
       <text lang="en"></text>
       <text lang="ru"></text>
     </property>

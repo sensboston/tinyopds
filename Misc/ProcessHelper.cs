@@ -121,7 +121,7 @@ namespace TinyOPDS
                 }
                 catch(Exception e)
                 {
-                    Log.WriteLine("exception {0}", e.Message);
+                    Log.WriteLine(LogLevel.Error, "exception {0}", e.Message);
                 }
                 finally
                 {

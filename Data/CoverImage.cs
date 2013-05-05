@@ -67,7 +67,7 @@ namespace TinyOPDS.Data
             }
             catch (Exception e)
             {
-                Log.WriteLine("file {0}, exception {1}", book.FilePath, e.Message);
+                Log.WriteLine(LogLevel.Error, "file {0}, exception {1}", book.FilePath, e.Message);
             }
         }
     }

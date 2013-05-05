@@ -147,7 +147,7 @@ namespace TinyOPDS.Parsers
             }
             catch (Exception e)
             {
-                Log.WriteLine("GetCoverImage exception {0}", e.Message);
+                Log.WriteLine(LogLevel.Error, "GetCoverImage exception {0}", e.Message);
             }
             return image;
         }

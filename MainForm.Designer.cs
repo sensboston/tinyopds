@@ -61,6 +61,12 @@
             this.scannerButton = new System.Windows.Forms.Button();
             this.libraryPath = new System.Windows.Forms.TextBox();
             this.tabPage2 = new System.Windows.Forms.TabPage();
+            this.statImages = new System.Windows.Forms.Label();
+            this.label27 = new System.Windows.Forms.Label();
+            this.statBooks = new System.Windows.Forms.Label();
+            this.label25 = new System.Windows.Forms.Label();
+            this.statRequests = new System.Windows.Forms.Label();
+            this.label23 = new System.Windows.Forms.Label();
             this.extLink = new System.Windows.Forms.LinkLabel();
             this.intLink = new System.Windows.Forms.LinkLabel();
             this.useUPnP = new System.Windows.Forms.CheckBox();
@@ -79,6 +85,8 @@
             this.dataGridView1 = new System.Windows.Forms.DataGridView();
             this.useHTTPAuth = new System.Windows.Forms.CheckBox();
             this.tabPage3 = new System.Windows.Forms.TabPage();
+            this.label22 = new System.Windows.Forms.Label();
+            this.logVerbosity = new System.Windows.Forms.ComboBox();
             this.converterLinkLabel = new System.Windows.Forms.LinkLabel();
             this.saveLog = new System.Windows.Forms.CheckBox();
             this.label11 = new System.Windows.Forms.Label();
@@ -108,14 +116,6 @@
             this.serverMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripSeparator();
             this.exitMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.logVerbosity = new System.Windows.Forms.ComboBox();
-            this.label22 = new System.Windows.Forms.Label();
-            this.label23 = new System.Windows.Forms.Label();
-            this.statRequests = new System.Windows.Forms.Label();
-            this.statBooks = new System.Windows.Forms.Label();
-            this.label25 = new System.Windows.Forms.Label();
-            this.statImages = new System.Windows.Forms.Label();
-            this.label27 = new System.Windows.Forms.Label();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.tabPage2.SuspendLayout();
@@ -492,6 +492,60 @@
             this.tabPage2.TabIndex = 1;
             this.tabPage2.Text = "OPDS server settings";
             // 
+            // statImages
+            // 
+            this.statImages.AutoSize = true;
+            this.statImages.Location = new System.Drawing.Point(383, 192);
+            this.statImages.Name = "statImages";
+            this.statImages.Size = new System.Drawing.Size(13, 13);
+            this.statImages.TabIndex = 43;
+            this.statImages.Text = "0";
+            // 
+            // label27
+            // 
+            this.label27.AutoSize = true;
+            this.label27.Location = new System.Drawing.Point(305, 192);
+            this.label27.Name = "label27";
+            this.label27.Size = new System.Drawing.Size(67, 13);
+            this.label27.TabIndex = 42;
+            this.label27.Text = "Images sent:";
+            // 
+            // statBooks
+            // 
+            this.statBooks.AutoSize = true;
+            this.statBooks.Location = new System.Drawing.Point(257, 192);
+            this.statBooks.Name = "statBooks";
+            this.statBooks.Size = new System.Drawing.Size(13, 13);
+            this.statBooks.TabIndex = 41;
+            this.statBooks.Text = "0";
+            // 
+            // label25
+            // 
+            this.label25.AutoSize = true;
+            this.label25.Location = new System.Drawing.Point(179, 192);
+            this.label25.Name = "label25";
+            this.label25.Size = new System.Drawing.Size(63, 13);
+            this.label25.TabIndex = 40;
+            this.label25.Text = "Books sent:";
+            // 
+            // statRequests
+            // 
+            this.statRequests.AutoSize = true;
+            this.statRequests.Location = new System.Drawing.Point(115, 192);
+            this.statRequests.Name = "statRequests";
+            this.statRequests.Size = new System.Drawing.Size(13, 13);
+            this.statRequests.TabIndex = 39;
+            this.statRequests.Text = "0";
+            // 
+            // label23
+            // 
+            this.label23.AutoSize = true;
+            this.label23.Location = new System.Drawing.Point(20, 192);
+            this.label23.Name = "label23";
+            this.label23.Size = new System.Drawing.Size(77, 13);
+            this.label23.TabIndex = 38;
+            this.label23.Text = "Total requests:";
+            // 
             // extLink
             // 
             this.extLink.Location = new System.Drawing.Point(112, 150);
@@ -680,6 +734,29 @@
             this.tabPage3.Size = new System.Drawing.Size(473, 299);
             this.tabPage3.TabIndex = 2;
             this.tabPage3.Text = "Miscellaneous";
+            // 
+            // label22
+            // 
+            this.label22.AutoSize = true;
+            this.label22.Location = new System.Drawing.Point(13, 195);
+            this.label22.Name = "label22";
+            this.label22.Size = new System.Drawing.Size(95, 13);
+            this.label22.TabIndex = 36;
+            this.label22.Text = "Log verbosity level";
+            // 
+            // logVerbosity
+            // 
+            this.logVerbosity.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.logVerbosity.FormattingEnabled = true;
+            this.logVerbosity.Items.AddRange(new object[] {
+            "Info, warnings and errors",
+            "Warnings and errors",
+            "Errors only"});
+            this.logVerbosity.Location = new System.Drawing.Point(14, 215);
+            this.logVerbosity.Name = "logVerbosity";
+            this.logVerbosity.Size = new System.Drawing.Size(246, 21);
+            this.logVerbosity.TabIndex = 35;
+            this.logVerbosity.SelectedIndexChanged += new System.EventHandler(this.logVerbosity_SelectedIndexChanged);
             // 
             // converterLinkLabel
             // 
@@ -977,82 +1054,6 @@
             this.exitMenuItem.Size = new System.Drawing.Size(144, 22);
             this.exitMenuItem.Text = "Exit";
             this.exitMenuItem.Click += new System.EventHandler(this.exitMenuItem_Click);
-            // 
-            // logVerbosity
-            // 
-            this.logVerbosity.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.logVerbosity.FormattingEnabled = true;
-            this.logVerbosity.Items.AddRange(new object[] {
-            "All (info, warnings, errors)",
-            "Warnings and errors",
-            "Errors only"});
-            this.logVerbosity.Location = new System.Drawing.Point(14, 215);
-            this.logVerbosity.Name = "logVerbosity";
-            this.logVerbosity.Size = new System.Drawing.Size(246, 21);
-            this.logVerbosity.TabIndex = 35;
-            // 
-            // label22
-            // 
-            this.label22.AutoSize = true;
-            this.label22.Location = new System.Drawing.Point(13, 195);
-            this.label22.Name = "label22";
-            this.label22.Size = new System.Drawing.Size(95, 13);
-            this.label22.TabIndex = 36;
-            this.label22.Text = "Log verbosity level";
-            // 
-            // label23
-            // 
-            this.label23.AutoSize = true;
-            this.label23.Location = new System.Drawing.Point(20, 192);
-            this.label23.Name = "label23";
-            this.label23.Size = new System.Drawing.Size(77, 13);
-            this.label23.TabIndex = 38;
-            this.label23.Text = "Total requests:";
-            // 
-            // statRequests
-            // 
-            this.statRequests.AutoSize = true;
-            this.statRequests.Location = new System.Drawing.Point(115, 192);
-            this.statRequests.Name = "statRequests";
-            this.statRequests.Size = new System.Drawing.Size(13, 13);
-            this.statRequests.TabIndex = 39;
-            this.statRequests.Text = "0";
-            // 
-            // statBooks
-            // 
-            this.statBooks.AutoSize = true;
-            this.statBooks.Location = new System.Drawing.Point(257, 192);
-            this.statBooks.Name = "statBooks";
-            this.statBooks.Size = new System.Drawing.Size(13, 13);
-            this.statBooks.TabIndex = 41;
-            this.statBooks.Text = "0";
-            // 
-            // label25
-            // 
-            this.label25.AutoSize = true;
-            this.label25.Location = new System.Drawing.Point(179, 192);
-            this.label25.Name = "label25";
-            this.label25.Size = new System.Drawing.Size(63, 13);
-            this.label25.TabIndex = 40;
-            this.label25.Text = "Books sent:";
-            // 
-            // statImages
-            // 
-            this.statImages.AutoSize = true;
-            this.statImages.Location = new System.Drawing.Point(383, 192);
-            this.statImages.Name = "statImages";
-            this.statImages.Size = new System.Drawing.Size(13, 13);
-            this.statImages.TabIndex = 43;
-            this.statImages.Text = "0";
-            // 
-            // label27
-            // 
-            this.label27.AutoSize = true;
-            this.label27.Location = new System.Drawing.Point(305, 192);
-            this.label27.Name = "label27";
-            this.label27.Size = new System.Drawing.Size(67, 13);
-            this.label27.TabIndex = 42;
-            this.label27.Text = "Images sent:";
             // 
             // MainForm
             // 

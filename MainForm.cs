@@ -179,6 +179,7 @@ namespace TinyOPDS
             openPort.Checked = Properties.Settings.Default.UseUPnP ? Properties.Settings.Default.OpenNATPort : false;
             langCombo.SelectedValue = Properties.Settings.Default.Language;
             saveLog.Checked = Properties.Settings.Default.SaveLogToDisk;
+            logVerbosity.SelectedIndex = Properties.Settings.Default.LogLevel;
             useWatcher.Checked = Properties.Settings.Default.WatchLibrary;
             _notifyIcon.Visible = Properties.Settings.Default.CloseToTray;
 
@@ -577,6 +578,7 @@ namespace TinyOPDS
             {
                 Log.SaveToFile = Properties.Settings.Default.SaveLogToDisk = saveLog.Checked;
             }
+            label22.Enabled = logVerbosity.Enabled = saveLog.Checked;
         }
 
         private void UpdateServerLinks()
@@ -657,6 +659,9 @@ namespace TinyOPDS
             serverButton.Text = Localizer.Text((_server == null) ? "Start server" : "Stop server");
             serverMenuItem.Text = Localizer.Text((_server == null) ? "Start server" : "Stop server");
             windowMenuItem.Text = Localizer.Text(Visible || ShowInTaskbar ? "Hide window" : "Show window");
+            logVerbosity.Items[0] = Localizer.Text("Info, warnings and errors");
+            logVerbosity.Items[1] = Localizer.Text("Warnings and errors");
+            logVerbosity.Items[2] = Localizer.Text("Errors only");
         }
 
         /// <summary>
@@ -705,6 +710,10 @@ namespace TinyOPDS
             Properties.Settings.Default.RememberClients = rememberClients.Checked;
         }
 
+        private void logVerbosity_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            Log.VerbosityLevel = (LogLevel)logVerbosity.SelectedIndex;
+        }
         #endregion
     }
 }

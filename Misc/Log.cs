@@ -105,14 +105,14 @@ namespace TinyOPDS
         /// <summary>
         /// A message containing information only.
         /// </summary>
-        Info,
+        Info = 0,
         /// <summary>
         /// A non-critical warning error message.
         /// </summary>
-        Warning,
+        Warning = 1,
         /// <summary>
         /// A fatal error message.
         /// </summary>
-        Error
+        Error = 2
     }
 }

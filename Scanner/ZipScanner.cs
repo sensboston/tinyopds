@@ -134,7 +134,7 @@ namespace TinyOPDS.Scanner
                         }
                         catch (Exception e)
                         {
-                            Log.WriteLine(".ScanDirectory: exception {0} on file: {1}", e.Message, zipFileName + "@" + entryFileName);
+                            Log.WriteLine(LogLevel.Error, ".ScanDirectory: exception {0} on file: {1}", e.Message, zipFileName + "@" + entryFileName);
                             if (OnInvalidBook != null) OnInvalidBook(this, new InvalidBookEventArgs(zipFileName + "@" + entryFileName));
                         }
                         finally

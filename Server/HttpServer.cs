@@ -162,12 +162,12 @@ namespace TinyOPDS.Server
                                                 break;
                                             }
                                         if (!authorized)
-                                            Log.WriteLine("Authentication failed! user: {0} pass: {1}", credential[0], credential[1]);
+                                            Log.WriteLine(LogLevel.Warning, "Authentication failed! user: {0} pass: {1}", credential[0], credential[1]);
                                     }
                                 }
                                 catch (Exception e)
                                 {
-                                    Log.WriteLine("Authentication exception: {0}", e.Message);
+                                    Log.WriteLine(LogLevel.Error, "Authentication exception: {0}", e.Message);
                                 }
                             }
                         }
@@ -194,7 +194,7 @@ namespace TinyOPDS.Server
                 }
                 catch (Exception e)
                 {
-                    Log.WriteLine(".Process(object param) exception: {0}", e.Message);
+                    Log.WriteLine(LogLevel.Error, ".Process(object param) exception: {0}", e.Message);
                     WriteFailure();
                 }
             }
@@ -209,7 +209,7 @@ namespace TinyOPDS.Server
                     }
                     catch (Exception e)
                     {
-                        Log.WriteLine(".Process(object param): outputStream.Flush() exception: {0}", e.Message);
+                        Log.WriteLine(LogLevel.Error, ".Process(object param): outputStream.Flush() exception: {0}", e.Message);
                     }
                 }
             }

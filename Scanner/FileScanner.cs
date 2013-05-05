@@ -185,7 +185,7 @@ namespace TinyOPDS.Scanner
             }
             catch (Exception e)
             {
-                Log.WriteLine(".ScanFile: exception {0} on file: {1}", e.Message, fullName);
+                Log.WriteLine(LogLevel.Error, ".ScanFile: exception {0} on file: {1}", e.Message, fullName);
                 if (OnInvalidBook != null) OnInvalidBook(this, new InvalidBookEventArgs(fullName));
             }
         }

@@ -38,7 +38,7 @@ namespace TinyOPDS.Server
         /// <param name="inputData"></param>
         public override void HandlePOSTRequest(HttpProcessor processor, StreamReader inputData)
         {
-            Log.WriteLine("HTTP POST request from {0}: {1}  : NOT IMPLEMENTED", ((System.Net.IPEndPoint)processor.Socket.Client.RemoteEndPoint).Address, processor.HttpUrl);
+            Log.WriteLine(LogLevel.Warning, "HTTP POST request from {0}: {1}  : NOT IMPLEMENTED", ((System.Net.IPEndPoint)processor.Socket.Client.RemoteEndPoint).Address, processor.HttpUrl);
         }
 
         /// <summary>
@@ -47,7 +47,7 @@ namespace TinyOPDS.Server
         /// <param name="p"></param>
         public override void HandleGETRequest(HttpProcessor processor)
         {
-            Log.WriteLine("HTTP GET request from {0}: {1}", ((System.Net.IPEndPoint) processor.Socket.Client.RemoteEndPoint).Address, processor.HttpUrl);
+            Log.WriteLine("HTTP GET request from {0}: {1}", ((System.Net.IPEndPoint)processor.Socket.Client.RemoteEndPoint).Address, processor.HttpUrl);
             try
             {
                 // Parse request

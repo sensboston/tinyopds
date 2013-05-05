@@ -108,6 +108,17 @@ namespace TinyOPDS
             // Start OPDS server
             StartHttpServer();
 
+            // Set server statistics handler
+            HttpServer.ServerStatistics.StatisticsUpdated += (_, __) =>
+                {
+                    this.BeginInvoke((MethodInvoker)delegate
+                    {
+                        statRequests.Text = HttpServer.ServerStatistics.GetRequests.ToString();
+                        statBooks.Text = HttpServer.ServerStatistics.BooksSent.ToString();
+                        statImages.Text = HttpServer.ServerStatistics.ImagesSent.ToString();
+                    });
+                };
+
             _scanStartTime = DateTime.Now;
             _notifyIcon.Visible = Properties.Settings.Default.CloseToTray;
         }

@@ -123,6 +123,16 @@ namespace TinyOPDS.OPDS
                     break;
                 case SearchFor.Title:
                     books = Library.GetBooksByTitle(searchPattern);
+                    // For search, also return books by 
+                    if (threshold > 50)
+                    {
+                        string translit = Transliteration.Back(searchPattern, TransliterationType.GOST);
+                        if (!string.IsNullOrEmpty(translit))
+                        {
+                            List<Book> transTitles = Library.GetBooksByTitle(translit);
+                            if (transTitles.Count > 0) books.AddRange(transTitles);
+                        }
+                    }
                     break;
             }
 
@@ -234,16 +244,16 @@ namespace TinyOPDS.OPDS
                     );
                 }
 
-                string fileName = Transliteration.Front(string.Format("{0}_{1}", book.Authors.First(), book.Title)).SanitizeFileName();
+                string fileName = Uri.EscapeDataString(Transliteration.Front(string.Format("{0}_{1}", book.Authors.First(), book.Title)).SanitizeFileName());
                 string url = "/" + string.Format("{0}/{1}", book.ID, fileName);
                 if (book.BookType == BookType.EPUB || (book.BookType == BookType.FB2 && !acceptFB2 && !string.IsNullOrEmpty(Properties.Settings.Default.ConvertorPath)))
                 {
-                    entry.Add(new XElement("link", new XAttribute("href", url+".epub"), new XAttribute("rel", "http://opds-spec.org/acquisition/open-access"), new XAttribute("type", "application/epub+zip")));
+                    entry.Add(new XElement("link", new XAttribute("href",  url+".epub"), new XAttribute("rel", "http://opds-spec.org/acquisition/open-access"), new XAttribute("type", "application/epub+zip")));
                 }
 
                 if (book.BookType == BookType.FB2)
                 {
-                    entry.Add(new XElement("link", new XAttribute("href", url+".fb2.zip"), new XAttribute("rel", "http://opds-spec.org/acquisition/open-access"), new XAttribute("type", "application/fb2+zip")));
+                    entry.Add(new XElement("link", new XAttribute("href",  url+".fb2.zip"), new XAttribute("rel", "http://opds-spec.org/acquisition/open-access"), new XAttribute("type", "application/fb2+zip")));
                 }
 
                 // For search requests, lets add navigation links for author and series (if any)

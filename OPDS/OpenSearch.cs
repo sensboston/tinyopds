@@ -46,7 +46,15 @@ namespace TinyOPDS.OPDS
             if (string.IsNullOrEmpty(searchType))
             {
                 authors = Library.GetAuthorsByName(searchPattern);
+                if (authors.Count == 0)
+                {
+                    authors = Library.GetAuthorsByName(Transliteration.Back(searchPattern, TransliterationType.GOST));
+                }
                 titles = Library.GetBooksByTitle(searchPattern);
+                if (titles.Count == 0)
+                {
+                    titles = Library.GetBooksByTitle(Transliteration.Back(searchPattern, TransliterationType.GOST));
+                }
             }
 
             if (string.IsNullOrEmpty(searchType) && authors.Count > 0 && titles.Count > 0)
@@ -69,7 +77,7 @@ namespace TinyOPDS.OPDS
             }
             else if (searchType.Equals("authors") || (authors.Count > 0 && titles.Count == 0))
             {
-                return new AuthorsCatalog().GetCatalog(searchPattern);
+                return new AuthorsCatalog().GetCatalog(searchPattern, true);
             }
             else if (searchType.Equals("books") || (titles.Count > 0 && authors.Count == 0))
             {

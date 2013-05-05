@@ -32,7 +32,7 @@ namespace TinyOPDS.OPDS
         /// <param name="searchPattern"></param>
         /// <param name="threshold"></param>
         /// <returns></returns>
-        public XDocument GetCatalog(string searchPattern, int threshold = 50)
+        public XDocument GetCatalog(string searchPattern, bool isOpenSearch = false, int threshold = 50)
         {
             if (!string.IsNullOrEmpty(searchPattern)) searchPattern = Uri.UnescapeDataString(searchPattern).Replace('+', ' ').ToLower();
 
@@ -48,6 +48,18 @@ namespace TinyOPDS.OPDS
 
             // Get all authors names starting with searchPattern
             List<string> Authors = Library.GetAuthorsByName(searchPattern);
+
+            // For search, also check transliterated names
+            if (isOpenSearch)
+            {
+                // Try transliteration
+                string translit = Transliteration.Back(searchPattern, TransliterationType.GOST);
+                if (!string.IsNullOrEmpty(translit))
+                {
+                    List<string> transAuthors = Library.GetAuthorsByName(translit);
+                    if (transAuthors.Count > 0) Authors.AddRange(transAuthors);
+                }
+            }
 
             if (Authors.Count > threshold)
             {

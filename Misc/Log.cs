@@ -86,7 +86,7 @@ namespace TinyOPDS
                     using (StreamWriter writer = new StreamWriter(fileStream))
                     {
                         fileStream = null;
-                        writer.WriteLine(string.Format("{0:HH:mm:ss.f}\t{1}", DateTime.Now, message), _logFileName);
+                        writer.WriteLine(string.Format("{0} {1:HH:mm:ss.f}\t{2}", DateTime.Now.ToShortDateString(), DateTime.Now, message), _logFileName);
                     }
                 }
                 finally

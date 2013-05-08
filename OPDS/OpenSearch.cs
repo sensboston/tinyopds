@@ -45,15 +45,16 @@ namespace TinyOPDS.OPDS
 
             if (string.IsNullOrEmpty(searchType))
             {
+                string transSearchPattern = Transliteration.Back(searchPattern, TransliterationType.GOST);
                 authors = Library.GetAuthorsByName(searchPattern);
-                if (authors.Count == 0)
+                if (authors.Count == 0 && !string.IsNullOrEmpty(transSearchPattern))
                 {
-                    authors = Library.GetAuthorsByName(Transliteration.Back(searchPattern, TransliterationType.GOST));
+                    authors = Library.GetAuthorsByName(transSearchPattern);
                 }
                 titles = Library.GetBooksByTitle(searchPattern);
-                if (titles.Count == 0)
+                if (titles.Count == 0 && !string.IsNullOrEmpty(transSearchPattern))
                 {
-                    titles = Library.GetBooksByTitle(Transliteration.Back(searchPattern, TransliterationType.GOST));
+                    titles = Library.GetBooksByTitle(transSearchPattern);
                 }
             }
 

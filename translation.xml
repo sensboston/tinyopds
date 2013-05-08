@@ -353,6 +353,30 @@
       <text lang="en">Errors only</text>
       <text lang="ru">Только ошибки</text>
     </property>
+    <property form="MainForm" ctrl="label23">
+      <text lang="en">Total requests:</text>
+      <text lang="ru">Всего запросов:</text>
+    </property>
+    <property form="MainForm" ctrl="label25">
+      <text lang="en">Books sent:</text>
+      <text lang="ru">Отдано книг:</text>
+    </property>
+    <property form="MainForm" ctrl="label27">
+      <text lang="en">Images sent:</text>
+      <text lang="ru">Отдано картинок:</text>
+    </property>
+    <property form="MainForm" ctrl="label26">
+      <text lang="en">Unique clients:</text>
+      <text lang="ru">Уникальных клиентов:</text>
+    </property>
+    <property form="MainForm" ctrl="label28">
+      <text lang="en">Successful authentications:</text>
+      <text lang="ru">Успешных авторизаций:</text>
+    </property>
+    <property form="MainForm" ctrl="label30">
+      <text lang="en">Failed authentications:</text>
+      <text lang="ru">Ошибочных авторизаций:</text>
+    </property>
     <property>
       <text lang="en"></text>
       <text lang="ru"></text>

@@ -124,15 +124,15 @@ namespace TinyOPDS.Server
 
                     bool authorized = true;
 
+                    // Compute client hash string based on User-Agent + IP address
+                    string clientHash = string.Empty;
+                    if (HttpHeaders.ContainsKey("User-Agent")) clientHash += HttpHeaders["User-Agent"];
+                    clientHash += (Socket.Client.RemoteEndPoint as IPEndPoint).Address.ToString();
+                    clientHash = Utils.CreateGuid(Utils.IsoOidNamespace, clientHash).ToString();
+
                     if (Properties.Settings.Default.UseHTTPAuth)
                     {
                         authorized = false;
-
-                        // Compute client hash string based on User-Agent + IP address
-                        string clientHash = string.Empty;
-                        if (HttpHeaders.ContainsKey("User-Agent")) clientHash += HttpHeaders["User-Agent"];
-                        clientHash += (Socket.Client.RemoteEndPoint as IPEndPoint).Address.ToString();
-                        clientHash = Utils.CreateGuid(Utils.IsoOidNamespace, clientHash).ToString();
 
                         // First, check authorized client list (if enabled)
                         if (Properties.Settings.Default.RememberClients)
@@ -175,6 +175,8 @@ namespace TinyOPDS.Server
 
                     if (authorized)
                     {
+                        HttpServer.ServerStatistics.AddClient(clientHash);
+
                         if (HttpMethod.Equals("GET"))
                         {
                             HttpServer.ServerStatistics.GetRequests++;
@@ -353,25 +355,25 @@ namespace TinyOPDS.Server
     public class Statistics
     {
         public event EventHandler StatisticsUpdated;
-        private long _bytesSent = 0;
-        private long _bytesReceived = 0;
         private int _booksSent  = 0;
         private int _imagesSent = 0;
         private int _getRequests  = 0;
         private int _postRequests  = 0;
         private int _successfulLoginAttempts = 0;
         private int _wrongLoginAttempts = 0;
-        public long BytesSent { get { return _bytesSent; } set { _bytesSent = value; if (StatisticsUpdated != null) StatisticsUpdated(this, null); } }
-        public long BytesReceived { get { return _bytesReceived; } set { _bytesReceived = value; if (StatisticsUpdated != null) StatisticsUpdated(this, null); } }
         public int BooksSent { get { return _booksSent; } set { _booksSent = value; if (StatisticsUpdated != null) StatisticsUpdated(this, null); } }
         public int ImagesSent { get { return _imagesSent; } set { _imagesSent = value; if (StatisticsUpdated != null) StatisticsUpdated(this, null); } }
         public int GetRequests { get { return _getRequests; } set { _getRequests = value; if (StatisticsUpdated != null) StatisticsUpdated(this, null); } }
         public int PostRequests { get { return _postRequests; } set { _postRequests = value; if (StatisticsUpdated != null) StatisticsUpdated(this, null); } }
         public int SuccessfulLoginAttempts { get { return _successfulLoginAttempts; } set { _successfulLoginAttempts = value; if (StatisticsUpdated != null) StatisticsUpdated(this, null); } }
         public int WrongLoginAttempts { get { return _wrongLoginAttempts; } set { _wrongLoginAttempts = value; if (StatisticsUpdated != null) StatisticsUpdated(this, null); } }
+        public int UniqueClientsCount { get { return _uniqueClients.Count; } }
+        public void AddClient(string newClient) { _uniqueClients[newClient] = true; }
+        private Dictionary<string, bool> _uniqueClients = new Dictionary<string, bool>();
         public void Clear()
         {
-            _bytesSent = _bytesReceived = _booksSent = _imagesSent = _getRequests = _postRequests = _successfulLoginAttempts = _wrongLoginAttempts = 0;
+            _booksSent = _imagesSent = _getRequests = _postRequests = _successfulLoginAttempts = _wrongLoginAttempts = 0;
+            _uniqueClients.Clear();
         }
     }
 
@@ -389,7 +391,7 @@ namespace TinyOPDS.Server
         public AutoResetEvent ServerReady = null;
         public static Statistics ServerStatistics = new Statistics();
        
-        public HttpServer(int Port, int Timeout = 5000) 
+        public HttpServer(int Port, int Timeout = 10000) 
         {
             _port = Port;
             _timeout = Timeout;
@@ -437,6 +439,7 @@ namespace TinyOPDS.Server
                         TcpClient socket = _listener.AcceptTcpClient();
                         socket.SendTimeout = socket.ReceiveTimeout = _timeout;
                         socket.SendBufferSize = 1024 * 1024;
+                        socket.NoDelay = true;
                         processor = new HttpProcessor(socket, this);
                         ThreadPool.QueueUserWorkItem(new WaitCallback(processor.Process));
                     }

@@ -116,6 +116,9 @@ namespace TinyOPDS
                         statRequests.Text = HttpServer.ServerStatistics.GetRequests.ToString();
                         statBooks.Text = HttpServer.ServerStatistics.BooksSent.ToString();
                         statImages.Text = HttpServer.ServerStatistics.ImagesSent.ToString();
+                        statUniqueClients.Text = HttpServer.ServerStatistics.UniqueClientsCount.ToString();
+                        statGoodLogins.Text = HttpServer.ServerStatistics.SuccessfulLoginAttempts.ToString();
+                        statWrongLogins.Text = HttpServer.ServerStatistics.WrongLoginAttempts.ToString();
                     });
                 };
 
@@ -216,6 +219,7 @@ namespace TinyOPDS
             Properties.Settings.Default.UseUPnP = useUPnP.Checked;
             Properties.Settings.Default.UseHTTPAuth = useHTTPAuth.Checked;
             Properties.Settings.Default.RememberClients = rememberClients.Checked;
+            Properties.Settings.Default.LogLevel = logVerbosity.SelectedIndex;
 
             Properties.Settings.Default.Save();
         }

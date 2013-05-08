@@ -61,6 +61,8 @@
             this.scannerButton = new System.Windows.Forms.Button();
             this.libraryPath = new System.Windows.Forms.TextBox();
             this.tabPage2 = new System.Windows.Forms.TabPage();
+            this.statUniqueClients = new System.Windows.Forms.Label();
+            this.label26 = new System.Windows.Forms.Label();
             this.statImages = new System.Windows.Forms.Label();
             this.label27 = new System.Windows.Forms.Label();
             this.statBooks = new System.Windows.Forms.Label();
@@ -81,6 +83,10 @@
             this.label3 = new System.Windows.Forms.Label();
             this.serverButton = new System.Windows.Forms.Button();
             this.tabPage5 = new System.Windows.Forms.TabPage();
+            this.statWrongLogins = new System.Windows.Forms.Label();
+            this.label30 = new System.Windows.Forms.Label();
+            this.statGoodLogins = new System.Windows.Forms.Label();
+            this.label28 = new System.Windows.Forms.Label();
             this.rememberClients = new System.Windows.Forms.CheckBox();
             this.dataGridView1 = new System.Windows.Forms.DataGridView();
             this.useHTTPAuth = new System.Windows.Forms.CheckBox();
@@ -141,7 +147,7 @@
             this.tabControl1.Location = new System.Drawing.Point(-3, -1);
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
-            this.tabControl1.Size = new System.Drawing.Size(481, 337);
+            this.tabControl1.Size = new System.Drawing.Size(481, 327);
             this.tabControl1.TabIndex = 8;
             // 
             // tabPage1
@@ -177,7 +183,7 @@
             this.tabPage1.Location = new System.Drawing.Point(4, 34);
             this.tabPage1.Name = "tabPage1";
             this.tabPage1.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage1.Size = new System.Drawing.Size(473, 299);
+            this.tabPage1.Size = new System.Drawing.Size(473, 289);
             this.tabPage1.TabIndex = 0;
             this.tabPage1.Text = "Scanner settings";
             // 
@@ -215,7 +221,7 @@
             // 
             this.duplicates.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.duplicates.AutoSize = true;
-            this.duplicates.Location = new System.Drawing.Point(122, 215);
+            this.duplicates.Location = new System.Drawing.Point(122, 209);
             this.duplicates.MinimumSize = new System.Drawing.Size(50, 0);
             this.duplicates.Name = "duplicates";
             this.duplicates.Size = new System.Drawing.Size(50, 13);
@@ -226,7 +232,7 @@
             // 
             this.label16.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label16.AutoSize = true;
-            this.label16.Location = new System.Drawing.Point(15, 215);
+            this.label16.Location = new System.Drawing.Point(15, 209);
             this.label16.Name = "label16";
             this.label16.Size = new System.Drawing.Size(60, 13);
             this.label16.TabIndex = 28;
@@ -245,7 +251,7 @@
             // 
             this.status.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.status.AutoSize = true;
-            this.status.Location = new System.Drawing.Point(360, 215);
+            this.status.Location = new System.Drawing.Point(360, 209);
             this.status.MinimumSize = new System.Drawing.Size(50, 0);
             this.status.Name = "status";
             this.status.Size = new System.Drawing.Size(58, 13);
@@ -256,7 +262,7 @@
             // 
             this.label14.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label14.AutoSize = true;
-            this.label14.Location = new System.Drawing.Point(253, 215);
+            this.label14.Location = new System.Drawing.Point(253, 209);
             this.label14.Name = "label14";
             this.label14.Size = new System.Drawing.Size(40, 13);
             this.label14.TabIndex = 25;
@@ -266,7 +272,7 @@
             // 
             this.rate.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.rate.AutoSize = true;
-            this.rate.Location = new System.Drawing.Point(360, 189);
+            this.rate.Location = new System.Drawing.Point(360, 183);
             this.rate.MinimumSize = new System.Drawing.Size(50, 0);
             this.rate.Name = "rate";
             this.rate.Size = new System.Drawing.Size(66, 13);
@@ -277,7 +283,7 @@
             // 
             this.label12.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label12.AutoSize = true;
-            this.label12.Location = new System.Drawing.Point(253, 189);
+            this.label12.Location = new System.Drawing.Point(253, 183);
             this.label12.Name = "label12";
             this.label12.Size = new System.Drawing.Size(33, 13);
             this.label12.TabIndex = 23;
@@ -287,7 +293,7 @@
             // 
             this.elapsedTime.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.elapsedTime.AutoSize = true;
-            this.elapsedTime.Location = new System.Drawing.Point(360, 163);
+            this.elapsedTime.Location = new System.Drawing.Point(360, 157);
             this.elapsedTime.MinimumSize = new System.Drawing.Size(50, 0);
             this.elapsedTime.Name = "elapsedTime";
             this.elapsedTime.Size = new System.Drawing.Size(50, 13);
@@ -298,7 +304,7 @@
             // 
             this.label10.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label10.AutoSize = true;
-            this.label10.Location = new System.Drawing.Point(253, 163);
+            this.label10.Location = new System.Drawing.Point(253, 157);
             this.label10.Name = "label10";
             this.label10.Size = new System.Drawing.Size(70, 13);
             this.label10.TabIndex = 21;
@@ -308,7 +314,7 @@
             // 
             this.startTime.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.startTime.AutoSize = true;
-            this.startTime.Location = new System.Drawing.Point(360, 137);
+            this.startTime.Location = new System.Drawing.Point(360, 131);
             this.startTime.MinimumSize = new System.Drawing.Size(50, 0);
             this.startTime.Name = "startTime";
             this.startTime.Size = new System.Drawing.Size(50, 13);
@@ -319,7 +325,7 @@
             // 
             this.label6.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(253, 137);
+            this.label6.Location = new System.Drawing.Point(253, 131);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(54, 13);
             this.label6.TabIndex = 19;
@@ -329,7 +335,7 @@
             // 
             this.booksProcessed.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.booksProcessed.AutoSize = true;
-            this.booksProcessed.Location = new System.Drawing.Point(123, 241);
+            this.booksProcessed.Location = new System.Drawing.Point(123, 235);
             this.booksProcessed.MinimumSize = new System.Drawing.Size(50, 0);
             this.booksProcessed.Name = "booksProcessed";
             this.booksProcessed.Size = new System.Drawing.Size(50, 13);
@@ -340,7 +346,7 @@
             // 
             this.label5.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label5.AutoSize = true;
-            this.label5.Location = new System.Drawing.Point(15, 241);
+            this.label5.Location = new System.Drawing.Point(15, 235);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(92, 13);
             this.label5.TabIndex = 17;
@@ -350,7 +356,7 @@
             // 
             this.invalidBooks.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.invalidBooks.AutoSize = true;
-            this.invalidBooks.Location = new System.Drawing.Point(123, 163);
+            this.invalidBooks.Location = new System.Drawing.Point(123, 157);
             this.invalidBooks.MinimumSize = new System.Drawing.Size(50, 0);
             this.invalidBooks.Name = "invalidBooks";
             this.invalidBooks.Size = new System.Drawing.Size(50, 13);
@@ -361,7 +367,7 @@
             // 
             this.label9.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label9.AutoSize = true;
-            this.label9.Location = new System.Drawing.Point(15, 163);
+            this.label9.Location = new System.Drawing.Point(15, 157);
             this.label9.Name = "label9";
             this.label9.Size = new System.Drawing.Size(73, 13);
             this.label9.TabIndex = 15;
@@ -371,7 +377,7 @@
             // 
             this.skippedBooks.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.skippedBooks.AutoSize = true;
-            this.skippedBooks.Location = new System.Drawing.Point(123, 189);
+            this.skippedBooks.Location = new System.Drawing.Point(123, 183);
             this.skippedBooks.MinimumSize = new System.Drawing.Size(50, 0);
             this.skippedBooks.Name = "skippedBooks";
             this.skippedBooks.Size = new System.Drawing.Size(50, 13);
@@ -382,7 +388,7 @@
             // 
             this.label7.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(15, 189);
+            this.label7.Location = new System.Drawing.Point(15, 183);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(81, 13);
             this.label7.TabIndex = 13;
@@ -392,7 +398,7 @@
             // 
             this.booksFound.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.booksFound.AutoSize = true;
-            this.booksFound.Location = new System.Drawing.Point(123, 137);
+            this.booksFound.Location = new System.Drawing.Point(123, 131);
             this.booksFound.MinimumSize = new System.Drawing.Size(50, 0);
             this.booksFound.Name = "booksFound";
             this.booksFound.Size = new System.Drawing.Size(79, 13);
@@ -403,7 +409,7 @@
             // 
             this.booksInDB.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.booksInDB.AutoSize = true;
-            this.booksInDB.Location = new System.Drawing.Point(123, 94);
+            this.booksInDB.Location = new System.Drawing.Point(123, 92);
             this.booksInDB.MinimumSize = new System.Drawing.Size(50, 0);
             this.booksInDB.Name = "booksInDB";
             this.booksInDB.Size = new System.Drawing.Size(127, 13);
@@ -425,7 +431,7 @@
             // 
             this.label2.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(15, 94);
+            this.label2.Location = new System.Drawing.Point(15, 92);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(101, 13);
             this.label2.TabIndex = 9;
@@ -435,7 +441,7 @@
             // 
             this.label1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(15, 137);
+            this.label1.Location = new System.Drawing.Point(15, 131);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(70, 13);
             this.label1.TabIndex = 8;
@@ -444,7 +450,7 @@
             // scannerButton
             // 
             this.scannerButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.scannerButton.Location = new System.Drawing.Point(255, 251);
+            this.scannerButton.Location = new System.Drawing.Point(255, 241);
             this.scannerButton.Name = "scannerButton";
             this.scannerButton.Size = new System.Drawing.Size(210, 40);
             this.scannerButton.TabIndex = 7;
@@ -466,6 +472,8 @@
             // tabPage2
             // 
             this.tabPage2.BackColor = System.Drawing.SystemColors.Control;
+            this.tabPage2.Controls.Add(this.statUniqueClients);
+            this.tabPage2.Controls.Add(this.label26);
             this.tabPage2.Controls.Add(this.statImages);
             this.tabPage2.Controls.Add(this.label27);
             this.tabPage2.Controls.Add(this.statBooks);
@@ -488,14 +496,32 @@
             this.tabPage2.Location = new System.Drawing.Point(4, 34);
             this.tabPage2.Name = "tabPage2";
             this.tabPage2.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage2.Size = new System.Drawing.Size(473, 299);
+            this.tabPage2.Size = new System.Drawing.Size(473, 289);
             this.tabPage2.TabIndex = 1;
             this.tabPage2.Text = "OPDS server settings";
+            // 
+            // statUniqueClients
+            // 
+            this.statUniqueClients.AutoSize = true;
+            this.statUniqueClients.Location = new System.Drawing.Point(148, 220);
+            this.statUniqueClients.Name = "statUniqueClients";
+            this.statUniqueClients.Size = new System.Drawing.Size(13, 13);
+            this.statUniqueClients.TabIndex = 45;
+            this.statUniqueClients.Text = "0";
+            // 
+            // label26
+            // 
+            this.label26.AutoSize = true;
+            this.label26.Location = new System.Drawing.Point(20, 220);
+            this.label26.Name = "label26";
+            this.label26.Size = new System.Drawing.Size(77, 13);
+            this.label26.TabIndex = 44;
+            this.label26.Text = "Unique clients:";
             // 
             // statImages
             // 
             this.statImages.AutoSize = true;
-            this.statImages.Location = new System.Drawing.Point(383, 192);
+            this.statImages.Location = new System.Drawing.Point(419, 192);
             this.statImages.Name = "statImages";
             this.statImages.Size = new System.Drawing.Size(13, 13);
             this.statImages.TabIndex = 43;
@@ -504,7 +530,7 @@
             // label27
             // 
             this.label27.AutoSize = true;
-            this.label27.Location = new System.Drawing.Point(305, 192);
+            this.label27.Location = new System.Drawing.Point(326, 192);
             this.label27.Name = "label27";
             this.label27.Size = new System.Drawing.Size(67, 13);
             this.label27.TabIndex = 42;
@@ -513,7 +539,7 @@
             // statBooks
             // 
             this.statBooks.AutoSize = true;
-            this.statBooks.Location = new System.Drawing.Point(257, 192);
+            this.statBooks.Location = new System.Drawing.Point(272, 192);
             this.statBooks.Name = "statBooks";
             this.statBooks.Size = new System.Drawing.Size(13, 13);
             this.statBooks.TabIndex = 41;
@@ -522,7 +548,7 @@
             // label25
             // 
             this.label25.AutoSize = true;
-            this.label25.Location = new System.Drawing.Point(179, 192);
+            this.label25.Location = new System.Drawing.Point(199, 192);
             this.label25.Name = "label25";
             this.label25.Size = new System.Drawing.Size(63, 13);
             this.label25.TabIndex = 40;
@@ -531,7 +557,7 @@
             // statRequests
             // 
             this.statRequests.AutoSize = true;
-            this.statRequests.Location = new System.Drawing.Point(115, 192);
+            this.statRequests.Location = new System.Drawing.Point(148, 192);
             this.statRequests.Name = "statRequests";
             this.statRequests.Size = new System.Drawing.Size(13, 13);
             this.statRequests.TabIndex = 39;
@@ -662,7 +688,7 @@
             // serverButton
             // 
             this.serverButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.serverButton.Location = new System.Drawing.Point(255, 251);
+            this.serverButton.Location = new System.Drawing.Point(255, 241);
             this.serverButton.Name = "serverButton";
             this.serverButton.Size = new System.Drawing.Size(210, 40);
             this.serverButton.TabIndex = 8;
@@ -672,15 +698,57 @@
             // tabPage5
             // 
             this.tabPage5.BackColor = System.Drawing.SystemColors.Control;
+            this.tabPage5.Controls.Add(this.statWrongLogins);
+            this.tabPage5.Controls.Add(this.label30);
+            this.tabPage5.Controls.Add(this.statGoodLogins);
+            this.tabPage5.Controls.Add(this.label28);
             this.tabPage5.Controls.Add(this.rememberClients);
             this.tabPage5.Controls.Add(this.dataGridView1);
             this.tabPage5.Controls.Add(this.useHTTPAuth);
             this.tabPage5.Location = new System.Drawing.Point(4, 34);
             this.tabPage5.Name = "tabPage5";
             this.tabPage5.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage5.Size = new System.Drawing.Size(473, 299);
+            this.tabPage5.Size = new System.Drawing.Size(473, 289);
             this.tabPage5.TabIndex = 4;
             this.tabPage5.Text = "Authentication";
+            // 
+            // statWrongLogins
+            // 
+            this.statWrongLogins.AutoSize = true;
+            this.statWrongLogins.Location = new System.Drawing.Point(432, 254);
+            this.statWrongLogins.Name = "statWrongLogins";
+            this.statWrongLogins.Size = new System.Drawing.Size(13, 13);
+            this.statWrongLogins.TabIndex = 43;
+            this.statWrongLogins.Text = "0";
+            this.statWrongLogins.TextAlign = System.Drawing.ContentAlignment.TopRight;
+            // 
+            // label30
+            // 
+            this.label30.AutoSize = true;
+            this.label30.Location = new System.Drawing.Point(299, 254);
+            this.label30.Name = "label30";
+            this.label30.Size = new System.Drawing.Size(113, 13);
+            this.label30.TabIndex = 42;
+            this.label30.Text = "Failed authentications:";
+            // 
+            // statGoodLogins
+            // 
+            this.statGoodLogins.AutoSize = true;
+            this.statGoodLogins.Location = new System.Drawing.Point(183, 254);
+            this.statGoodLogins.Name = "statGoodLogins";
+            this.statGoodLogins.Size = new System.Drawing.Size(13, 13);
+            this.statGoodLogins.TabIndex = 41;
+            this.statGoodLogins.Text = "0";
+            this.statGoodLogins.TextAlign = System.Drawing.ContentAlignment.TopRight;
+            // 
+            // label28
+            // 
+            this.label28.AutoSize = true;
+            this.label28.Location = new System.Drawing.Point(23, 254);
+            this.label28.Name = "label28";
+            this.label28.Size = new System.Drawing.Size(137, 13);
+            this.label28.TabIndex = 40;
+            this.label28.Text = "Successful authentications:";
             // 
             // rememberClients
             // 
@@ -731,7 +799,7 @@
             this.tabPage3.Location = new System.Drawing.Point(4, 34);
             this.tabPage3.Name = "tabPage3";
             this.tabPage3.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage3.Size = new System.Drawing.Size(473, 299);
+            this.tabPage3.Size = new System.Drawing.Size(473, 289);
             this.tabPage3.TabIndex = 2;
             this.tabPage3.Text = "Miscellaneous";
             // 
@@ -883,14 +951,14 @@
             this.tabPage4.Location = new System.Drawing.Point(4, 34);
             this.tabPage4.Name = "tabPage4";
             this.tabPage4.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage4.Size = new System.Drawing.Size(473, 299);
+            this.tabPage4.Size = new System.Drawing.Size(473, 289);
             this.tabPage4.TabIndex = 3;
             this.tabPage4.Text = "About program";
             // 
             // linkLabel5
             // 
             this.linkLabel5.AutoSize = true;
-            this.linkLabel5.Location = new System.Drawing.Point(195, 220);
+            this.linkLabel5.Location = new System.Drawing.Point(195, 212);
             this.linkLabel5.Name = "linkLabel5";
             this.linkLabel5.Size = new System.Drawing.Size(97, 13);
             this.linkLabel5.TabIndex = 12;
@@ -901,7 +969,7 @@
             // linkLabel4
             // 
             this.linkLabel4.AutoSize = true;
-            this.linkLabel4.Location = new System.Drawing.Point(195, 243);
+            this.linkLabel4.Location = new System.Drawing.Point(195, 235);
             this.linkLabel4.Name = "linkLabel4";
             this.linkLabel4.Size = new System.Drawing.Size(86, 13);
             this.linkLabel4.TabIndex = 11;
@@ -912,7 +980,7 @@
             // linkLabel3
             // 
             this.linkLabel3.AutoSize = true;
-            this.linkLabel3.Location = new System.Drawing.Point(193, 198);
+            this.linkLabel3.Location = new System.Drawing.Point(193, 190);
             this.linkLabel3.Name = "linkLabel3";
             this.linkLabel3.Size = new System.Drawing.Size(267, 13);
             this.linkLabel3.TabIndex = 10;
@@ -922,7 +990,7 @@
             // 
             // label20
             // 
-            this.label20.Location = new System.Drawing.Point(9, 198);
+            this.label20.Location = new System.Drawing.Point(9, 190);
             this.label20.Name = "label20";
             this.label20.Size = new System.Drawing.Size(161, 13);
             this.label20.TabIndex = 9;
@@ -942,7 +1010,7 @@
             // linkLabel2
             // 
             this.linkLabel2.AutoSize = true;
-            this.linkLabel2.Location = new System.Drawing.Point(193, 175);
+            this.linkLabel2.Location = new System.Drawing.Point(193, 167);
             this.linkLabel2.Name = "linkLabel2";
             this.linkLabel2.Size = new System.Drawing.Size(184, 13);
             this.linkLabel2.TabIndex = 7;
@@ -952,7 +1020,7 @@
             // 
             // label18
             // 
-            this.label18.Location = new System.Drawing.Point(11, 175);
+            this.label18.Location = new System.Drawing.Point(11, 167);
             this.label18.Name = "label18";
             this.label18.Size = new System.Drawing.Size(159, 13);
             this.label18.TabIndex = 6;
@@ -962,7 +1030,7 @@
             // linkLabel1
             // 
             this.linkLabel1.AutoSize = true;
-            this.linkLabel1.Location = new System.Drawing.Point(193, 152);
+            this.linkLabel1.Location = new System.Drawing.Point(193, 144);
             this.linkLabel1.Name = "linkLabel1";
             this.linkLabel1.Size = new System.Drawing.Size(151, 13);
             this.linkLabel1.TabIndex = 5;
@@ -972,7 +1040,7 @@
             // 
             // label17
             // 
-            this.label17.Location = new System.Drawing.Point(8, 152);
+            this.label17.Location = new System.Drawing.Point(8, 144);
             this.label17.Name = "label17";
             this.label17.Size = new System.Drawing.Size(162, 13);
             this.label17.TabIndex = 4;
@@ -1012,7 +1080,7 @@
             // donateButton
             // 
             this.donateButton.Image = global::TinyOPDS.Properties.Resources.donate;
-            this.donateButton.Location = new System.Drawing.Point(9, 233);
+            this.donateButton.Location = new System.Drawing.Point(9, 223);
             this.donateButton.Name = "donateButton";
             this.donateButton.Size = new System.Drawing.Size(157, 56);
             this.donateButton.TabIndex = 0;
@@ -1059,7 +1127,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(474, 332);
+            this.ClientSize = new System.Drawing.Size(474, 322);
             this.Controls.Add(this.tabControl1);
             this.DoubleBuffered = true;
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
@@ -1175,6 +1243,12 @@
         private System.Windows.Forms.Label label25;
         private System.Windows.Forms.Label statRequests;
         private System.Windows.Forms.Label label23;
+        private System.Windows.Forms.Label statUniqueClients;
+        private System.Windows.Forms.Label label26;
+        private System.Windows.Forms.Label statGoodLogins;
+        private System.Windows.Forms.Label label28;
+        private System.Windows.Forms.Label statWrongLogins;
+        private System.Windows.Forms.Label label30;
     }
 }
 

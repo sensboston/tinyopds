@@ -64,7 +64,7 @@ namespace TinyOPDS.Parsers
                         string s = value.FileName.ToLower();
                         if (s.Contains(".jpeg") || s.Contains(".jpg") || s.Contains(".png"))
                         {
-                            if (value.ID.ToLower().Contains("cover"))
+                            if (value.ID.ToLower().Contains("cover") || s.Contains("cover"))
                             {
                                 book.HasCover = true;
                                 break;
@@ -125,7 +125,7 @@ namespace TinyOPDS.Parsers
                         string s = value.FileName.ToLower();
                         if (s.Contains(".jpeg") || s.Contains(".jpg") || s.Contains(".png"))
                         {
-                            if (value.ID.ToLower().Contains("cover"))
+                            if (value.ID.ToLower().Contains("cover") || s.Contains("cover"))
                             {
                                 using (MemoryStream memStream = new MemoryStream(value.GetContentAsBinary()))
                                 {

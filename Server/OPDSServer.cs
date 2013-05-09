@@ -242,8 +242,16 @@ namespace TinyOPDS.Server
                         memStream.Position = 0;
                         // At this moment, memStream has a copy of requested book
                         // For fb2, we need convert book to epub
-                        if (book.BookType == BookType.FB2 && !string.IsNullOrEmpty(Properties.Settings.Default.ConvertorPath))
+                        if (book.BookType == BookType.FB2)
                         {
+                            // No convertor found, return an error
+                            if (string.IsNullOrEmpty(Properties.Settings.Default.ConvertorPath))
+                            {
+                                Log.WriteLine(LogLevel.Error, "No FB2 to EPUB convertor found, file request can not be completed!");
+                                processor.WriteFailure();
+                                return;
+                            }
+
                             // Save fb2 book to the temp folder
                             string inFileName = Path.Combine(Path.GetTempPath(), book.ID + ".fb2");
                             using (FileStream stream = new FileStream(inFileName, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite))
@@ -252,19 +260,30 @@ namespace TinyOPDS.Server
                             // Run converter 
                             string outFileName = Path.Combine(Path.GetTempPath(), book.ID + ".epub");
                             string command = Path.Combine(Properties.Settings.Default.ConvertorPath, Utils.IsLinux ? "fb2toepub" : "Fb2ePub.exe");
-                            string arguments = string.Format("{0} {1}", inFileName, outFileName);
+                            string arguments = string.Format(Utils.IsLinux ? "{0} {1}" : "\"{0}\" \"{1}\"", inFileName, outFileName);
 
-                            using (ProcessHelper converter = new ProcessHelper(command, arguments)) converter.Run();
-
-                            if (File.Exists(outFileName))
+                            using (ProcessHelper converter = new ProcessHelper(command, arguments))
                             {
-                                memStream = new MemoryStream();
-                                using (FileStream fileStream = new FileStream(outFileName, FileMode.Open, FileAccess.Read, FileShare.Read))
-                                    fileStream.CopyTo(memStream);
+                                converter.Run();
 
-                                // Cleanup temp folder
-                                try { File.Delete(inFileName); } catch { }
-                                try { File.Delete(outFileName); } catch { }
+                                if (File.Exists(outFileName))
+                                {
+                                    memStream = new MemoryStream();
+                                    using (FileStream fileStream = new FileStream(outFileName, FileMode.Open, FileAccess.Read, FileShare.Read))
+                                        fileStream.CopyTo(memStream);
+
+                                    // Cleanup temp folder
+                                    try { File.Delete(inFileName); } catch { }
+                                    try { File.Delete(outFileName); } catch { }
+                                }
+                                else
+                                {
+                                    string converterError = string.Empty;
+                                    foreach (string s in converter.ProcessOutput) converterError += s + " ";
+                                    Log.WriteLine(LogLevel.Error, "EPUB conversion error on file {0}. Error description: {1}", inFileName, converterError);
+                                    processor.WriteFailure();
+                                    return;
+                                }
                             }
                         }
 

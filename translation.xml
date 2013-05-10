@@ -78,8 +78,8 @@
       <text lang="ru">Название сервера:</text>
     </property>
     <property form="MainForm" ctrl="label3">
-      <text lang="en">Server port:</text>
-      <text lang="ru">Порт сервера:</text>
+      <text lang="en">Port:</text>
+      <text lang="ru">Порт:</text>
     </property>
     <property form="MainForm" ctrl="serverButton">
       <text lang="en">Start server</text>
@@ -107,7 +107,7 @@
     </property>
     <property form="MainForm" ctrl="label11">
       <text lang="en">GUI and OPDS language:</text>
-      <text lang="ru">Язык программы и OPDS сервера:</text>
+      <text lang="ru">Язык программы и OPDS:</text>
     </property>
     <property form="MainForm" ctrl="closeToTray">
       <text lang="en">Close or minimize to tray</text>

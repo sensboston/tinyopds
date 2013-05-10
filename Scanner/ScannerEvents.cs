@@ -40,11 +40,11 @@ namespace TinyOPDS.Scanner
     public class BookAddedEventArgs : EventArgs
     {
         public string BookPath;
-        public BookType Type;
+        public BookType BookType;
         public BookAddedEventArgs(string bookPath) 
         { 
             BookPath = bookPath;
-            Type = BookPath.ToLower().Contains(".epub") ? BookType.EPUB : BookType.FB2;
+            BookType = BookPath.ToLower().Contains(".epub") ? BookType.EPUB : BookType.FB2;
         }
     }
 

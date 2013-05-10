@@ -57,7 +57,7 @@ namespace TinyOPDS
             }
             finally
             {
-                mutex.ReleaseMutex();
+                if (!Utils.IsLinux) mutex.ReleaseMutex();
             }
         }
 

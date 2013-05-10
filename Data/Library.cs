@@ -324,18 +324,11 @@ namespace TinyOPDS.Data
         {
             lock (_books)
             {
-                List<string> authors = Authors.Where(a => a.StartsWith(name, StringComparison.OrdinalIgnoreCase)).ToList();
+                List<string> authors = Authors.Where(a => a.IndexOf(name, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
                 if (authors.Count == 0)
                 {
-                    string[] words = name.ReverseWords().Split(' ');
-                    if (words.Length > 1)
-                    {
-                        authors = Authors.Where(a => a.StartsWith(words[0], StringComparison.OrdinalIgnoreCase)).ToList();
-                        if (authors.Count > 0)
-                        {
-                            authors = authors.Where(a => a.IndexOf(words[1], StringComparison.OrdinalIgnoreCase) >= 0).ToList();
-                        }
-                    }
+                    string reversedName = name.Reverse();
+                    authors = Authors.Where(a => a.IndexOf(reversedName, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
                 }
                 return authors;
             }

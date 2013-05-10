@@ -19,7 +19,7 @@ namespace TinyOPDS
 {
     public static class StringExtensions
     {
-        public static string ReverseWords(this string sentence)
+        public static string Reverse(this string sentence)
         {
             string[] words = sentence.Split(' ');
             Array.Reverse(words);

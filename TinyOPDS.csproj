@@ -222,19 +222,12 @@
     <None Include="Icons\folder.png" />
     <Content Include="Icons\lib.png" />
     <Content Include="Icons\TinyOPDS.ico" />
+    <Content Include="Libs\eBdb.EpubReader.dll" />
+    <Content Include="Libs\FB2Library.dll" />
+    <Content Include="Libs\Ionic.Zip.Reduced.dll" />
     <Content Include="License.txt" />
     <None Include="Resources\trayIcon.ico" />
     <Content Include="TinyOPDS.ico" />
-  </ItemGroup>
-  <ItemGroup Condition=" '$(Configuration)' == 'Debug' ">
-    <None Include="Libs\eBdb.EpubReader.dll" />
-    <None Include="Libs\FB2Library.dll" />
-    <None Include="Libs\Ionic.Zip.Reduced.dll" />
-  </ItemGroup>
-  <ItemGroup Condition=" '$(Configuration)' == 'Release' ">
-    <None Include="Libs\eBdb.EpubReader.dll" />
-    <None Include="Libs\FB2Library.dll" />
-    <None Include="Libs\Ionic.Zip.Reduced.dll" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\dotNetZip\Zip Reduced\Zip Reduced.csproj">

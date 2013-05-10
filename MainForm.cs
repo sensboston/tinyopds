@@ -87,11 +87,39 @@ namespace TinyOPDS
 
             // Create file watcher
             _watcher = new Watcher(Library.LibraryPath);
+            _watcher.OnScanStarted += (_, __) =>
+                {
+                    this.BeginInvoke((MethodInvoker)delegate
+                    {
+                        scannerButton.Enabled = false;
+                        status.Text = Localizer.Text("SCANNING");
+                    });
+                };
+            _watcher.OnScanCompleted += (_, __) =>
+                {
+                    this.BeginInvoke((MethodInvoker)delegate
+                    {
+                        scannerButton.Enabled = true;
+                        status.Text = Localizer.Text("STOPPED");
+                    });
+                };
             _watcher.OnBookAdded += (object sender, BookAddedEventArgs e) => 
                 {
+                    if (e.BookType == BookType.FB2) _fb2Count++; else _epubCount++;
                     UpdateInfo();
                     Log.WriteLine(LogLevel.Info, "Book {0} added to the library", e.BookPath);
                 };
+            _watcher.OnInvalidBook += (_, __) => 
+                {
+                    _invalidFiles++;
+                    UpdateInfo();
+                };
+            _watcher.OnFileSkipped += (object _sender, FileSkippedEventArgs _e) =>
+                {
+                    _skippedFiles = _e.Count;
+                    UpdateInfo();
+                };
+
             _watcher.OnBookDeleted += (object sender, BookDeletedEventArgs e) => 
                 {
                     UpdateInfo();
@@ -366,8 +394,11 @@ namespace TinyOPDS
             TimeSpan dt = DateTime.Now.Subtract(_scanStartTime);
             elapsedTime.Text = dt.ToString(@"hh\:mm\:ss");
             rate.Text = (dt.TotalSeconds) > 0 ? string.Format("{0:0.} books/min", totalBooksProcessed / dt.TotalSeconds * 60) : "---";
-            status.Text = IsScanFinished ? Localizer.Text("FINISHED") : (_scanner.Status == FileScannerStatus.SCANNING ? Localizer.Text("SCANNING") : Localizer.Text("STOPPED"));
-            scannerButton.Text = (_scanner.Status == FileScannerStatus.SCANNING) ? Localizer.Text("Stop scanning") : Localizer.Text("Start scanning");
+            if (scannerButton.Enabled)
+            {
+                status.Text = IsScanFinished ? Localizer.Text("FINISHED") : (_scanner.Status == FileScannerStatus.SCANNING ? Localizer.Text("SCANNING") : Localizer.Text("STOPPED"));
+                scannerButton.Text = (_scanner.Status == FileScannerStatus.SCANNING) ? Localizer.Text("Stop scanning") : Localizer.Text("Start scanning");
+            }
         }
 
         #endregion

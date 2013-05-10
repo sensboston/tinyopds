@@ -521,7 +521,7 @@
             // statImages
             // 
             this.statImages.AutoSize = true;
-            this.statImages.Location = new System.Drawing.Point(419, 192);
+            this.statImages.Location = new System.Drawing.Point(445, 192);
             this.statImages.Name = "statImages";
             this.statImages.Size = new System.Drawing.Size(13, 13);
             this.statImages.TabIndex = 43;
@@ -530,7 +530,7 @@
             // label27
             // 
             this.label27.AutoSize = true;
-            this.label27.Location = new System.Drawing.Point(326, 192);
+            this.label27.Location = new System.Drawing.Point(352, 192);
             this.label27.Name = "label27";
             this.label27.Size = new System.Drawing.Size(67, 13);
             this.label27.TabIndex = 42;
@@ -539,7 +539,7 @@
             // statBooks
             // 
             this.statBooks.AutoSize = true;
-            this.statBooks.Location = new System.Drawing.Point(272, 192);
+            this.statBooks.Location = new System.Drawing.Point(289, 192);
             this.statBooks.Name = "statBooks";
             this.statBooks.Size = new System.Drawing.Size(13, 13);
             this.statBooks.TabIndex = 41;
@@ -548,7 +548,7 @@
             // label25
             // 
             this.label25.AutoSize = true;
-            this.label25.Location = new System.Drawing.Point(199, 192);
+            this.label25.Location = new System.Drawing.Point(200, 192);
             this.label25.Name = "label25";
             this.label25.Size = new System.Drawing.Size(63, 13);
             this.label25.TabIndex = 40;
@@ -595,7 +595,7 @@
             // useUPnP
             // 
             this.useUPnP.AutoSize = true;
-            this.useUPnP.Location = new System.Drawing.Point(304, 68);
+            this.useUPnP.Location = new System.Drawing.Point(317, 70);
             this.useUPnP.Name = "useUPnP";
             this.useUPnP.Size = new System.Drawing.Size(76, 17);
             this.useUPnP.TabIndex = 35;
@@ -624,7 +624,7 @@
             // 
             this.openPort.AutoSize = true;
             this.openPort.Enabled = false;
-            this.openPort.Location = new System.Drawing.Point(304, 94);
+            this.openPort.Location = new System.Drawing.Point(317, 96);
             this.openPort.Name = "openPort";
             this.openPort.Size = new System.Drawing.Size(130, 17);
             this.openPort.TabIndex = 15;
@@ -654,7 +654,7 @@
             // 
             this.serverName.Location = new System.Drawing.Point(20, 35);
             this.serverName.Name = "serverName";
-            this.serverName.Size = new System.Drawing.Size(348, 20);
+            this.serverName.Size = new System.Drawing.Size(373, 20);
             this.serverName.TabIndex = 12;
             this.serverName.Text = "Мой домашний OPDS сервер";
             // 
@@ -669,7 +669,7 @@
             // 
             // serverPort
             // 
-            this.serverPort.Location = new System.Drawing.Point(386, 35);
+            this.serverPort.Location = new System.Drawing.Point(406, 35);
             this.serverPort.Name = "serverPort";
             this.serverPort.Size = new System.Drawing.Size(59, 20);
             this.serverPort.TabIndex = 10;
@@ -679,11 +679,11 @@
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(383, 16);
+            this.label3.Location = new System.Drawing.Point(403, 16);
             this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(62, 13);
+            this.label3.Size = new System.Drawing.Size(29, 13);
             this.label3.TabIndex = 9;
-            this.label3.Text = "Server port:";
+            this.label3.Text = "Port:";
             // 
             // serverButton
             // 
@@ -852,7 +852,7 @@
             // label11
             // 
             this.label11.AutoSize = true;
-            this.label11.Location = new System.Drawing.Point(264, 83);
+            this.label11.Location = new System.Drawing.Point(296, 82);
             this.label11.Name = "label11";
             this.label11.Size = new System.Drawing.Size(130, 13);
             this.label11.TabIndex = 32;
@@ -863,7 +863,7 @@
             this.langCombo.DisplayMember = "Value";
             this.langCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.langCombo.FormattingEnabled = true;
-            this.langCombo.Location = new System.Drawing.Point(267, 108);
+            this.langCombo.Location = new System.Drawing.Point(299, 107);
             this.langCombo.Name = "langCombo";
             this.langCombo.Size = new System.Drawing.Size(127, 21);
             this.langCombo.TabIndex = 31;

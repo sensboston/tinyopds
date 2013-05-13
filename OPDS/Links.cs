@@ -18,8 +18,8 @@ namespace TinyOPDS.OPDS
     {
         public static XElement opensearch = new XElement("link",
                                                 new XAttribute("href", "/opds-opensearch.xml"),
-                                                new XAttribute("rel","search"),
-                                                new XAttribute("type","application/opensearchdescription+xml"));
+                                                new XAttribute("rel", "search"),
+                                                new XAttribute("type", "application/opensearchdescription+xml"));
 
         public static XElement search = new XElement("link", 
                                                 new XAttribute("href","/search?searchTerm={searchTerms}"),
@@ -35,5 +35,12 @@ namespace TinyOPDS.OPDS
                                                 new XAttribute("href", ""),
                                                 new XAttribute("rel","self"),
                                                 new XAttribute("type","application/atom+xml"));
+
+        public static XElement autodiscovery = new XElement("link", 
+                                                new XAttribute("href",""),
+                                                new XAttribute("profile","opds-catalog"),
+                                                new XAttribute("type","application/atom+xml"));
+
+
     }
 }

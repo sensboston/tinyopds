@@ -165,6 +165,14 @@ namespace TinyOPDS.Server
                     }
                     return;
                 }
+                else if (request.Contains("opds-opensearch.xml"))
+                {
+                    xml = new OpenSearch().OpenSearchDescription().ToString();
+                    xml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" + xml.Insert(22, " xmlns=\"http://a9.com/-/spec/opensearch/1.1/\"");
+                    processor.WriteSuccess("application/atom+xml;charset=utf=8");
+                    processor.OutputStream.Write(xml);
+                    return;
+                }
                 // fb2.zip book request
                 else if (request.Contains(".fb2.zip"))
                 {
@@ -273,8 +281,10 @@ namespace TinyOPDS.Server
                                         fileStream.CopyTo(memStream);
 
                                     // Cleanup temp folder
-                                    try { File.Delete(inFileName); } catch { }
-                                    try { File.Delete(outFileName); } catch { }
+                                    try { File.Delete(inFileName); }
+                                    catch { }
+                                    try { File.Delete(outFileName); }
+                                    catch { }
                                 }
                                 else
                                 {

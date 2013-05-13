@@ -25,6 +25,28 @@ namespace TinyOPDS.OPDS
 {
     public class OpenSearch
     {
+        public XDocument OpenSearchDescription()
+        {
+            XDocument doc = new XDocument(
+                // Add root element and namespaces
+                new XElement("OpenSearchDescription",
+                    new XElement("ShortName", "TinyOPDS"),
+                    new XElement("LongName", "TinyOPDS"),
+                    new XElement("Url", new XAttribute("type", "application/atom+xml"), new XAttribute("template", "/search?searchTerm={searchTerms}")),
+                    new XElement("Image", "/favicon.ico", new XAttribute("width", "16"), new XAttribute("height", "16")),
+                    new XElement("Tags"),
+                    new XElement("Contact"),
+                    new XElement("Developer"),
+                    new XElement("Attribution"),
+                    new XElement("SyndicationRight", "open"),
+                    new XElement("AdultContent", "false"),
+                    new XElement("Language", "*"),
+                    new XElement("OutputEncoding", "UTF-8"),
+                    new XElement("InputEncoding", "UTF-8")));
+
+            return doc;
+        }
+
         public XDocument Search(string searchPattern, string searchType = "", bool fb2Only = false, int pageNumber = 0, int threshold = 50)
         {
             if (!string.IsNullOrEmpty(searchPattern)) searchPattern = Uri.UnescapeDataString(searchPattern).Replace('+', ' ').ToLower();

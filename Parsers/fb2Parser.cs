@@ -38,14 +38,37 @@ namespace TinyOPDS.Parsers
         {
             XDocument xml = null;
             Book book = new Book(fileName);
+            book.DocumentSize = (UInt32)stream.Length;
+
             try
             {
                 FB2File fb2 = new FB2File();
                 // Load header only
                 stream.Position = 0;
-                xml = XDocument.Load(stream);
+
+                // Project Mono has a bug: Xdocument.Load() can't detect encoding
+                if (Utils.IsLinux)
+                {
+                    using (StreamReader sr = new StreamReader(stream))
+                    {
+                        string encoding = sr.ReadLine();
+                        int idx = encoding.ToLower().IndexOf("encoding=\"");
+                        if (idx > 0)
+                        {
+                            encoding = encoding.Substring(idx + 10);
+                            encoding = encoding.Substring(0, encoding.IndexOf('"'));
+                            stream.Position = 0;
+                            using (StreamReader esr = new StreamReader(stream, Encoding.GetEncoding(encoding)))
+                            {
+                                xml = XDocument.Parse(esr.ReadToEnd(), LoadOptions.PreserveWhitespace);
+                            }
+                        }
+                    }
+                }
+
+                if (xml == null) xml = XDocument.Load(stream);
+
                 fb2.Load(xml, true);
-                book.DocumentSize = (UInt32) stream.Length;
 
                 if (fb2.DocumentInfo != null)
                 {

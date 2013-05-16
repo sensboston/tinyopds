@@ -82,7 +82,8 @@ namespace TinyOPDS.Data
             GC.Collect();
 
             // Create unique database name, based on library path
-            string databaseFileName = Utils.CreateGuid(Utils.IsoOidNamespace, Properties.Settings.Default.LibraryPath).ToString()+".db";
+            LibraryPath = Properties.Settings.Default.LibraryPath;
+            string databaseFileName = Utils.CreateGuid(Utils.IsoOidNamespace, LibraryPath).ToString() + ".db";
             _databaseFullPath = Path.Combine(Utils.ServiceFilesLocation, databaseFileName);
 
             // Load database in the background thread
@@ -161,9 +162,17 @@ namespace TinyOPDS.Data
                     // Make relative path
                     _books[book.ID] = book;
                     lock (_paths) _paths[book.FileName] = true;
-                    if (book.BookType == BookType.FB2) FB2Count++; else EPUBCount++;
+                    if (!isDuplicate)
+                    {
+                        if (book.BookType == BookType.FB2) FB2Count++; else EPUBCount++;
+                    }
+                    else
+                    {
+                        Log.WriteLine(LogLevel.Warning, "Replaced duplicate. File name {0}, book version {1}", book.FileName, book.Version);
+                    }
                     return !isDuplicate;
                 }
+                Log.WriteLine(LogLevel.Warning, "Found duplicate. File name {0}, book version {1}", book.FileName, book.Version);
                 return false;
             }
         }
@@ -390,6 +399,7 @@ namespace TinyOPDS.Data
             {
                 _books.Clear();
                 memStream = new MemoryStream();
+
                 try
                 {
                     using (Stream fileStream = new FileStream(_databaseFullPath, FileMode.Open, FileAccess.Read, FileShare.Read))
@@ -399,7 +409,6 @@ namespace TinyOPDS.Data
                     memStream.Position = 0;
                     using (BinaryReader reader = new BinaryReader(memStream))
                     {
-                        memStream = null;
                         bool newFormat = reader.ReadString().Equals("VER1.1");
                         if (!newFormat)
                         {

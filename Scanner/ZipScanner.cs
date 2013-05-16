@@ -43,9 +43,6 @@ namespace TinyOPDS.Scanner
         public event FileSkippedEventHandler OnFileSkipped;
         private IEnumerable<FileSkippedEventHandler> FileSkippedEventHandlers() { return from d in OnFileSkipped.GetInvocationList() select (FileSkippedEventHandler)d; }
 
-        public event ScanCompletedEventHandler OnScanCompleted;
-        private IEnumerable<ScanCompletedEventHandler> ScanCompletedEventHandlers() { return from d in OnScanCompleted.GetInvocationList() select (ScanCompletedEventHandler)d; }
-
         public ZipScanner(string zipFileName)
         {
             ZipFileName = zipFileName;
@@ -56,48 +53,29 @@ namespace TinyOPDS.Scanner
         public void Stop()
         {
             Status = FileScannerStatus.STOPPED;
-
             if (OnBookFound != null) OnBookFound -= BookFoundEventHandlers().Last();
             if (OnFileSkipped != null) OnFileSkipped -= FileSkippedEventHandlers().Last();
-            if (OnScanCompleted != null) OnScanCompleted -= ScanCompletedEventHandlers().Last();
         }
 
         /// <summary>
-        /// 
+        /// Scan zip file
         /// </summary>
-        /// <param name="Path"></param>
         public void Scan()
         {
-            BackgroundWorker scanner = new BackgroundWorker();
-            scanner.DoWork += (__, ___) => { ScanZipFile(ZipFileName); };
-            scanner.RunWorkerCompleted += (__, ___) =>
-            {
-                Status = FileScannerStatus.STOPPED;
-                if (OnScanCompleted != null) OnScanCompleted(this, new EventArgs());
-                scanner.Dispose();
-            };
-            scanner.RunWorkerAsync();
             Status = FileScannerStatus.SCANNING;
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="directory"></param>
-        /// <param name="IsRoot"></param>
-        private void ScanZipFile(string zipFileName)
-        {
             ZipFile zipFile = null;
             string entryFileName = string.Empty;
             MemoryStream memStream = null;
 
             try
             {
-                zipFile = new ZipFile(zipFileName);
+                zipFile = new ZipFile(ZipFileName);
 
                 foreach (ZipEntry entry in zipFile.Entries)
                 {
-                    if (Status == FileScannerStatus.SCANNING && !string.IsNullOrEmpty(entry.FileName))
+                    if (Status != FileScannerStatus.SCANNING) break;
+
+                    if (!string.IsNullOrEmpty(entry.FileName))
                     {
                         entryFileName = entry.FileName;
 
@@ -109,7 +87,7 @@ namespace TinyOPDS.Scanner
 
                             string ext = Path.GetExtension(entry.FileName).ToLower();
 
-                            if (Library.Contains(zipFileName.Substring(Library.LibraryPath.Length+1) + "@" + entryFileName))
+                            if (Library.Contains(ZipFileName.Substring(Library.LibraryPath.Length+1) + "@" + entryFileName))
                             {
                                 SkippedFiles++;
                                 if (OnFileSkipped != null) OnFileSkipped(this, new FileSkippedEventArgs(SkippedFiles));
@@ -117,25 +95,25 @@ namespace TinyOPDS.Scanner
                             else if (ext.Contains(".epub"))
                             {
                                 entry.Extract(memStream);
-                                book = new ePubParser().Parse(memStream, zipFileName + "@" + entryFileName);
+                                book = new ePubParser().Parse(memStream, ZipFileName + "@" + entryFileName);
                             }
                             else if (ext.Contains(".fb2"))
                             {
                                 entry.Extract(memStream);
-                                book = new FB2Parser().Parse(memStream, zipFileName + "@" + entryFileName);
+                                book = new FB2Parser().Parse(memStream, ZipFileName + "@" + entryFileName);
                             }
 
                             if (book != null)
                             {
-                                if (book.IsValid && OnBookFound != null) OnBookFound(this, new BookFoundEventArgs(book));
-                                else if (!book.IsValid && OnInvalidBook != null) OnInvalidBook(this, new InvalidBookEventArgs(zipFileName + "@" + entryFileName));
+                                if (book.IsValid && OnBookFound != null) { OnBookFound(this, new BookFoundEventArgs(book)); }
+                                else if (!book.IsValid && OnInvalidBook != null) OnInvalidBook(this, new InvalidBookEventArgs(ZipFileName + "@" + entryFileName));
                              }
                             
                         }
                         catch (Exception e)
                         {
-                            Log.WriteLine(LogLevel.Error, ".ScanDirectory: exception {0} on file: {1}", e.Message, zipFileName + "@" + entryFileName);
-                            if (OnInvalidBook != null) OnInvalidBook(this, new InvalidBookEventArgs(zipFileName + "@" + entryFileName));
+                            Log.WriteLine(LogLevel.Error, ".ScanDirectory: exception {0} on file: {1}", e.Message, ZipFileName + "@" + entryFileName);
+                            if (OnInvalidBook != null) OnInvalidBook(this, new InvalidBookEventArgs(ZipFileName + "@" + entryFileName));
                         }
                         finally
                         {

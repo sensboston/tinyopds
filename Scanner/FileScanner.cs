@@ -31,7 +31,7 @@ namespace TinyOPDS.Scanner
     public enum FileScannerStatus
     {
         SCANNING,
-        STOPPED,
+        STOPPED
     }
 
     public class FileScanner
@@ -51,8 +51,8 @@ namespace TinyOPDS.Scanner
         public event ScanCompletedEventHandler OnScanCompleted;
         private IEnumerable<ScanCompletedEventHandler> ScanCompletedEventHandlers() { return from d in OnScanCompleted.GetInvocationList() select (ScanCompletedEventHandler)d; }
 
+        private ZipScanner _zipScanner = null;
         private bool _isRecursive;
-        private List<ZipScanner> _zipScanners = new List<ZipScanner>();
 
         public FileScanner(bool IsRecursive = true)
         {
@@ -63,17 +63,12 @@ namespace TinyOPDS.Scanner
         public void Stop()
         {
             Status = FileScannerStatus.STOPPED;
+            if (_zipScanner != null) _zipScanner.Status = FileScannerStatus.STOPPED;
 
             if (OnBookFound != null) OnBookFound -= BookFoundEventHandlers().Last();
             if (OnInvalidBook != null) OnInvalidBook -= InvalidBookEventHandlers().Last();
             if (OnFileSkipped != null) OnFileSkipped -= FileSkippedEventHandlers().Last();
             if (OnScanCompleted != null) OnScanCompleted -= ScanCompletedEventHandlers().Last();
-
-            for (int i = 0; i < _zipScanners.Count; i++)
-            {
-                if (_zipScanners[i] != null && _zipScanners[i].Status == FileScannerStatus.SCANNING) _zipScanners[i].Stop();
-            }
-            _zipScanners.Clear();
         }
 
         /// <summary>
@@ -83,15 +78,13 @@ namespace TinyOPDS.Scanner
         public void Start(string Path)
         {
             SkippedFiles = 0;
+
             BackgroundWorker scanner = new BackgroundWorker();
-            scanner.DoWork += (__, ___) => 
-            { 
+            scanner.DoWork += (__, ___) =>
+            {
                 ScanDirectory(new DirectoryInfo(Path));
-                if (_zipScanners.Count == 0)
-                {
-                    Status = FileScannerStatus.STOPPED;
-                    if (OnScanCompleted != null) OnScanCompleted(this, new EventArgs());
-                }
+                Status = FileScannerStatus.STOPPED;
+                if (OnScanCompleted != null) OnScanCompleted(this, new EventArgs());
             };
             Status = FileScannerStatus.SCANNING;
             scanner.RunWorkerAsync();
@@ -106,7 +99,7 @@ namespace TinyOPDS.Scanner
         {
             foreach (FileInfo file in directory.GetFiles())
             {
-                if (Status != FileScannerStatus.SCANNING) break;
+                if (!Utils.IsLinux && Status == FileScannerStatus.STOPPED) break;
                 ScanFile(file.FullName);
             }
 
@@ -114,8 +107,8 @@ namespace TinyOPDS.Scanner
             DirectoryInfo[] subDirectories = directory.GetDirectories();
             if (_isRecursive)
                 foreach (DirectoryInfo subDirectory in subDirectories)
-                    if (Status != FileScannerStatus.STOPPED)
-                        ScanDirectory(new DirectoryInfo(subDirectory.FullName));
+                    if (Status == FileScannerStatus.SCANNING)
+                        ScanDirectory(subDirectory);
         }
 
         /// <summary>
@@ -145,34 +138,15 @@ namespace TinyOPDS.Scanner
                 }
                 else if (ext.Contains(".zip"))
                 {
-                    ZipScanner zipScan = new ZipScanner(fullName);
-                    zipScan.OnBookFound += (object sender, BookFoundEventArgs e) => { if (e.Book.IsValid && OnBookFound != null) OnBookFound(sender, e); };
-                    zipScan.OnInvalidBook += (object sender, InvalidBookEventArgs e) => { if (OnInvalidBook != null) OnInvalidBook(sender, e); };
-                    zipScan.OnFileSkipped += (object sender, FileSkippedEventArgs e) =>
+                    _zipScanner = new ZipScanner(fullName);
+                    _zipScanner.OnBookFound += (object sender, BookFoundEventArgs e) => { if (OnBookFound != null) OnBookFound(sender, e); };
+                    _zipScanner.OnInvalidBook += (object sender, InvalidBookEventArgs e) => { if (OnInvalidBook != null) OnInvalidBook(sender, e); };
+                    _zipScanner.OnFileSkipped += (object sender, FileSkippedEventArgs e) =>
                     {
                         SkippedFiles++;
                         if (OnFileSkipped != null) OnFileSkipped(sender, new FileSkippedEventArgs(SkippedFiles));
-                        book = null;
                     };
-                    zipScan.OnScanCompleted += (object sender, EventArgs e) =>
-                    {
-                        if (_zipScanners.Contains((sender as ZipScanner)))
-                        {
-                            _zipScanners.Remove((sender as ZipScanner));
-                            sender = null;
-                        }
-                        if (_zipScanners.Count > 0)
-                        {
-                            _zipScanners.First().Scan();
-                        }
-                        else
-                        {
-                            Status = FileScannerStatus.STOPPED;
-                            if (OnScanCompleted != null) OnScanCompleted(this, e);
-                        }
-                    };
-                    if (_zipScanners.Count == 0) zipScan.Scan();
-                    _zipScanners.Add(zipScan);
+                    _zipScanner.Scan();
                 }
 
                 // Inform caller

@@ -370,16 +370,24 @@
       <text lang="ru">Уникальных клиентов:</text>
     </property>
     <property form="MainForm" ctrl="label28">
-      <text lang="en">Successful authentications:</text>
-      <text lang="ru">Успешных авторизаций:</text>
+      <text lang="en">Successful logins:</text>
+      <text lang="ru">Успешных входов:</text>
     </property>
     <property form="MainForm" ctrl="label30">
-      <text lang="en">Failed authentications:</text>
-      <text lang="ru">Ошибочных авторизаций:</text>
+      <text lang="en">Failed logins:</text>
+      <text lang="ru">Неверных входов:</text>
     </property>
-    <property>
-      <text lang="en"></text>
-      <text lang="ru"></text>
+    <property form="MainForm" ctrl="label31">
+      <text lang="en">Banned clients:</text>
+      <text lang="ru">Заблокировано:</text>
+    </property>
+    <property form="MainForm" ctrl="banClients">
+      <text lang="en">Ban clients after</text>
+      <text lang="ru">Блокировать клиентов после</text>
+    </property>
+    <property form="MainForm" ctrl="label24">
+      <text lang="en">failed attempts</text>
+      <text lang="ru">неверных попыток</text>
     </property>
     <property>
       <text lang="en"></text>

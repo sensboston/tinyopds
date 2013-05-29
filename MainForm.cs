@@ -41,6 +41,7 @@ namespace TinyOPDS
         NotifyIcon _notifyIcon = new NotifyIcon();
         BindingSource bs = new BindingSource();
         System.Windows.Forms.Timer _updateChecker = new System.Windows.Forms.Timer();
+        string _updateUrl = string.Empty;
 
         #region Statistical information
         int _fb2Count, _epubCount, _skippedFiles, _invalidFiles, _duplicates;
@@ -63,7 +64,8 @@ namespace TinyOPDS
             this.Icon = Properties.Resources.trayIcon;
             _notifyIcon.ContextMenuStrip = this.contextMenuStrip;
             _notifyIcon.Icon = Properties.Resources.trayIcon;
-            _notifyIcon.MouseClick += new MouseEventHandler(notifyIcon1_MouseClick);
+            _notifyIcon.MouseClick += notifyIcon1_MouseClick;
+            _notifyIcon.BalloonTipClicked += _notifyIcon_BalloonTipClicked;
 
             // Init localization service
             Localizer.Init();
@@ -75,14 +77,14 @@ namespace TinyOPDS
 
             // Initialize update checker timer
             _updateChecker.Interval = 1000 * 60;
-            _updateChecker.Tick += new EventHandler(_updateChecker_Tick);
+            _updateChecker.Tick += _updateChecker_Tick;
 
             // Setup credentials grid
-            bs.AddingNew += new AddingNewEventHandler(bs_AddingNew);
+            bs.AddingNew += bs_AddingNew;
             bs.AllowNew = true;
             bs.DataSource = HttpProcessor.Credentials;
             dataGridView1.DataSource = bs;
-            bs.CurrentItemChanged += new EventHandler(bs_CurrentItemChanged);
+            bs.CurrentItemChanged += bs_CurrentItemChanged;
             foreach (DataGridViewColumn col in dataGridView1.Columns) col.Width = 180;
 
             Library.LibraryPath = Properties.Settings.Default.LibraryPath;
@@ -136,7 +138,7 @@ namespace TinyOPDS
             _watcher.IsEnabled = false;
 
             intLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
-            _upnpController.DiscoverCompleted += new EventHandler(_upnpController_DiscoverCompleted);
+            _upnpController.DiscoverCompleted += _upnpController_DiscoverCompleted;
             _upnpController.DiscoverAsync(Properties.Settings.Default.UseUPnP);
 
             Log.WriteLine("TinyOPDS version {0}.{1} started", Utils.Version.Major, Utils.Version.Minor);
@@ -207,15 +209,13 @@ namespace TinyOPDS
             }
             converterLinkLabel.Visible = string.IsNullOrEmpty(convertorPath.Text);
 
-            //useUPnP.Checked = Properties.Settings.Default.UseUPnP;
             openPort.Checked = Properties.Settings.Default.UseUPnP ? Properties.Settings.Default.OpenNATPort : false;
             banClients.Enabled = rememberClients.Enabled = dataGridView1.Enabled = Properties.Settings.Default.UseHTTPAuth;
             wrongAttemptsCount.Enabled = banClients.Checked && useHTTPAuth.Checked;
 
             langCombo.SelectedValue = Properties.Settings.Default.Language;
             _notifyIcon.Visible = Properties.Settings.Default.CloseToTray;
-            //logVerbosity.SelectedIndex = Properties.Settings.Default.LogLevel;
-            //updateCombo.SelectedIndex = Properties.Settings.Default.UpdatesCheck;
+            if (Properties.Settings.Default.UpdatesCheck > 0) _updateChecker.Start();
 
             // Load saved credentials
             try
@@ -320,7 +320,7 @@ namespace TinyOPDS
         {
             if (_scanner.Status != FileScannerStatus.SCANNING)
             {
-                _scanner.OnBookFound += new BookFoundEventHandler(scanner_OnBookFound);
+                _scanner.OnBookFound += scanner_OnBookFound;
                 _scanner.OnInvalidBook += (_, __) => { _invalidFiles++; };
                 _scanner.OnFileSkipped += (object _sender, FileSkippedEventArgs _e) => 
                 { 
@@ -734,9 +734,14 @@ namespace TinyOPDS
             Log.VerbosityLevel = (LogLevel)logVerbosity.SelectedIndex;
         }
 
+        private void updateCombo_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (Properties.Settings.Default.UpdatesCheck == 0) _updateChecker.Stop(); else _updateChecker.Start();
+        }
+
         #endregion
 
-        #region Check for TinyOPDS updates
+        #region TinyOPDS updates checker
 
         /// <summary>
         /// This timer event should be raised every hour
@@ -746,12 +751,64 @@ namespace TinyOPDS
         static int[] checkIntervals = new int[] { 0, 60 * 24 * 7, 60 * 24 * 30, 1};
         void _updateChecker_Tick(object sender, EventArgs e)
         {
-            if (updateCombo.SelectedIndex > 0)
+            if (Properties.Settings.Default.UpdatesCheck >= 0)
             {
-                TimeSpan interval = DateTime.Now.Subtract(Properties.Settings.Default.LastCheck);
-
-
+                _updateUrl = string.Empty;
+                int minutesFromLastCheck = (int) Math.Round(DateTime.Now.Subtract(Properties.Settings.Default.LastCheck).TotalMinutes);
+                System.Diagnostics.Debug.WriteLine("Minutes from last check: {0}", minutesFromLastCheck);
+                if (minutesFromLastCheck >= checkIntervals[Properties.Settings.Default.UpdatesCheck])
+                {
+                    WebClient wc = new WebClient();
+                    wc.DownloadStringCompleted += wc_DownloadStringCompleted;
+                    wc.DownloadStringAsync(new Uri("http://senssoft.com/tinyopds.txt"));
+                }
             }
+        }
+
+        void wc_DownloadStringCompleted(object sender, DownloadStringCompletedEventArgs e)
+        {
+            if (e.Error == null)
+            {
+                Properties.Settings.Default.LastCheck = DateTime.Now;
+                Properties.Settings.Default.Save();
+
+                string[] s = e.Result.Split('\n');
+                if (s.Length == 2)
+                {
+                    s[0] = s[0].Replace("\r", "");
+                    double currentVersion = 0, newVersion = 0;
+                    if (double.TryParse(string.Format("{0}.{1}", Utils.Version.Major, Utils.Version.Minor), out currentVersion))
+                    {
+                        if (double.TryParse(s[0], out newVersion))
+                        {
+                            if (newVersion > currentVersion)
+                            {
+                                _updateUrl = s[1];
+                                string title = Localizer.Text("TinyOPDS: update found");
+
+                                if (_notifyIcon.Visible)
+                                {
+                                    _notifyIcon.ShowBalloonTip(30000, title, string.Format(Localizer.Text("Click here to download update v {0}"), s[0]), ToolTipIcon.Info);
+                                }
+                                else
+                                {
+                                    this.Activate();
+                                    if (MessageBox.Show(string.Format(Localizer.Text("New version {0} is available!\nWould you like to download now?"), s[0]),
+                                        title, MessageBoxButtons.YesNo, MessageBoxIcon.Information) == System.Windows.Forms.DialogResult.Yes)
+                                    {
+                                        System.Diagnostics.Process.Start(_updateUrl);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        void _notifyIcon_BalloonTipClicked(object sender, EventArgs e)
+        {
+            System.Diagnostics.Process.Start(_updateUrl);
         }
 
         #endregion

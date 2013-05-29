@@ -907,6 +907,7 @@
             this.updateCombo.Name = "updateCombo";
             this.updateCombo.Size = new System.Drawing.Size(127, 21);
             this.updateCombo.TabIndex = 37;
+            this.updateCombo.SelectedIndexChanged += new System.EventHandler(this.updateCombo_SelectedIndexChanged);
             // 
             // label22
             // 

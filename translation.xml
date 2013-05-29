@@ -406,6 +406,18 @@
       <text lang="ru">Раз в месяц</text>
     </property>
     <property>
+      <text lang="en">TinyOPDS: update found</text>
+      <text lang="ru">TinyOPDS: обнаружено обновление</text>
+    </property>
+    <property>
+      <text lang="en">Click here to download update v {0}</text>
+      <text lang="ru">Кликните для загрузки обновления v {0}</text>
+    </property>
+    <property>
+      <text lang="en">New version {0} is available!\nWould you like to download now?</text>
+      <text lang="ru">Новая версия [OK} доступна для загрузки.\nЖелаете загрузить сейчас?</text>
+    </property>
+    <property>
       <text lang="en"></text>
       <text lang="ru"></text>
     </property>

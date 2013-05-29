@@ -40,6 +40,7 @@ namespace TinyOPDS
         UPnPController _upnpController = new UPnPController();
         NotifyIcon _notifyIcon = new NotifyIcon();
         BindingSource bs = new BindingSource();
+        System.Windows.Forms.Timer _updateChecker = new System.Windows.Forms.Timer();
 
         #region Statistical information
         int _fb2Count, _epubCount, _skippedFiles, _invalidFiles, _duplicates;
@@ -54,6 +55,9 @@ namespace TinyOPDS
             Log.SaveToFile = Properties.Settings.Default.SaveLogToDisk;
 
             InitializeComponent();
+            logVerbosity.DataBindings.Add(new Binding("SelectedIndex", Properties.Settings.Default, "LogLevel", false, DataSourceUpdateMode.OnPropertyChanged));
+            updateCombo.DataBindings.Add(new Binding("SelectedIndex", Properties.Settings.Default, "UpdatesCheck", false, DataSourceUpdateMode.OnPropertyChanged));
+            this.PerformLayout();
 
             // Manually assign icons from resources (fix for Mono)
             this.Icon = Properties.Resources.trayIcon;
@@ -68,6 +72,10 @@ namespace TinyOPDS
 
             // Load application settings
             LoadSettings();
+
+            // Initialize update checker timer
+            _updateChecker.Interval = 1000 * 60;
+            _updateChecker.Tick += new EventHandler(_updateChecker_Tick);
 
             // Setup credentials grid
             bs.AddingNew += new AddingNewEventHandler(bs_AddingNew);
@@ -182,18 +190,11 @@ namespace TinyOPDS
             linkLabel5.Links.Add(0, linkLabel5.Text.Length, "http://epubreader.codeplex.com/");
             linkLabel4.Links.Add(0, linkLabel4.Text.Length, "http://dotnetzip.codeplex.com/");
             // Setup settings controls
-            libraryPath.Text = Properties.Settings.Default.LibraryPath;
             if (!string.IsNullOrEmpty(Properties.Settings.Default.LibraryPath))
             {
                 databaseFileName.Text = Utils.CreateGuid(Utils.IsoOidNamespace, Properties.Settings.Default.LibraryPath).ToString() + ".db";
             }
-            serverName.Text = Properties.Settings.Default.ServerName;
-            serverPort.Text = Properties.Settings.Default.ServerPort.ToString();
-            rootPrefix.Text = Properties.Settings.Default.RootPrefix;
-            startMinimized.Checked = Properties.Settings.Default.StartMinimized;
             if (Utils.IsLinux) startWithWindows.Enabled = false;
-            else startWithWindows.Checked = Properties.Settings.Default.StartWithWindows;
-            closeToTray.Checked = Properties.Settings.Default.CloseToTray;
             if (string.IsNullOrEmpty(Properties.Settings.Default.ConvertorPath))
             {
                 if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ProgramFiles")))
@@ -204,18 +205,18 @@ namespace TinyOPDS
                     }
                 }
             }
-            else convertorPath.Text = Properties.Settings.Default.ConvertorPath;
             converterLinkLabel.Visible = string.IsNullOrEmpty(convertorPath.Text);
-            useUPnP.Checked = Properties.Settings.Default.UseUPnP;
-            openPort.Checked = Properties.Settings.Default.UseUPnP ? Properties.Settings.Default.OpenNATPort : false;
-            langCombo.SelectedValue = Properties.Settings.Default.Language;
-            saveLog.Checked = Properties.Settings.Default.SaveLogToDisk;
-            logVerbosity.SelectedIndex = Properties.Settings.Default.LogLevel;
-            useWatcher.Checked = Properties.Settings.Default.WatchLibrary;
-            _notifyIcon.Visible = Properties.Settings.Default.CloseToTray;
 
-            useHTTPAuth.Checked = rememberClients.Enabled = dataGridView1.Enabled = Properties.Settings.Default.UseHTTPAuth;
-            rememberClients.Checked = Properties.Settings.Default.RememberClients;
+            //useUPnP.Checked = Properties.Settings.Default.UseUPnP;
+            openPort.Checked = Properties.Settings.Default.UseUPnP ? Properties.Settings.Default.OpenNATPort : false;
+            banClients.Enabled = rememberClients.Enabled = dataGridView1.Enabled = Properties.Settings.Default.UseHTTPAuth;
+            wrongAttemptsCount.Enabled = banClients.Checked && useHTTPAuth.Checked;
+
+            langCombo.SelectedValue = Properties.Settings.Default.Language;
+            _notifyIcon.Visible = Properties.Settings.Default.CloseToTray;
+            //logVerbosity.SelectedIndex = Properties.Settings.Default.LogLevel;
+            //updateCombo.SelectedIndex = Properties.Settings.Default.UpdatesCheck;
+
             // Load saved credentials
             try
             {
@@ -232,22 +233,10 @@ namespace TinyOPDS
 
         private void SaveSettings()
         {
-            Properties.Settings.Default.LibraryPath = libraryPath.Text;
-            Properties.Settings.Default.ServerName = serverName.Text;
-            Properties.Settings.Default.ServerPort = int.Parse(serverPort.Text);
-            Properties.Settings.Default.RootPrefix = rootPrefix.Text;
-            Properties.Settings.Default.StartMinimized = startMinimized.Checked;
-            Properties.Settings.Default.StartWithWindows = startWithWindows.Checked;
-            Properties.Settings.Default.CloseToTray = closeToTray.Checked;
             Properties.Settings.Default.ConvertorPath = convertorPath.Text;
             Properties.Settings.Default.Language = langCombo.SelectedValue as string;
-            Properties.Settings.Default.OpenNATPort = openPort.Checked;
-            Properties.Settings.Default.SaveLogToDisk = saveLog.Checked;
-            Properties.Settings.Default.WatchLibrary = useWatcher.Checked;
-            Properties.Settings.Default.UseUPnP = useUPnP.Checked;
-            Properties.Settings.Default.UseHTTPAuth = useHTTPAuth.Checked;
-            Properties.Settings.Default.RememberClients = rememberClients.Checked;
-            Properties.Settings.Default.LogLevel = logVerbosity.SelectedIndex;
+            //Properties.Settings.Default.LogLevel = logVerbosity.SelectedIndex;
+            //Properties.Settings.Default.UpdatesCheck = updateCombo.SelectedIndex;
 
             Properties.Settings.Default.Save();
         }
@@ -329,7 +318,7 @@ namespace TinyOPDS
 
         private void scannerButton_Click(object sender, EventArgs e)
         {
-            if (_scanner.Status == FileScannerStatus.STOPPED)
+            if (_scanner.Status != FileScannerStatus.SCANNING)
             {
                 _scanner.OnBookFound += new BookFoundEventHandler(scanner_OnBookFound);
                 _scanner.OnInvalidBook += (_, __) => { _invalidFiles++; };
@@ -414,6 +403,7 @@ namespace TinyOPDS
         {
             // Create and start HTTP server
             HttpProcessor.AuthorizedClients.Clear();
+            HttpProcessor.BannedClients.Clear();
             _server = new OPDSServer(Properties.Settings.Default.ServerPort);
 
             _serverThread = new Thread(new ThreadStart(_server.Listen));
@@ -475,7 +465,6 @@ namespace TinyOPDS
                 {
                     openPort.Checked = openPort.Enabled = false;
                 }
-                Properties.Settings.Default.UseUPnP = useUPnP.Checked;
             }
         }
 
@@ -590,13 +579,13 @@ namespace TinyOPDS
         {
             if (_watcher != null && _watcher.IsEnabled != useWatcher.Checked)
             {
-                _watcher.IsEnabled = Properties.Settings.Default.WatchLibrary = useWatcher.Checked;
+                _watcher.IsEnabled = useWatcher.Checked;
             }
         }
 
         private void closeToTray_CheckedChanged(object sender, EventArgs e)
         {
-            _notifyIcon.Visible = Properties.Settings.Default.CloseToTray = closeToTray.Checked;
+            _notifyIcon.Visible = closeToTray.Checked;
         }
 
         private void startWithWindows_CheckedChanged(object sender, EventArgs e)
@@ -609,11 +598,7 @@ namespace TinyOPDS
 
         private void saveLog_CheckedChanged(object sender, EventArgs e)
         {
-            if (Properties.Settings.Default.SaveLogToDisk != saveLog.Checked)
-            {
-                Log.SaveToFile = Properties.Settings.Default.SaveLogToDisk = saveLog.Checked;
-            }
-            label22.Enabled = logVerbosity.Enabled = saveLog.Checked;
+            Log.SaveToFile = label22.Enabled = logVerbosity.Enabled = saveLog.Checked;
         }
 
         private void UpdateServerLinks()
@@ -637,7 +622,6 @@ namespace TinyOPDS
             if (_upnpController != null && _upnpController.UPnPReady)
             {
                 if (rootPrefix.Text.EndsWith("/")) rootPrefix.Text = rootPrefix.Text.Remove(rootPrefix.Text.Length - 1);
-                Properties.Settings.Default.RootPrefix = rootPrefix.Text;
                 UpdateServerLinks();
             }
         }
@@ -685,10 +669,6 @@ namespace TinyOPDS
         private void langCombo_SelectedValueChanged(object sender, EventArgs e)
         {
             Localizer.SetLanguage(this, langCombo.SelectedValue as string);
-            if (!Properties.Settings.Default.ServerName.Equals(serverName.Text))
-            {
-                serverName.Text = Properties.Settings.Default.ServerName;
-            }
             appVersion.Text = string.Format(Localizer.Text("version {0}.{1} {2}"), Utils.Version.Major, Utils.Version.Minor, Utils.Version.Major == 0?" (beta)":"");
             scannerButton.Text = Localizer.Text( (_scanner.Status == FileScannerStatus.STOPPED) ? "Start scanning" : "Stop scanning");
             serverButton.Text = Localizer.Text((_server == null) ? "Start server" : "Stop server");
@@ -697,6 +677,9 @@ namespace TinyOPDS
             logVerbosity.Items[0] = Localizer.Text("Info, warnings and errors");
             logVerbosity.Items[1] = Localizer.Text("Warnings and errors");
             logVerbosity.Items[2] = Localizer.Text("Errors only");
+            updateCombo.Items[0] = Localizer.Text("Never");
+            updateCombo.Items[1] = Localizer.Text("Once a week");
+            updateCombo.Items[2] = Localizer.Text("Once a month");
         }
 
         /// <summary>
@@ -737,18 +720,40 @@ namespace TinyOPDS
 
         private void useHTTPAuth_CheckedChanged(object sender, EventArgs e)
         {
-            dataGridView1.Enabled = rememberClients.Enabled = Properties.Settings.Default.UseHTTPAuth = useHTTPAuth.Checked;
+            dataGridView1.Enabled = banClients.Enabled = rememberClients.Enabled = useHTTPAuth.Checked;
+            wrongAttemptsCount.Enabled = banClients.Enabled && banClients.Checked;
         }
 
-        private void rememberClients_CheckedChanged(object sender, EventArgs e)
+        private void banClients_CheckedChanged(object sender, EventArgs e)
         {
-            Properties.Settings.Default.RememberClients = rememberClients.Checked;
+            wrongAttemptsCount.Enabled = banClients.Checked;
         }
 
         private void logVerbosity_SelectedIndexChanged(object sender, EventArgs e)
         {
             Log.VerbosityLevel = (LogLevel)logVerbosity.SelectedIndex;
         }
+
+        #endregion
+
+        #region Check for TinyOPDS updates
+
+        /// <summary>
+        /// This timer event should be raised every hour
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        static int[] checkIntervals = new int[] { 0, 60 * 24 * 7, 60 * 24 * 30, 1};
+        void _updateChecker_Tick(object sender, EventArgs e)
+        {
+            if (updateCombo.SelectedIndex > 0)
+            {
+                TimeSpan interval = DateTime.Now.Subtract(Properties.Settings.Default.LastCheck);
+
+
+            }
+        }
+
         #endregion
     }
 }

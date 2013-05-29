@@ -52,6 +52,7 @@ namespace TinyOPDS.Server
 
         public static BindingList<Credential> Credentials = new BindingList<Credential>();
         public static List<string> AuthorizedClients = new List<string>();
+        public static Dictionary<string, int> BannedClients = new Dictionary<string, int>();
 
         // Maximum post size, 1 Mb
         private const int MAX_POST_SIZE = 1024 * 1024;
@@ -123,51 +124,68 @@ namespace TinyOPDS.Server
                     ReadHeaders();
 
                     bool authorized = true;
+                    bool checkLogin = true;
 
                     // Compute client hash string based on User-Agent + IP address
                     string clientHash = string.Empty;
                     if (HttpHeaders.ContainsKey("User-Agent")) clientHash += HttpHeaders["User-Agent"];
-                    clientHash += (Socket.Client.RemoteEndPoint as IPEndPoint).Address.ToString();
+                    string remoteIP = (Socket.Client.RemoteEndPoint as IPEndPoint).Address.ToString();
+                    clientHash += remoteIP;
                     clientHash = Utils.CreateGuid(Utils.IsoOidNamespace, clientHash).ToString();
 
                     if (Properties.Settings.Default.UseHTTPAuth)
                     {
                         authorized = false;
 
-                        // First, check authorized client list (if enabled)
-                        if (Properties.Settings.Default.RememberClients)
+                        // Is remote IP banned?
+                        if (Properties.Settings.Default.BanClients)
                         {
-                            if (AuthorizedClients.Contains(clientHash))
+                            if (BannedClients.ContainsKey(remoteIP) && BannedClients[remoteIP] >= Properties.Settings.Default.WrongAttemptsCount)
                             {
-                                authorized = true;
+                                checkLogin = false;
                             }
                         }
 
-                        if (!authorized && HttpHeaders.ContainsKey("Authorization"))
+                        if (checkLogin)
                         {
-                            string hash = HttpHeaders["Authorization"].ToString();
-                            if (hash.StartsWith("Basic "))
+                            // First, check authorized client list (if enabled)
+                            if (Properties.Settings.Default.RememberClients)
                             {
-                                try
+                                if (AuthorizedClients.Contains(clientHash))
                                 {
-                                    string[] credential = hash.Substring(6).DecodeFromBase64().Split(':');
-                                    if (credential.Length == 2)
-                                    {
-                                        foreach (Credential cred in Credentials)
-                                            if (cred.User.Equals(credential[0]))
-                                            {
-                                                authorized = cred.Password.Equals(credential[1]);
-                                                AuthorizedClients.Add(clientHash);
-                                                HttpServer.ServerStatistics.SuccessfulLoginAttempts++;
-                                                break;
-                                            }
-                                        if (!authorized)
-                                            Log.WriteLine(LogLevel.Warning, "Authentication failed! user: {0} pass: {1}", credential[0], credential[1]);
-                                    }
+                                    authorized = true;
                                 }
-                                catch (Exception e)
+                            }
+
+                            if (!authorized && HttpHeaders.ContainsKey("Authorization"))
+                            {
+                                string hash = HttpHeaders["Authorization"].ToString();
+                                if (hash.StartsWith("Basic "))
                                 {
-                                    Log.WriteLine(LogLevel.Error, "Authentication exception: {0}", e.Message);
+                                    try
+                                    {
+                                        string[] credential = hash.Substring(6).DecodeFromBase64().Split(':');
+                                        if (credential.Length == 2)
+                                        {
+                                            foreach (Credential cred in Credentials)
+                                                if (cred.User.Equals(credential[0]))
+                                                {
+                                                    authorized = cred.Password.Equals(credential[1]);
+                                                    if (authorized)
+                                                    {
+                                                        AuthorizedClients.Add(clientHash);
+                                                        HttpServer.ServerStatistics.SuccessfulLoginAttempts++;
+                                                    }
+                                                    break;
+                                                }
+                                            if (!authorized)
+                                                Log.WriteLine(LogLevel.Warning, "Authentication failed! IP: {0} user: {1} pass: {2}", remoteIP, credential[0], credential[1]);
+                                        }
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        Log.WriteLine(LogLevel.Error, "Authentication exception: IP: {0}, {1}", remoteIP, e.Message);
+                                    }
                                 }
                             }
                         }
@@ -190,8 +208,21 @@ namespace TinyOPDS.Server
                     }
                     else
                     {
-                        HttpServer.ServerStatistics.WrongLoginAttempts++;
-                        WriteNotAuthorized();
+                        if (Properties.Settings.Default.BanClients)
+                        {
+                            if (!BannedClients.ContainsKey(remoteIP)) BannedClients[remoteIP] = 0;
+                            BannedClients[remoteIP]++;
+                            if (!checkLogin)
+                            {
+                                Log.WriteLine(LogLevel.Warning, "IP address {0} is banned!", remoteIP);
+                                WriteForbidden();
+                            }
+                        }
+                        if (checkLogin)
+                        {
+                            HttpServer.ServerStatistics.WrongLoginAttempts++;
+                            WriteNotAuthorized();
+                        }
                     }
                 }
                 catch (Exception e)
@@ -347,6 +378,19 @@ namespace TinyOPDS.Server
                 Log.WriteLine(LogLevel.Error, ".WriteNotAuthorized() exception: {0}", e.Message);
             }
         }
+
+        public void WriteForbidden()
+        {
+            try
+            {
+                OutputStream.Write("HTTP/1.1 403 Forbidden\n");
+                OutputStream.Write("Connection: close\n\n");
+            }
+            catch (Exception e)
+            {
+                Log.WriteLine(LogLevel.Error, ".WriteForbidden() exception: {0}", e.Message);
+            }
+        }
     }
 
     /// <summary>
@@ -374,6 +418,7 @@ namespace TinyOPDS.Server
         {
             _booksSent = _imagesSent = _getRequests = _postRequests = _successfulLoginAttempts = _wrongLoginAttempts = 0;
             _uniqueClients.Clear();
+            if (StatisticsUpdated != null) StatisticsUpdated(this, null);
         }
     }
 

@@ -27,8 +27,6 @@ namespace TinyOPDS.Server
 {
     public class OPDSServer : HttpServer
     {
-        private static string[] fb2Clients = new string[] { "FBREADER", "MOON+ READER" };
-
         public OPDSServer(int port, int timeout = 5000) : base(port, timeout) { }
 
         /// <summary>
@@ -63,15 +61,9 @@ namespace TinyOPDS.Server
                 string[] http_params = request.Split(new Char[] { '?', '=', '&' });
 
                 // User-agent check: some e-book readers can handle fb2 files (no conversion is  needed)
-                bool acceptFB2 = false;
-                if (!string.IsNullOrEmpty(processor.HttpHeaders["User-Agent"] as string))
-                {
-                    foreach (string userAgent in fb2Clients)
-                    {
-                        acceptFB2 |= (processor.HttpHeaders["User-Agent"] as string).ToUpper().Contains(userAgent);
-                        if (acceptFB2) break;
-                    }
-                }
+                string userAgent = processor.HttpHeaders["User-Agent"] as string;
+                bool acceptFB2 = Utils.DetectFB2Reader(userAgent);
+                bool isBrowser = Utils.DetectBrowser(userAgent);
 
                 // Is it OPDS request?
                 if (string.IsNullOrEmpty(ext))
@@ -134,9 +126,19 @@ namespace TinyOPDS.Server
                         }
 
                         // Modify and send xml back to the client app
-                        xml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" + xml.Insert(5, " xmlns=\"http://www.w3.org/2005/Atom\"");
-                        /// Unfortunately, current OPDS-enabled apps don't support this feature, even those that pretend to (like FBReader for Android)
+                        if (isBrowser && File.Exists(Path.Combine(Utils.ServiceFilesLocation, "opds.xsl")))
+                        {
+                            xml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<?xml-stylesheet href=\"opds.xsl\" type=\"text/xsl\"?>\n" + xml.Remove(5, xml.IndexOf(">") - 5);
+                            xml = xml.Replace("feed", "root");
+                        }
+                        else
+                        {
+                            xml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" + xml.Insert(5, " xmlns=\"http://www.w3.org/2005/Atom\"");
+                        }
+
 #if USE_GZIP_ENCODING
+                /// Unfortunately, current OPDS-enabled apps don't support this feature, even those that pretend to (like FBReader for Android)
+
                 // Compress xml if compression supported
                 if (!processor.HttpHeaders.ContainsValue("gzip"))
                 {
@@ -155,7 +157,7 @@ namespace TinyOPDS.Server
                 else
 #endif
                         {
-                            processor.WriteSuccess("application/atom+xml;charset=utf=8");
+                            processor.WriteSuccess(isBrowser ? "text/xml" : "application/atom-xml;charset=utf=8");
                             processor.OutputStream.Write(xml);
                         }
                     }
@@ -173,6 +175,28 @@ namespace TinyOPDS.Server
                     processor.OutputStream.Write(xml);
                     return;
                 }
+
+                // experimental css support
+                else if (ext.Contains(".xsl"))
+                {
+                    if (File.Exists(Path.Combine(Utils.ServiceFilesLocation, "opds.xsl")))
+                    {
+                        try
+                        {
+                            using (FileStream cssFileStream = new FileStream(Path.Combine(Utils.ServiceFilesLocation, "opds.xsl"), FileMode.Open))
+                            {
+                                processor.WriteSuccess("text/xsl");
+                                cssFileStream.CopyTo(processor.OutputStream.BaseStream);
+                                return;
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            Log.WriteLine(LogLevel.Error, "opds.xsl file exception {0}", e.Message);
+                        }
+                    }
+                }
+
                 // fb2.zip book request
                 else if (request.Contains(".fb2.zip"))
                 {
@@ -340,7 +364,7 @@ namespace TinyOPDS.Server
                             else
                             {
                                 image = new CoverImage(book);
-                                if (image != null) ImagesCache.Add(image);
+                                if (image != null && image.HasImages) ImagesCache.Add(image);
                             }
 
                             if (image != null && image.HasImages)

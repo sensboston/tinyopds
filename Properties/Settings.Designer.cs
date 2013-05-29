@@ -110,7 +110,7 @@ namespace TinyOPDS.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("en")]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
         public string Language {
             get {
                 return ((string)(this["Language"]));
@@ -191,7 +191,7 @@ namespace TinyOPDS.Properties {
                 this["UseUPnP"] = value;
             }
         }
-
+        
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
@@ -215,36 +215,77 @@ namespace TinyOPDS.Properties {
                 this["Credentials"] = value;
             }
         }
-
+        
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool RememberClients
-        {
-            get
-            {
-                return ((bool)(this["RememberClients"]));
+        public bool BanClients {
+            get {
+                return ((bool)(this["BanClients"]));
             }
-            set
-            {
-                this["RememberClients"] = value;
+            set {
+                this["BanClients"] = value;
             }
         }
-
+        
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("0")]
-        public int LogLevel
-        {
-            get
-            {
+        public int LogLevel {
+            get {
                 return ((int)(this["LogLevel"]));
             }
-            set
-            {
+            set {
                 this["LogLevel"] = value;
             }
         }
-
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool RememberClients {
+            get {
+                return ((bool)(this["RememberClients"]));
+            }
+            set {
+                this["RememberClients"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1")]
+        public int UpdatesCheck {
+            get {
+                return ((int)(this["UpdatesCheck"]));
+            }
+            set {
+                this["UpdatesCheck"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("2013-01-01")]
+        public global::System.DateTime LastCheck {
+            get {
+                return ((global::System.DateTime)(this["LastCheck"]));
+            }
+            set {
+                this["LastCheck"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("3")]
+        public decimal WrongAttemptsCount {
+            get {
+                return ((decimal)(this["WrongAttemptsCount"]));
+            }
+            set {
+                this["WrongAttemptsCount"] = value;
+            }
+        }
     }
 }

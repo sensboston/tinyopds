@@ -61,6 +61,43 @@ namespace TinyOPDS
 
     public class Utils
     {
+        private static string[] fb2Clients = new string[] { "fbreader", "moon+ reader" };
+        /// <summary>
+        /// Detect eBook readers with fb2 support
+        /// </summary>
+        /// <param name="userAgent"></param>
+        /// <returns>true if reader supports fb2 format</returns>
+        public static bool DetectFB2Reader(string userAgent)
+        {
+            if (!string.IsNullOrEmpty(userAgent))
+            {
+                foreach (string s in fb2Clients)
+                {
+                    if (userAgent.IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0) return true;
+                }
+            }
+            return false;
+        }
+
+        private static string[] browsers = new string[] { "opera", "aol", "msie", "firefox", "chrome", "mozilla", "safari", "netscape", "navigator", "mosaic", "lynx", 
+                                                          "amaya", "omniweb", "avant", "camino", "flock", "seamonkey", "konqueror", "gecko", "yandex.browser" };
+        /// <summary>
+        /// Detect browsers by User-Agent
+        /// </summary>
+        /// <param name="userAgent"></param>
+        /// <returns>true if it's browser request</returns>
+        public static bool DetectBrowser(string userAgent)
+        {
+            if (!string.IsNullOrEmpty(userAgent))
+            {
+                foreach (string s in browsers)
+                {
+                    if (userAgent.IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0) return true;
+                }
+            }
+            return false;
+        }
+
         /// <summary>
         /// Helper for project Mono
         /// </summary>

@@ -47,7 +47,7 @@ namespace TinyOPDS.OPDS
                 );
 
             // Get all authors names starting with searchPattern
-            List<string> Authors = Library.GetAuthorsByName(searchPattern);
+            List<string> Authors = Library.GetAuthorsByName(searchPattern, isOpenSearch);
 
             // For search, also check transliterated names
             if (isOpenSearch)
@@ -56,7 +56,7 @@ namespace TinyOPDS.OPDS
                 string translit = Transliteration.Back(searchPattern, TransliterationType.GOST);
                 if (!string.IsNullOrEmpty(translit))
                 {
-                    List<string> transAuthors = Library.GetAuthorsByName(translit);
+                    List<string> transAuthors = Library.GetAuthorsByName(translit, isOpenSearch);
                     if (transAuthors.Count > 0) Authors.AddRange(transAuthors);
                 }
             }

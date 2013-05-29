@@ -329,12 +329,14 @@ namespace TinyOPDS.Data
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
-        public static List<string> GetAuthorsByName(string name)
+        public static List<string> GetAuthorsByName(string name, bool isOpenSearch)
         {
+            List<string> authors = new List<string>();
             lock (_books)
             {
-                List<string> authors = Authors.Where(a => a.IndexOf(name, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
-                if (authors.Count == 0)
+                if (isOpenSearch) authors = Authors.Where(a => a.IndexOf(name, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
+                else authors = Authors.Where(a => a.StartsWith(name, StringComparison.OrdinalIgnoreCase)).ToList();
+                if (isOpenSearch && authors.Count == 0)
                 {
                     string reversedName = name.Reverse();
                     authors = Authors.Where(a => a.IndexOf(reversedName, StringComparison.OrdinalIgnoreCase) >= 0).ToList();

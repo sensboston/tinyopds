@@ -47,11 +47,12 @@ namespace TinyOPDS.Parsers
                 stream.Position = 0;
 
                 // Project Mono has a bug: Xdocument.Load() can't detect encoding
+                string encoding = string.Empty;
                 if (Utils.IsLinux)
                 {
                     using (StreamReader sr = new StreamReader(stream))
                     {
-                        string encoding = sr.ReadLine();
+                        encoding = sr.ReadLine();
                         int idx = encoding.ToLower().IndexOf("encoding=\"");
                         if (idx > 0)
                         {
@@ -60,52 +61,101 @@ namespace TinyOPDS.Parsers
                             stream.Position = 0;
                             using (StreamReader esr = new StreamReader(stream, Encoding.GetEncoding(encoding)))
                             {
-                                xml = XDocument.Parse(esr.ReadToEnd(), LoadOptions.PreserveWhitespace);
+                                string xmlStr = esr.ReadToEnd();
+                                try
+                                {
+                                    xml = XDocument.Parse(xmlStr, LoadOptions.PreserveWhitespace);
+                                }
+                                catch (Exception e)
+                                {
+                                    if (e.Message.IndexOf("nbsp", StringComparison.InvariantCultureIgnoreCase) > 0)
+                                    {
+                                        xmlStr = xmlStr.Replace("&nbsp;", "&#160;").Replace("&NBSP;", "&#160;");
+                                        xml = XDocument.Parse(xmlStr, LoadOptions.PreserveWhitespace);
+                                    }
+                                    else if (e.Message.IndexOf("is an invalid character", StringComparison.InvariantCultureIgnoreCase) > 0)
+                                    {
+                                        xml = XDocument.Parse(this.SanitizeXmlString(xmlStr), LoadOptions.PreserveWhitespace);
+                                    }
+                                    else throw e;
+                                }
                             }
                         }
                     }
                 }
 
-                if (xml == null) xml = XDocument.Load(stream);
-
-                fb2.Load(xml, true);
-
-                if (fb2.DocumentInfo != null)
+                if (xml == null)
                 {
-                    book.ID = fb2.DocumentInfo.ID;
-                    if (fb2.DocumentInfo.DocumentVersion != null) book.Version = (float) fb2.DocumentInfo.DocumentVersion;
-                    if (fb2.DocumentInfo.DocumentDate != null) book.DocumentDate = fb2.DocumentInfo.DocumentDate.DateValue;
+                    try
+                    {
+                        xml = XDocument.Load(stream);
+                    }
+                    // This code will try to improve xml loading
+                    catch (Exception e)
+                    {
+                        stream.Position = 0;
+                        if (e.Message.IndexOf("nbsp", StringComparison.InvariantCultureIgnoreCase) > 0)
+                        {
+                            using (StreamReader sr = new StreamReader(stream))
+                            {
+                                string xmlStr = sr.ReadToEnd();
+                                xmlStr = xmlStr.Replace("&nbsp;", "&#160;").Replace("&NBSP;", "&#160;");
+                                xml = XDocument.Parse(xmlStr, LoadOptions.PreserveWhitespace);
+                            }
+                        }
+                        else if (e.Message.IndexOf("is an invalid character", StringComparison.InvariantCultureIgnoreCase) > 0)
+                        {
+                            using (StreamReader sr = new StreamReader(stream))
+                            {
+                                string xmlStr = sr.ReadToEnd();
+                                xml = XDocument.Parse(this.SanitizeXmlString(xmlStr), LoadOptions.PreserveWhitespace);
+                            }
+                        }
+                        else throw e;
+                    }
                 }
 
-                if (fb2.TitleInfo != null)
+                if (xml != null)
                 {
-                    if (fb2.TitleInfo.Cover != null && fb2.TitleInfo.Cover.HasImages()) book.HasCover = true;
-                    if (fb2.TitleInfo.BookTitle != null) book.Title = fb2.TitleInfo.BookTitle.Text;
-                    if (fb2.TitleInfo.Annotation != null) book.Annotation = fb2.TitleInfo.Annotation.ToString();
-                    if (fb2.TitleInfo.Sequences != null && fb2.TitleInfo.Sequences.Count > 0)
+                    fb2.Load(xml, true);
+
+                    if (fb2.DocumentInfo != null)
                     {
-                        book.Sequence = fb2.TitleInfo.Sequences.First().Name.Capitalize(true);
-                        if (fb2.TitleInfo.Sequences.First().Number != null)
+                        book.ID = fb2.DocumentInfo.ID;
+                        if (fb2.DocumentInfo.DocumentVersion != null) book.Version = (float)fb2.DocumentInfo.DocumentVersion;
+                        if (fb2.DocumentInfo.DocumentDate != null) book.DocumentDate = fb2.DocumentInfo.DocumentDate.DateValue;
+                    }
+
+                    if (fb2.TitleInfo != null)
+                    {
+                        if (fb2.TitleInfo.Cover != null && fb2.TitleInfo.Cover.HasImages()) book.HasCover = true;
+                        if (fb2.TitleInfo.BookTitle != null) book.Title = fb2.TitleInfo.BookTitle.Text;
+                        if (fb2.TitleInfo.Annotation != null) book.Annotation = fb2.TitleInfo.Annotation.ToString();
+                        if (fb2.TitleInfo.Sequences != null && fb2.TitleInfo.Sequences.Count > 0)
                         {
-                            book.NumberInSequence = (UInt32)(fb2.TitleInfo.Sequences.First().Number);
+                            book.Sequence = fb2.TitleInfo.Sequences.First().Name.Capitalize(true);
+                            if (fb2.TitleInfo.Sequences.First().Number != null)
+                            {
+                                book.NumberInSequence = (UInt32)(fb2.TitleInfo.Sequences.First().Number);
+                            }
                         }
-                    }
-                    if (fb2.TitleInfo.Language != null) book.Language = fb2.TitleInfo.Language;
-                    if (fb2.TitleInfo.BookDate != null) book.BookDate = fb2.TitleInfo.BookDate.DateValue;
-                    if (fb2.TitleInfo.BookAuthors != null && fb2.TitleInfo.BookAuthors.Count() > 0)
-                    {
-                        book.Authors = new List<string>();
-                        book.Authors.AddRange(from ba in fb2.TitleInfo.BookAuthors select string.Concat(ba.LastName, " ", ba.FirstName, " ", ba.MiddleName).Replace("  ", " ").Capitalize());
-                    }
-                    if (fb2.TitleInfo.Translators != null && fb2.TitleInfo.Translators.Count() > 0)
-                    {
-                        book.Translators = new List<string>();
-                        book.Translators.AddRange(from ba in fb2.TitleInfo.Translators select string.Concat(ba.LastName, " ", ba.FirstName, " ", ba.MiddleName).Replace("  ", " ").Capitalize());
-                    }
-                    if (fb2.TitleInfo.Genres != null && fb2.TitleInfo.Genres.Count() > 0)
-                    {
-                        book.Genres = new List<string>();
-                        book.Genres.AddRange((from g in fb2.TitleInfo.Genres select g.Genre).ToList());
+                        if (fb2.TitleInfo.Language != null) book.Language = fb2.TitleInfo.Language;
+                        if (fb2.TitleInfo.BookDate != null) book.BookDate = fb2.TitleInfo.BookDate.DateValue;
+                        if (fb2.TitleInfo.BookAuthors != null && fb2.TitleInfo.BookAuthors.Count() > 0)
+                        {
+                            book.Authors = new List<string>();
+                            book.Authors.AddRange(from ba in fb2.TitleInfo.BookAuthors select string.Concat(ba.LastName, " ", ba.FirstName, " ", ba.MiddleName).Replace("  ", " ").Capitalize());
+                        }
+                        if (fb2.TitleInfo.Translators != null && fb2.TitleInfo.Translators.Count() > 0)
+                        {
+                            book.Translators = new List<string>();
+                            book.Translators.AddRange(from ba in fb2.TitleInfo.Translators select string.Concat(ba.LastName, " ", ba.FirstName, " ", ba.MiddleName).Replace("  ", " ").Capitalize());
+                        }
+                        if (fb2.TitleInfo.Genres != null && fb2.TitleInfo.Genres.Count() > 0)
+                        {
+                            book.Genres = new List<string>();
+                            book.Genres.AddRange((from g in fb2.TitleInfo.Genres select g.Genre).ToList());
+                        }
                     }
                 }
             }
@@ -165,6 +215,32 @@ namespace TinyOPDS.Parsers
             // Dispose xml document
             xml = null;
             return image;
+        }
+
+        /// <summary>
+        /// Remove illegal XML characters from a string.
+        /// </summary>
+        public string SanitizeXmlString(string xml)
+        {
+            StringBuilder buffer = new StringBuilder(xml.Length);
+            foreach (char c in xml) if (IsLegalXmlChar(c)) buffer.Append(c);
+            return buffer.ToString();
+        }
+
+        /// <summary>
+        /// Whether a given character is allowed by XML 1.0.
+        /// </summary>
+        public bool IsLegalXmlChar(int character)
+        {
+            return
+            (
+                 character == 0x9 /* == '\t' == 9   */          ||
+                 character == 0xA /* == '\n' == 10  */          ||
+                 character == 0xD /* == '\r' == 13  */          ||
+                (character >= 0x20 && character <= 0xD7FF) ||
+                (character >= 0xE000 && character <= 0xFFFD) ||
+                (character >= 0x10000 && character <= 0x10FFFF)
+            );
         }
     }
 }

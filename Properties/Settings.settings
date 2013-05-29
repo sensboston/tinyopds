@@ -24,7 +24,7 @@
       <Value Profile="(Default)" />
     </Setting>
     <Setting Name="Language" Type="System.String" Scope="User">
-      <Value Profile="(Default)">en</Value>
+      <Value Profile="(Default)" />
     </Setting>
     <Setting Name="OpenNATPort" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
@@ -49,6 +49,24 @@
     </Setting>
     <Setting Name="Credentials" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="BanClients" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="LogLevel" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">0</Value>
+    </Setting>
+    <Setting Name="RememberClients" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="UpdatesCheck" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">1</Value>
+    </Setting>
+    <Setting Name="LastCheck" Type="System.DateTime" Scope="User">
+      <Value Profile="(Default)">2013-01-01</Value>
+    </Setting>
+    <Setting Name="WrongAttemptsCount" Type="System.Decimal" Scope="User">
+      <Value Profile="(Default)">5</Value>
     </Setting>
   </Settings>
 </SettingsFile>

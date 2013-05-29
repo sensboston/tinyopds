@@ -389,9 +389,38 @@
       <text lang="en">failed attempts</text>
       <text lang="ru">неверных попыток</text>
     </property>
+    <property form="MainForm" ctrl="label32">
+      <text lang="en">Check for update:</text>
+      <text lang="ru">Проверять обновление:</text>
+    </property>
+    <property>
+      <text lang="en">Never</text>
+      <text lang="ru">Никогда</text>
+    </property>
+    <property>
+      <text lang="en">Once a week</text>
+      <text lang="ru">Раз в неделю</text>
+    </property>
+    <property>
+      <text lang="en">Once a month</text>
+      <text lang="ru">Раз в месяц</text>
+    </property>
     <property>
       <text lang="en"></text>
       <text lang="ru"></text>
     </property>
+    <property>
+      <text lang="en"></text>
+      <text lang="ru"></text>
+    </property>
+    <property>
+      <text lang="en"></text>
+      <text lang="ru"></text>
+    </property>
+    <property>
+      <text lang="en"></text>
+      <text lang="ru"></text>
+    </property>
+
   </properties>
 </root>

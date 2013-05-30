@@ -66,6 +66,7 @@ namespace TinyOPDS
             _notifyIcon.Icon = Properties.Resources.trayIcon;
             _notifyIcon.MouseClick += notifyIcon1_MouseClick;
             _notifyIcon.BalloonTipClicked += _notifyIcon_BalloonTipClicked;
+            _notifyIcon.BalloonTipClosed += _notifyIcon_BalloonTipClosed;
 
             // Init localization service
             Localizer.Init();
@@ -755,7 +756,7 @@ namespace TinyOPDS
             {
                 _updateUrl = string.Empty;
                 int minutesFromLastCheck = (int) Math.Round(DateTime.Now.Subtract(Properties.Settings.Default.LastCheck).TotalMinutes);
-                System.Diagnostics.Debug.WriteLine("Minutes from last check: {0}", minutesFromLastCheck);
+                Log.WriteLine(LogLevel.Info, "Checking software update. Minutes from the last check: {0}", minutesFromLastCheck);
                 if (minutesFromLastCheck >= checkIntervals[Properties.Settings.Default.UpdatesCheck])
                 {
                     WebClient wc = new WebClient();
@@ -784,21 +785,8 @@ namespace TinyOPDS
                             if (newVersion > currentVersion)
                             {
                                 _updateUrl = s[1];
-                                string title = Localizer.Text("TinyOPDS: update found");
-
-                                if (_notifyIcon.Visible)
-                                {
-                                    _notifyIcon.ShowBalloonTip(30000, title, string.Format(Localizer.Text("Click here to download update v {0}"), s[0]), ToolTipIcon.Info);
-                                }
-                                else
-                                {
-                                    this.Activate();
-                                    if (MessageBox.Show(string.Format(Localizer.Text("New version {0} is available!\nWould you like to download now?"), s[0]),
-                                        title, MessageBoxButtons.YesNo, MessageBoxIcon.Information) == System.Windows.Forms.DialogResult.Yes)
-                                    {
-                                        System.Diagnostics.Process.Start(_updateUrl);
-                                    }
-                                }
+                                _notifyIcon.Visible = true;
+                                _notifyIcon.ShowBalloonTip(30000, Localizer.Text("TinyOPDS: update found"), string.Format(Localizer.Text("Click here to download update v {0}"), s[0]), ToolTipIcon.Info);
                             }
                         }
                     }
@@ -809,6 +797,11 @@ namespace TinyOPDS
         void _notifyIcon_BalloonTipClicked(object sender, EventArgs e)
         {
             System.Diagnostics.Process.Start(_updateUrl);
+        }
+
+        void _notifyIcon_BalloonTipClosed(object sender, EventArgs e)
+        {
+            _notifyIcon.Visible = Properties.Settings.Default.CloseToTray;
         }
 
         #endregion

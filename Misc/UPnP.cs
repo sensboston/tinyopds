@@ -9,6 +9,9 @@
  * Simple implementation of UPnP controller. Works fine with 
  * some D-Link and NetGear router models (need more tests)
  * 
+ * Based on the Harold Aptroot article & code 
+ * http://www.codeproject.com/Articles/27992/
+ * 
  * TODO: check compatibility with other routers
  * 
  ************************************************************/
@@ -81,54 +84,69 @@ namespace UPnP
             bool detectUPnP = (bool) e.Argument;
             if (detectUPnP)
             {
-                using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp))
+                NetworkInterface[] adapters = NetworkInterface.GetAllNetworkInterfaces();
+                foreach (NetworkInterface adapter in adapters)
                 {
-                    socket.ReceiveTimeout = 2000;
-                    socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, 1);
-                    string req = "M-SEARCH * HTTP/1.1\r\n" +
-                                 "HOST: 239.255.255.250:1900\r\n" +
-                                 "ST:upnp:rootdevice\r\n" +
-                                 "MAN:\"ssdp:discover\"\r\n" +
-                                 "MX:3\r\n\r\n";
-                    byte[] data = Encoding.ASCII.GetBytes(req);
-                    IPEndPoint ipe = new IPEndPoint(IPAddress.Broadcast, 1900);
-                    byte[] buffer = new byte[0x1000];
-
-                    for (int i = 0; i < 3; i++) socket.SendTo(data, ipe);
-
-                    int length = 0;
-                    do
+                    IPInterfaceProperties properties = adapter.GetIPProperties();
+                    if (properties.GatewayAddresses != null && properties.GatewayAddresses.Count > 0)
                     {
-                        try { length = socket.Receive(buffer); }
-                        catch { break; }
-                        string resp = Encoding.ASCII.GetString(buffer, 0, length).ToLower();
-                        if (resp.Contains("upnp:rootdevice"))
+                        foreach (IPAddressInformation uniAddr in properties.UnicastAddresses)
                         {
-                            resp = resp.Substring(resp.ToLower().IndexOf("location:") + 9);
-                            resp = resp.Substring(0, resp.IndexOf("\r")).Trim();
-                            if (!string.IsNullOrEmpty(_serviceUrl = GetServiceUrl(resp)))
+                            if (uniAddr.Address.AddressFamily == AddressFamily.InterNetwork)
                             {
-                                break;
+                                using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp))
+                                {
+                                    socket.Bind(new IPEndPoint(uniAddr.Address, 0));
+                                    socket.ReceiveTimeout = 2000;
+                                    socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, 1);
+                                    string req = "M-SEARCH * HTTP/1.1\r\n" +
+                                                 "HOST: 239.255.255.250:1900\r\n" +
+                                                 "ST:upnp:rootdevice\r\n" +
+                                                 "MAN:\"ssdp:discover\"\r\n" +
+                                                 "MX:3\r\n\r\n";
+                                    byte[] data = Encoding.ASCII.GetBytes(req);
+                                    IPEndPoint ipe = new IPEndPoint(IPAddress.Broadcast, 1900);
+                                    byte[] buffer = new byte[0x1000];
+
+                                    for (int i = 0; i < 3; i++) socket.SendTo(data, ipe);
+
+                                    int length = 0;
+                                    do
+                                    {
+                                        try { length = socket.Receive(buffer); }
+                                        catch { break; }
+                                        string resp = Encoding.ASCII.GetString(buffer, 0, length).ToLower();
+                                        if (resp.Contains("upnp:rootdevice"))
+                                        {
+                                            resp = resp.Substring(resp.ToLower().IndexOf("location:") + 9);
+                                            resp = resp.Substring(0, resp.IndexOf("\r")).Trim();
+                                            if (!string.IsNullOrEmpty(_serviceUrl = GetServiceUrl(resp)))
+                                            {
+                                                break;
+                                            }
+                                        }
+                                    } while (length > 0);
+                                }
+                                if (UPnPReady)
+                                {
+                                    string ip = "127.0.0.0";
+                                    XmlDocument xdoc = SOAPRequest(_serviceUrl,
+                                        "<u:GetExternalIPAddress xmlns:u=\"urn:schemas-upnp-org:service:WANIPConnection:1\">" +
+                                        "</u:GetExternalIPAddress>", "GetExternalIPAddress");
+                                    if (xdoc.OuterXml.Contains("NewExternalIPAddress"))
+                                    {
+                                        XmlNamespaceManager nsMgr = new XmlNamespaceManager(xdoc.NameTable);
+                                        nsMgr.AddNamespace("tns", "urn:schemas-upnp-org:device-1-0");
+                                        ip = xdoc.SelectSingleNode("//NewExternalIPAddress/text()", nsMgr).Value;
+                                    }
+                                    ExternalIP = IPAddress.Parse(ip);
+                                }
+                                Discovered = true;
+                                if (UPnPReady && DiscoverCompleted != null) DiscoverCompleted(this, new EventArgs());
                             }
                         }
-                    } while (length > 0);
-                }
-                if (UPnPReady)
-                {
-                    string ip = "127.0.0.0";
-                    XmlDocument xdoc = SOAPRequest(_serviceUrl,
-                        "<u:GetExternalIPAddress xmlns:u=\"urn:schemas-upnp-org:service:WANIPConnection:1\">" +
-                        "</u:GetExternalIPAddress>", "GetExternalIPAddress");
-                    if (xdoc.OuterXml.Contains("NewExternalIPAddress"))
-                    {
-                        XmlNamespaceManager nsMgr = new XmlNamespaceManager(xdoc.NameTable);
-                        nsMgr.AddNamespace("tns", "urn:schemas-upnp-org:device-1-0");
-                        ip = xdoc.SelectSingleNode("//NewExternalIPAddress/text()", nsMgr).Value;
                     }
-                    ExternalIP = IPAddress.Parse(ip);
                 }
-                Discovered = true;
-                if (UPnPReady && DiscoverCompleted != null) DiscoverCompleted(this, new EventArgs());
             }
             // Just detect external IP address
             else

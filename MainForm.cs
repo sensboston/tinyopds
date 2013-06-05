@@ -77,7 +77,7 @@ namespace TinyOPDS
             LoadSettings();
 
             // Initialize update checker timer
-            _updateChecker.Interval = 1000 * 60;
+            _updateChecker.Interval = 1000 * 30;
             _updateChecker.Tick += _updateChecker_Tick;
 
             // Setup credentials grid
@@ -209,6 +209,7 @@ namespace TinyOPDS
                     }
                 }
             }
+            else convertorPath.Text = Properties.Settings.Default.ConvertorPath;
             converterLinkLabel.Visible = string.IsNullOrEmpty(convertorPath.Text);
 
             openPort.Checked = Properties.Settings.Default.UseUPnP ? Properties.Settings.Default.OpenNATPort : false;
@@ -235,11 +236,7 @@ namespace TinyOPDS
 
         private void SaveSettings()
         {
-            Properties.Settings.Default.ConvertorPath = convertorPath.Text;
             Properties.Settings.Default.Language = langCombo.SelectedValue as string;
-            //Properties.Settings.Default.LogLevel = logVerbosity.SelectedIndex;
-            //Properties.Settings.Default.UpdatesCheck = updateCombo.SelectedIndex;
-
             Properties.Settings.Default.Save();
         }
 
@@ -281,20 +278,18 @@ namespace TinyOPDS
 
         private void libraryPath_Validated(object sender, EventArgs e)
         {
-            if (!libraryPath.Text.Equals(Properties.Settings.Default.LibraryPath) && Directory.Exists(libraryPath.Text))
+            if (!string.IsNullOrEmpty(Properties.Settings.Default.LibraryPath) && 
+                !Library.LibraryPath.Equals(Properties.Settings.Default.LibraryPath) &&
+                Directory.Exists(Properties.Settings.Default.LibraryPath))
             {
-                Properties.Settings.Default.LibraryPath = Library.LibraryPath = libraryPath.Text;
-                Properties.Settings.Default.Save();
+                Library.LibraryPath = Properties.Settings.Default.LibraryPath;
                 booksInDB.Text = string.Format("{0}       fb2: {1}      epub: {2}", 0, 0, 0);
-                if (!string.IsNullOrEmpty(Properties.Settings.Default.LibraryPath))
-                {
-                    databaseFileName.Text = Utils.CreateGuid(Utils.IsoOidNamespace, Properties.Settings.Default.LibraryPath).ToString() + ".db";
-                    // Reload library
-                    Library.LoadAsync();
-                    _watcher.DirectoryToWatch = Properties.Settings.Default.LibraryPath;
-                }
+                databaseFileName.Text = Utils.CreateGuid(Utils.IsoOidNamespace, Properties.Settings.Default.LibraryPath).ToString() + ".db";
+                _watcher.IsEnabled = false;
+                // Reload library
+                Library.LoadAsync();
             }
-            else libraryPath.Text = Properties.Settings.Default.LibraryPath;
+            else libraryPath.Undo();
         }
 
         private void folderButton_Click(object sender, EventArgs e)
@@ -406,7 +401,7 @@ namespace TinyOPDS
             // Create and start HTTP server
             HttpProcessor.AuthorizedClients.Clear();
             HttpProcessor.BannedClients.Clear();
-            _server = new OPDSServer(Properties.Settings.Default.ServerPort);
+            _server = new OPDSServer(int.Parse(Properties.Settings.Default.ServerPort));
 
             _serverThread = new Thread(new ThreadStart(_server.Listen));
             _serverThread.Priority = ThreadPriority.BelowNormal;
@@ -474,7 +469,7 @@ namespace TinyOPDS
         {
             if (_upnpController != null && _upnpController.UPnPReady)
             {
-                int port = Properties.Settings.Default.ServerPort;
+                int port = int.Parse(Properties.Settings.Default.ServerPort);
                 if (openPort.Checked)
                 {
                     _upnpController.ForwardPort(port, System.Net.Sockets.ProtocolType.Tcp, "TinyOPDS server");
@@ -567,11 +562,11 @@ namespace TinyOPDS
 
         private void convertorPath_Validated(object sender, EventArgs e)
         {
-            if (Directory.Exists(convertorPath.Text) && File.Exists(Path.Combine(convertorPath.Text, Utils.IsLinux ? "fb2toepub" : "Fb2ePub.exe")))
+            if (!string.IsNullOrEmpty(convertorPath.Text) && Directory.Exists(convertorPath.Text) && File.Exists(Path.Combine(convertorPath.Text, Utils.IsLinux ? "fb2toepub" : "Fb2ePub.exe")))
             {
                 Properties.Settings.Default.ConvertorPath = convertorPath.Text;
             }
-            else 
+            else
             {
                 convertorPath.Text = Properties.Settings.Default.ConvertorPath;
             }
@@ -639,19 +634,16 @@ namespace TinyOPDS
             bool valid = int.TryParse(serverPort.Text, out port);
             if (valid && port >= 1 && port <= 65535)
             {
-                if (port != Properties.Settings.Default.ServerPort)
+                if (_upnpController != null && _upnpController.UPnPReady && openPort.Checked)
                 {
-                    if (_upnpController != null && _upnpController.UPnPReady && openPort.Checked)
-                    {
-                        openPort.Checked = false;
-                        Properties.Settings.Default.ServerPort = port;
-                        openPort.Checked = true;
-                    }
-                    else Properties.Settings.Default.ServerPort = port;
-                    if (_server != null && _server.IsActive)
-                    {
-                        RestartHttpServer();
-                    }
+                    openPort.Checked = false;
+                    Properties.Settings.Default.ServerPort = port.ToString();
+                    openPort.Checked = true;
+                }
+                else Properties.Settings.Default.ServerPort = port.ToString();
+                if (_server != null && _server.IsActive)
+                {
+                    RestartHttpServer();
                 }
             }
             else
@@ -757,9 +749,9 @@ namespace TinyOPDS
             {
                 _updateUrl = string.Empty;
                 int minutesFromLastCheck = (int) Math.Round(DateTime.Now.Subtract(Properties.Settings.Default.LastCheck).TotalMinutes);
-                Log.WriteLine(LogLevel.Info, "Checking software update. Minutes from the last check: {0}", minutesFromLastCheck);
                 if (minutesFromLastCheck >= checkIntervals[Properties.Settings.Default.UpdatesCheck])
                 {
+                    Log.WriteLine(LogLevel.Info, "Checking software update. Minutes from the last check: {0}", minutesFromLastCheck);
                     WebClient wc = new WebClient();
                     wc.DownloadStringCompleted += wc_DownloadStringCompleted;
                     wc.DownloadStringAsync(new Uri("http://senssoft.com/tinyopds.txt"));

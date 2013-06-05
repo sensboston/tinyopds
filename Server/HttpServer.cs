@@ -14,6 +14,7 @@
  ************************************************************/
 
 using System;
+using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -412,6 +413,7 @@ namespace TinyOPDS.Server
         public int SuccessfulLoginAttempts { get { return _successfulLoginAttempts; } set { _successfulLoginAttempts = value; if (StatisticsUpdated != null) StatisticsUpdated(this, null); } }
         public int WrongLoginAttempts { get { return _wrongLoginAttempts; } set { _wrongLoginAttempts = value; if (StatisticsUpdated != null) StatisticsUpdated(this, null); } }
         public int UniqueClientsCount { get { return _uniqueClients.Count; } }
+        public int BannedClientsCount { get { return HttpProcessor.BannedClients.Count(сlient => сlient.Value >= Properties.Settings.Default.WrongAttemptsCount); } }
         public void AddClient(string newClient) { _uniqueClients[newClient] = true; }
         private Dictionary<string, bool> _uniqueClients = new Dictionary<string, bool>();
         public void Clear()

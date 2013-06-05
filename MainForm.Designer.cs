@@ -653,11 +653,12 @@
             // 
             // serverPort
             // 
+            this.serverPort.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::TinyOPDS.Properties.Settings.Default, "ServerPort", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
             this.serverPort.Location = new System.Drawing.Point(406, 35);
             this.serverPort.Name = "serverPort";
             this.serverPort.Size = new System.Drawing.Size(59, 20);
             this.serverPort.TabIndex = 10;
-            this.serverPort.Text = "8080";
+            this.serverPort.Text = global::TinyOPDS.Properties.Settings.Default.ServerPort;
             this.serverPort.Validated += new System.EventHandler(this.serverPort_Validated);
             // 
             // label3
@@ -1002,12 +1003,10 @@
             // 
             this.convertorPath.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.convertorPath.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::TinyOPDS.Properties.Settings.Default, "ConvertorPath", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
             this.convertorPath.Location = new System.Drawing.Point(11, 28);
             this.convertorPath.Name = "convertorPath";
             this.convertorPath.Size = new System.Drawing.Size(415, 20);
             this.convertorPath.TabIndex = 28;
-            this.convertorPath.Text = global::TinyOPDS.Properties.Settings.Default.ConvertorPath;
             this.convertorPath.Validated += new System.EventHandler(this.convertorPath_Validated);
             // 
             // closeToTray

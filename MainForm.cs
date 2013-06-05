@@ -158,6 +158,7 @@ namespace TinyOPDS
                         statUniqueClients.Text = HttpServer.ServerStatistics.UniqueClientsCount.ToString();
                         statGoodLogins.Text = HttpServer.ServerStatistics.SuccessfulLoginAttempts.ToString();
                         statWrongLogins.Text = HttpServer.ServerStatistics.WrongLoginAttempts.ToString();
+                        statBannedClients.Text = HttpServer.ServerStatistics.BannedClientsCount.ToString();
                     });
                 };
 

@@ -83,7 +83,7 @@
             this.rootPrefix = new System.Windows.Forms.TextBox();
             this.serverName = new System.Windows.Forms.TextBox();
             this.tabPage5 = new System.Windows.Forms.TabPage();
-            this.label29 = new System.Windows.Forms.Label();
+            this.statBannedClients = new System.Windows.Forms.Label();
             this.label31 = new System.Windows.Forms.Label();
             this.label24 = new System.Windows.Forms.Label();
             this.wrongAttemptsCount = new System.Windows.Forms.NumericUpDown();
@@ -715,7 +715,7 @@
             // tabPage5
             // 
             this.tabPage5.BackColor = System.Drawing.SystemColors.Control;
-            this.tabPage5.Controls.Add(this.label29);
+            this.tabPage5.Controls.Add(this.statBannedClients);
             this.tabPage5.Controls.Add(this.label31);
             this.tabPage5.Controls.Add(this.label24);
             this.tabPage5.Controls.Add(this.wrongAttemptsCount);
@@ -734,15 +734,15 @@
             this.tabPage5.TabIndex = 4;
             this.tabPage5.Text = "Authentication";
             // 
-            // label29
+            // statBannedClients
             // 
-            this.label29.AutoSize = true;
-            this.label29.Location = new System.Drawing.Point(429, 254);
-            this.label29.Name = "label29";
-            this.label29.Size = new System.Drawing.Size(13, 13);
-            this.label29.TabIndex = 48;
-            this.label29.Text = "0";
-            this.label29.TextAlign = System.Drawing.ContentAlignment.TopRight;
+            this.statBannedClients.AutoSize = true;
+            this.statBannedClients.Location = new System.Drawing.Point(429, 254);
+            this.statBannedClients.Name = "statBannedClients";
+            this.statBannedClients.Size = new System.Drawing.Size(13, 13);
+            this.statBannedClients.TabIndex = 48;
+            this.statBannedClients.Text = "0";
+            this.statBannedClients.TextAlign = System.Drawing.ContentAlignment.TopRight;
             // 
             // label31
             // 
@@ -1369,7 +1369,7 @@
         private System.Windows.Forms.Label label24;
         private System.Windows.Forms.NumericUpDown wrongAttemptsCount;
         private System.Windows.Forms.CheckBox banClients;
-        private System.Windows.Forms.Label label29;
+        private System.Windows.Forms.Label statBannedClients;
         private System.Windows.Forms.Label label31;
         private System.Windows.Forms.Label label32;
         private System.Windows.Forms.ComboBox updateCombo;

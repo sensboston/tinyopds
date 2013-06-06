@@ -38,8 +38,6 @@ namespace TinyOPDS.Scanner
         private FileSystemWatcher _fileWatcher;
         private bool _disposed = false;
 
-        public event EventHandler OnScanStarted;
-        public event EventHandler OnScanCompleted;
         public event BookAddedEventHandler OnBookAdded;
         public event BookDeletedEventHandler OnBookDeleted;
         public event InvalidBookEventHandler OnInvalidBook;
@@ -127,12 +125,12 @@ namespace TinyOPDS.Scanner
             {
                 if (Library.Add(be.Book))
                 {
+                    Library.Append(be.Book);
                     if (OnBookAdded != null) OnBookAdded(this, new BookAddedEventArgs(be.Book.FileName));
                 }
             };
             scanner.OnInvalidBook += (object _sender, InvalidBookEventArgs _e) => { if (OnInvalidBook != null) OnInvalidBook(_sender, _e); };
             scanner.OnFileSkipped += (object _sender, FileSkippedEventArgs _e) => { if (OnFileSkipped != null) OnFileSkipped(_sender, _e); };
-            scanner.OnScanCompleted += (_, __) => { if (OnScanCompleted != null) OnScanCompleted(this, null); };
 
             TimerObject timerObject = new TimerObject();
             Timer delayedTimer = new Timer(new TimerCallback(DelayedScan), timerObject, Timeout.Infinite, Timeout.Infinite);
@@ -146,7 +144,6 @@ namespace TinyOPDS.Scanner
         {
             TimerObject timerObject = state as TimerObject;
             timerObject.timer.Dispose();
-            if (OnScanStarted != null) OnScanStarted(this, null);
             timerObject.scanner.ScanFile(timerObject.path);
         }
 

@@ -104,9 +104,14 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// 
+        /// Full path to the library folder
         /// </summary>
         public static string LibraryPath { get; set; }
+
+        /// <summary>
+        /// Library changed flag
+        /// </summary>
+        public static bool IsChanged { get; set; }
 
         /// <summary>
         /// 
@@ -164,6 +169,7 @@ namespace TinyOPDS.Data
                     lock (_paths) _paths[book.FileName] = true;
                     if (!isDuplicate)
                     {
+                        IsChanged = true;
                         if (book.BookType == BookType.FB2) FB2Count++; else EPUBCount++;
                     }
                     else
@@ -203,7 +209,7 @@ namespace TinyOPDS.Data
                                 _books.Remove(book.ID);
                                 _paths.Remove(book.FileName);
                                 if (book.BookType == BookType.FB2) FB2Count--; else EPUBCount--;
-                                result = true;
+                                result = IsChanged = true;
                             }
                         }
                     }
@@ -218,7 +224,7 @@ namespace TinyOPDS.Data
                         }
                         if (booksForRemove.Count > 0)
                         {
-                            result = true;
+                            result = IsChanged = true;
                         }
                     }
                 }
@@ -477,6 +483,8 @@ namespace TinyOPDS.Data
 
                     FB2Count = _books.Count(b => b.Value.BookType == BookType.FB2);
                     EPUBCount = _books.Count(b => b.Value.BookType == BookType.EPUB);
+
+                    IsChanged = false;
                 }
             }
 
@@ -517,6 +525,7 @@ namespace TinyOPDS.Data
             finally
             {
                 if (fileStream != null) fileStream.Dispose();
+                IsChanged = false;
                 Log.WriteLine(LogLevel.Info, "Database save time = {0}, {1} book records written to disk", DateTime.Now.Subtract(start), numRecords);
             }
         }
@@ -543,7 +552,11 @@ namespace TinyOPDS.Data
             }
             finally
             {
-                if (fileStream != null) fileStream.Dispose();
+                if (fileStream != null)
+                {
+                    fileStream.Dispose();
+                }
+                IsChanged = false;
             }
         }
 

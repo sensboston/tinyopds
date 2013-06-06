@@ -98,27 +98,11 @@ namespace TinyOPDS
 
             // Create file watcher
             _watcher = new Watcher(Library.LibraryPath);
-            _watcher.OnScanStarted += (_, __) =>
-                {
-                    this.BeginInvoke((MethodInvoker)delegate
-                    {
-                        scannerButton.Enabled = false;
-                        status.Text = Localizer.Text("SCANNING");
-                    });
-                };
-            _watcher.OnScanCompleted += (_, __) =>
-                {
-                    this.BeginInvoke((MethodInvoker)delegate
-                    {
-                        scannerButton.Enabled = true;
-                        status.Text = Localizer.Text("STOPPED");
-                    });
-                };
             _watcher.OnBookAdded += (object sender, BookAddedEventArgs e) => 
                 {
                     if (e.BookType == BookType.FB2) _fb2Count++; else _epubCount++;
                     UpdateInfo();
-                    Log.WriteLine(LogLevel.Info, "Book {0} added to the library", e.BookPath);
+                    Log.WriteLine(LogLevel.Info, "Book \"{0}\" added to the library", e.BookPath);
                 };
             _watcher.OnInvalidBook += (_, __) => 
                 {
@@ -134,7 +118,7 @@ namespace TinyOPDS
             _watcher.OnBookDeleted += (object sender, BookDeletedEventArgs e) => 
                 {
                     UpdateInfo();
-                    Log.WriteLine(LogLevel.Info, "Book {0} deleted from the library", e.BookPath);
+                    Log.WriteLine(LogLevel.Info, "Book \"{0}\" deleted from the library", e.BookPath);
                 };
             _watcher.IsEnabled = false;
 
@@ -531,11 +515,10 @@ namespace TinyOPDS
                 _serverThread = null;
                 _server = null;
             }
-            if (_scanner.Status == FileScannerStatus.SCANNING)
-            {
-                _scanner.Stop();
-                Library.Save();
-            }
+
+            if (_scanner.Status == FileScannerStatus.SCANNING) _scanner.Stop();
+            if (Library.IsChanged) Library.Save();
+
             if (_upnpController != null)
             {
                 _upnpController.DiscoverCompleted -= _upnpController_DiscoverCompleted;

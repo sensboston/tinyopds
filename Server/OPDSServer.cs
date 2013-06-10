@@ -27,7 +27,7 @@ namespace TinyOPDS.Server
 {
     public class OPDSServer : HttpServer
     {
-        public OPDSServer(int port, int timeout = 5000) : base(port, timeout) { }
+        public OPDSServer(IPAddress interfaceIP, int port, int timeout = 5000) : base(interfaceIP, port, timeout) { }
 
         /// <summary>
         /// Dummy for POST requests

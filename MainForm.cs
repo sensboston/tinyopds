@@ -56,6 +56,11 @@ namespace TinyOPDS
             Log.SaveToFile = Properties.Settings.Default.SaveLogToDisk;
 
             InitializeComponent();
+
+            // Assign combo data source to the list of all available interfaces
+            interfaceCombo.DataSource = UPnPController.LocalInterfaces;
+            interfaceCombo.DataBindings.Add(new Binding("SelectedIndex", Properties.Settings.Default, "LocalInterfaceIndex", false, DataSourceUpdateMode.OnPropertyChanged));
+
             logVerbosity.DataBindings.Add(new Binding("SelectedIndex", Properties.Settings.Default, "LogLevel", false, DataSourceUpdateMode.OnPropertyChanged));
             updateCombo.DataBindings.Add(new Binding("SelectedIndex", Properties.Settings.Default, "UpdatesCheck", false, DataSourceUpdateMode.OnPropertyChanged));
             this.PerformLayout();
@@ -117,7 +122,7 @@ namespace TinyOPDS
 
             _watcher.OnBookDeleted += (object sender, BookDeletedEventArgs e) => 
                 {
-                    UpdateInfo();
+                    //UpdateInfo();
                     Log.WriteLine(LogLevel.Info, "Book \"{0}\" deleted from the library", e.BookPath);
                 };
             _watcher.IsEnabled = false;
@@ -196,6 +201,9 @@ namespace TinyOPDS
             else convertorPath.Text = Properties.Settings.Default.ConvertorPath;
             converterLinkLabel.Visible = string.IsNullOrEmpty(convertorPath.Text);
 
+            // We should select network interface first
+            interfaceCombo.SelectedIndex = Properties.Settings.Default.LocalInterfaceIndex;
+
             openPort.Checked = Properties.Settings.Default.UseUPnP ? Properties.Settings.Default.OpenNATPort : false;
             banClients.Enabled = rememberClients.Enabled = dataGridView1.Enabled = Properties.Settings.Default.UseHTTPAuth;
             wrongAttemptsCount.Enabled = banClients.Checked && useHTTPAuth.Checked;
@@ -266,6 +274,7 @@ namespace TinyOPDS
                 !Library.LibraryPath.Equals(Properties.Settings.Default.LibraryPath) &&
                 Directory.Exists(Properties.Settings.Default.LibraryPath))
             {
+                if (Library.IsChanged) Library.Save();
                 Library.LibraryPath = Properties.Settings.Default.LibraryPath;
                 booksInDB.Text = string.Format("{0}       fb2: {1}      epub: {2}", 0, 0, 0);
                 databaseFileName.Text = Utils.CreateGuid(Utils.IsoOidNamespace, Properties.Settings.Default.LibraryPath).ToString() + ".db";
@@ -385,7 +394,7 @@ namespace TinyOPDS
             // Create and start HTTP server
             HttpProcessor.AuthorizedClients.Clear();
             HttpProcessor.BannedClients.Clear();
-            _server = new OPDSServer(int.Parse(Properties.Settings.Default.ServerPort));
+            _server = new OPDSServer(_upnpController.LocalIP, int.Parse(Properties.Settings.Default.ServerPort));
 
             _serverThread = new Thread(new ThreadStart(_server.Listen));
             _serverThread.Priority = ThreadPriority.BelowNormal;
@@ -466,6 +475,22 @@ namespace TinyOPDS
 
                     Log.WriteLine("Port {0} closed", port);
                 }
+            }
+        }
+
+        private void interfaceCombo_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (_upnpController != null && _upnpController.InterfaceIndex != interfaceCombo.SelectedIndex)
+            {
+                _upnpController.InterfaceIndex = interfaceCombo.SelectedIndex;
+                intLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
+                if (Properties.Settings.Default.UseUPnP && openPort.Checked)
+                {
+                    int port = int.Parse(Properties.Settings.Default.ServerPort);
+                    _upnpController.DeleteForwardingRule(port, System.Net.Sockets.ProtocolType.Tcp);
+                    _upnpController.ForwardPort(port, System.Net.Sockets.ProtocolType.Tcp, "TinyOPDS server");
+                }
+                RestartHttpServer();
             }
         }
 

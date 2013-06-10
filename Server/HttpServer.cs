@@ -431,15 +431,25 @@ namespace TinyOPDS.Server
     {
         protected int _port;
         protected int _timeout;
+        protected IPAddress _interfaceIP = IPAddress.Any;
         TcpListener _listener;
         internal bool _isActive = false;
         public bool IsActive { get { return _isActive; } }
         public Exception ServerException = null;
         public AutoResetEvent ServerReady = null;
         public static Statistics ServerStatistics = new Statistics();
-       
-        public HttpServer(int Port, int Timeout = 10000) 
+
+        public HttpServer(int Port, int Timeout = 10000)
         {
+            _port = Port;
+            _timeout = Timeout;
+            ServerReady = new AutoResetEvent(false);
+            ServerStatistics.Clear();
+        }
+
+        public HttpServer(IPAddress InterfaceIP, int Port, int Timeout = 10000) 
+        {
+            _interfaceIP = InterfaceIP;
             _port = Port;
             _timeout = Timeout;
             ServerReady = new AutoResetEvent(false);
@@ -475,7 +485,7 @@ namespace TinyOPDS.Server
             ServerException = null;
             try
             {
-                _listener = new TcpListener(IPAddress.Any, _port);
+                _listener = new TcpListener(_interfaceIP, _port);
                 _listener.Start();
                 _isActive = true;
                 ServerReady.Set();

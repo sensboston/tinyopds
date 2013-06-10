@@ -44,7 +44,6 @@ namespace UPnP
 
         public UPnPController ()
         {
-            LocalIP = DetectLocalIP();
             Discovered = false;
         }
 
@@ -232,36 +231,56 @@ namespace UPnP
         }
 
         /// <summary>
+        /// Local network interface index
+        /// </summary>
+        private int _interfaceIndex = 0;
+        public int InterfaceIndex
+        {
+            get { return _interfaceIndex; }
+            set { if (value >= 0 && value < LocalInterfaces.Count) _interfaceIndex = value; }
+        }
+
+        /// <summary>
         /// Local IP address
         /// </summary>
         /// <returns></returns>
-        public IPAddress LocalIP { get; private set; }
+        public IPAddress LocalIP { get { return LocalInterfaces[InterfaceIndex]; } }
 
-        private IPAddress DetectLocalIP()
+        /// <summary>
+        /// List of all local network interfaces with gateways
+        /// </summary>
+        private static List<IPAddress> _localInterfaces = null;
+        public static List<IPAddress> LocalInterfaces
         {
-            IPAddress address = IPAddress.Any;
-
-            foreach (NetworkInterface netif in NetworkInterface.GetAllNetworkInterfaces())
+            get
             {
-                IPInterfaceProperties properties = netif.GetIPProperties();
-
-                foreach (GatewayIPAddressInformation gw in properties.GatewayAddresses)
+                if (_localInterfaces == null)
                 {
-                    if (!gw.Address.ToString().Equals("0.0.0.0"))
+                    _localInterfaces = new List<IPAddress>();
+                    foreach (NetworkInterface netif in NetworkInterface.GetAllNetworkInterfaces())
                     {
-                        foreach (IPAddressInformation unicast in properties.UnicastAddresses)
+                        IPInterfaceProperties properties = netif.GetIPProperties();
+                        foreach (GatewayIPAddressInformation gw in properties.GatewayAddresses)
                         {
-                            // Lets skip "link local" addresses (RFC 3927), probably this address is disabled
-                            if (unicast.Address.ToString().StartsWith("169.254")) break;
-                            if (unicast.Address.AddressFamily == AddressFamily.InterNetwork)
+                            if (!gw.Address.ToString().Equals("0.0.0.0"))
                             {
-                                return unicast.Address;
+                                foreach (IPAddressInformation unicast in properties.UnicastAddresses)
+                                {
+                                    // Lets skip "link local" addresses (RFC 3927), probably this address is disabled
+                                    if (unicast.Address.ToString().StartsWith("169.254")) break;
+                                    if (unicast.Address.AddressFamily == AddressFamily.InterNetwork)
+                                    {
+                                        _localInterfaces.Add(unicast.Address);
+                                    }
+                                }
                             }
                         }
                     }
+                    // If no network interface detected, add at least a local loopback (127.0.0.1)
+                    if (_localInterfaces.Count == 0) _localInterfaces.Add(IPAddress.Loopback);
                 }
+                return _localInterfaces;
             }
-            return address;
         }
 
         public IPAddress ExternalIP { get; private set;}

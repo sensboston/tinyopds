@@ -61,6 +61,8 @@
             this.scannerButton = new System.Windows.Forms.Button();
             this.libraryPath = new System.Windows.Forms.TextBox();
             this.tabPage2 = new System.Windows.Forms.TabPage();
+            this.interfaceCombo = new System.Windows.Forms.ComboBox();
+            this.label29 = new System.Windows.Forms.Label();
             this.statUniqueClients = new System.Windows.Forms.Label();
             this.label26 = new System.Windows.Forms.Label();
             this.statImages = new System.Windows.Forms.Label();
@@ -483,6 +485,8 @@
             // tabPage2
             // 
             this.tabPage2.BackColor = System.Drawing.SystemColors.Control;
+            this.tabPage2.Controls.Add(this.interfaceCombo);
+            this.tabPage2.Controls.Add(this.label29);
             this.tabPage2.Controls.Add(this.statUniqueClients);
             this.tabPage2.Controls.Add(this.label26);
             this.tabPage2.Controls.Add(this.statImages);
@@ -510,6 +514,25 @@
             this.tabPage2.Size = new System.Drawing.Size(473, 289);
             this.tabPage2.TabIndex = 1;
             this.tabPage2.Text = "OPDS server settings";
+            // 
+            // interfaceCombo
+            // 
+            this.interfaceCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.interfaceCombo.FormattingEnabled = true;
+            this.interfaceCombo.Location = new System.Drawing.Point(294, 35);
+            this.interfaceCombo.Name = "interfaceCombo";
+            this.interfaceCombo.Size = new System.Drawing.Size(113, 21);
+            this.interfaceCombo.TabIndex = 47;
+            this.interfaceCombo.SelectedIndexChanged += new System.EventHandler(this.interfaceCombo_SelectedIndexChanged);
+            // 
+            // label29
+            // 
+            this.label29.AutoSize = true;
+            this.label29.Location = new System.Drawing.Point(292, 16);
+            this.label29.Name = "label29";
+            this.label29.Size = new System.Drawing.Size(94, 13);
+            this.label29.TabIndex = 46;
+            this.label29.Text = "Network interface:";
             // 
             // statUniqueClients
             // 
@@ -616,7 +639,7 @@
             // 
             this.openPort.AutoSize = true;
             this.openPort.Enabled = false;
-            this.openPort.Location = new System.Drawing.Point(317, 96);
+            this.openPort.Location = new System.Drawing.Point(294, 94);
             this.openPort.Name = "openPort";
             this.openPort.Size = new System.Drawing.Size(130, 17);
             this.openPort.TabIndex = 15;
@@ -654,9 +677,9 @@
             // serverPort
             // 
             this.serverPort.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::TinyOPDS.Properties.Settings.Default, "ServerPort", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.serverPort.Location = new System.Drawing.Point(406, 35);
+            this.serverPort.Location = new System.Drawing.Point(421, 35);
             this.serverPort.Name = "serverPort";
-            this.serverPort.Size = new System.Drawing.Size(59, 20);
+            this.serverPort.Size = new System.Drawing.Size(37, 20);
             this.serverPort.TabIndex = 10;
             this.serverPort.Text = global::TinyOPDS.Properties.Settings.Default.ServerPort;
             this.serverPort.Validated += new System.EventHandler(this.serverPort_Validated);
@@ -664,7 +687,7 @@
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(403, 16);
+            this.label3.Location = new System.Drawing.Point(419, 16);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(29, 13);
             this.label3.TabIndex = 9;
@@ -686,7 +709,7 @@
             this.useUPnP.Checked = global::TinyOPDS.Properties.Settings.Default.UseUPnP;
             this.useUPnP.CheckState = System.Windows.Forms.CheckState.Checked;
             this.useUPnP.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "UseUPnP", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.useUPnP.Location = new System.Drawing.Point(317, 70);
+            this.useUPnP.Location = new System.Drawing.Point(294, 68);
             this.useUPnP.Name = "useUPnP";
             this.useUPnP.Size = new System.Drawing.Size(76, 17);
             this.useUPnP.TabIndex = 35;
@@ -709,7 +732,7 @@
             this.serverName.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::TinyOPDS.Properties.Settings.Default, "ServerName", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
             this.serverName.Location = new System.Drawing.Point(20, 35);
             this.serverName.Name = "serverName";
-            this.serverName.Size = new System.Drawing.Size(373, 20);
+            this.serverName.Size = new System.Drawing.Size(256, 20);
             this.serverName.TabIndex = 12;
             this.serverName.Text = global::TinyOPDS.Properties.Settings.Default.ServerName;
             // 
@@ -1372,6 +1395,8 @@
         private System.Windows.Forms.Label label31;
         private System.Windows.Forms.Label label32;
         private System.Windows.Forms.ComboBox updateCombo;
+        private System.Windows.Forms.ComboBox interfaceCombo;
+        private System.Windows.Forms.Label label29;
     }
 }
 

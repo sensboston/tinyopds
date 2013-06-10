@@ -287,5 +287,17 @@ namespace TinyOPDS.Properties {
                 this["WrongAttemptsCount"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int LocalInterfaceIndex {
+            get {
+                return ((int)(this["LocalInterfaceIndex"]));
+            }
+            set {
+                this["LocalInterfaceIndex"] = value;
+            }
+        }
     }
 }

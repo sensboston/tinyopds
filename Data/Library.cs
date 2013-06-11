@@ -109,7 +109,7 @@ namespace TinyOPDS.Data
         public static string LibraryPath { get; set; }
 
         /// <summary>
-        /// Library changed flag
+        /// Library changed flag (we should save!)
         /// </summary>
         public static bool IsChanged { get; set; }
 
@@ -214,6 +214,7 @@ namespace TinyOPDS.Data
                         }
                     }
                     // removed object should be archive or directory: let's remove all books with that path or zip
+                    else 
                     {
                         List<Book> booksForRemove = _books.Where(b => b.Value.FileName.Contains(fileName)).Select(b => b.Value).ToList();
                         foreach (Book book in booksForRemove)

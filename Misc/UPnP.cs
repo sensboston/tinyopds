@@ -177,7 +177,6 @@ namespace UPnP
             if (registryKey == null) registryKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\.NETFramework", true);
             if (registryKey.GetValue("LegacyWPADSupport") == null) registryKey.SetValue("LegacyWPADSupport", 0);
 #endif
-
             try
             {
                 XmlDocument desc = new XmlDocument();

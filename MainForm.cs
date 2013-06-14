@@ -55,6 +55,9 @@ namespace TinyOPDS
         {
             Log.SaveToFile = Properties.Settings.Default.SaveLogToDisk;
 
+            AppDomain currentDomain = AppDomain.CurrentDomain;
+            currentDomain.UnhandledException += currentDomain_UnhandledException;
+
             InitializeComponent();
 
             // Assign combo data source to the list of all available interfaces
@@ -107,7 +110,7 @@ namespace TinyOPDS
                 {
                     if (e.BookType == BookType.FB2) _fb2Count++; else _epubCount++;
                     UpdateInfo();
-                    Log.WriteLine(LogLevel.Info, "Book \"{0}\" added to the library", e.BookPath);
+                    Log.WriteLine(LogLevel.Info, "Added: \"{0}\"", e.BookPath);
                 };
             _watcher.OnInvalidBook += (_, __) => 
                 {
@@ -122,8 +125,8 @@ namespace TinyOPDS
 
             _watcher.OnBookDeleted += (object sender, BookDeletedEventArgs e) => 
                 {
-                    //UpdateInfo();
-                    Log.WriteLine(LogLevel.Info, "Book \"{0}\" deleted from the library", e.BookPath);
+                    UpdateInfo();
+                    Log.WriteLine(LogLevel.Info, "Deleted: \"{0}\"", e.BookPath);
                 };
             _watcher.IsEnabled = false;
 
@@ -153,6 +156,17 @@ namespace TinyOPDS
 
             _scanStartTime = DateTime.Now;
             _notifyIcon.Visible = Properties.Settings.Default.CloseToTray;
+        }
+
+        /// <summary>
+        /// Process unhandled exceptions
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        void currentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs args)
+        {
+            Exception e = (Exception) args.ExceptionObject;
+            Log.WriteLine(LogLevel.Error, "Message: {0}\nStack trace: {1}", e.Message, e.StackTrace);
         }
 
         void _upnpController_DiscoverCompleted(object sender, EventArgs e)
@@ -201,14 +215,16 @@ namespace TinyOPDS
             else convertorPath.Text = Properties.Settings.Default.ConvertorPath;
             converterLinkLabel.Visible = string.IsNullOrEmpty(convertorPath.Text);
 
-            // We should select network interface first
+            // We should update all invisible controls
             interfaceCombo.SelectedIndex = Properties.Settings.Default.LocalInterfaceIndex;
+            logVerbosity.SelectedIndex =Properties.Settings.Default.LogLevel;
+            updateCombo.SelectedIndex = Properties.Settings.Default.UpdatesCheck;
+            langCombo.SelectedValue = Properties.Settings.Default.Language;
 
             openPort.Checked = Properties.Settings.Default.UseUPnP ? Properties.Settings.Default.OpenNATPort : false;
             banClients.Enabled = rememberClients.Enabled = dataGridView1.Enabled = Properties.Settings.Default.UseHTTPAuth;
             wrongAttemptsCount.Enabled = banClients.Checked && useHTTPAuth.Checked;
-
-            langCombo.SelectedValue = Properties.Settings.Default.Language;
+            
             _notifyIcon.Visible = Properties.Settings.Default.CloseToTray;
             if (Properties.Settings.Default.UpdatesCheck > 0) _updateChecker.Start();
 

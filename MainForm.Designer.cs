@@ -638,6 +638,8 @@
             // openPort
             // 
             this.openPort.AutoSize = true;
+            this.openPort.Checked = global::TinyOPDS.Properties.Settings.Default.OpenNATPort;
+            this.openPort.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "OpenNATPort", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
             this.openPort.Enabled = false;
             this.openPort.Location = new System.Drawing.Point(294, 94);
             this.openPort.Name = "openPort";

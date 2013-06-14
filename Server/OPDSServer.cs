@@ -129,7 +129,6 @@ namespace TinyOPDS.Server
                         if (isBrowser && File.Exists(Path.Combine(Utils.ServiceFilesLocation, "opds.xsl")))
                         {
                             xml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<?xml-stylesheet href=\"opds.xsl\" type=\"text/xsl\"?>\n" + xml.Remove(5, xml.IndexOf(">") - 5);
-                            xml = xml.Replace("feed", "root");
                         }
                         else
                         {

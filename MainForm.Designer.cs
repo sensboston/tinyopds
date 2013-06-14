@@ -679,7 +679,7 @@
             this.serverPort.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::TinyOPDS.Properties.Settings.Default, "ServerPort", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
             this.serverPort.Location = new System.Drawing.Point(421, 35);
             this.serverPort.Name = "serverPort";
-            this.serverPort.Size = new System.Drawing.Size(37, 20);
+            this.serverPort.Size = new System.Drawing.Size(44, 20);
             this.serverPort.TabIndex = 10;
             this.serverPort.Text = global::TinyOPDS.Properties.Settings.Default.ServerPort;
             this.serverPort.Validated += new System.EventHandler(this.serverPort_Validated);

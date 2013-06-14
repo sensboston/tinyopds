@@ -66,6 +66,7 @@ namespace TinyOPDS
 
             logVerbosity.DataBindings.Add(new Binding("SelectedIndex", Properties.Settings.Default, "LogLevel", false, DataSourceUpdateMode.OnPropertyChanged));
             updateCombo.DataBindings.Add(new Binding("SelectedIndex", Properties.Settings.Default, "UpdatesCheck", false, DataSourceUpdateMode.OnPropertyChanged));
+
             this.PerformLayout();
 
             // Manually assign icons from resources (fix for Mono)
@@ -166,7 +167,7 @@ namespace TinyOPDS
         void currentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs args)
         {
             Exception e = (Exception) args.ExceptionObject;
-            Log.WriteLine(LogLevel.Error, "Message: {0}\nStack trace: {1}", e.Message, e.StackTrace);
+            Log.WriteLine(LogLevel.Error, "{2}: {0}\nStack trace: {1}", e.Message, e.StackTrace, args.IsTerminating ? "Fatal exception" : "Unhandled exception");
         }
 
         void _upnpController_DiscoverCompleted(object sender, EventArgs e)
@@ -216,9 +217,9 @@ namespace TinyOPDS
             converterLinkLabel.Visible = string.IsNullOrEmpty(convertorPath.Text);
 
             // We should update all invisible controls
-            interfaceCombo.SelectedIndex = Properties.Settings.Default.LocalInterfaceIndex;
-            logVerbosity.SelectedIndex =Properties.Settings.Default.LogLevel;
-            updateCombo.SelectedIndex = Properties.Settings.Default.UpdatesCheck;
+            interfaceCombo.SelectedIndex = Math.Min(UPnPController.LocalInterfaces.Count-1, Properties.Settings.Default.LocalInterfaceIndex);
+            logVerbosity.SelectedIndex = Math.Min(2, Properties.Settings.Default.LogLevel);
+            updateCombo.SelectedIndex = Math.Min(2, Properties.Settings.Default.UpdatesCheck);
             langCombo.SelectedValue = Properties.Settings.Default.Language;
 
             openPort.Checked = Properties.Settings.Default.UseUPnP ? Properties.Settings.Default.OpenNATPort : false;

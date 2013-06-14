@@ -512,7 +512,11 @@ namespace TinyOPDS.Data
                 {
                     fileStream = null;
                     writer.Write("VER1.1");
-                    foreach (Book book in _books.Values)
+
+                    // Create shallow copy (to prevent exception on dictionary modifications during foreach loop)
+                    Dictionary<string, Book> shallowCopy = null;
+                    lock (_books) shallowCopy = new Dictionary<string, Book>(_books);
+                    foreach (Book book in shallowCopy.Values)
                     {
                         writeBook(book, writer);
                         numRecords++;

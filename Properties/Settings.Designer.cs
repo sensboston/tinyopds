@@ -7,6 +7,7 @@
 //     the code is regenerated.
 // </auto-generated>
 //------------------------------------------------------------------------------
+using System;
 
 namespace TinyOPDS.Properties {
     
@@ -233,7 +234,7 @@ namespace TinyOPDS.Properties {
         [global::System.Configuration.DefaultSettingValueAttribute("0")]
         public int LogLevel {
             get {
-                return ((int)(this["LogLevel"]));
+                return Math.Min(2, ((int)(this["LogLevel"])));
             }
             set {
                 this["LogLevel"] = value;
@@ -257,7 +258,7 @@ namespace TinyOPDS.Properties {
         [global::System.Configuration.DefaultSettingValueAttribute("1")]
         public int UpdatesCheck {
             get {
-                return ((int)(this["UpdatesCheck"]));
+                return Math.Min(2, ((int)(this["UpdatesCheck"])));
             }
             set {
                 this["UpdatesCheck"] = value;

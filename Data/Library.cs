@@ -24,7 +24,7 @@ namespace TinyOPDS.Data
     public static class Library
     {
         public static event EventHandler LibraryLoaded;
-        private static Dictionary<string, bool> _paths = new Dictionary<string, bool>();
+        private static Dictionary<string, string> _paths = new Dictionary<string, string>();
         private static Dictionary<string, Book> _books = new Dictionary<string, Book>();
         private static string _databaseFullPath;
         private static List<Genre> _genres;
@@ -166,7 +166,7 @@ namespace TinyOPDS.Data
                     book.AddedDate = DateTime.Now;
                     // Make relative path
                     _books[book.ID] = book;
-                    lock (_paths) _paths[book.FileName] = true;
+                    lock (_paths) _paths[book.FileName] = book.ID;
                     if (!isDuplicate)
                     {
                         IsChanged = true;
@@ -203,7 +203,7 @@ namespace TinyOPDS.Data
                     {
                         if (Contains(fileName))
                         {
-                            Book book = _books.FirstOrDefault(b => b.Value.FileName.Equals(fileName)).Value;
+                            Book book = _books[_paths[fileName]];
                             if (book != null)
                             {
                                 _books.Remove(book.ID);
@@ -451,7 +451,7 @@ namespace TinyOPDS.Data
                                 count = reader.ReadInt32();
                                 for (int i = 0; i < count; i++) book.Genres.Add(reader.ReadString());
                                 lock (_books) _books[book.ID] = book;
-                                lock (_paths) _paths[book.FileName] = true;
+                                lock (_paths) _paths[book.FileName] = book.ID;
                                 book.AddedDate = newFormat ? DateTime.FromBinary(reader.ReadInt64()) : now;
 
                                 numRecords++;

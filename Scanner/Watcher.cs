@@ -28,15 +28,13 @@ namespace TinyOPDS.Scanner
 {
     public class Watcher : IDisposable
     {
-        private class TimerObject
-        {
-            internal FileScanner scanner;
-            internal Timer timer;
-            internal string path;
-        }
-
         private FileSystemWatcher _fileWatcher;
         private bool _disposed = false;
+
+        private List<string> _addedBooks = new List<string>();
+        private List<string> _deletedBooks = new List<string>();
+        private BackgroundWorker _booksManager;
+        private FileScanner _scanner;
 
         public event BookAddedEventHandler OnBookAdded;
         public event BookDeletedEventHandler OnBookDeleted;
@@ -47,6 +45,19 @@ namespace TinyOPDS.Scanner
         public Watcher(string path = "")
         {
             DirectoryToWatch = path;
+            _booksManager = new BackgroundWorker();
+            _booksManager.DoWork += _booksManager_DoWork;
+            _scanner = new FileScanner(false);
+            _scanner.OnBookFound += (object s, BookFoundEventArgs be) =>
+            {
+                if (Library.Add(be.Book))
+                {
+                    //Library.Append(be.Book);
+                    if (OnBookAdded != null) OnBookAdded(this, new BookAddedEventArgs(be.Book.FileName));
+                }
+            };
+            _scanner.OnInvalidBook += (object _sender, InvalidBookEventArgs _e) => { if (OnInvalidBook != null) OnInvalidBook(_sender, _e); };
+            _scanner.OnFileSkipped += (object _sender, FileSkippedEventArgs _e) => { if (OnFileSkipped != null) OnFileSkipped(_sender, _e); };
         }
 
         public void Dispose()
@@ -58,11 +69,15 @@ namespace TinyOPDS.Scanner
         protected virtual void Dispose(bool disposing)
         {
             // Check to see if Dispose has already been called.
-
             if (!this._disposed)
             {
                 if (disposing)
                 {
+                    if (_booksManager != null)
+                    {
+                        _isEnabled = false;
+                        _booksManager.Dispose();
+                    }
                     if (_fileWatcher != null) _fileWatcher.Dispose();
                 }
                 _disposed = true;
@@ -109,6 +124,64 @@ namespace TinyOPDS.Scanner
                 if (_fileWatcher != null)
                 {
                     _fileWatcher.EnableRaisingEvents = _isEnabled = value;
+                    if (_isEnabled) _booksManager.RunWorkerAsync();
+                    else
+                    {
+                        _addedBooks.Clear();
+                        _deletedBooks.Clear();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Book manager thread
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        void _booksManager_DoWork(object sender, DoWorkEventArgs e)
+        {
+            string fileName = string.Empty;
+            while (_isEnabled && !_disposed)
+            {
+                // First, check added books
+                if (_addedBooks.Count > 0)
+                {
+                    fileName = _addedBooks.First();
+                    // If book scheduled for deletion, do not add it
+                    if (_deletedBooks.Contains(fileName))
+                    {
+                        _deletedBooks.Remove(fileName);
+                        _addedBooks.Remove(fileName);
+                    }
+                    else
+                    {
+                        if (!IsFileInUse(fileName))
+                        {
+                            _scanner.ScanFile(fileName);
+                            _addedBooks.Remove(fileName);
+                        }
+                        else
+                        {
+                            _addedBooks.Remove(fileName);
+                            _addedBooks.Add(fileName);
+                        }
+                    }
+                }
+                // Delete book from library (we don't care about actual file existence)
+                else if (_deletedBooks.Count > 0)
+                {
+                    fileName = _deletedBooks.First();
+                    if (Library.Delete(fileName))
+                    {
+                        if (OnBookDeleted != null) OnBookDeleted(this, new BookDeletedEventArgs(fileName));
+                    }
+                    _deletedBooks.Remove(fileName);
+                }
+                // Get some rest for UI
+                else
+                {
+                    Thread.Sleep(100);
                 }
             }
         }
@@ -120,31 +193,7 @@ namespace TinyOPDS.Scanner
         /// <param name="e"></param>
         private void _fileWatcher_Created(object sender, FileSystemEventArgs e)
         {
-            FileScanner scanner = new FileScanner(false);
-            scanner.OnBookFound += (object s, BookFoundEventArgs be) =>
-            {
-                if (Library.Add(be.Book))
-                {
-                    Library.Append(be.Book);
-                    if (OnBookAdded != null) OnBookAdded(this, new BookAddedEventArgs(be.Book.FileName));
-                }
-            };
-            scanner.OnInvalidBook += (object _sender, InvalidBookEventArgs _e) => { if (OnInvalidBook != null) OnInvalidBook(_sender, _e); };
-            scanner.OnFileSkipped += (object _sender, FileSkippedEventArgs _e) => { if (OnFileSkipped != null) OnFileSkipped(_sender, _e); };
-
-            TimerObject timerObject = new TimerObject();
-            Timer delayedTimer = new Timer(new TimerCallback(DelayedScan), timerObject, Timeout.Infinite, Timeout.Infinite);
-            timerObject.scanner = scanner;
-            timerObject.path = e.FullPath;
-            timerObject.timer = delayedTimer;
-            delayedTimer.Change(500, Timeout.Infinite);
-        }
-
-        private void DelayedScan(object state)
-        {
-            TimerObject timerObject = state as TimerObject;
-            timerObject.timer.Dispose();
-            timerObject.scanner.ScanFile(timerObject.path);
+            lock (_addedBooks) _addedBooks.Add(e.FullPath);
         }
 
         /// <summary>
@@ -154,7 +203,7 @@ namespace TinyOPDS.Scanner
         /// <param name="e"></param>
         private void _fileWatcher_Renamed(object sender, RenamedEventArgs e)
         {
-            DeleteBookAsync(e.FullPath);
+            lock (_deletedBooks) _deletedBooks.Add(e.FullPath);
         }
 
         /// <summary>
@@ -164,21 +213,23 @@ namespace TinyOPDS.Scanner
         /// <param name="e"></param>
         private void _fileWatcher_Deleted(object sender, FileSystemEventArgs e)
         {
-            DeleteBookAsync(e.FullPath);
+            lock (_deletedBooks) _deletedBooks.Add(e.FullPath);
         }
 
-        private void DeleteBookAsync(string bookPath)
+
+        private bool IsFileInUse(string path)
         {
-            BackgroundWorker worker = new BackgroundWorker();
-            worker.DoWork += ((object s, DoWorkEventArgs ea) =>
+            if (string.IsNullOrEmpty(path)) throw new ArgumentException("'path' cannot be null or empty.", "path");
+
+            try
             {
-                if (Library.Delete(ea.Argument as string))
-                {
-                    if (OnBookDeleted != null) OnBookDeleted(this, new BookDeletedEventArgs(ea.Argument as string));
-                }
-                worker.Dispose();
-            });
-            worker.RunWorkerAsync(bookPath);
+                using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read)) { }
+            }
+            catch (IOException)
+            {
+                return true;
+            }
+            return false;
         }
     }
 }

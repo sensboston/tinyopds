@@ -925,8 +925,7 @@
             this.updateCombo.Items.AddRange(new object[] {
             "Never",
             "Once a week",
-            "Once a month",
-            "Every minute (debug)"});
+            "Once a month"});
             this.updateCombo.Location = new System.Drawing.Point(299, 166);
             this.updateCombo.Name = "updateCombo";
             this.updateCombo.Size = new System.Drawing.Size(127, 21);

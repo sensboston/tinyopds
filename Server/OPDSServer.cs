@@ -125,15 +125,11 @@ namespace TinyOPDS.Server
                             return;
                         }
 
-                        // Modify and send xml back to the client app
-                        if (isBrowser && File.Exists(Path.Combine(Utils.ServiceFilesLocation, "opds.xsl")))
-                        {
-                            xml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<?xml-stylesheet href=\"opds.xsl\" type=\"text/xsl\"?>\n" + xml.Remove(5, xml.IndexOf(">") - 5);
-                        }
-                        else
-                        {
-                            xml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" + xml.Insert(5, " xmlns=\"http://www.w3.org/2005/Atom\"");
-                        }
+                        // Add xsl template
+                        bool addXsl = File.Exists(Path.Combine(Utils.ServiceFilesLocation, "opds.xsl"));
+                        xml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"+
+                              (addXsl ? "<?xml-stylesheet href=\"opds.xsl\" type=\"text/xsl\"?>\n" : string.Empty) + 
+                              xml.Insert(5, " xmlns=\"http://www.w3.org/2005/Atom\"");
 
 #if USE_GZIP_ENCODING
                 /// Unfortunately, current OPDS-enabled apps don't support this feature, even those that pretend to (like FBReader for Android)

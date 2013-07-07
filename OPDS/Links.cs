@@ -35,12 +35,5 @@ namespace TinyOPDS.OPDS
                                                 new XAttribute("href", ""),
                                                 new XAttribute("rel","self"),
                                                 new XAttribute("type","application/atom+xml"));
-
-        public static XElement autodiscovery = new XElement("link", 
-                                                new XAttribute("href",""),
-                                                new XAttribute("profile","opds-catalog"),
-                                                new XAttribute("type","application/atom+xml"));
-
-
     }
 }

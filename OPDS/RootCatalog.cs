@@ -42,7 +42,6 @@ namespace TinyOPDS.OPDS
                           new XElement("icon", "/favicon.ico"),
 
                           // Add links
-                          Links.autodiscovery,
                           Links.opensearch,
                           Links.search,
                           Links.start,

@@ -152,7 +152,7 @@ namespace TinyOPDS.Server
                 else
 #endif
                         {
-                            processor.WriteSuccess(isBrowser ? "text/xml" : "application/atom-xml;charset=utf=8");
+                            processor.WriteSuccess(isBrowser ? "text/xml" : "application/atom+xml;charset=utf=8");
                             processor.OutputStream.Write(xml);
                         }
                     }

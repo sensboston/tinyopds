@@ -174,6 +174,17 @@ namespace TinyOPDS.Server
                 {
                     xml = new OpenSearch().OpenSearchDescription().ToString();
                     xml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" + xml.Insert(22, " xmlns=\"http://a9.com/-/spec/opensearch/1.1/\"");
+
+                    if (Properties.Settings.Default.UseAbsoluteUri)
+                    {
+                        try
+                        {
+                            string host = processor.HttpHeaders["Host"].ToString();
+                            xml = xml.Replace("href=\"", "href=\"http://" + host.UrlCombine(Properties.Settings.Default.RootPrefix));
+                        }
+                        catch { }
+                    }
+
                     processor.WriteSuccess("application/atom+xml;charset=utf-8");
                     processor.OutputStream.Write(xml);
                     return;

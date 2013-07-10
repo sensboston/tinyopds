@@ -7,7 +7,6 @@
 //     the code is regenerated.
 // </auto-generated>
 //------------------------------------------------------------------------------
-using System;
 
 namespace TinyOPDS.Properties {
     
@@ -234,7 +233,7 @@ namespace TinyOPDS.Properties {
         [global::System.Configuration.DefaultSettingValueAttribute("0")]
         public int LogLevel {
             get {
-                return Math.Min(2, ((int)(this["LogLevel"])));
+                return ((int)(this["LogLevel"]));
             }
             set {
                 this["LogLevel"] = value;
@@ -258,7 +257,7 @@ namespace TinyOPDS.Properties {
         [global::System.Configuration.DefaultSettingValueAttribute("1")]
         public int UpdatesCheck {
             get {
-                return Math.Min(2, ((int)(this["UpdatesCheck"])));
+                return ((int)(this["UpdatesCheck"]));
             }
             set {
                 this["UpdatesCheck"] = value;
@@ -298,6 +297,18 @@ namespace TinyOPDS.Properties {
             }
             set {
                 this["LocalInterfaceIndex"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool UseAbsoluteUri {
+            get {
+                return ((bool)(this["UseAbsoluteUri"]));
+            }
+            set {
+                this["UseAbsoluteUri"] = value;
             }
         }
     }

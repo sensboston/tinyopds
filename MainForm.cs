@@ -459,19 +459,16 @@ namespace TinyOPDS
             StartHttpServer();
         }
 
-        private void useUPnP_CheckedChanged(object sender, EventArgs e)
+        private void useUPnP_CheckStateChanged(object sender, EventArgs e)
         {
-            if (Properties.Settings.Default.UseUPnP != useUPnP.Checked)
+            if (useUPnP.Checked)
             {
-                if (useUPnP.Checked)
-                {
-                    // Re-detect IP addresses using UPnP
-                    if (!_upnpController.Discovered) _upnpController.DiscoverAsync(true);
-                }
-                else
-                {
-                    openPort.Checked = openPort.Enabled = false;
-                }
+                // Re-detect IP addresses using UPnP
+                _upnpController.DiscoverAsync(true);
+            }
+            else
+            {
+                openPort.Enabled = openPort.Checked = false;
             }
         }
 
@@ -628,9 +625,9 @@ namespace TinyOPDS
             if (_upnpController != null)
             {
                 if (_upnpController.LocalIP != null)
-                    intLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
+                    intLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, rootPrefix.Text);
                 if (_upnpController.ExternalIP != null)
-                    extLink.Text = string.Format(urlTemplate, _upnpController.ExternalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
+                    extLink.Text = string.Format(urlTemplate, _upnpController.ExternalIP.ToString(), Properties.Settings.Default.ServerPort, rootPrefix.Text);
             }
         }
 
@@ -643,7 +640,7 @@ namespace TinyOPDS
         {
             if (_upnpController != null && _upnpController.UPnPReady)
             {
-                if (rootPrefix.Text.EndsWith("/")) rootPrefix.Text = rootPrefix.Text.Remove(rootPrefix.Text.Length - 1);
+                while (rootPrefix.Text.IndexOf("/") >= 0) rootPrefix.Text = rootPrefix.Text.Replace("/", "");
                 UpdateServerLinks();
             }
         }

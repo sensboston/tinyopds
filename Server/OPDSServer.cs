@@ -54,16 +54,17 @@ namespace TinyOPDS.Server
                 // Remove prefix if any
                 if (!string.IsNullOrEmpty(Properties.Settings.Default.RootPrefix))
                 {
-                    request = request.Replace(Properties.Settings.Default.RootPrefix, "");
+                    request = request.Replace(Properties.Settings.Default.RootPrefix, "/");
                 }
-                request = request.Replace("//", "/");
+                
+                while (request.IndexOf("//") >= 0) request = request.Replace("//", "/");
+
                 string ext = Path.GetExtension(request);
                 string[] http_params = request.Split(new Char[] { '?', '=', '&' });
 
                 // User-agent check: some e-book readers can handle fb2 files (no conversion is  needed)
                 string userAgent = processor.HttpHeaders["User-Agent"] as string;
                 bool acceptFB2 = Utils.DetectFB2Reader(userAgent);
-                bool isBrowser = Utils.DetectBrowser(userAgent);
 
                 // Is it OPDS request?
                 if (string.IsNullOrEmpty(ext))
@@ -125,11 +126,18 @@ namespace TinyOPDS.Server
                             return;
                         }
 
-                        // Add xsl template
-                        bool addXsl = File.Exists(Path.Combine(Utils.ServiceFilesLocation, "opds.xsl"));
-                        xml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"+
-                              (addXsl ? "<?xml-stylesheet href=\"opds.xsl\" type=\"text/xsl\"?>\n" : string.Empty) + 
-                              xml.Insert(5, " xmlns=\"http://www.w3.org/2005/Atom\"");
+                        // Modify and send xml back to the client app
+                        xml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" + xml.Insert(5, " xmlns=\"http://www.w3.org/2005/Atom\"");
+
+                        if (Properties.Settings.Default.UseAbsoluteUri)
+                        {
+                            try 
+                            { 
+                                string host = processor.HttpHeaders["Host"].ToString(); 
+                                xml = xml.Replace("href=\"", "href=\"http://" + host.UrlCombine(Properties.Settings.Default.RootPrefix));
+                            }
+                            catch { }
+                        }
 
 #if USE_GZIP_ENCODING
                 /// Unfortunately, current OPDS-enabled apps don't support this feature, even those that pretend to (like FBReader for Android)
@@ -152,7 +160,7 @@ namespace TinyOPDS.Server
                 else
 #endif
                         {
-                            processor.WriteSuccess(isBrowser ? "text/xml" : "application/atom+xml;charset=utf=8");
+                            processor.WriteSuccess("application/atom+xml;charset=utf-8");
                             processor.OutputStream.Write(xml);
                         }
                     }
@@ -166,32 +174,10 @@ namespace TinyOPDS.Server
                 {
                     xml = new OpenSearch().OpenSearchDescription().ToString();
                     xml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" + xml.Insert(22, " xmlns=\"http://a9.com/-/spec/opensearch/1.1/\"");
-                    processor.WriteSuccess("application/atom+xml;charset=utf=8");
+                    processor.WriteSuccess("application/atom+xml;charset=utf-8");
                     processor.OutputStream.Write(xml);
                     return;
                 }
-
-                // experimental css support
-                else if (ext.Contains(".xsl"))
-                {
-                    if (File.Exists(Path.Combine(Utils.ServiceFilesLocation, "opds.xsl")))
-                    {
-                        try
-                        {
-                            using (FileStream cssFileStream = new FileStream(Path.Combine(Utils.ServiceFilesLocation, "opds.xsl"), FileMode.Open))
-                            {
-                                processor.WriteSuccess("text/xsl");
-                                cssFileStream.CopyTo(processor.OutputStream.BaseStream);
-                                return;
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            Log.WriteLine(LogLevel.Error, "opds.xsl file exception {0}", e.Message);
-                        }
-                    }
-                }
-
                 // fb2.zip book request
                 else if (request.Contains(".fb2.zip"))
                 {

@@ -153,6 +153,10 @@
       <text lang="en">Forward port on router</text>
       <text lang="ru">Открыть порт на роутере</text>
     </property>
+    <property form="MainForm" ctrl="useAbsoluteUri">
+      <text lang="en">Absolute links</text>
+      <text lang="ru">Абсолютные ссылки</text>
+    </property>
     <property form="MainForm" ctrl="label13">
       <text lang="en">OPDS root catalog prefix:</text>
       <text lang="ru">Префикс корневого каталога OPDS:</text>

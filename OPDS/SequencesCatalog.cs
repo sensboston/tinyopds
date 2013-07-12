@@ -46,7 +46,7 @@ namespace TinyOPDS.OPDS
             if (Sequences.Count > threshold)
             {
                 Dictionary<string, int> sequences = (from a in Sequences
-                                                     group a by a.Substring(0, searchPattern.Length + 1) into g
+                                                     group a by (a.Length > searchPattern.Length ? a.Substring(0, searchPattern.Length + 1) : a) into g
                                                      where g.Count() > 1
                                                      select new { Name = g, Count = g.Count() }).ToDictionary(x => x.Name.Key, y => y.Count);
 

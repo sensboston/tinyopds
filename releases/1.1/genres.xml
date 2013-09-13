@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+	<genre ru="Фантастика" name="SF, Fantasy">
+		<subgenre tag="sf_history" ru="Альтернативная история">Alternative history</subgenre>
+		<subgenre tag="sf_action" ru="Боевая фантастика">Action SF</subgenre>
+		<subgenre tag="sf_epic" ru="Эпическая фантастика">Epic SF</subgenre>
+		<subgenre tag="sf_heroic" ru="Героическая фантастика">Heroic SF</subgenre>
+		<subgenre tag="sf_detective" ru="Детективная фантастика">Detective SF</subgenre>
+		<subgenre tag="sf_cyberpunk" ru="Киберпанк">Cyberpunk</subgenre>
+		<subgenre tag="sf_space" ru="Космическая фантастика">Space SF</subgenre>
+		<subgenre tag="sf_social" ru="Социальная фантастика">Social SF</subgenre>
+		<subgenre tag="sf_horror" ru="Ужасы">Horror</subgenre>
+		<subgenre tag="sf_humor" ru="Юмористическая фантастика">Humor SF</subgenre>
+		<subgenre tag="sf_fantasy" ru="Фэнтези">Fantasy</subgenre>
+		<subgenre tag="sf" ru="Научная фантастика">Science Fiction</subgenre>
+		<subgenre tag="child_sf" ru="Детская фантастика">Science Fiction for Kids</subgenre>
+		<subgenre tag="sf_fantasy_city" ru="Городское фэнтези">Fantasy city</subgenre>
+		<subgenre tag="sf_postapocalyptic" ru="Постапокалипсис">Postapocalyptic</subgenre>
+		<subgenre tag="love_sf" ru="Любовная фантастика">Love SF</subgenre>
+		<subgenre tag="gothic_novel" ru="Готический роман">Gothic novel</subgenre>
+		<subgenre tag="nsf" ru="Ненаучная фантастика">Non Science Fiction</subgenre>
+		<subgenre tag="fairy_fantasy" ru="Сказочная фантастика">Fairy SF</subgenre>
+		<subgenre tag="sf_etc" ru="Фантастика: прочее">Other SF</subgenre>
+		<subgenre tag="sf_irony" ru="Ироническая фантастика">Ironical SF</subgenre>
+		<subgenre tag="sf_fantasy_irony" ru="Ироническое фэнтези">Ironyc female fantasy</subgenre>
+		<subgenre tag="sf_mystic" ru="Мистика">Mystic</subgenre>
+		<subgenre tag="sf_space_opera" ru="Космоопера">Space Opera</subgenre>
+		<subgenre tag="sf_stimpank" ru="Стимпанк">Stimpank</subgenre>
+		<subgenre tag="sf_technofantasy" ru="Технофэнтези">Technofantasy</subgenre>
+		<subgenre tag="popadanec" ru="Попаданцы">popadanec</subgenre>
+		<subgenre tag="historical_fantasy" ru="Историческое фэнтези">Historical fantasy</subgenre>
+		<subgenre tag="humor_fantasy" ru="Юмористическое фэнтези">humor_fantasy</subgenre>
+	</genre>
+	<genre ru="Детективы и Триллеры" name="Detectives, Thrillers">
+		<subgenre tag="sf_detective" ru="Детективная фантастика">Detective SF</subgenre>
+		<subgenre tag="det_classic" ru="Классический детектив">Classical Detective</subgenre>
+		<subgenre tag="det_police" ru="Полицейский детектив">Police Stories</subgenre>
+		<subgenre tag="det_action" ru="Боевик">Action</subgenre>
+		<subgenre tag="det_irony" ru="Иронический детектив">Ironical Detective</subgenre>
+		<subgenre tag="det_history" ru="Исторический детектив">Historical Detective</subgenre>
+		<subgenre tag="det_espionage" ru="Шпионский детектив">Espionage Detective</subgenre>
+		<subgenre tag="det_crime" ru="Криминальный детектив">Crime Detective</subgenre>
+		<subgenre tag="det_political" ru="Политический детектив">Political Detective</subgenre>
+		<subgenre tag="det_maniac" ru="Маньяки">Maniacs</subgenre>
+		<subgenre tag="det_hard" ru="Крутой детектив">Hard-boiled Detective</subgenre>
+		<subgenre tag="thriller" ru="Триллер">Thrillers</subgenre>
+		<subgenre tag="detective" ru="Детективы: прочее">Detective</subgenre>
+		<subgenre tag="love_detective" ru="Любовные детективы">Detective Romance</subgenre>
+		<subgenre tag="child_det" ru="Детские остросюжетные">Detective for Kids</subgenre>
+		<subgenre tag="thriller_legal" ru="Юридический триллер">Legal thriller</subgenre>
+		<subgenre tag="thriller_medical" ru="Медицинский триллер">Medical thriller</subgenre>
+		<subgenre tag="thriller_techno" ru="Техно триллер">Techno Thriller</subgenre>
+		<subgenre tag="det_cozy" ru="Дамский детективный роман">Cozy Mysteries</subgenre>
+	</genre>
+	<genre ru="Проза" name="Prose">
+		<subgenre tag="prose" ru="Проза">Prose</subgenre>
+		<subgenre tag="prose_classic" ru="Классическая проза">Classical Prose</subgenre>
+		<subgenre tag="prose_history" ru="Историческая проза">Historical Prose</subgenre>
+		<subgenre tag="prose_contemporary" ru="Современная проза">Contemporary Prose</subgenre>
+		<subgenre tag="prose_counter" ru="Контркультура">Counterculture</subgenre>
+		<subgenre tag="prose_rus_classic" ru="Русская классическая проза">Russian Classics</subgenre>
+		<subgenre tag="prose_su_classics" ru="Советская классическая проза">Soviet Classics</subgenre>
+		<subgenre tag="prose_military" ru="О войне">Military</subgenre>
+		<subgenre tag="aphorisms" ru="Афоризмы">Aphorisms</subgenre>
+		<subgenre tag="essay" ru="Эссе, очерк, этюд, набросок">Essay</subgenre>
+		<subgenre tag="story" ru="Новелла">Story</subgenre>
+		<subgenre tag="great_story" ru="Повесть">Great story</subgenre>
+		<subgenre tag="short_story" ru="Рассказ">Short story</subgenre>
+		<subgenre tag="roman" ru="Роман">Roman</subgenre>
+		<subgenre tag="extravaganza" ru="Феерия">Extravaganza</subgenre>
+		<subgenre tag="epistolary_fiction" ru="Эпистолярная проза">Epistolary</subgenre>
+		<subgenre tag="prose_epic" ru="Эпопея">Epic</subgenre>
+		<subgenre tag="prose_magic" ru="Магический реализм">Magic realism</subgenre>
+		<subgenre tag="sagas" ru="Семейный роман/Семейная сага">Sagas</subgenre>
+		<subgenre tag="dissident" ru="Антисоветская литература">Anti-Soviet fiction</subgenre>
+		<subgenre tag="prose_sentimental" ru="Сентиментальная проза">prose_sentimental</subgenre>
+	</genre>
+	<genre ru="Любовные романы" name="Love">
+		<subgenre tag="love_contemporary" ru="Современные любовные романы">Contemporary Romance</subgenre>
+		<subgenre tag="love_history" ru="Исторические любовные романы">Historical Romance</subgenre>
+		<subgenre tag="love_detective" ru="Любовные детективы">Detective Romance</subgenre>
+		<subgenre tag="love_short" ru="Короткие любовные романы">Short Romance</subgenre>
+		<subgenre tag="love_erotica" ru="Эротика">Erotica</subgenre>
+		<subgenre tag="love" ru="О любви">About love</subgenre>
+		<subgenre tag="love_sf" ru="Любовная фантастика">Love SF</subgenre>
+		<subgenre tag="love_hard" ru="Порно">Porno</subgenre>
+		<subgenre tag="det_cozy" ru="Дамский детективный роман">Cozy Mysteries</subgenre>
+	</genre>
+	<genre ru="Приключения" name="Adventures">
+		<subgenre tag="adv_western" ru="Вестерн">Western</subgenre>
+		<subgenre tag="adv_history" ru="Исторические приключения">History</subgenre>
+		<subgenre tag="adv_indian" ru="Приключения про индейцев">Indians</subgenre>
+		<subgenre tag="adv_maritime" ru="Морские приключения">Maritime Fiction</subgenre>
+		<subgenre tag="adv_geo" ru="Путешествия и география">Travel &amp; Geography</subgenre>
+		<subgenre tag="adv_animal" ru="Природа и животные">Nature &amp; Animals</subgenre>
+		<subgenre tag="adventure" ru="Приключения: прочее">Misk Adventures</subgenre>
+		<subgenre tag="child_adv" ru="Детские приключения">Kids Adventures</subgenre>
+	</genre>
+	<genre ru="Детское" name="Children's">
+		<subgenre tag="child_tale" ru="Сказка">Fairy Tales</subgenre>
+		<subgenre tag="child_verse" ru="Детские стихи">Verses for Kids</subgenre>
+		<subgenre tag="child_prose" ru="Детская проза">Prose for Kids</subgenre>
+		<subgenre tag="child_sf" ru="Детская фантастика">Science Fiction for Kids</subgenre>
+		<subgenre tag="child_det" ru="Детские остросюжетные">Detective for Kids</subgenre>
+		<subgenre tag="child_adv" ru="Детские приключения">Kids Adventures</subgenre>
+		<subgenre tag="child_education" ru="Образовательная литература">Education for Kids</subgenre>
+		<subgenre tag="children" ru="Детская литература: прочее">For Kids: Misk</subgenre>
+		<subgenre tag="child_folklore" ru="Детский фольклор">Child Folklore</subgenre>
+		<subgenre tag="prose_game" ru="Книга-игра">Game book</subgenre>
+	</genre>
+	<genre ru="Поэзия" name="Poetry, Dramaturgy">
+		<subgenre tag="child_verse" ru="Детские стихи">Verses for Kids</subgenre>
+		<subgenre tag="poetry" ru="Поэзия: прочее">Poetry</subgenre>
+		<subgenre tag="humor_verse" ru="Юмористические стихи">Humor Verses</subgenre>
+		<subgenre tag="fable" ru="Басни">Fable</subgenre>
+		<subgenre tag="vers_libre" ru="Верлибры">Vers libre</subgenre>
+		<subgenre tag="visual_poetry" ru="Визуальная поэзия">Visual Poetry</subgenre>
+		<subgenre tag="lyrics" ru="Лирика">Lyrics</subgenre>
+		<subgenre tag="palindromes" ru="Палиндромы">Palindromes</subgenre>
+		<subgenre tag="song_poetry" ru="Песенная поэзия">Song Poetry</subgenre>
+		<subgenre tag="experimental_poetry" ru="Экспериментальная поэзия">Experimental Poetry</subgenre>
+		<subgenre tag="epic_poetry" ru="Эпическая поэзия">Epic Poetry</subgenre>
+		<subgenre tag="in_verse" ru="в стихах">In verse</subgenre>
+	</genre>
+	<genre ru="Старинное" name="Antique">
+		<subgenre tag="antique_ant" ru="Античная литература">Antique Literature</subgenre>
+		<subgenre tag="antique_european" ru="Древнеевропейская литература">Antique European Literature</subgenre>
+		<subgenre tag="antique_russian" ru="Древнерусская литература">Antique Russian Literature</subgenre>
+		<subgenre tag="antique_east" ru="Древневосточная литература">Antique East Literature</subgenre>
+		<subgenre tag="antique_myths" ru="Мифы. Легенды. Эпос">Myths. Legends. Epos</subgenre>
+		<subgenre tag="antique" ru="Старинная литература: прочее">Other Antique</subgenre>
+	</genre>
+	<genre ru="Наука, Образование" name="Science, Education">
+		<subgenre tag="sci_history" ru="История">History</subgenre>
+		<subgenre tag="sci_psychology" ru="Психология">Psychology</subgenre>
+		<subgenre tag="sci_culture" ru="Культурология">Cultural Science</subgenre>
+		<subgenre tag="sci_religion" ru="Религиоведение">Religious Studies</subgenre>
+		<subgenre tag="sci_philosophy" ru="Философия">Philosophy</subgenre>
+		<subgenre tag="sci_politics" ru="Политика">Politics</subgenre>
+		<subgenre tag="sci_business" ru="Деловая литература">Business</subgenre>
+		<subgenre tag="sci_juris" ru="Юриспруденция">Jurisprudence</subgenre>
+		<subgenre tag="sci_linguistic" ru="Языкознание">Linguistics</subgenre>
+		<subgenre tag="sci_medicine" ru="Медицина">Medicine</subgenre>
+		<subgenre tag="sci_phys" ru="Физика">Physics</subgenre>
+		<subgenre tag="sci_math" ru="Математика">Mathematics</subgenre>
+		<subgenre tag="sci_chem" ru="Химия">Chemistry</subgenre>
+		<subgenre tag="sci_biology" ru="Биология">Biology</subgenre>
+		<subgenre tag="sci_tech" ru="Технические науки">Technical</subgenre>
+		<subgenre tag="science" ru="Научная литература: прочее">Misk Science, Education</subgenre>
+		<subgenre tag="sci_biochem" ru="Биохимия">Biochemistry</subgenre>
+		<subgenre tag="sci_physchem" ru="Физическая химия">Physical chemistry</subgenre>
+		<subgenre tag="sci_anachem" ru="Аналитическая химия">Analitic Chemistry</subgenre>
+		<subgenre tag="sci_orgchem" ru="Органическая химия">Organic Chemistry</subgenre>
+		<subgenre tag="sci_economy" ru="Экономика">Economy</subgenre>
+		<subgenre tag="sci_state" ru="Государство и право">State science</subgenre>
+		<subgenre tag="sci_biophys" ru="Биофизика">Biophysics</subgenre>
+		<subgenre tag="sci_geo" ru="Геология и география">Geology</subgenre>
+		<subgenre tag="sci_cosmos" ru="Астрономия и Космос">Cosmos</subgenre>
+		<subgenre tag="sci_medicine_alternative" ru="Альтернативная медицина">Alternative medicine</subgenre>
+		<subgenre tag="sci_philology" ru="Литературоведение">Philology</subgenre>
+		<subgenre tag="sci_pedagogy" ru="Педагогика">Pedagogy</subgenre>
+		<subgenre tag="sci_social_studies" ru="Обществознание">Social studies</subgenre>
+		<subgenre tag="sci_ecology" ru="Экология">Ecology</subgenre>
+		<subgenre tag="military_history" ru="Военная история">Military History</subgenre>
+		<subgenre tag="sci_veterinary" ru="Ветеринария">Veterinary</subgenre>
+		<subgenre tag="sci_zoo" ru="Зоология">Zoology</subgenre>
+		<subgenre tag="sci_botany" ru="Ботаника">Botany</subgenre>
+		<subgenre tag="sci_textbook" ru="Учебники">Textbook</subgenre>
+		<subgenre tag="sci_crib" ru="Шпаргалки">Cribs</subgenre>
+		<subgenre tag="sci_abstract" ru="Рефераты">Abstract</subgenre>
+		<subgenre tag="foreign_language" ru="Иностранные языки">Foreign languages</subgenre>
+		<subgenre tag="psy_childs" ru="Детская психология">psy_childs</subgenre>
+		<subgenre tag="psy_theraphy" ru="Психотерапия и консультирование">psy_theraphy</subgenre>
+		<subgenre tag="psy_sex_and_family" ru="Секс и семейная психология">Sex and family</subgenre>
+	</genre>
+	<genre ru="Компьютеры и Интернет" name="Computers">
+		<subgenre tag="comp_www" ru="Интернет">Internet</subgenre>
+		<subgenre tag="comp_programming" ru="Программирование">Programming</subgenre>
+		<subgenre tag="comp_hard" ru="Аппаратное обеспечение">Hardware</subgenre>
+		<subgenre tag="comp_soft" ru="Программы">Software</subgenre>
+		<subgenre tag="comp_db" ru="Базы данных">Databases</subgenre>
+		<subgenre tag="comp_osnet" ru="ОС и Сети">OS &amp; Networking</subgenre>
+		<subgenre tag="computers" ru="Околокомпьютерная литература">Computers: Misk</subgenre>
+		<subgenre tag="comp_dsp" ru="Цифровая обработка сигналов">DSP</subgenre>
+	</genre>
+	<genre ru="Справочная литература" name="Reference">
+		<subgenre tag="ref_encyc" ru="Энциклопедии">Encyclopedias</subgenre>
+		<subgenre tag="ref_dict" ru="Словари">Dictionaries</subgenre>
+		<subgenre tag="ref_ref" ru="Справочники">Reference</subgenre>
+		<subgenre tag="ref_guide" ru="Руководства">Guidebooks</subgenre>
+		<subgenre tag="reference" ru="Справочная литература">Misk References</subgenre>
+		<subgenre tag="design" ru="Искусство и Дизайн">Art, Design</subgenre>
+		<subgenre tag="geo_guides" ru="Путеводители">Guides</subgenre>
+	</genre>
+	<genre ru="Религия и духовность" name="Religion">
+		<subgenre tag="religion_rel" ru="Религия">Religion</subgenre>
+		<subgenre tag="religion_esoterics" ru="Эзотерика">Esoterics</subgenre>
+		<subgenre tag="religion_self" ru="Самосовершенствование">Self-perfection</subgenre>
+		<subgenre tag="religion" ru="Религиозная литература: прочее">Religion: Other</subgenre>
+		<subgenre tag="religion_budda" ru="Буддизм">Buddha</subgenre>
+		<subgenre tag="religion_christianity" ru="Христианство">Christianity</subgenre>
+		<subgenre tag="religion_orthodoxy" ru="Православие">Orthodoxy</subgenre>
+		<subgenre tag="religion_catholicism" ru="Католицизм">Catholicism</subgenre>
+		<subgenre tag="religion_protestantism" ru="Протестантизм">Protestantism</subgenre>
+		<subgenre tag="religion_hinduism" ru="Индуизм">Hinduism</subgenre>
+		<subgenre tag="religion_islam" ru="Ислам">Islam</subgenre>
+		<subgenre tag="religion_judaism" ru="Иудаизм">Judaism</subgenre>
+		<subgenre tag="astrology" ru="Астрология">Astrology</subgenre>
+		<subgenre tag="palmistry" ru="Хиромантия">Palmistry</subgenre>
+		<subgenre tag="religion_paganism" ru="Язычество">Paganism</subgenre>
+	</genre>
+	<genre ru="Юмор" name="Humor">
+		<subgenre tag="sf_humor" ru="Юмористическая фантастика">Humor SF</subgenre>
+		<subgenre tag="humor_anecdote" ru="Анекдоты">Anecdote</subgenre>
+		<subgenre tag="humor_prose" ru="Юмористическая проза">Humor Prose</subgenre>
+		<subgenre tag="humor_verse" ru="Юмористические стихи">Humor Verses</subgenre>
+		<subgenre tag="humor" ru="Юмор: прочее">Misk Humor</subgenre>
+		<subgenre tag="comedy" ru="Комедия">Comedy</subgenre>
+		<subgenre tag="humor_satire" ru="Сатира">Satire</subgenre>
+	</genre>
+	<genre ru="Домоводство (Дом и семья)" name="Home, Family">
+		<subgenre tag="home_cooking" ru="Кулинария">Cooking</subgenre>
+		<subgenre tag="home_pets" ru="Домашние животные">Pets</subgenre>
+		<subgenre tag="home_crafts" ru="Хобби и ремесла">Hobbies &amp; Crafts</subgenre>
+		<subgenre tag="home_entertain" ru="Развлечения">Entertaining</subgenre>
+		<subgenre tag="home_health" ru="Здоровье">Health</subgenre>
+		<subgenre tag="home_garden" ru="Сад и огород">Garden</subgenre>
+		<subgenre tag="home_diy" ru="Сделай сам">Do it yourself</subgenre>
+		<subgenre tag="home_sport" ru="Спорт">Sports</subgenre>
+		<subgenre tag="home_sex" ru="Эротика, Секс">Erotica, Sex</subgenre>
+		<subgenre tag="home" ru="Домоводство">Home: Other</subgenre>
+		<subgenre tag="home_collecting" ru="Коллекционирование">Collecting</subgenre>
+	</genre>
+	<genre ru="Техника" name="Technics">
+		<subgenre tag="sci_tech" ru="Технические науки">Technical</subgenre>
+		<subgenre tag="sci_transport" ru="Транспорт и авиация">Transport</subgenre>
+		<subgenre tag="sci_metal" ru="Металлургия">Metallurgy</subgenre>
+		<subgenre tag="sci_radio" ru="Радиоэлектроника">Radio</subgenre>
+		<subgenre tag="sci_build" ru="Строительство и сопромат">Building</subgenre>
+		<subgenre tag="auto_regulations" ru="Автомобили и ПДД">Auto regulations</subgenre>
+		<subgenre tag="architecture_book" ru="Архитектура">Architecture</subgenre>
+	</genre>
+	<genre ru="Прочее" name="Other">
+		<subgenre tag="other" ru="Неотсортированное">Other</subgenre>
+		<subgenre tag="notes" ru="Партитуры">Notes</subgenre>
+		<subgenre tag="periodic" ru="Газеты и журналы">Periodic</subgenre>
+		<subgenre tag="music" ru="Музыка">Music</subgenre>
+		<subgenre tag="cine" ru="Кино">Cine</subgenre>
+		<subgenre tag="theatre" ru="Театр">Theatre</subgenre>
+		<subgenre tag="fanfiction" ru="Фанфик">Fan fiction</subgenre>
+		<subgenre tag="unfinished" ru="Недописанное">Unfinished</subgenre>
+		<subgenre tag="visual_arts" ru="Изобразительное искусство, фотография">Visual Arts</subgenre>
+	</genre>
+	<genre ru="Деловая литература" name="Economy, Business">
+		<subgenre tag="banking" ru="Банковское дело">Banking</subgenre>
+		<subgenre tag="accounting" ru="Бухучет и аудит">Accounting</subgenre>
+		<subgenre tag="global_economy" ru="Внешняя торговля">Global Economy</subgenre>
+		<subgenre tag="paper_work" ru="Делопроизводство">Paper Work</subgenre>
+		<subgenre tag="org_behavior" ru="Корпоративная культура">Corporate Culture</subgenre>
+		<subgenre tag="personal_finance" ru="Личные финансы">Personal Finance</subgenre>
+		<subgenre tag="small_business" ru="Малый бизнес">Small Business</subgenre>
+		<subgenre tag="marketing" ru="Маркетинг, PR, реклама">Marketing, PR, Adv</subgenre>
+		<subgenre tag="real_estate" ru="Недвижимость">Real Estate</subgenre>
+		<subgenre tag="popular_business" ru="О бизнесе популярно">Popular Business</subgenre>
+		<subgenre tag="industries" ru="Отраслевые издания">Industries</subgenre>
+		<subgenre tag="job_hunting" ru="Поиск работы, карьера">Job Hunting</subgenre>
+		<subgenre tag="ya" ru="Подростковая литература">Young-adult fiction</subgenre>
+		<subgenre tag="management" ru="Управление, подбор персонала">Management</subgenre>
+		<subgenre tag="stock" ru="Ценные бумаги, инвестиции">Stock</subgenre>
+		<subgenre tag="economics" ru="Экономика">Economics</subgenre>
+		<subgenre tag="trade" ru="Торговля">Trade</subgenre>
+	</genre>
+	<genre ru="Документальная литература" name="Nonfiction">
+		<subgenre tag="adv_geo" ru="Путешествия и география">Travel &amp; Geography</subgenre>
+		<subgenre tag="adv_animal" ru="Природа и животные">Nature &amp; Animals</subgenre>
+		<subgenre tag="nonf_biography" ru="Биографии и Мемуары">Biography &amp; Memoirs</subgenre>
+		<subgenre tag="nonf_publicism" ru="Публицистика">Publicism</subgenre>
+		<subgenre tag="nonf_criticism" ru="Критика">Criticism</subgenre>
+		<subgenre tag="nonfiction" ru="Документальная литература">Misk Nonfiction</subgenre>
+		<subgenre tag="nonf_military" ru="Военная документалистика">Military docs</subgenre>
+		<subgenre tag="sci_popular" ru="Научпоп">Science popular</subgenre>
+	</genre>
+	<genre ru="Драматургия" name="Dramaturgy">
+		<subgenre tag="dramaturgy" ru="Драматургия: прочее">Dramaturgy</subgenre>
+		<subgenre tag="drama" ru="Драма">Drama</subgenre>
+		<subgenre tag="screenplays" ru="Киносценарии">Screenplays</subgenre>
+		<subgenre tag="comedy" ru="Комедия">Comedy</subgenre>
+		<subgenre tag="mystery" ru="Мистерия">Mystery</subgenre>
+		<subgenre tag="scenarios" ru="Сценарии">Scenarios</subgenre>
+		<subgenre tag="tragedy" ru="Трагедия">Tragedy</subgenre>
+		<subgenre tag="vaudeville" ru="Водевиль">Vaudeville</subgenre>
+	</genre>
+	<genre ru="Фольклор" name="Folklore">
+		<subgenre tag="humor_anecdote" ru="Анекдоты">Anecdote</subgenre>
+		<subgenre tag="epic" ru="Былины">Epic</subgenre>
+		<subgenre tag="child_folklore" ru="Детский фольклор">Child Folklore</subgenre>
+		<subgenre tag="riddles" ru="Загадки">Riddles</subgenre>
+		<subgenre tag="folk_songs" ru="Народные песни">Folk Songs</subgenre>
+		<subgenre tag="folk_tale" ru="Народные сказки">Folk tales</subgenre>
+		<subgenre tag="proverbs" ru="Пословицы, поговорки">Proverbs</subgenre>
+		<subgenre tag="folklore" ru="Фольклор: прочее">Folklore</subgenre>
+		<subgenre tag="limerick" ru="Частушки, прибаутки, потешки">Limerick</subgenre>
+	</genre>
+	<genre ru="Военное дело" name="Military">
+		<subgenre tag="prose_military" ru="О войне">Military</subgenre>
+		<subgenre tag="nonf_military" ru="Военная документалистика">Military docs</subgenre>
+		<subgenre tag="military_history" ru="Военная история">Military History</subgenre>
+		<subgenre tag="military_weapon" ru="Военная техника и вооружение">Weapon</subgenre>
+		<subgenre tag="military_arts" ru="Боевые искусства">Military Arts</subgenre>
+		<subgenre tag="military_special" ru="Cпецслужбы">Military special</subgenre>
+		<subgenre tag="military" ru="Военное дело: прочее">Military</subgenre>
+	</genre>
+</root>

@@ -1,0 +1,438 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <languages>
+    <language id="en">English</language>
+    <language id="ru">Русский</language>
+  </languages>
+  <properties>
+    <property form="MainForm" ctrl="label15">
+      <text lang="en">Path to books folder:</text>
+      <text lang="ru">Путь к книжному каталогу:</text>
+    </property>
+    <property form="MainForm" ctrl="useWatcher">
+      <text lang="en">Monitor library changes</text>
+      <text lang="ru">Следить за каталогом</text>
+    </property>
+    <property form="MainForm" ctrl="label16">
+      <text lang="en">Duplicates:</text>
+      <text lang="ru">Дубликаты:</text>
+    </property>
+    <property form="MainForm" ctrl="status">
+      <text lang="en">STOPPED</text>
+      <text lang="ru">ОСТАНОВЛЕН</text>
+    </property>
+    <property form="MainForm" ctrl="label14">
+      <text lang="en">Status:</text>
+      <text lang="ru">Статус</text>
+    </property>
+    <property form="MainForm" ctrl="rate">
+      <text lang="en">0 books/min</text>
+      <text lang="ru">0 книг/мин</text>
+    </property>
+    <property>
+      <text lang="en">{0} books/min</text>
+      <text lang="ru">{0} книг/мин</text>
+    </property>
+    <property form="MainForm" ctrl="label12">
+      <text lang="en">Rate:</text>
+      <text lang="ru">Скорость:</text>
+    </property>
+    <property form="MainForm" ctrl="label10">
+      <text lang="en">Elapsed time:</text>
+	    <text lang="ru">Прошло времени:</text>
+    </property>
+    <property form="MainForm" ctrl="label6">
+      <text lang="en">Start time:</text>
+	    <text lang="ru">Стартовал в:</text>
+    </property>
+    <property form="MainForm" ctrl="label2">
+      <text lang="en">Books in database: </text>
+      <text lang="ru">Всего книг в базе:</text>
+    </property>
+    <property form="MainForm" ctrl="label1">
+      <text lang="en">Books found:</text>
+      <text lang="ru">Найдено книг:</text>
+    </property>
+    <property form="MainForm" ctrl="label5">
+      <text lang="en">Books processed:</text>
+	    <text lang="ru">Обработано книг:</text>
+    </property>
+    <property form="MainForm" ctrl="label9">
+      <text lang="en">Invalid books:</text>
+	    <text lang="ru">Ошибочных книг:</text>
+    </property>
+    <property form="MainForm" ctrl="label7">
+      <text lang="en">Skipped books:</text>
+	    <text lang="ru">Пропущено книг:</text>
+    </property>
+    <property form="MainForm" ctrl="scannerButton">
+      <text lang="en">Start scanning</text>
+      <text lang="ru">Начать сканирование</text>
+    </property>
+    <property form="MainForm" ctrl="label4">
+      <text lang="en">Server name:</text>
+      <text lang="ru">Название сервера:</text>
+    </property>
+    <property form="MainForm" ctrl="label3">
+      <text lang="en">Port:</text>
+      <text lang="ru">Порт:</text>
+    </property>
+    <property form="MainForm" ctrl="serverButton">
+      <text lang="en">Start server</text>
+      <text lang="ru">Стартовать сервер</text>
+    </property>
+    <property>
+      <text lang="en">SCANNING</text>
+      <text lang="ru">СКАНИРУЮ</text>
+    </property>
+    <property>
+      <text lang="en">FINISHED</text>
+      <text lang="ru">ЗАКОНЧИЛ</text>
+    </property>
+    <property>
+      <text lang="en">Stop scanning</text>
+      <text lang="ru">Остановить сканирование</text>
+    </property>
+    <property>
+      <text lang="en">Stop server</text>
+      <text lang="ru">Остановить сервер</text>
+    </property>
+    <property form="MainForm" ctrl="label8">
+      <text lang="en">Path to the ePub converter:</text>
+      <text lang="ru">Путь к ePub конвертору:</text>
+    </property>
+    <property form="MainForm" ctrl="label11">
+      <text lang="en">GUI and OPDS language:</text>
+      <text lang="ru">Язык программы и OPDS:</text>
+    </property>
+    <property form="MainForm" ctrl="closeToTray">
+      <text lang="en">Close or minimize to tray</text>
+      <text lang="ru">Скрывать в трей</text>
+    </property>
+    <property form="MainForm" ctrl="startMinimized">
+      <text lang="en">Start minimized</text>
+      <text lang="ru">Стартовать минимизированным</text>
+    </property>
+    <property form="MainForm" ctrl="startWithWindows">
+      <text lang="en">Start with Windows</text>
+      <text lang="ru">Стартовать вместе с Windows</text>
+    </property>
+    <property form="MainForm" ctrl="saveLog">
+      <text lang="en">Save log to file</text>
+      <text lang="ru">Сохранять лог в файл</text>
+    </property>
+    <property form="MainForm" ctrl="useUPnP">
+      <text lang="en">Use UPnP</text>
+      <text lang="ru">Использовать UPnP</text>
+    </property>
+    <property form="MainForm" ctrl="tabPage1">
+      <text lang="en">Scanner settings</text>
+      <text lang="ru">Настройки сканера</text>
+    </property>
+    <property form="MainForm" ctrl="tabPage2">
+      <text lang="en">OPDS server settings</text>
+      <text lang="ru">Настройки OPDS сервера</text>
+    </property>
+    <property form="MainForm" ctrl="tabPage3">
+      <text lang="en">Miscellaneous</text>
+      <text lang="ru">Разное</text>
+    </property>
+    <property form="MainForm" ctrl="tabPage4">
+      <text lang="en">About program</text>
+      <text lang="ru">О программе</text>
+    </property>
+    <property form="MainForm" ctrl="tabPage5">
+      <text lang="en">Authentication</text>
+      <text lang="ru">Авторизация</text>
+    </property>
+    <property form="MainForm" ctrl="exitMenuItem">
+      <text lang="en">Exit</text>
+      <text lang="ru">Выход</text>
+    </property>
+    <property form="MainForm" ctrl="openPort">
+      <text lang="en">Forward port on router</text>
+      <text lang="ru">Открыть порт на роутере</text>
+    </property>
+    <property form="MainForm" ctrl="useAbsoluteUri">
+      <text lang="en">Absolute links</text>
+      <text lang="ru">Абсолютные ссылки</text>
+    </property>
+    <property form="MainForm" ctrl="label13">
+      <text lang="en">OPDS root catalog prefix:</text>
+      <text lang="ru">Префикс корневого каталога OPDS:</text>
+    </property>
+    <property form="MainForm" ctrl="intIPlabel">
+      <text lang="en">Local URL:</text>
+      <text lang="ru">Локальный URL:</text>
+    </property>
+    <property form="MainForm" ctrl="extIPlabel">
+      <text lang="en">External URL:</text>
+      <text lang="ru">Внешний URL:</text>
+    </property>
+    <property form="MainForm" ctrl="converterLinkLabel">
+      <text lang="en">Click here to download latest version of ePub converter</text>
+      <text lang="ru">Кликните для закачки последней версии конвертера ePub</text>
+    </property>
+    <property form="MainForm" ctrl="appName">
+      <text lang="en">TinyOPDS server</text>
+      <text lang="ru">TinyOPDS сервер</text>
+    </property>
+    <property form="MainForm" ctrl="label17">
+      <text lang="en">Project home page:</text>
+      <text lang="ru">Домашняя страница:</text>
+    </property>
+    <property form="MainForm" ctrl="label18">
+      <text lang="en">Project license:</text>
+      <text lang="ru">Лицензия проекта:</text>
+    </property>
+    <property form="MainForm" ctrl="label20">
+      <text lang="en">Special thanks:</text>
+      <text lang="ru">Отдельное спасибо:</text>
+    </property>
+    <property form="MainForm" ctrl="label21">
+      <text lang="en">Database file name:</text>
+      <text lang="ru">Файл базы данных:</text>
+    </property>
+    <property>
+      <text lang="en">Books by authors</text>
+      <text lang="ru">Книги по авторам</text>      
+    </property>
+    <property>
+      <text lang="en">Total authors on {0}: {1}</text>
+      <text lang="ru">Всего авторов на {0}: {1}</text>
+    </property>
+    <property>
+      <text lang="en">Books: {0}</text>
+      <text lang="ru">Книг: {0}</text>
+    </property>
+    <property>
+      <text lang="en">Books by author </text>
+      <text lang="ru">Книги автора </text>
+    </property>
+    <property>
+      <text lang="en">By authors</text>
+      <text lang="ru">По авторам</text>
+    </property>
+    <property>
+      <text lang="en">{0} books by {1} authors</text>
+      <text lang="ru">{0} книг от {1} авторов</text>
+    </property>
+    <property>
+      <text lang="en">By series</text>
+      <text lang="ru">По сериям</text>
+    </property>
+    <property>
+      <text lang="en">{0} books by {1} series</text>
+      <text lang="ru">{0} книг в {1} сериях</text>
+    </property>
+    <property>
+      <text lang="en">By genres</text>
+      <text lang="ru">По жанрам</text>
+    </property>
+    <property>
+      <text lang="en">Books grouped by genres</text>
+      <text lang="ru">Книги, сгруппированные по жанрам</text>
+    </property>
+    <property>
+      <text lang="en">Book series</text>
+      <text lang="ru">Книжные серии</text>
+    </property>
+    <property>
+      <text lang="en">Total series on {0}: {1}</text>
+      <text lang="ru">Всего серий на {0}: {1}</text>
+    </property>
+    <property>
+      <text lang="en">{0} books in {1}</text>
+      <text lang="ru">{0} книг в {1}</text>
+    </property>
+    <property>
+      <text lang="en">Books in genre «{0}»</text>
+      <text lang="ru">Книги в жанре «{0}»</text>
+    </property>
+    <property>
+      <text lang="en">Hide window</text>
+      <text lang="ru">Скрыть окно</text>
+    </property>
+    <property>
+      <text lang="en">Show window</text>
+      <text lang="ru">Показать окно</text>
+    </property>
+    <property>
+      <text lang="en">Minimize window</text>
+      <text lang="ru">Свернуть окно</text>
+    </property>
+    <property>
+      <text lang="en">Restore window</text>
+      <text lang="ru">Показать окно</text>
+    </property>
+    <property>
+      <text lang="en">Can't find UPnP router, forwarding is not available</text>
+      <text lang="ru">Не могу найти UPnP роутер, форвардинг не доступен</text>
+    </property>
+    <property>
+      <text lang="en">Invalid port value: value must be numeric and in range from 1 to 65535</text>
+      <text lang="ru">Неверный номер порта: значение должно быть в интервале от 1 до 65535</text>
+    </property>
+    <property>
+      <text lang="en">Invalid port value. Default value 8080 will be used</text>
+      <text lang="ru">Неверный номер порта. Будет использован номер 8080</text>
+    </property>
+    <property>
+      <text lang="en">version {0}.{1} {2}</text>
+      <text lang="ru">версия {0}.{1} {2}</text>
+    </property>
+    <property>
+      <text lang="en">Search authors</text>
+      <text lang="ru">Поиск авторов</text>
+    </property>
+    <property>
+      <text lang="en">Search authors by name</text>
+      <text lang="ru">Поиск авторов по имени</text>
+    </property>
+    <property>
+      <text lang="en">Search books</text>
+      <text lang="ru">Поиск книг</text>
+    </property>
+    <property>
+      <text lang="en">Search books by title</text>
+      <text lang="ru">Поиск книг по названию</text>
+    </property>
+    <property>
+      <text lang="en">Translation:</text>
+      <text lang="ru">Перевод:</text>
+    </property>
+    <property>
+      <text lang="en">Year of publication:</text>
+      <text lang="ru">Год публикации:</text>
+    </property>
+    <property>
+      <text lang="en">Format:</text>
+      <text lang="ru">Формат:</text>
+    </property>
+    <property>
+      <text lang="en">Size:</text>
+      <text lang="ru">Размер:</text>
+    </property>
+    <property>
+      <text lang="en">Series:</text>
+      <text lang="ru">Серия:</text>
+    </property>
+    <property>
+      <text lang="en">All books by author {0}</text>
+      <text lang="ru">Все книги автора {0}</text>
+    </property>
+    <property>
+      <text lang="en">All books by series {0}</text>
+      <text lang="ru">Все книги серии {0}</text>
+    </property>
+    <property form="MainForm" ctrl="useHTTPAuth">
+      <text lang="en">Use HTTP basic authentication</text>
+      <text lang="ru">Использовать базовую авторизацию HTTP</text>
+    </property>
+    <property form="MainForm" ctrl="rememberClients">
+      <text lang="en">Remember authorized clients</text>
+      <text lang="ru">Помнить авторизованных клиентов</text>
+    </property>
+    <property>
+      <text lang="en">Probably, port {0} is already in use. Please try different port value.</text>
+      <text lang="ru">Вероятно, порт {0} уже используется. Попробуйте другое значение.</text>
+    </property>
+    <property form="MainForm" ctrl="label22">
+      <text lang="en">Log verbosity level</text>
+      <text lang="ru">Детализация лог-файла</text>
+    </property>
+    <property>
+      <text lang="en">Info, warnings and errors</text>
+      <text lang="ru">Информация, предупреждения и ошибки</text>
+    </property>
+    <property>
+      <text lang="en">Warnings and errors</text>
+      <text lang="ru">Предупреждения и ошибки</text>
+    </property>
+    <property>
+      <text lang="en">Errors only</text>
+      <text lang="ru">Только ошибки</text>
+    </property>
+    <property form="MainForm" ctrl="label23">
+      <text lang="en">Total requests:</text>
+      <text lang="ru">Всего запросов:</text>
+    </property>
+    <property form="MainForm" ctrl="label25">
+      <text lang="en">Books sent:</text>
+      <text lang="ru">Отдано книг:</text>
+    </property>
+    <property form="MainForm" ctrl="label27">
+      <text lang="en">Images sent:</text>
+      <text lang="ru">Отдано картинок:</text>
+    </property>
+    <property form="MainForm" ctrl="label26">
+      <text lang="en">Unique clients:</text>
+      <text lang="ru">Уникальных клиентов:</text>
+    </property>
+    <property form="MainForm" ctrl="label28">
+      <text lang="en">Successful logins:</text>
+      <text lang="ru">Успешных входов:</text>
+    </property>
+    <property form="MainForm" ctrl="label30">
+      <text lang="en">Failed logins:</text>
+      <text lang="ru">Неверных входов:</text>
+    </property>
+    <property form="MainForm" ctrl="label31">
+      <text lang="en">Banned clients:</text>
+      <text lang="ru">Заблокировано:</text>
+    </property>
+    <property form="MainForm" ctrl="banClients">
+      <text lang="en">Ban clients after</text>
+      <text lang="ru">Блокировать клиентов после</text>
+    </property>
+    <property form="MainForm" ctrl="label24">
+      <text lang="en">failed attempts</text>
+      <text lang="ru">неверных попыток</text>
+    </property>
+    <property form="MainForm" ctrl="label32">
+      <text lang="en">Check for update:</text>
+      <text lang="ru">Проверять обновление:</text>
+    </property>
+    <property>
+      <text lang="en">Never</text>
+      <text lang="ru">Никогда</text>
+    </property>
+    <property>
+      <text lang="en">Once a week</text>
+      <text lang="ru">Раз в неделю</text>
+    </property>
+    <property>
+      <text lang="en">Once a month</text>
+      <text lang="ru">Раз в месяц</text>
+    </property>
+    <property>
+      <text lang="en">TinyOPDS: update found</text>
+      <text lang="ru">TinyOPDS: обнаружено обновление</text>
+    </property>
+    <property>
+      <text lang="en">Click here to download update v {0}</text>
+      <text lang="ru">Кликните для загрузки обновления v {0}</text>
+    </property>
+    <property>
+      <text lang="en">New version {0} is available!\nWould you like to download now?</text>
+      <text lang="ru">Новая версия [OK} доступна для загрузки.\nЖелаете загрузить сейчас?</text>
+    </property>
+    <property>
+      <text lang="en"></text>
+      <text lang="ru"></text>
+    </property>
+    <property>
+      <text lang="en"></text>
+      <text lang="ru"></text>
+    </property>
+    <property>
+      <text lang="en"></text>
+      <text lang="ru"></text>
+    </property>
+    <property>
+      <text lang="en"></text>
+      <text lang="ru"></text>
+    </property>
+
+  </properties>
+</root>

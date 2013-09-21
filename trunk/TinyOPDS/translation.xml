@@ -158,17 +158,30 @@
       <text lang="ru">Абсолютные ссылки</text>
     </property>
     <property form="MainForm" ctrl="label13">
-      <text lang="en">OPDS root catalog prefix:</text>
-      <text lang="ru">Префикс корневого каталога OPDS:</text>
+      <text lang="en">OPDS root:</text>
+      <text lang="ru">Префикс OPDS:</text>
+    </property>
+    <property form="MainForm" ctrl="label33">
+      <text lang="en">Web root:</text>
+      <text lang="ru">Префикс web:</text>
     </property>
     <property form="MainForm" ctrl="intIPlabel">
-      <text lang="en">Local URL:</text>
-      <text lang="ru">Локальный URL:</text>
+      <text lang="en">Local OPDS URL:</text>
+      <text lang="ru">Локальная ссылка OPDS:</text>
     </property>
     <property form="MainForm" ctrl="extIPlabel">
-      <text lang="en">External URL:</text>
-      <text lang="ru">Внешний URL:</text>
+      <text lang="en">External OPDS URL:</text>
+      <text lang="ru">Внешняя ссылка OPDS:</text>
     </property>
+    <property form="MainForm" ctrl="label35">
+      <text lang="en">Local web URL:</text>
+      <text lang="ru">Локальная ссылка:</text>
+    </property>
+    <property form="MainForm" ctrl="label34">
+      <text lang="en">External web URL:</text>
+      <text lang="ru">Внешняя ссылка:</text>
+    </property>
+
     <property form="MainForm" ctrl="converterLinkLabel">
       <text lang="en">Click here to download latest version of ePub converter</text>
       <text lang="ru">Кликните для закачки последней версии конвертера ePub</text>

@@ -20,7 +20,9 @@ using System.Xml.Linq;
 using System.Text;
 using System.ComponentModel;
 using System.Windows;
+#if !CONSOLE
 using System.Windows.Forms;
+#endif
 using System.Threading;
 
 using TinyOPDS.Data;

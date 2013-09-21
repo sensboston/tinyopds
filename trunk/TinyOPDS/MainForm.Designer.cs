@@ -61,7 +61,11 @@
             this.scannerButton = new System.Windows.Forms.Button();
             this.libraryPath = new System.Windows.Forms.TextBox();
             this.tabPage2 = new System.Windows.Forms.TabPage();
-            this.useAbsoluteUri = new System.Windows.Forms.CheckBox();
+            this.extWebLink = new System.Windows.Forms.LinkLabel();
+            this.intWebLink = new System.Windows.Forms.LinkLabel();
+            this.label34 = new System.Windows.Forms.Label();
+            this.label35 = new System.Windows.Forms.Label();
+            this.label33 = new System.Windows.Forms.Label();
             this.interfaceCombo = new System.Windows.Forms.ComboBox();
             this.label29 = new System.Windows.Forms.Label();
             this.statUniqueClients = new System.Windows.Forms.Label();
@@ -80,6 +84,7 @@
             this.label4 = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
             this.serverButton = new System.Windows.Forms.Button();
+            this.webPrefix = new System.Windows.Forms.TextBox();
             this.openPort = new System.Windows.Forms.CheckBox();
             this.serverPort = new System.Windows.Forms.TextBox();
             this.useUPnP = new System.Windows.Forms.CheckBox();
@@ -158,7 +163,7 @@
             this.tabControl1.Location = new System.Drawing.Point(-3, -1);
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
-            this.tabControl1.Size = new System.Drawing.Size(481, 327);
+            this.tabControl1.Size = new System.Drawing.Size(481, 346);
             this.tabControl1.TabIndex = 8;
             // 
             // tabPage1
@@ -194,7 +199,7 @@
             this.tabPage1.Location = new System.Drawing.Point(4, 34);
             this.tabPage1.Name = "tabPage1";
             this.tabPage1.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage1.Size = new System.Drawing.Size(473, 289);
+            this.tabPage1.Size = new System.Drawing.Size(473, 308);
             this.tabPage1.TabIndex = 0;
             this.tabPage1.Text = "Scanner settings";
             // 
@@ -202,7 +207,7 @@
             // 
             this.databaseFileName.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.databaseFileName.Location = new System.Drawing.Point(125, 62);
+            this.databaseFileName.Location = new System.Drawing.Point(125, 66);
             this.databaseFileName.Name = "databaseFileName";
             this.databaseFileName.ReadOnly = true;
             this.databaseFileName.Size = new System.Drawing.Size(336, 20);
@@ -211,7 +216,7 @@
             // label21
             // 
             this.label21.AutoSize = true;
-            this.label21.Location = new System.Drawing.Point(15, 66);
+            this.label21.Location = new System.Drawing.Point(15, 70);
             this.label21.Name = "label21";
             this.label21.Size = new System.Drawing.Size(104, 13);
             this.label21.TabIndex = 31;
@@ -234,7 +239,7 @@
             // 
             this.duplicates.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.duplicates.AutoSize = true;
-            this.duplicates.Location = new System.Drawing.Point(122, 209);
+            this.duplicates.Location = new System.Drawing.Point(122, 228);
             this.duplicates.MinimumSize = new System.Drawing.Size(50, 0);
             this.duplicates.Name = "duplicates";
             this.duplicates.Size = new System.Drawing.Size(50, 13);
@@ -245,7 +250,7 @@
             // 
             this.label16.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label16.AutoSize = true;
-            this.label16.Location = new System.Drawing.Point(15, 209);
+            this.label16.Location = new System.Drawing.Point(15, 228);
             this.label16.Name = "label16";
             this.label16.Size = new System.Drawing.Size(60, 13);
             this.label16.TabIndex = 28;
@@ -264,7 +269,7 @@
             // 
             this.status.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.status.AutoSize = true;
-            this.status.Location = new System.Drawing.Point(360, 209);
+            this.status.Location = new System.Drawing.Point(360, 228);
             this.status.MinimumSize = new System.Drawing.Size(50, 0);
             this.status.Name = "status";
             this.status.Size = new System.Drawing.Size(58, 13);
@@ -275,7 +280,7 @@
             // 
             this.label14.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label14.AutoSize = true;
-            this.label14.Location = new System.Drawing.Point(253, 209);
+            this.label14.Location = new System.Drawing.Point(253, 228);
             this.label14.Name = "label14";
             this.label14.Size = new System.Drawing.Size(40, 13);
             this.label14.TabIndex = 25;
@@ -285,7 +290,7 @@
             // 
             this.rate.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.rate.AutoSize = true;
-            this.rate.Location = new System.Drawing.Point(360, 183);
+            this.rate.Location = new System.Drawing.Point(360, 202);
             this.rate.MinimumSize = new System.Drawing.Size(50, 0);
             this.rate.Name = "rate";
             this.rate.Size = new System.Drawing.Size(66, 13);
@@ -296,7 +301,7 @@
             // 
             this.label12.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label12.AutoSize = true;
-            this.label12.Location = new System.Drawing.Point(253, 183);
+            this.label12.Location = new System.Drawing.Point(253, 202);
             this.label12.Name = "label12";
             this.label12.Size = new System.Drawing.Size(33, 13);
             this.label12.TabIndex = 23;
@@ -306,7 +311,7 @@
             // 
             this.elapsedTime.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.elapsedTime.AutoSize = true;
-            this.elapsedTime.Location = new System.Drawing.Point(360, 157);
+            this.elapsedTime.Location = new System.Drawing.Point(360, 176);
             this.elapsedTime.MinimumSize = new System.Drawing.Size(50, 0);
             this.elapsedTime.Name = "elapsedTime";
             this.elapsedTime.Size = new System.Drawing.Size(50, 13);
@@ -317,7 +322,7 @@
             // 
             this.label10.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label10.AutoSize = true;
-            this.label10.Location = new System.Drawing.Point(253, 157);
+            this.label10.Location = new System.Drawing.Point(253, 176);
             this.label10.Name = "label10";
             this.label10.Size = new System.Drawing.Size(70, 13);
             this.label10.TabIndex = 21;
@@ -327,7 +332,7 @@
             // 
             this.startTime.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.startTime.AutoSize = true;
-            this.startTime.Location = new System.Drawing.Point(360, 131);
+            this.startTime.Location = new System.Drawing.Point(360, 150);
             this.startTime.MinimumSize = new System.Drawing.Size(50, 0);
             this.startTime.Name = "startTime";
             this.startTime.Size = new System.Drawing.Size(50, 13);
@@ -338,7 +343,7 @@
             // 
             this.label6.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(253, 131);
+            this.label6.Location = new System.Drawing.Point(253, 150);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(54, 13);
             this.label6.TabIndex = 19;
@@ -348,7 +353,7 @@
             // 
             this.booksProcessed.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.booksProcessed.AutoSize = true;
-            this.booksProcessed.Location = new System.Drawing.Point(123, 235);
+            this.booksProcessed.Location = new System.Drawing.Point(123, 254);
             this.booksProcessed.MinimumSize = new System.Drawing.Size(50, 0);
             this.booksProcessed.Name = "booksProcessed";
             this.booksProcessed.Size = new System.Drawing.Size(50, 13);
@@ -359,7 +364,7 @@
             // 
             this.label5.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label5.AutoSize = true;
-            this.label5.Location = new System.Drawing.Point(15, 235);
+            this.label5.Location = new System.Drawing.Point(15, 254);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(92, 13);
             this.label5.TabIndex = 17;
@@ -369,7 +374,7 @@
             // 
             this.invalidBooks.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.invalidBooks.AutoSize = true;
-            this.invalidBooks.Location = new System.Drawing.Point(123, 157);
+            this.invalidBooks.Location = new System.Drawing.Point(123, 176);
             this.invalidBooks.MinimumSize = new System.Drawing.Size(50, 0);
             this.invalidBooks.Name = "invalidBooks";
             this.invalidBooks.Size = new System.Drawing.Size(50, 13);
@@ -380,7 +385,7 @@
             // 
             this.label9.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label9.AutoSize = true;
-            this.label9.Location = new System.Drawing.Point(15, 157);
+            this.label9.Location = new System.Drawing.Point(15, 176);
             this.label9.Name = "label9";
             this.label9.Size = new System.Drawing.Size(73, 13);
             this.label9.TabIndex = 15;
@@ -390,7 +395,7 @@
             // 
             this.skippedBooks.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.skippedBooks.AutoSize = true;
-            this.skippedBooks.Location = new System.Drawing.Point(123, 183);
+            this.skippedBooks.Location = new System.Drawing.Point(123, 202);
             this.skippedBooks.MinimumSize = new System.Drawing.Size(50, 0);
             this.skippedBooks.Name = "skippedBooks";
             this.skippedBooks.Size = new System.Drawing.Size(50, 13);
@@ -401,7 +406,7 @@
             // 
             this.label7.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(15, 183);
+            this.label7.Location = new System.Drawing.Point(15, 202);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(81, 13);
             this.label7.TabIndex = 13;
@@ -411,7 +416,7 @@
             // 
             this.booksFound.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.booksFound.AutoSize = true;
-            this.booksFound.Location = new System.Drawing.Point(123, 131);
+            this.booksFound.Location = new System.Drawing.Point(123, 150);
             this.booksFound.MinimumSize = new System.Drawing.Size(50, 0);
             this.booksFound.Name = "booksFound";
             this.booksFound.Size = new System.Drawing.Size(79, 13);
@@ -422,7 +427,7 @@
             // 
             this.booksInDB.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.booksInDB.AutoSize = true;
-            this.booksInDB.Location = new System.Drawing.Point(123, 92);
+            this.booksInDB.Location = new System.Drawing.Point(123, 111);
             this.booksInDB.MinimumSize = new System.Drawing.Size(50, 0);
             this.booksInDB.Name = "booksInDB";
             this.booksInDB.Size = new System.Drawing.Size(127, 13);
@@ -444,7 +449,7 @@
             // 
             this.label2.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(15, 92);
+            this.label2.Location = new System.Drawing.Point(15, 111);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(101, 13);
             this.label2.TabIndex = 9;
@@ -454,7 +459,7 @@
             // 
             this.label1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(15, 131);
+            this.label1.Location = new System.Drawing.Point(15, 150);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(70, 13);
             this.label1.TabIndex = 8;
@@ -463,7 +468,7 @@
             // scannerButton
             // 
             this.scannerButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.scannerButton.Location = new System.Drawing.Point(255, 241);
+            this.scannerButton.Location = new System.Drawing.Point(255, 260);
             this.scannerButton.Name = "scannerButton";
             this.scannerButton.Size = new System.Drawing.Size(210, 40);
             this.scannerButton.TabIndex = 7;
@@ -486,7 +491,11 @@
             // tabPage2
             // 
             this.tabPage2.BackColor = System.Drawing.SystemColors.Control;
-            this.tabPage2.Controls.Add(this.useAbsoluteUri);
+            this.tabPage2.Controls.Add(this.extWebLink);
+            this.tabPage2.Controls.Add(this.intWebLink);
+            this.tabPage2.Controls.Add(this.label34);
+            this.tabPage2.Controls.Add(this.label35);
+            this.tabPage2.Controls.Add(this.label33);
             this.tabPage2.Controls.Add(this.interfaceCombo);
             this.tabPage2.Controls.Add(this.label29);
             this.tabPage2.Controls.Add(this.statUniqueClients);
@@ -505,6 +514,7 @@
             this.tabPage2.Controls.Add(this.label4);
             this.tabPage2.Controls.Add(this.label3);
             this.tabPage2.Controls.Add(this.serverButton);
+            this.tabPage2.Controls.Add(this.webPrefix);
             this.tabPage2.Controls.Add(this.openPort);
             this.tabPage2.Controls.Add(this.serverPort);
             this.tabPage2.Controls.Add(this.useUPnP);
@@ -513,21 +523,56 @@
             this.tabPage2.Location = new System.Drawing.Point(4, 34);
             this.tabPage2.Name = "tabPage2";
             this.tabPage2.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage2.Size = new System.Drawing.Size(473, 289);
+            this.tabPage2.Size = new System.Drawing.Size(473, 308);
             this.tabPage2.TabIndex = 1;
             this.tabPage2.Text = "OPDS server settings";
             // 
-            // useAbsoluteUri
+            // extWebLink
             // 
-            this.useAbsoluteUri.AutoSize = true;
-            this.useAbsoluteUri.Checked = global::TinyOPDS.Properties.Settings.Default.UseAbsoluteUri;
-            this.useAbsoluteUri.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "UseAbsoluteUri", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.useAbsoluteUri.Location = new System.Drawing.Point(294, 126);
-            this.useAbsoluteUri.Name = "useAbsoluteUri";
-            this.useAbsoluteUri.Size = new System.Drawing.Size(91, 17);
-            this.useAbsoluteUri.TabIndex = 48;
-            this.useAbsoluteUri.Text = "Absolute links";
-            this.useAbsoluteUri.UseVisualStyleBackColor = true;
+            this.extWebLink.Location = new System.Drawing.Point(252, 179);
+            this.extWebLink.Name = "extWebLink";
+            this.extWebLink.Size = new System.Drawing.Size(203, 13);
+            this.extWebLink.TabIndex = 53;
+            this.extWebLink.TabStop = true;
+            this.extWebLink.Text = "- - - - - -";
+            this.extWebLink.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel_LinkClicked);
+            // 
+            // intWebLink
+            // 
+            this.intWebLink.Location = new System.Drawing.Point(252, 137);
+            this.intWebLink.Name = "intWebLink";
+            this.intWebLink.Size = new System.Drawing.Size(203, 13);
+            this.intWebLink.TabIndex = 52;
+            this.intWebLink.TabStop = true;
+            this.intWebLink.Text = "- - - - - -";
+            this.intWebLink.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel_LinkClicked);
+            // 
+            // label34
+            // 
+            this.label34.AutoSize = true;
+            this.label34.Location = new System.Drawing.Point(252, 164);
+            this.label34.Name = "label34";
+            this.label34.Size = new System.Drawing.Size(96, 13);
+            this.label34.TabIndex = 51;
+            this.label34.Text = "External web URL:";
+            // 
+            // label35
+            // 
+            this.label35.AutoSize = true;
+            this.label35.Location = new System.Drawing.Point(252, 122);
+            this.label35.Name = "label35";
+            this.label35.Size = new System.Drawing.Size(84, 13);
+            this.label35.TabIndex = 50;
+            this.label35.Text = "Local web URL:";
+            // 
+            // label33
+            // 
+            this.label33.AutoSize = true;
+            this.label33.Location = new System.Drawing.Point(155, 69);
+            this.label33.Name = "label33";
+            this.label33.Size = new System.Drawing.Size(54, 13);
+            this.label33.TabIndex = 48;
+            this.label33.Text = "Web root:";
             // 
             // interfaceCombo
             // 
@@ -551,7 +596,7 @@
             // statUniqueClients
             // 
             this.statUniqueClients.AutoSize = true;
-            this.statUniqueClients.Location = new System.Drawing.Point(144, 229);
+            this.statUniqueClients.Location = new System.Drawing.Point(148, 238);
             this.statUniqueClients.Name = "statUniqueClients";
             this.statUniqueClients.Size = new System.Drawing.Size(13, 13);
             this.statUniqueClients.TabIndex = 45;
@@ -560,7 +605,7 @@
             // label26
             // 
             this.label26.AutoSize = true;
-            this.label26.Location = new System.Drawing.Point(20, 229);
+            this.label26.Location = new System.Drawing.Point(19, 238);
             this.label26.Name = "label26";
             this.label26.Size = new System.Drawing.Size(77, 13);
             this.label26.TabIndex = 44;
@@ -569,7 +614,7 @@
             // statImages
             // 
             this.statImages.AutoSize = true;
-            this.statImages.Location = new System.Drawing.Point(445, 201);
+            this.statImages.Location = new System.Drawing.Point(445, 210);
             this.statImages.Name = "statImages";
             this.statImages.Size = new System.Drawing.Size(13, 13);
             this.statImages.TabIndex = 43;
@@ -578,7 +623,7 @@
             // label27
             // 
             this.label27.AutoSize = true;
-            this.label27.Location = new System.Drawing.Point(352, 201);
+            this.label27.Location = new System.Drawing.Point(352, 210);
             this.label27.Name = "label27";
             this.label27.Size = new System.Drawing.Size(67, 13);
             this.label27.TabIndex = 42;
@@ -587,7 +632,7 @@
             // statBooks
             // 
             this.statBooks.AutoSize = true;
-            this.statBooks.Location = new System.Drawing.Point(297, 201);
+            this.statBooks.Location = new System.Drawing.Point(289, 210);
             this.statBooks.Name = "statBooks";
             this.statBooks.Size = new System.Drawing.Size(13, 13);
             this.statBooks.TabIndex = 41;
@@ -596,7 +641,7 @@
             // label25
             // 
             this.label25.AutoSize = true;
-            this.label25.Location = new System.Drawing.Point(200, 201);
+            this.label25.Location = new System.Drawing.Point(200, 210);
             this.label25.Name = "label25";
             this.label25.Size = new System.Drawing.Size(63, 13);
             this.label25.TabIndex = 40;
@@ -605,7 +650,7 @@
             // statRequests
             // 
             this.statRequests.AutoSize = true;
-            this.statRequests.Location = new System.Drawing.Point(144, 201);
+            this.statRequests.Location = new System.Drawing.Point(148, 210);
             this.statRequests.Name = "statRequests";
             this.statRequests.Size = new System.Drawing.Size(13, 13);
             this.statRequests.TabIndex = 39;
@@ -614,7 +659,7 @@
             // label23
             // 
             this.label23.AutoSize = true;
-            this.label23.Location = new System.Drawing.Point(20, 201);
+            this.label23.Location = new System.Drawing.Point(19, 210);
             this.label23.Name = "label23";
             this.label23.Size = new System.Drawing.Size(77, 13);
             this.label23.TabIndex = 38;
@@ -622,9 +667,9 @@
             // 
             // extLink
             // 
-            this.extLink.Location = new System.Drawing.Point(112, 152);
+            this.extLink.Location = new System.Drawing.Point(19, 179);
             this.extLink.Name = "extLink";
-            this.extLink.Size = new System.Drawing.Size(176, 13);
+            this.extLink.Size = new System.Drawing.Size(203, 13);
             this.extLink.TabIndex = 37;
             this.extLink.TabStop = true;
             this.extLink.Text = "- - - - - -";
@@ -632,9 +677,9 @@
             // 
             // intLink
             // 
-            this.intLink.Location = new System.Drawing.Point(112, 126);
+            this.intLink.Location = new System.Drawing.Point(19, 137);
             this.intLink.Name = "intLink";
-            this.intLink.Size = new System.Drawing.Size(176, 13);
+            this.intLink.Size = new System.Drawing.Size(203, 13);
             this.intLink.TabIndex = 36;
             this.intLink.TabStop = true;
             this.intLink.Text = "- - - - - -";
@@ -643,34 +688,34 @@
             // label13
             // 
             this.label13.AutoSize = true;
-            this.label13.Location = new System.Drawing.Point(19, 72);
+            this.label13.Location = new System.Drawing.Point(19, 69);
             this.label13.Name = "label13";
-            this.label13.Size = new System.Drawing.Size(127, 13);
+            this.label13.Size = new System.Drawing.Size(61, 13);
             this.label13.TabIndex = 18;
-            this.label13.Text = "OPDS root catalog prefix:";
+            this.label13.Text = "OPDS root:";
             // 
             // extIPlabel
             // 
             this.extIPlabel.AutoSize = true;
-            this.extIPlabel.Location = new System.Drawing.Point(19, 153);
+            this.extIPlabel.Location = new System.Drawing.Point(19, 164);
             this.extIPlabel.Name = "extIPlabel";
-            this.extIPlabel.Size = new System.Drawing.Size(73, 13);
+            this.extIPlabel.Size = new System.Drawing.Size(106, 13);
             this.extIPlabel.TabIndex = 14;
-            this.extIPlabel.Text = "External URL:";
+            this.extIPlabel.Text = "External OPDS URL:";
             // 
             // intIPlabel
             // 
             this.intIPlabel.AutoSize = true;
-            this.intIPlabel.Location = new System.Drawing.Point(19, 127);
+            this.intIPlabel.Location = new System.Drawing.Point(19, 122);
             this.intIPlabel.Name = "intIPlabel";
-            this.intIPlabel.Size = new System.Drawing.Size(61, 13);
+            this.intIPlabel.Size = new System.Drawing.Size(94, 13);
             this.intIPlabel.TabIndex = 13;
-            this.intIPlabel.Text = "Local URL:";
+            this.intIPlabel.Text = "Local OPDS URL:";
             // 
             // label4
             // 
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(17, 16);
+            this.label4.Location = new System.Drawing.Point(19, 16);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(70, 13);
             this.label4.TabIndex = 11;
@@ -688,12 +733,21 @@
             // serverButton
             // 
             this.serverButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.serverButton.Location = new System.Drawing.Point(255, 241);
+            this.serverButton.Location = new System.Drawing.Point(255, 260);
             this.serverButton.Name = "serverButton";
             this.serverButton.Size = new System.Drawing.Size(210, 40);
             this.serverButton.TabIndex = 8;
             this.serverButton.Text = "Start server";
             this.serverButton.Click += new System.EventHandler(this.serverButton_Click);
+            // 
+            // webPrefix
+            // 
+            this.webPrefix.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::TinyOPDS.Properties.Settings.Default, "HttpPrefix", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.webPrefix.Location = new System.Drawing.Point(158, 89);
+            this.webPrefix.Name = "webPrefix";
+            this.webPrefix.Size = new System.Drawing.Size(118, 20);
+            this.webPrefix.TabIndex = 49;
+            this.webPrefix.Text = global::TinyOPDS.Properties.Settings.Default.HttpPrefix;
             // 
             // openPort
             // 
@@ -701,7 +755,7 @@
             this.openPort.Checked = global::TinyOPDS.Properties.Settings.Default.OpenNATPort;
             this.openPort.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "OpenNATPort", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
             this.openPort.Enabled = false;
-            this.openPort.Location = new System.Drawing.Point(294, 97);
+            this.openPort.Location = new System.Drawing.Point(294, 92);
             this.openPort.Name = "openPort";
             this.openPort.Size = new System.Drawing.Size(130, 17);
             this.openPort.TabIndex = 15;
@@ -731,14 +785,14 @@
             this.useUPnP.TabIndex = 35;
             this.useUPnP.Text = "Use UPnP";
             this.useUPnP.UseVisualStyleBackColor = true;
-            this.useUPnP.CheckStateChanged += new System.EventHandler(this.useUPnP_CheckStateChanged);
+            this.useUPnP.CheckedChanged += new System.EventHandler(this.useUPnP_CheckedChanged);
             // 
             // rootPrefix
             // 
             this.rootPrefix.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::TinyOPDS.Properties.Settings.Default, "RootPrefix", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.rootPrefix.Location = new System.Drawing.Point(22, 92);
+            this.rootPrefix.Location = new System.Drawing.Point(22, 88);
             this.rootPrefix.Name = "rootPrefix";
-            this.rootPrefix.Size = new System.Drawing.Size(254, 20);
+            this.rootPrefix.Size = new System.Drawing.Size(118, 20);
             this.rootPrefix.TabIndex = 19;
             this.rootPrefix.Text = global::TinyOPDS.Properties.Settings.Default.RootPrefix;
             this.rootPrefix.TextChanged += new System.EventHandler(this.rootPrefix_TextChanged);
@@ -746,9 +800,9 @@
             // serverName
             // 
             this.serverName.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::TinyOPDS.Properties.Settings.Default, "ServerName", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.serverName.Location = new System.Drawing.Point(20, 35);
+            this.serverName.Location = new System.Drawing.Point(22, 35);
             this.serverName.Name = "serverName";
-            this.serverName.Size = new System.Drawing.Size(256, 20);
+            this.serverName.Size = new System.Drawing.Size(254, 20);
             this.serverName.TabIndex = 12;
             this.serverName.Text = global::TinyOPDS.Properties.Settings.Default.ServerName;
             // 
@@ -770,7 +824,7 @@
             this.tabPage5.Location = new System.Drawing.Point(4, 34);
             this.tabPage5.Name = "tabPage5";
             this.tabPage5.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage5.Size = new System.Drawing.Size(473, 289);
+            this.tabPage5.Size = new System.Drawing.Size(473, 308);
             this.tabPage5.TabIndex = 4;
             this.tabPage5.Text = "Authentication";
             // 
@@ -921,7 +975,7 @@
             this.tabPage3.Location = new System.Drawing.Point(4, 34);
             this.tabPage3.Name = "tabPage3";
             this.tabPage3.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage3.Size = new System.Drawing.Size(473, 289);
+            this.tabPage3.Size = new System.Drawing.Size(473, 308);
             this.tabPage3.TabIndex = 2;
             this.tabPage3.Text = "Miscellaneous";
             // 
@@ -1104,7 +1158,7 @@
             this.tabPage4.Location = new System.Drawing.Point(4, 34);
             this.tabPage4.Name = "tabPage4";
             this.tabPage4.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage4.Size = new System.Drawing.Size(473, 289);
+            this.tabPage4.Size = new System.Drawing.Size(473, 308);
             this.tabPage4.TabIndex = 3;
             this.tabPage4.Text = "About program";
             // 
@@ -1208,7 +1262,7 @@
             this.appVersion.Name = "appVersion";
             this.appVersion.Size = new System.Drawing.Size(85, 20);
             this.appVersion.TabIndex = 3;
-            this.appVersion.Text = "version 1.0";
+            this.appVersion.Text = "version 1.2";
             // 
             // appName
             // 
@@ -1233,7 +1287,7 @@
             // donateButton
             // 
             this.donateButton.Image = global::TinyOPDS.Properties.Resources.donate;
-            this.donateButton.Location = new System.Drawing.Point(9, 223);
+            this.donateButton.Location = new System.Drawing.Point(9, 240);
             this.donateButton.Name = "donateButton";
             this.donateButton.Size = new System.Drawing.Size(157, 56);
             this.donateButton.TabIndex = 0;
@@ -1280,7 +1334,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(474, 322);
+            this.ClientSize = new System.Drawing.Size(474, 341);
             this.Controls.Add(this.tabControl1);
             this.DoubleBuffered = true;
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
@@ -1412,7 +1466,12 @@
         private System.Windows.Forms.ComboBox updateCombo;
         private System.Windows.Forms.ComboBox interfaceCombo;
         private System.Windows.Forms.Label label29;
-        private System.Windows.Forms.CheckBox useAbsoluteUri;
+        private System.Windows.Forms.Label label33;
+        private System.Windows.Forms.TextBox webPrefix;
+        private System.Windows.Forms.LinkLabel extWebLink;
+        private System.Windows.Forms.LinkLabel intWebLink;
+        private System.Windows.Forms.Label label34;
+        private System.Windows.Forms.Label label35;
     }
 }
 

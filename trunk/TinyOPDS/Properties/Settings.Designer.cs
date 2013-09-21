@@ -7,308 +7,384 @@
 //     the code is regenerated.
 // </auto-generated>
 //------------------------------------------------------------------------------
+using System;
 
 namespace TinyOPDS.Properties {
-    
-    
+
+
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "11.0.0.0")]
     [System.Configuration.SettingsProvider(typeof(TinyOPDS.CustomSettingsProvider))]
-    internal sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase {
-        
+    internal sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase
+    {
+
         private static Settings defaultInstance = ((Settings)(global::System.Configuration.ApplicationSettingsBase.Synchronized(new Settings())));
-        
-        public static Settings Default {
-            get {
+
+        public static Settings Default
+        {
+            get
+            {
                 return defaultInstance;
             }
         }
-        
+
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string LibraryPath {
-            get {
+        public string LibraryPath
+        {
+            get
+            {
                 return ((string)(this["LibraryPath"]));
             }
-            set {
+            set
+            {
                 this["LibraryPath"] = value;
             }
         }
-        
+
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("Моя домашняя библиотека")]
-        public string ServerName {
-            get {
+        public string ServerName
+        {
+            get
+            {
                 return ((string)(this["ServerName"]));
             }
-            set {
+            set
+            {
                 this["ServerName"] = value;
             }
         }
-        
+
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("8080")]
-        public string ServerPort {
-            get {
+        public string ServerPort
+        {
+            get
+            {
                 return ((string)(this["ServerPort"]));
             }
-            set {
+            set
+            {
                 this["ServerPort"] = value;
             }
         }
-        
+
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool StartWithWindows {
-            get {
+        public bool StartWithWindows
+        {
+            get
+            {
                 return ((bool)(this["StartWithWindows"]));
             }
-            set {
+            set
+            {
                 this["StartWithWindows"] = value;
             }
         }
-        
+
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool StartMinimized {
-            get {
+        public bool StartMinimized
+        {
+            get
+            {
                 return ((bool)(this["StartMinimized"]));
             }
-            set {
+            set
+            {
                 this["StartMinimized"] = value;
             }
         }
-        
+
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool CloseToTray {
-            get {
+        public bool CloseToTray
+        {
+            get
+            {
                 return ((bool)(this["CloseToTray"]));
             }
-            set {
+            set
+            {
                 this["CloseToTray"] = value;
             }
         }
-        
+
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string ConvertorPath {
-            get {
+        public string ConvertorPath
+        {
+            get
+            {
                 return ((string)(this["ConvertorPath"]));
             }
-            set {
+            set
+            {
                 this["ConvertorPath"] = value;
             }
         }
-        
+
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("en")]
-        public string Language {
-            get {
+        public string Language
+        {
+            get
+            {
                 return ((string)(this["Language"]));
             }
-            set {
+            set
+            {
                 this["Language"] = value;
             }
         }
-        
+
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool OpenNATPort {
-            get {
+        public bool OpenNATPort
+        {
+            get
+            {
                 return ((bool)(this["OpenNATPort"]));
             }
-            set {
+            set
+            {
                 this["OpenNATPort"] = value;
             }
         }
-        
+
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string ServiceFilesPath {
-            get {
+        public string ServiceFilesPath
+        {
+            get
+            {
                 return ((string)(this["ServiceFilesPath"]));
             }
-            set {
+            set
+            {
                 this["ServiceFilesPath"] = value;
             }
         }
-        
+
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool SaveLogToDisk {
-            get {
+        public bool SaveLogToDisk
+        {
+            get
+            {
                 return ((bool)(this["SaveLogToDisk"]));
             }
-            set {
+            set
+            {
                 this["SaveLogToDisk"] = value;
             }
         }
-        
+
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string RootPrefix {
-            get {
+        [global::System.Configuration.DefaultSettingValueAttribute("opds")]
+        public string RootPrefix
+        {
+            get
+            {
                 return ((string)(this["RootPrefix"]));
             }
-            set {
+            set
+            {
                 this["RootPrefix"] = value;
             }
         }
-        
+
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool WatchLibrary {
-            get {
+        public bool WatchLibrary
+        {
+            get
+            {
                 return ((bool)(this["WatchLibrary"]));
             }
-            set {
+            set
+            {
                 this["WatchLibrary"] = value;
             }
         }
-        
+
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public bool UseUPnP {
-            get {
+        public bool UseUPnP
+        {
+            get
+            {
                 return ((bool)(this["UseUPnP"]));
             }
-            set {
+            set
+            {
                 this["UseUPnP"] = value;
             }
         }
-        
+
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool UseHTTPAuth {
-            get {
+        public bool UseHTTPAuth
+        {
+            get
+            {
                 return ((bool)(this["UseHTTPAuth"]));
             }
-            set {
+            set
+            {
                 this["UseHTTPAuth"] = value;
             }
         }
-        
+
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string Credentials {
-            get {
+        public string Credentials
+        {
+            get
+            {
                 return ((string)(this["Credentials"]));
             }
-            set {
+            set
+            {
                 this["Credentials"] = value;
             }
         }
-        
+
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool BanClients {
-            get {
+        public bool BanClients
+        {
+            get
+            {
                 return ((bool)(this["BanClients"]));
             }
-            set {
+            set
+            {
                 this["BanClients"] = value;
             }
         }
-        
+
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("0")]
-        public int LogLevel {
-            get {
-                return ((int)(this["LogLevel"]));
+        public int LogLevel
+        {
+            get
+            {
+                return Math.Min(2, ((int)(this["LogLevel"])));
             }
-            set {
+            set
+            {
                 this["LogLevel"] = value;
             }
         }
-        
+
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool RememberClients {
-            get {
+        public bool RememberClients
+        {
+            get
+            {
                 return ((bool)(this["RememberClients"]));
             }
-            set {
+            set
+            {
                 this["RememberClients"] = value;
             }
         }
-        
+
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("1")]
-        public int UpdatesCheck {
-            get {
-                return ((int)(this["UpdatesCheck"]));
+        public int UpdatesCheck
+        {
+            get
+            {
+                return Math.Min(2, ((int)(this["UpdatesCheck"])));
             }
-            set {
+            set
+            {
                 this["UpdatesCheck"] = value;
             }
         }
-        
+
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("2013-01-01")]
-        public global::System.DateTime LastCheck {
-            get {
+        public global::System.DateTime LastCheck
+        {
+            get
+            {
                 return ((global::System.DateTime)(this["LastCheck"]));
             }
-            set {
+            set
+            {
                 this["LastCheck"] = value;
             }
         }
-        
+
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("5")]
-        public decimal WrongAttemptsCount {
-            get {
+        public decimal WrongAttemptsCount
+        {
+            get
+            {
                 return ((decimal)(this["WrongAttemptsCount"]));
             }
-            set {
+            set
+            {
                 this["WrongAttemptsCount"] = value;
             }
         }
-        
+
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("0")]
-        public int LocalInterfaceIndex {
-            get {
+        public int LocalInterfaceIndex
+        {
+            get
+            {
                 return ((int)(this["LocalInterfaceIndex"]));
             }
-            set {
+            set
+            {
                 this["LocalInterfaceIndex"] = value;
             }
         }
-        
+
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool UseAbsoluteUri {
-            get {
-                return ((bool)(this["UseAbsoluteUri"]));
+        [global::System.Configuration.DefaultSettingValueAttribute("lib")]
+        public string HttpPrefix
+        {
+            get
+            {
+                return ((string)(this["HttpPrefix"]));
             }
-            set {
-                this["UseAbsoluteUri"] = value;
+            set
+            {
+                this["HttpPrefix"] = value;
             }
         }
     }

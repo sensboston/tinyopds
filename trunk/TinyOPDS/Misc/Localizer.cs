@@ -16,7 +16,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
+#if !CONSOLE
 using System.Windows.Forms;
+#endif
 using System.Reflection;
 
 namespace TinyOPDS
@@ -26,8 +28,9 @@ namespace TinyOPDS
         private static string _lang = "en";
         private static Dictionary<string, string> _translations = new Dictionary<string, string>();
         private static XDocument _xml = null;
+#if !CONSOLE
         private static List<ToolStripItem> _menuItems = new List<ToolStripItem>();
-
+#endif
         /// <summary>
         /// Static classes don't have a constructors but we need to initialize translations
         /// </summary>
@@ -44,6 +47,7 @@ namespace TinyOPDS
             }
         }
 
+#if !CONSOLE
         /// <summary>
         /// Add menu to translator
         /// </summary>
@@ -52,6 +56,7 @@ namespace TinyOPDS
         {
             foreach (ToolStripItem item in menu.Items) _menuItems.Add(item);
         }
+#endif
 
         /// <summary>
         /// Returns supported translations in Dictionary<langCode, languageName>
@@ -69,6 +74,7 @@ namespace TinyOPDS
         /// </summary>
         public static string Language { get { return _lang; } }
 
+#if !CONSOLE
         /// <summary>
         /// Sets current language
         /// </summary>
@@ -109,6 +115,7 @@ namespace TinyOPDS
                 }
             }
         }
+#endif
 
         /// <summary>
         /// Translation helper
@@ -120,6 +127,7 @@ namespace TinyOPDS
             return (_translations.ContainsKey(source)) ? _translations[source] : source;
         }
 
+#if !CONSOLE
         /// <summary>
         /// Updates texts for all form controls (if translation exists)
         /// </summary>
@@ -205,5 +213,6 @@ namespace TinyOPDS
             var controls = control.Controls.Cast<Control>();
             return (controls.SelectMany(ctrl => GetAllControls(ctrl)).Concat(controls)).ToList();
         }
+#endif
     }
 }

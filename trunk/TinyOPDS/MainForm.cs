@@ -132,6 +132,8 @@ namespace TinyOPDS
             _watcher.IsEnabled = false;
 
             intLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
+            intWebLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.HttpPrefix);
+
             _upnpController.DiscoverCompleted += _upnpController_DiscoverCompleted;
             _upnpController.DiscoverAsync(Properties.Settings.Default.UseUPnP);
 
@@ -177,6 +179,7 @@ namespace TinyOPDS
                 this.BeginInvoke((MethodInvoker)delegate
                 {
                     extLink.Text = string.Format(urlTemplate, _upnpController.ExternalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
+                    extWebLink.Text = string.Format(urlTemplate, _upnpController.ExternalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.HttpPrefix);
                     if (_upnpController.UPnPReady)
                     {
                         openPort.Enabled = true;
@@ -459,16 +462,19 @@ namespace TinyOPDS
             StartHttpServer();
         }
 
-        private void useUPnP_CheckStateChanged(object sender, EventArgs e)
+        private void useUPnP_CheckedChanged(object sender, EventArgs e)
         {
-            if (useUPnP.Checked)
+            if (Properties.Settings.Default.UseUPnP != useUPnP.Checked)
             {
-                // Re-detect IP addresses using UPnP
-                _upnpController.DiscoverAsync(true);
-            }
-            else
-            {
-                openPort.Enabled = openPort.Checked = false;
+                if (useUPnP.Checked)
+                {
+                    // Re-detect IP addresses using UPnP
+                    if (!_upnpController.Discovered) _upnpController.DiscoverAsync(true);
+                }
+                else
+                {
+                    openPort.Checked = openPort.Enabled = false;
+                }
             }
         }
 
@@ -625,9 +631,15 @@ namespace TinyOPDS
             if (_upnpController != null)
             {
                 if (_upnpController.LocalIP != null)
-                    intLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, rootPrefix.Text);
+                {
+                    intLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
+                    intWebLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.HttpPrefix);
+                }
                 if (_upnpController.ExternalIP != null)
-                    extLink.Text = string.Format(urlTemplate, _upnpController.ExternalIP.ToString(), Properties.Settings.Default.ServerPort, rootPrefix.Text);
+                {
+                    extLink.Text = string.Format(urlTemplate, _upnpController.ExternalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
+                    extWebLink.Text = string.Format(urlTemplate, _upnpController.ExternalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.HttpPrefix);
+                }
             }
         }
 
@@ -640,7 +652,7 @@ namespace TinyOPDS
         {
             if (_upnpController != null && _upnpController.UPnPReady)
             {
-                while (rootPrefix.Text.IndexOf("/") >= 0) rootPrefix.Text = rootPrefix.Text.Replace("/", "");
+                if (rootPrefix.Text.EndsWith("/")) rootPrefix.Text = rootPrefix.Text.Remove(rootPrefix.Text.Length - 1);
                 UpdateServerLinks();
             }
         }

@@ -387,5 +387,20 @@ namespace TinyOPDS.Properties {
                 this["HttpPrefix"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool UseAbsoluteUri
+        {
+            get
+            {
+                return ((bool)(this["UseAbsoluteUri"]));
+            }
+            set
+            {
+                this["UseAbsoluteUri"] = value;
+            }
+        }
     }
 }

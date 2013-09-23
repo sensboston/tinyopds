@@ -74,5 +74,8 @@
     <Setting Name="HttpPrefix" Type="System.String" Scope="User">
       <Value Profile="(Default)">lib</Value>
     </Setting>
+    <Setting Name="UseAbsoluteUri" Type="System.Boolean" Scope="User">
+       <Value Profile="(Default)">False</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

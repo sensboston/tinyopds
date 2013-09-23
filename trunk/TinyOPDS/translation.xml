@@ -151,7 +151,7 @@
     </property>
     <property form="MainForm" ctrl="openPort">
       <text lang="en">Forward port on router</text>
-      <text lang="ru">Открыть порт на роутере</text>
+      <text lang="ru">Форвардить порт на роутере</text>
     </property>
     <property form="MainForm" ctrl="useAbsoluteUri">
       <text lang="en">Absolute links</text>
@@ -181,7 +181,6 @@
       <text lang="en">External web URL:</text>
       <text lang="ru">Внешняя ссылка:</text>
     </property>
-
     <property form="MainForm" ctrl="converterLinkLabel">
       <text lang="en">Click here to download latest version of ePub converter</text>
       <text lang="ru">Кликните для закачки последней версии конвертера ePub</text>

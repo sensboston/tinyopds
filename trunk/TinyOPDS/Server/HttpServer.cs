@@ -109,7 +109,7 @@ namespace TinyOPDS.Server
         }
 
         public void Process(object param) 
-        {                        
+        {
             // We can't use a StreamReader for input, because it buffers up extra data on us inside it's
             // "processed" view of the world, and we want the data raw after the headers
             _inputStream = new BufferedStream(Socket.GetStream());

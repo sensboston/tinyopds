@@ -56,26 +56,26 @@ namespace TinyOPDS.Server
                 string request = processor.HttpUrl;
 
                 // Check for www request
-                bool isWWWRequest = request.StartsWith("/"+Properties.Settings.Default.HttpPrefix) ? true : false;
+                bool isWWWRequest = request.StartsWith("/" + Properties.Settings.Default.HttpPrefix) && !request.StartsWith("/" + Properties.Settings.Default.RootPrefix) ? true : false;
 
                 // Remove prefix if any
                 if (!string.IsNullOrEmpty(Properties.Settings.Default.RootPrefix))
                 {
-                    request = request.Replace(Properties.Settings.Default.RootPrefix, "");
+                    request = request.Replace(Properties.Settings.Default.RootPrefix, "/");
                 }
                 if (!string.IsNullOrEmpty(Properties.Settings.Default.HttpPrefix))
                 {
-                    request = request.Replace(Properties.Settings.Default.HttpPrefix, "");
+                    request = request.Replace(Properties.Settings.Default.HttpPrefix, "/");
                 }
 
-                request = request.Replace("//", "/");
+                while (request.IndexOf("//") >= 0) request = request.Replace("//", "/");
+
                 string ext = Path.GetExtension(request);
                 string[] http_params = request.Split(new Char[] { '?', '=', '&' });
 
                 // User-agent check: some e-book readers can handle fb2 files (no conversion is  needed)
                 string userAgent = processor.HttpHeaders["User-Agent"] as string;
-                bool acceptFB2 = Utils.DetectFB2Reader(userAgent);
-                bool isBrowser = Utils.DetectBrowser(userAgent);
+                bool acceptFB2 = Utils.DetectFB2Reader(userAgent) || isWWWRequest;
 
                 // Is it OPDS request?
                 if (string.IsNullOrEmpty(ext))
@@ -94,7 +94,7 @@ namespace TinyOPDS.Server
                         }
                         else if (request.StartsWith("/author/"))
                         {
-                            xml = new BooksCatalog().GetCatalogByAuthor(request.Substring(8), acceptFB2).ToString();
+                            xml = new BooksCatalog().GetCatalogByAuthor(request.Substring(8), acceptFB2, (isWWWRequest ? 1000 : 50)).ToString();
                         }
                         else if (request.StartsWith("/sequencesindex"))
                         {
@@ -103,7 +103,7 @@ namespace TinyOPDS.Server
                         }
                         else if (request.Contains("/sequence/"))
                         {
-                            xml = new BooksCatalog().GetCatalogBySequence(request.Substring(10), acceptFB2).ToString();
+                            xml = new BooksCatalog().GetCatalogBySequence(request.Substring(10), acceptFB2, (isWWWRequest ? 1000 : 50)).ToString();
                         }
                         else if (request.StartsWith("/genres"))
                         {
@@ -112,7 +112,7 @@ namespace TinyOPDS.Server
                         }
                         else if (request.StartsWith("/genre/"))
                         {
-                            xml = new BooksCatalog().GetCatalogByGenre(request.Substring(7), acceptFB2).ToString();
+                            xml = new BooksCatalog().GetCatalogByGenre(request.Substring(7), acceptFB2, (isWWWRequest ? 1000 : 50)).ToString();
                         }
                         else if (request.StartsWith("/search"))
                         {
@@ -142,10 +142,18 @@ namespace TinyOPDS.Server
 
                         xml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" + xml.Insert(5, " xmlns=\"http://www.w3.org/2005/Atom\"");
 
+                        if (Properties.Settings.Default.UseAbsoluteUri)
+                        {
+                            try
+                            {
+                                string host = processor.HttpHeaders["Host"].ToString();
+                                xml = xml.Replace("href=\"", "href=\"http://" + (isWWWRequest ? host.UrlCombine(Properties.Settings.Default.HttpPrefix) : host.UrlCombine(Properties.Settings.Default.RootPrefix)));
+                            }
+                            catch { }
+                        }
+
                         if (isWWWRequest && xslExists)
                         {
-                            xml = xml.Replace("<link href=\"", "<link href=\"" + "\\" + Properties.Settings.Default.HttpPrefix);
-
                             MemoryStream htmlStream = new MemoryStream();
                             using (StringReader stream = new StringReader(xml))
                             {
@@ -162,7 +170,7 @@ namespace TinyOPDS.Server
                         }
                         else
                         {
-                            processor.WriteSuccess(isBrowser ? "text/xml" : "application/atom-xml;charset=utf=8");
+                            processor.WriteSuccess("application/atom+xml;charset=utf-8");
                             processor.OutputStream.Write(xml);
                         }
                     }
@@ -176,7 +184,18 @@ namespace TinyOPDS.Server
                 {
                     xml = new OpenSearch().OpenSearchDescription().ToString();
                     xml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" + xml.Insert(22, " xmlns=\"http://a9.com/-/spec/opensearch/1.1/\"");
-                    processor.WriteSuccess("application/atom+xml;charset=utf=8");
+
+                    if (Properties.Settings.Default.UseAbsoluteUri)
+                    {
+                        try
+                        {
+                            string host = processor.HttpHeaders["Host"].ToString();
+                            xml = xml.Replace("href=\"", "href=\"http://" + host.UrlCombine(Properties.Settings.Default.RootPrefix));
+                        }
+                        catch { }
+                    }
+
+                    processor.WriteSuccess("application/atom+xml;charset=utf-8");
                     processor.OutputStream.Write(xml);
                     return;
                 }

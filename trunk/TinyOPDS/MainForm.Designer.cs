@@ -61,6 +61,7 @@
             this.scannerButton = new System.Windows.Forms.Button();
             this.libraryPath = new System.Windows.Forms.TextBox();
             this.tabPage2 = new System.Windows.Forms.TabPage();
+            this.useAbsoluteUri = new System.Windows.Forms.CheckBox();
             this.extWebLink = new System.Windows.Forms.LinkLabel();
             this.intWebLink = new System.Windows.Forms.LinkLabel();
             this.label34 = new System.Windows.Forms.Label();
@@ -163,7 +164,7 @@
             this.tabControl1.Location = new System.Drawing.Point(-3, -1);
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
-            this.tabControl1.Size = new System.Drawing.Size(481, 346);
+            this.tabControl1.Size = new System.Drawing.Size(486, 346);
             this.tabControl1.TabIndex = 8;
             // 
             // tabPage1
@@ -199,7 +200,7 @@
             this.tabPage1.Location = new System.Drawing.Point(4, 34);
             this.tabPage1.Name = "tabPage1";
             this.tabPage1.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage1.Size = new System.Drawing.Size(473, 308);
+            this.tabPage1.Size = new System.Drawing.Size(478, 308);
             this.tabPage1.TabIndex = 0;
             this.tabPage1.Text = "Scanner settings";
             // 
@@ -210,7 +211,7 @@
             this.databaseFileName.Location = new System.Drawing.Point(125, 66);
             this.databaseFileName.Name = "databaseFileName";
             this.databaseFileName.ReadOnly = true;
-            this.databaseFileName.Size = new System.Drawing.Size(336, 20);
+            this.databaseFileName.Size = new System.Drawing.Size(341, 20);
             this.databaseFileName.TabIndex = 32;
             // 
             // label21
@@ -438,7 +439,7 @@
             // 
             this.folderButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.folderButton.Image = global::TinyOPDS.Properties.Resources.folder;
-            this.folderButton.Location = new System.Drawing.Point(287, 30);
+            this.folderButton.Location = new System.Drawing.Point(292, 30);
             this.folderButton.Name = "folderButton";
             this.folderButton.Size = new System.Drawing.Size(29, 23);
             this.folderButton.TabIndex = 10;
@@ -468,7 +469,7 @@
             // scannerButton
             // 
             this.scannerButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.scannerButton.Location = new System.Drawing.Point(255, 260);
+            this.scannerButton.Location = new System.Drawing.Point(260, 260);
             this.scannerButton.Name = "scannerButton";
             this.scannerButton.Size = new System.Drawing.Size(210, 40);
             this.scannerButton.TabIndex = 7;
@@ -483,7 +484,7 @@
             this.libraryPath.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::TinyOPDS.Properties.Settings.Default, "LibraryPath", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
             this.libraryPath.Location = new System.Drawing.Point(17, 32);
             this.libraryPath.Name = "libraryPath";
-            this.libraryPath.Size = new System.Drawing.Size(268, 20);
+            this.libraryPath.Size = new System.Drawing.Size(273, 20);
             this.libraryPath.TabIndex = 6;
             this.libraryPath.Text = global::TinyOPDS.Properties.Settings.Default.LibraryPath;
             this.libraryPath.Validated += new System.EventHandler(this.libraryPath_Validated);
@@ -491,6 +492,7 @@
             // tabPage2
             // 
             this.tabPage2.BackColor = System.Drawing.SystemColors.Control;
+            this.tabPage2.Controls.Add(this.useAbsoluteUri);
             this.tabPage2.Controls.Add(this.extWebLink);
             this.tabPage2.Controls.Add(this.intWebLink);
             this.tabPage2.Controls.Add(this.label34);
@@ -523,13 +525,25 @@
             this.tabPage2.Location = new System.Drawing.Point(4, 34);
             this.tabPage2.Name = "tabPage2";
             this.tabPage2.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage2.Size = new System.Drawing.Size(473, 308);
+            this.tabPage2.Size = new System.Drawing.Size(478, 308);
             this.tabPage2.TabIndex = 1;
             this.tabPage2.Text = "OPDS server settings";
             // 
+            // useAbsoluteUri
+            // 
+            this.useAbsoluteUri.AutoSize = true;
+            this.useAbsoluteUri.Checked = global::TinyOPDS.Properties.Settings.Default.UseAbsoluteUri;
+            this.useAbsoluteUri.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "UseAbsoluteUri", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.useAbsoluteUri.Location = new System.Drawing.Point(340, 71);
+            this.useAbsoluteUri.Name = "useAbsoluteUri";
+            this.useAbsoluteUri.Size = new System.Drawing.Size(91, 17);
+            this.useAbsoluteUri.TabIndex = 54;
+            this.useAbsoluteUri.Text = "Absolute links";
+            this.useAbsoluteUri.UseVisualStyleBackColor = true;
+            // 
             // extWebLink
             // 
-            this.extWebLink.Location = new System.Drawing.Point(252, 179);
+            this.extWebLink.Location = new System.Drawing.Point(252, 188);
             this.extWebLink.Name = "extWebLink";
             this.extWebLink.Size = new System.Drawing.Size(203, 13);
             this.extWebLink.TabIndex = 53;
@@ -539,7 +553,7 @@
             // 
             // intWebLink
             // 
-            this.intWebLink.Location = new System.Drawing.Point(252, 137);
+            this.intWebLink.Location = new System.Drawing.Point(252, 148);
             this.intWebLink.Name = "intWebLink";
             this.intWebLink.Size = new System.Drawing.Size(203, 13);
             this.intWebLink.TabIndex = 52;
@@ -550,7 +564,7 @@
             // label34
             // 
             this.label34.AutoSize = true;
-            this.label34.Location = new System.Drawing.Point(252, 164);
+            this.label34.Location = new System.Drawing.Point(252, 173);
             this.label34.Name = "label34";
             this.label34.Size = new System.Drawing.Size(96, 13);
             this.label34.TabIndex = 51;
@@ -559,7 +573,7 @@
             // label35
             // 
             this.label35.AutoSize = true;
-            this.label35.Location = new System.Drawing.Point(252, 122);
+            this.label35.Location = new System.Drawing.Point(252, 133);
             this.label35.Name = "label35";
             this.label35.Size = new System.Drawing.Size(84, 13);
             this.label35.TabIndex = 50;
@@ -568,7 +582,7 @@
             // label33
             // 
             this.label33.AutoSize = true;
-            this.label33.Location = new System.Drawing.Point(155, 69);
+            this.label33.Location = new System.Drawing.Point(252, 106);
             this.label33.Name = "label33";
             this.label33.Size = new System.Drawing.Size(54, 13);
             this.label33.TabIndex = 48;
@@ -578,16 +592,16 @@
             // 
             this.interfaceCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.interfaceCombo.FormattingEnabled = true;
-            this.interfaceCombo.Location = new System.Drawing.Point(294, 35);
+            this.interfaceCombo.Location = new System.Drawing.Point(255, 35);
             this.interfaceCombo.Name = "interfaceCombo";
-            this.interfaceCombo.Size = new System.Drawing.Size(113, 21);
+            this.interfaceCombo.Size = new System.Drawing.Size(121, 21);
             this.interfaceCombo.TabIndex = 47;
             this.interfaceCombo.SelectedIndexChanged += new System.EventHandler(this.interfaceCombo_SelectedIndexChanged);
             // 
             // label29
             // 
             this.label29.AutoSize = true;
-            this.label29.Location = new System.Drawing.Point(292, 16);
+            this.label29.Location = new System.Drawing.Point(252, 16);
             this.label29.Name = "label29";
             this.label29.Size = new System.Drawing.Size(94, 13);
             this.label29.TabIndex = 46;
@@ -596,7 +610,7 @@
             // statUniqueClients
             // 
             this.statUniqueClients.AutoSize = true;
-            this.statUniqueClients.Location = new System.Drawing.Point(148, 238);
+            this.statUniqueClients.Location = new System.Drawing.Point(148, 256);
             this.statUniqueClients.Name = "statUniqueClients";
             this.statUniqueClients.Size = new System.Drawing.Size(13, 13);
             this.statUniqueClients.TabIndex = 45;
@@ -605,7 +619,7 @@
             // label26
             // 
             this.label26.AutoSize = true;
-            this.label26.Location = new System.Drawing.Point(19, 238);
+            this.label26.Location = new System.Drawing.Point(19, 256);
             this.label26.Name = "label26";
             this.label26.Size = new System.Drawing.Size(77, 13);
             this.label26.TabIndex = 44;
@@ -614,7 +628,7 @@
             // statImages
             // 
             this.statImages.AutoSize = true;
-            this.statImages.Location = new System.Drawing.Point(445, 210);
+            this.statImages.Location = new System.Drawing.Point(445, 228);
             this.statImages.Name = "statImages";
             this.statImages.Size = new System.Drawing.Size(13, 13);
             this.statImages.TabIndex = 43;
@@ -623,7 +637,7 @@
             // label27
             // 
             this.label27.AutoSize = true;
-            this.label27.Location = new System.Drawing.Point(352, 210);
+            this.label27.Location = new System.Drawing.Point(352, 228);
             this.label27.Name = "label27";
             this.label27.Size = new System.Drawing.Size(67, 13);
             this.label27.TabIndex = 42;
@@ -632,7 +646,7 @@
             // statBooks
             // 
             this.statBooks.AutoSize = true;
-            this.statBooks.Location = new System.Drawing.Point(289, 210);
+            this.statBooks.Location = new System.Drawing.Point(289, 228);
             this.statBooks.Name = "statBooks";
             this.statBooks.Size = new System.Drawing.Size(13, 13);
             this.statBooks.TabIndex = 41;
@@ -641,7 +655,7 @@
             // label25
             // 
             this.label25.AutoSize = true;
-            this.label25.Location = new System.Drawing.Point(200, 210);
+            this.label25.Location = new System.Drawing.Point(200, 228);
             this.label25.Name = "label25";
             this.label25.Size = new System.Drawing.Size(63, 13);
             this.label25.TabIndex = 40;
@@ -650,7 +664,7 @@
             // statRequests
             // 
             this.statRequests.AutoSize = true;
-            this.statRequests.Location = new System.Drawing.Point(148, 210);
+            this.statRequests.Location = new System.Drawing.Point(148, 228);
             this.statRequests.Name = "statRequests";
             this.statRequests.Size = new System.Drawing.Size(13, 13);
             this.statRequests.TabIndex = 39;
@@ -659,7 +673,7 @@
             // label23
             // 
             this.label23.AutoSize = true;
-            this.label23.Location = new System.Drawing.Point(19, 210);
+            this.label23.Location = new System.Drawing.Point(19, 228);
             this.label23.Name = "label23";
             this.label23.Size = new System.Drawing.Size(77, 13);
             this.label23.TabIndex = 38;
@@ -667,7 +681,7 @@
             // 
             // extLink
             // 
-            this.extLink.Location = new System.Drawing.Point(19, 179);
+            this.extLink.Location = new System.Drawing.Point(19, 188);
             this.extLink.Name = "extLink";
             this.extLink.Size = new System.Drawing.Size(203, 13);
             this.extLink.TabIndex = 37;
@@ -677,7 +691,7 @@
             // 
             // intLink
             // 
-            this.intLink.Location = new System.Drawing.Point(19, 137);
+            this.intLink.Location = new System.Drawing.Point(19, 148);
             this.intLink.Name = "intLink";
             this.intLink.Size = new System.Drawing.Size(203, 13);
             this.intLink.TabIndex = 36;
@@ -688,7 +702,7 @@
             // label13
             // 
             this.label13.AutoSize = true;
-            this.label13.Location = new System.Drawing.Point(19, 69);
+            this.label13.Location = new System.Drawing.Point(20, 106);
             this.label13.Name = "label13";
             this.label13.Size = new System.Drawing.Size(61, 13);
             this.label13.TabIndex = 18;
@@ -697,7 +711,7 @@
             // extIPlabel
             // 
             this.extIPlabel.AutoSize = true;
-            this.extIPlabel.Location = new System.Drawing.Point(19, 164);
+            this.extIPlabel.Location = new System.Drawing.Point(19, 173);
             this.extIPlabel.Name = "extIPlabel";
             this.extIPlabel.Size = new System.Drawing.Size(106, 13);
             this.extIPlabel.TabIndex = 14;
@@ -706,7 +720,7 @@
             // intIPlabel
             // 
             this.intIPlabel.AutoSize = true;
-            this.intIPlabel.Location = new System.Drawing.Point(19, 122);
+            this.intIPlabel.Location = new System.Drawing.Point(19, 133);
             this.intIPlabel.Name = "intIPlabel";
             this.intIPlabel.Size = new System.Drawing.Size(94, 13);
             this.intIPlabel.TabIndex = 13;
@@ -724,7 +738,7 @@
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(419, 16);
+            this.label3.Location = new System.Drawing.Point(408, 16);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(29, 13);
             this.label3.TabIndex = 9;
@@ -733,7 +747,7 @@
             // serverButton
             // 
             this.serverButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.serverButton.Location = new System.Drawing.Point(255, 260);
+            this.serverButton.Location = new System.Drawing.Point(260, 260);
             this.serverButton.Name = "serverButton";
             this.serverButton.Size = new System.Drawing.Size(210, 40);
             this.serverButton.TabIndex = 8;
@@ -743,9 +757,9 @@
             // webPrefix
             // 
             this.webPrefix.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::TinyOPDS.Properties.Settings.Default, "HttpPrefix", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.webPrefix.Location = new System.Drawing.Point(158, 89);
+            this.webPrefix.Location = new System.Drawing.Point(340, 103);
             this.webPrefix.Name = "webPrefix";
-            this.webPrefix.Size = new System.Drawing.Size(118, 20);
+            this.webPrefix.Size = new System.Drawing.Size(82, 20);
             this.webPrefix.TabIndex = 49;
             this.webPrefix.Text = global::TinyOPDS.Properties.Settings.Default.HttpPrefix;
             // 
@@ -755,7 +769,7 @@
             this.openPort.Checked = global::TinyOPDS.Properties.Settings.Default.OpenNATPort;
             this.openPort.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "OpenNATPort", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
             this.openPort.Enabled = false;
-            this.openPort.Location = new System.Drawing.Point(294, 92);
+            this.openPort.Location = new System.Drawing.Point(160, 71);
             this.openPort.Name = "openPort";
             this.openPort.Size = new System.Drawing.Size(130, 17);
             this.openPort.TabIndex = 15;
@@ -766,9 +780,9 @@
             // serverPort
             // 
             this.serverPort.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::TinyOPDS.Properties.Settings.Default, "ServerPort", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.serverPort.Location = new System.Drawing.Point(421, 35);
+            this.serverPort.Location = new System.Drawing.Point(411, 36);
             this.serverPort.Name = "serverPort";
-            this.serverPort.Size = new System.Drawing.Size(44, 20);
+            this.serverPort.Size = new System.Drawing.Size(54, 20);
             this.serverPort.TabIndex = 10;
             this.serverPort.Text = global::TinyOPDS.Properties.Settings.Default.ServerPort;
             this.serverPort.Validated += new System.EventHandler(this.serverPort_Validated);
@@ -779,20 +793,20 @@
             this.useUPnP.Checked = global::TinyOPDS.Properties.Settings.Default.UseUPnP;
             this.useUPnP.CheckState = System.Windows.Forms.CheckState.Checked;
             this.useUPnP.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "UseUPnP", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.useUPnP.Location = new System.Drawing.Point(294, 68);
+            this.useUPnP.Location = new System.Drawing.Point(22, 71);
             this.useUPnP.Name = "useUPnP";
             this.useUPnP.Size = new System.Drawing.Size(76, 17);
             this.useUPnP.TabIndex = 35;
             this.useUPnP.Text = "Use UPnP";
             this.useUPnP.UseVisualStyleBackColor = true;
-            this.useUPnP.CheckedChanged += new System.EventHandler(this.useUPnP_CheckedChanged);
+            this.useUPnP.CheckStateChanged += new System.EventHandler(this.useUPnP_CheckStateChanged);
             // 
             // rootPrefix
             // 
             this.rootPrefix.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::TinyOPDS.Properties.Settings.Default, "RootPrefix", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.rootPrefix.Location = new System.Drawing.Point(22, 88);
+            this.rootPrefix.Location = new System.Drawing.Point(115, 103);
             this.rootPrefix.Name = "rootPrefix";
-            this.rootPrefix.Size = new System.Drawing.Size(118, 20);
+            this.rootPrefix.Size = new System.Drawing.Size(91, 20);
             this.rootPrefix.TabIndex = 19;
             this.rootPrefix.Text = global::TinyOPDS.Properties.Settings.Default.RootPrefix;
             this.rootPrefix.TextChanged += new System.EventHandler(this.rootPrefix_TextChanged);
@@ -802,7 +816,7 @@
             this.serverName.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::TinyOPDS.Properties.Settings.Default, "ServerName", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
             this.serverName.Location = new System.Drawing.Point(22, 35);
             this.serverName.Name = "serverName";
-            this.serverName.Size = new System.Drawing.Size(254, 20);
+            this.serverName.Size = new System.Drawing.Size(200, 20);
             this.serverName.TabIndex = 12;
             this.serverName.Text = global::TinyOPDS.Properties.Settings.Default.ServerName;
             // 
@@ -824,7 +838,7 @@
             this.tabPage5.Location = new System.Drawing.Point(4, 34);
             this.tabPage5.Name = "tabPage5";
             this.tabPage5.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage5.Size = new System.Drawing.Size(473, 308);
+            this.tabPage5.Size = new System.Drawing.Size(478, 308);
             this.tabPage5.TabIndex = 4;
             this.tabPage5.Text = "Authentication";
             // 
@@ -975,7 +989,7 @@
             this.tabPage3.Location = new System.Drawing.Point(4, 34);
             this.tabPage3.Name = "tabPage3";
             this.tabPage3.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage3.Size = new System.Drawing.Size(473, 308);
+            this.tabPage3.Size = new System.Drawing.Size(478, 308);
             this.tabPage3.TabIndex = 2;
             this.tabPage3.Text = "Miscellaneous";
             // 
@@ -1071,7 +1085,7 @@
             // 
             this.convertorFolder.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.convertorFolder.Image = global::TinyOPDS.Properties.Resources.folder;
-            this.convertorFolder.Location = new System.Drawing.Point(430, 26);
+            this.convertorFolder.Location = new System.Drawing.Point(436, 26);
             this.convertorFolder.Name = "convertorFolder";
             this.convertorFolder.Size = new System.Drawing.Size(29, 23);
             this.convertorFolder.TabIndex = 29;
@@ -1084,7 +1098,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.convertorPath.Location = new System.Drawing.Point(11, 28);
             this.convertorPath.Name = "convertorPath";
-            this.convertorPath.Size = new System.Drawing.Size(415, 20);
+            this.convertorPath.Size = new System.Drawing.Size(418, 20);
             this.convertorPath.TabIndex = 28;
             this.convertorPath.Validated += new System.EventHandler(this.convertorPath_Validated);
             // 
@@ -1158,7 +1172,7 @@
             this.tabPage4.Location = new System.Drawing.Point(4, 34);
             this.tabPage4.Name = "tabPage4";
             this.tabPage4.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage4.Size = new System.Drawing.Size(473, 308);
+            this.tabPage4.Size = new System.Drawing.Size(478, 308);
             this.tabPage4.TabIndex = 3;
             this.tabPage4.Text = "About program";
             // 
@@ -1334,7 +1348,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(474, 341);
+            this.ClientSize = new System.Drawing.Size(479, 341);
             this.Controls.Add(this.tabControl1);
             this.DoubleBuffered = true;
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
@@ -1472,6 +1486,7 @@
         private System.Windows.Forms.LinkLabel intWebLink;
         private System.Windows.Forms.Label label34;
         private System.Windows.Forms.Label label35;
+        private System.Windows.Forms.CheckBox useAbsoluteUri;
     }
 }
 

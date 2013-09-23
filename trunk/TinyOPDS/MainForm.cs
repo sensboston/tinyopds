@@ -131,8 +131,8 @@ namespace TinyOPDS
                 };
             _watcher.IsEnabled = false;
 
-            intLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
-            intWebLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.HttpPrefix);
+            intLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, rootPrefix.Text);
+            intWebLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, webPrefix.Text);
 
             _upnpController.DiscoverCompleted += _upnpController_DiscoverCompleted;
             _upnpController.DiscoverAsync(Properties.Settings.Default.UseUPnP);
@@ -462,19 +462,16 @@ namespace TinyOPDS
             StartHttpServer();
         }
 
-        private void useUPnP_CheckedChanged(object sender, EventArgs e)
+        private void useUPnP_CheckStateChanged(object sender, EventArgs e)
         {
-            if (Properties.Settings.Default.UseUPnP != useUPnP.Checked)
+            if (useUPnP.Checked)
             {
-                if (useUPnP.Checked)
-                {
-                    // Re-detect IP addresses using UPnP
-                    if (!_upnpController.Discovered) _upnpController.DiscoverAsync(true);
-                }
-                else
-                {
-                    openPort.Checked = openPort.Enabled = false;
-                }
+                // Re-detect IP addresses using UPnP
+                _upnpController.DiscoverAsync(true);
+            }
+            else
+            {
+                openPort.Checked = openPort.Enabled = false;
             }
         }
 
@@ -503,7 +500,9 @@ namespace TinyOPDS
             if (_upnpController != null && _upnpController.InterfaceIndex != interfaceCombo.SelectedIndex)
             {
                 _upnpController.InterfaceIndex = interfaceCombo.SelectedIndex;
-                intLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
+                intLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, rootPrefix.Text);
+                intWebLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, webPrefix.Text);
+
                 if (Properties.Settings.Default.UseUPnP && openPort.Checked)
                 {
                     int port = int.Parse(Properties.Settings.Default.ServerPort);
@@ -632,13 +631,13 @@ namespace TinyOPDS
             {
                 if (_upnpController.LocalIP != null)
                 {
-                    intLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
-                    intWebLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.HttpPrefix);
+                    intLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, rootPrefix.Text);
+                    intWebLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, webPrefix.Text);
                 }
                 if (_upnpController.ExternalIP != null)
                 {
-                    extLink.Text = string.Format(urlTemplate, _upnpController.ExternalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
-                    extWebLink.Text = string.Format(urlTemplate, _upnpController.ExternalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.HttpPrefix);
+                    extLink.Text = string.Format(urlTemplate, _upnpController.ExternalIP.ToString(), Properties.Settings.Default.ServerPort, rootPrefix.Text);
+                    extWebLink.Text = string.Format(urlTemplate, _upnpController.ExternalIP.ToString(), Properties.Settings.Default.ServerPort, webPrefix.Text);
                 }
             }
         }

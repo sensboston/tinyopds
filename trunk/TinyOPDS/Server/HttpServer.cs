@@ -180,7 +180,13 @@ namespace TinyOPDS.Server
                                                     break;
                                                 }
                                             if (!authorized)
+                                            {
                                                 Log.WriteLine(LogLevel.Warning, "Authentication failed! IP: {0} user: {1} pass: {2}", remoteIP, credential[0], credential[1]);
+                                            }
+                                            else
+                                            {
+                                                Log.WriteLine(LogLevel.Info, "User {1} from {0} user successfully logged in", remoteIP, credential[0]);
+                                            }
                                         }
                                     }
                                     catch (Exception e)

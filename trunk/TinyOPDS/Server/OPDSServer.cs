@@ -151,6 +151,14 @@ namespace TinyOPDS.Server
                             }
                             catch { }
                         }
+                        else
+                        {
+                            string prefix = isWWWRequest ? Properties.Settings.Default.HttpPrefix : Properties.Settings.Default.RootPrefix;
+                            if (!string.IsNullOrEmpty(prefix)) prefix = "/" + prefix;
+                            xml = xml.Replace("href=\"", "href=\"" + prefix);
+                            // Fix open search link
+                            xml = xml.Replace(prefix + "/opds-opensearch.xml", "/opds-opensearch.xml");
+                        }
 
                         if (isWWWRequest && xslExists)
                         {

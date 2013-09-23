@@ -37,9 +37,9 @@ namespace TinyOPDS.OPDS
         /// </summary>
         /// <param name="author"></param>
         /// <returns></returns>
-        public XDocument GetCatalogByAuthor(string author, bool fb2Only)
+        public XDocument GetCatalogByAuthor(string author, bool fb2Only, int threshold = 50)
         {
-            return GetCatalog(author, SearchFor.Author, fb2Only);
+            return GetCatalog(author, SearchFor.Author, fb2Only, threshold);
         }
 
         /// <summary>
@@ -47,9 +47,9 @@ namespace TinyOPDS.OPDS
         /// </summary>
         /// <param name="sequence"></param>
         /// <returns></returns>
-        public XDocument GetCatalogBySequence(string sequence, bool fb2Only)
+        public XDocument GetCatalogBySequence(string sequence, bool fb2Only, int threshold = 50)
         {
-            return GetCatalog(sequence, SearchFor.Sequence, fb2Only);
+            return GetCatalog(sequence, SearchFor.Sequence, fb2Only, threshold);
         }
 
         /// <summary>
@@ -57,11 +57,10 @@ namespace TinyOPDS.OPDS
         /// </summary>
         /// <param name="author"></param>
         /// <returns></returns>
-        public XDocument GetCatalogByGenre(string genre, bool fb2Only)
+        public XDocument GetCatalogByGenre(string genre, bool fb2Only, int threshold = 50)
         {
-            return GetCatalog(genre, SearchFor.Genre, fb2Only);
+            return GetCatalog(genre, SearchFor.Genre, fb2Only, threshold);
         }
-
 
         /// <summary>
         /// Returns books catalog by selected genre

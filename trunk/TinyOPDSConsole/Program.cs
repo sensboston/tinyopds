@@ -1,13 +1,32 @@
-﻿using System;
+﻿/***********************************************************
+ * This file is a part of TinyOPDS server project
+ * 
+ * Copyright (c) 2013 SeNSSoFT
+ *
+ * This code is licensed under the Microsoft Public License, 
+ * see http://tinyopds.codeplex.com/license for the details.
+ *
+ * This is a console server/service application
+ * 
+ ************************************************************/
+
+using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.ServiceProcess;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Reflection;
 using System.Diagnostics;
+
 using TinyOPDS;
+using TinyOPDS.Data;
+using TinyOPDS.Scanner;
+using TinyOPDS.OPDS;
+using TinyOPDS.Server;
+using UPnP;
 
 namespace TinyOPDSConsole
 {
@@ -16,12 +35,32 @@ namespace TinyOPDSConsole
         private static readonly string _exePath = Assembly.GetExecutingAssembly().Location;
         private const string SERVICE_NAME = "TinyOPDSSvc";
         private const string SERVICE_DESC = "TinyOPDS service";
+        private const string _urlTemplate = "http://{0}:{1}/{2}";
+
+        private static OPDSServer _server;
+        private static Thread _serverThread;
+        private static FileScanner _scanner = new FileScanner();
+        private static Watcher _watcher;
+        private static DateTime _scanStartTime;
+        private static UPnPController _upnpController = new UPnPController();
+
+        #region Statistical information
+        private static int _fb2Count, _epubCount, _skippedFiles, _invalidFiles, _duplicates;
+        #endregion
+
+        #region Startup, command line processing and service overrides
 
         static int Main(string[] args)
         {
             if (System.Environment.UserInteractive)
             {
                 Console.WriteLine("\nTinyOPDS console, {0}, copyright (c) 2013 SeNSSoFT", string.Format(Localizer.Text("version {0}.{1} {2}"), Utils.Version.Major, Utils.Version.Minor, Utils.Version.Major == 0 ? " (beta)" : ""));
+
+                Console.CancelKeyPress += (sender, eventArgs) =>
+                {
+                    eventArgs.Cancel = true;
+                    StopServer();
+                };
 
                 if (args.Length > 0)
                 {
@@ -103,7 +142,7 @@ namespace TinyOPDSConsole
                                     }
                                 }
                                 else StartServer();
-                                break;
+                                return (0);
                             }
 
                         // Stop service command
@@ -121,6 +160,7 @@ namespace TinyOPDSConsole
                                         catch (Exception e)
                                         {
                                             Console.WriteLine(SERVICE_DESC + " failed to stop with exception: \"{0}\"", e.Message);
+                                            return(-1);
                                         }
                                     }
                                     else
@@ -131,7 +171,7 @@ namespace TinyOPDSConsole
                                     }
                                 }
                                 else StopServer();
-                                break;
+                                return (0);
                             }
 
                         case "scan":
@@ -146,7 +186,7 @@ namespace TinyOPDSConsole
                                 {
                                     string s = string.Empty;
                                     for (int i = 0; i < (args.Length - 1) / 2; i++) s += args[(i * 2) + 1] + ":" + args[(i * 2) + 2] + ";";
-                                    Console.WriteLine(Crypt.EncryptStringAES(s, "http://{0}:{1}/{2}"));
+                                    Console.WriteLine(Crypt.EncryptStringAES(s, _urlTemplate));
                                 }
                                 else
                                 {
@@ -202,17 +242,155 @@ namespace TinyOPDSConsole
         {
             StopServer();
         }
+        #endregion
 
+        #region OPDS server routines
+
+        /// <summary>
+        /// 
+        /// </summary>
         private static void StartServer()
         {
+            Log.SaveToFile = TinyOPDS.Properties.Settings.Default.SaveLogToDisk;
+
+            // Init localization service
+            Localizer.Init();
+            Localizer.Language = TinyOPDS.Properties.Settings.Default.Language;
+
+            // Create file watcher
+            _watcher = new Watcher(Library.LibraryPath);
+            _watcher.OnBookAdded += (object sender, BookAddedEventArgs e) =>
+            {
+                if (e.BookType == BookType.FB2) _fb2Count++; else _epubCount++;
+                UpdateInfo();
+                Log.WriteLine(LogLevel.Info, "Added: \"{0}\"", e.BookPath);
+            };
+            _watcher.OnInvalidBook += (_, __) =>
+            {
+                _invalidFiles++;
+                UpdateInfo();
+            };
+            _watcher.OnFileSkipped += (object _sender, FileSkippedEventArgs _e) =>
+            {
+                _skippedFiles = _e.Count;
+                UpdateInfo();
+            };
+
+            _watcher.OnBookDeleted += (object sender, BookDeletedEventArgs e) =>
+            {
+                UpdateInfo();
+                Log.WriteLine(LogLevel.Info, "Deleted: \"{0}\"", e.BookPath);
+            };
+            _watcher.IsEnabled = false;
+
+            _upnpController.DiscoverCompleted += _upnpController_DiscoverCompleted;
+            _upnpController.DiscoverAsync(TinyOPDS.Properties.Settings.Default.UseUPnP);
+
+            Library.LibraryPath = TinyOPDS.Properties.Settings.Default.LibraryPath;
+            Library.LibraryLoaded += (_, __) =>
+            {
+                _watcher.DirectoryToWatch = Library.LibraryPath;
+                _watcher.IsEnabled = TinyOPDS.Properties.Settings.Default.WatchLibrary;
+            };
+
+            // Load saved credentials
+            try
+            {
+                HttpProcessor.Credentials.Clear();
+                string[] pairs = Crypt.DecryptStringAES(TinyOPDS.Properties.Settings.Default.Credentials, _urlTemplate).Split(';');
+                foreach (string pair in pairs)
+                {
+                    string[] cred = pair.Split(':');
+                    if (cred.Length == 2) HttpProcessor.Credentials.Add(new Credential(cred[0], cred[1]));
+                }
+            }
+            catch { }
+
+            // Create and start HTTP server
+            HttpProcessor.AuthorizedClients.Clear();
+            HttpProcessor.BannedClients.Clear();
+            _server = new OPDSServer(_upnpController.LocalIP, int.Parse(TinyOPDS.Properties.Settings.Default.ServerPort));
+
+            _serverThread = new Thread(new ThreadStart(_server.Listen));
+            _serverThread.Priority = ThreadPriority.BelowNormal;
+            _serverThread.Start();
+            _server.ServerReady.WaitOne(TimeSpan.FromMilliseconds(500));
+            if (!_server.IsActive)
+            {
+                if (_server.ServerException != null)
+                {
+                    if (_server.ServerException is System.Net.Sockets.SocketException)
+                    {
+                        Log.WriteLine(LogLevel.Error, string.Format("Probably, port {0} is already in use. Please try different port value."), TinyOPDS.Properties.Settings.Default.ServerPort);
+                    }
+                    else
+                    {
+                        Log.WriteLine(LogLevel.Error, _server.ServerException.Message);
+                    }
+
+                    StopServer();
+                }
+            }
+            else
+            {
+                Log.WriteLine("HTTP server started");
+                while (_server != null && _server.IsActive) Thread.Sleep(1000);
+            }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
         private static void StopServer()
+        {
+            if (_server != null)
+            {
+                _server.StopServer();
+                _serverThread = null;
+                _server = null;
+                Log.WriteLine("HTTP server stopped");
+            }
+
+            if (_watcher != null)
+            {
+                _watcher.IsEnabled = false;
+                _watcher = null;
+            }
+
+            if (_upnpController != null)
+            {
+                if (_upnpController.UPnPReady)
+                {
+                    int port = int.Parse(TinyOPDS.Properties.Settings.Default.ServerPort);
+                    _upnpController.DeleteForwardingRule(port, System.Net.Sockets.ProtocolType.Tcp);
+                    Log.WriteLine("Port {0} closed", port);
+                }
+                _upnpController.DiscoverCompleted -= _upnpController_DiscoverCompleted;
+                _upnpController.Dispose();
+            }
+        }
+
+        private static void _upnpController_DiscoverCompleted(object sender, EventArgs e)
+        {
+            if (_upnpController != null && _upnpController.UPnPReady)
+            {
+                if (TinyOPDS.Properties.Settings.Default.OpenNATPort)
+                {
+                    int port = int.Parse(TinyOPDS.Properties.Settings.Default.ServerPort);
+                    _upnpController.ForwardPort(port, System.Net.Sockets.ProtocolType.Tcp, "TinyOPDS server");
+                    Log.WriteLine("Port {0} forwarded by UPnP", port);
+                }
+            }
+        }
+
+        private static void UpdateInfo()
         {
         }
 
         private static void ScanFolder()
         {
         }
+
+        #endregion
     }
 }

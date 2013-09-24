@@ -193,6 +193,12 @@
     <None Include="Libs\Ionic.Zip.Reduced.dll.gz" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="..\TinyOPDS\translation.xml">
+      <Link>translation.xml</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\genres.xml">
+      <Link>genres.xml</Link>
+    </EmbeddedResource>
     <Content Include="..\TinyOPDS\Libs\eBdb.EpubReader.dll">
       <Link>Libs\eBdb.EpubReader.dll</Link>
     </Content>

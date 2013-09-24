@@ -94,7 +94,7 @@ namespace TinyOPDS.Server
                         }
                         else if (request.StartsWith("/author/"))
                         {
-                            xml = new BooksCatalog().GetCatalogByAuthor(request.Substring(8), acceptFB2, (isWWWRequest ? 1000 : 50)).ToString();
+                            xml = new BooksCatalog().GetCatalogByAuthor(request.Substring(8), acceptFB2, (isWWWRequest ? 1000 : 100)).ToString();
                         }
                         else if (request.StartsWith("/sequencesindex"))
                         {
@@ -103,7 +103,7 @@ namespace TinyOPDS.Server
                         }
                         else if (request.Contains("/sequence/"))
                         {
-                            xml = new BooksCatalog().GetCatalogBySequence(request.Substring(10), acceptFB2, (isWWWRequest ? 1000 : 50)).ToString();
+                            xml = new BooksCatalog().GetCatalogBySequence(request.Substring(10), acceptFB2, (isWWWRequest ? 1000 : 100)).ToString();
                         }
                         else if (request.StartsWith("/genres"))
                         {
@@ -112,7 +112,7 @@ namespace TinyOPDS.Server
                         }
                         else if (request.StartsWith("/genre/"))
                         {
-                            xml = new BooksCatalog().GetCatalogByGenre(request.Substring(7), acceptFB2, (isWWWRequest ? 1000 : 50)).ToString();
+                            xml = new BooksCatalog().GetCatalogByGenre(request.Substring(7), acceptFB2, (isWWWRequest ? 1000 : 100)).ToString();
                         }
                         else if (request.StartsWith("/search"))
                         {

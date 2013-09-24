@@ -138,6 +138,7 @@
             this.serverMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripSeparator();
             this.exitMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.viewLogFile = new System.Windows.Forms.Button();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.tabPage2.SuspendLayout();
@@ -972,6 +973,7 @@
             // tabPage3
             // 
             this.tabPage3.BackColor = System.Drawing.SystemColors.Control;
+            this.tabPage3.Controls.Add(this.viewLogFile);
             this.tabPage3.Controls.Add(this.label32);
             this.tabPage3.Controls.Add(this.updateCombo);
             this.tabPage3.Controls.Add(this.label22);
@@ -1344,6 +1346,16 @@
             this.exitMenuItem.Text = "Exit";
             this.exitMenuItem.Click += new System.EventHandler(this.exitMenuItem_Click);
             // 
+            // viewLogFile
+            // 
+            this.viewLogFile.Location = new System.Drawing.Point(299, 218);
+            this.viewLogFile.Name = "viewLogFile";
+            this.viewLogFile.Size = new System.Drawing.Size(130, 23);
+            this.viewLogFile.TabIndex = 39;
+            this.viewLogFile.Text = "View log file";
+            this.viewLogFile.UseVisualStyleBackColor = true;
+            this.viewLogFile.Click += new System.EventHandler(this.viewLogFile_Click);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -1487,6 +1499,7 @@
         private System.Windows.Forms.Label label34;
         private System.Windows.Forms.Label label35;
         private System.Windows.Forms.CheckBox useAbsoluteUri;
+        private System.Windows.Forms.Button viewLogFile;
     }
 }
 

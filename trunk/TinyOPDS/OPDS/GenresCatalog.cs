@@ -26,7 +26,7 @@ namespace TinyOPDS.OPDS
     /// </summary>
     public class GenresCatalog
     {
-        public XDocument GetCatalog(string searchPattern, int threshold = 50)
+        public XDocument GetCatalog(string searchPattern, int threshold = 100)
         {
             if (!string.IsNullOrEmpty(searchPattern)) searchPattern = Uri.UnescapeDataString(searchPattern).Replace('+', ' ');
 

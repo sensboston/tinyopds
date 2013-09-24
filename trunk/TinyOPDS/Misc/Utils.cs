@@ -17,6 +17,7 @@ using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Linq;
 using System.Text;
+using System.Security.Principal;
 
 namespace TinyOPDS
 {
@@ -61,6 +62,20 @@ namespace TinyOPDS
 
     public class Utils
     {
+
+        /// <summary>
+        /// Check current account privileges
+        /// </summary>
+        /// <returns>if we are not an Administrator, return false</returns>
+        public static bool IsElevated
+        {
+            get
+            {
+                WindowsPrincipal principal = new WindowsPrincipal(WindowsIdentity.GetCurrent());
+                return principal.IsInRole(WindowsBuiltInRole.Administrator);
+            }
+        }
+
         private static string[] fb2Clients = new string[] { "fbreader", "moon+ reader" };
         /// <summary>
         /// Detect eBook readers with fb2 support

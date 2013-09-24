@@ -147,6 +147,7 @@
     <Compile Include="Misc\Localizer.cs" />
     <Compile Include="Misc\Log.cs" />
     <Compile Include="Misc\OPDSComparer.cs" />
+    <Compile Include="Misc\ServiceTools.cs" />
     <Compile Include="Misc\StringUtils.cs" />
     <Compile Include="Misc\UPnP.cs" />
     <Compile Include="OPDS\AuthorsCatalog.cs" />

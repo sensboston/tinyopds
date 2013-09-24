@@ -23,7 +23,7 @@ namespace TinyOPDS
     /// </summary>
     internal static class Log
     {
-        private static string _logFileName = "TinyOPDS.log";
+        internal static string LogFileName = "TinyOPDS.log";
 
         /// <summary>
         /// 
@@ -39,7 +39,7 @@ namespace TinyOPDS
             get { return _saveToFile; }
             set 
             {
-                _logFileName = Path.Combine(Utils.ServiceFilesLocation, "TinyOPDS.log");
+                LogFileName = Path.Combine(Utils.ServiceFilesLocation, "TinyOPDS.log");
                 _saveToFile = value;
             }
         }
@@ -82,11 +82,11 @@ namespace TinyOPDS
                 FileStream fileStream = null;
                 try
                 {
-                    fileStream = new FileStream(_logFileName, (File.Exists(_logFileName) ? FileMode.Append : FileMode.Create), FileAccess.Write, FileShare.ReadWrite);
+                    fileStream = new FileStream(LogFileName, (File.Exists(LogFileName) ? FileMode.Append : FileMode.Create), FileAccess.Write, FileShare.ReadWrite);
                     using (StreamWriter writer = new StreamWriter(fileStream))
                     {
                         fileStream = null;
-                        writer.WriteLine(string.Format("{0:MM/dd/yyyy HH:mm:ss.f}\t{1}", DateTime.Now, message), _logFileName);
+                        writer.WriteLine(string.Format("{0:MM/dd/yyyy HH:mm:ss.f}\t{1}", DateTime.Now, message), LogFileName);
                     }
                 }
                 finally

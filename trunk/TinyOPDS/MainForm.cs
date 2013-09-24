@@ -766,6 +766,11 @@ namespace TinyOPDS
             if (Properties.Settings.Default.UpdatesCheck == 0) _updateChecker.Stop(); else _updateChecker.Start();
         }
 
+        private void viewLogFile_Click(object sender, EventArgs e)
+        {
+            System.Diagnostics.Process.Start(Log.LogFileName);
+        }
+
         #endregion
 
         #region TinyOPDS updates checker
@@ -831,5 +836,6 @@ namespace TinyOPDS
         }
 
         #endregion
+
     }
 }

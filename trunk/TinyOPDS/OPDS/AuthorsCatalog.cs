@@ -32,7 +32,7 @@ namespace TinyOPDS.OPDS
         /// <param name="searchPattern"></param>
         /// <param name="threshold"></param>
         /// <returns></returns>
-        public XDocument GetCatalog(string searchPattern, bool isOpenSearch = false, int threshold = 50)
+        public XDocument GetCatalog(string searchPattern, bool isOpenSearch = false, int threshold = 100)
         {
             if (!string.IsNullOrEmpty(searchPattern)) searchPattern = Uri.UnescapeDataString(searchPattern).Replace('+', ' ').ToLower();
 

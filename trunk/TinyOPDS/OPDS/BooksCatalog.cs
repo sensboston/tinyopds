@@ -37,7 +37,7 @@ namespace TinyOPDS.OPDS
         /// </summary>
         /// <param name="author"></param>
         /// <returns></returns>
-        public XDocument GetCatalogByAuthor(string author, bool fb2Only, int threshold = 50)
+        public XDocument GetCatalogByAuthor(string author, bool fb2Only, int threshold = 100)
         {
             return GetCatalog(author, SearchFor.Author, fb2Only, threshold);
         }
@@ -47,7 +47,7 @@ namespace TinyOPDS.OPDS
         /// </summary>
         /// <param name="sequence"></param>
         /// <returns></returns>
-        public XDocument GetCatalogBySequence(string sequence, bool fb2Only, int threshold = 50)
+        public XDocument GetCatalogBySequence(string sequence, bool fb2Only, int threshold = 100)
         {
             return GetCatalog(sequence, SearchFor.Sequence, fb2Only, threshold);
         }
@@ -57,7 +57,7 @@ namespace TinyOPDS.OPDS
         /// </summary>
         /// <param name="author"></param>
         /// <returns></returns>
-        public XDocument GetCatalogByGenre(string genre, bool fb2Only, int threshold = 50)
+        public XDocument GetCatalogByGenre(string genre, bool fb2Only, int threshold = 100)
         {
             return GetCatalog(genre, SearchFor.Genre, fb2Only, threshold);
         }
@@ -67,7 +67,7 @@ namespace TinyOPDS.OPDS
         /// </summary>
         /// <param name="author"></param>
         /// <returns></returns>
-        public XDocument GetCatalogByTitle(string title, bool fb2Only, int pageNumber = 0, int threshold = 50)
+        public XDocument GetCatalogByTitle(string title, bool fb2Only, int pageNumber = 0, int threshold = 100)
         {
             return GetCatalog(title, SearchFor.Title, fb2Only, threshold);
         }
@@ -80,7 +80,7 @@ namespace TinyOPDS.OPDS
         /// <param name="acceptFB2">Client can accept fb2 files</param>
         /// <param name="threshold">Items per page</param>
         /// <returns></returns>
-        private XDocument GetCatalog(string searchPattern, SearchFor searchFor, bool acceptFB2, int threshold = 50)
+        private XDocument GetCatalog(string searchPattern, SearchFor searchFor, bool acceptFB2, int threshold = 100)
         {
             if (!string.IsNullOrEmpty(searchPattern)) searchPattern = Uri.UnescapeDataString(searchPattern).Replace('+', ' ');
 

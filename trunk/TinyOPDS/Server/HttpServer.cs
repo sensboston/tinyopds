@@ -134,14 +134,14 @@ namespace TinyOPDS.Server
                     clientHash += remoteIP;
                     clientHash = Utils.CreateGuid(Utils.IsoOidNamespace, clientHash).ToString();
 
-                    if (Properties.Settings.Default.UseHTTPAuth)
+                    if (TinyOPDS.Properties.Settings.Default.UseHTTPAuth)
                     {
                         authorized = false;
 
                         // Is remote IP banned?
-                        if (Properties.Settings.Default.BanClients)
+                        if (TinyOPDS.Properties.Settings.Default.BanClients)
                         {
-                            if (BannedClients.ContainsKey(remoteIP) && BannedClients[remoteIP] >= Properties.Settings.Default.WrongAttemptsCount)
+                            if (BannedClients.ContainsKey(remoteIP) && BannedClients[remoteIP] >= TinyOPDS.Properties.Settings.Default.WrongAttemptsCount)
                             {
                                 checkLogin = false;
                             }
@@ -150,7 +150,7 @@ namespace TinyOPDS.Server
                         if (checkLogin)
                         {
                             // First, check authorized client list (if enabled)
-                            if (Properties.Settings.Default.RememberClients)
+                            if (TinyOPDS.Properties.Settings.Default.RememberClients)
                             {
                                 if (AuthorizedClients.Contains(clientHash))
                                 {
@@ -215,7 +215,7 @@ namespace TinyOPDS.Server
                     }
                     else
                     {
-                        if (Properties.Settings.Default.BanClients)
+                        if (TinyOPDS.Properties.Settings.Default.BanClients)
                         {
                             if (!BannedClients.ContainsKey(remoteIP)) BannedClients[remoteIP] = 0;
                             BannedClients[remoteIP]++;
@@ -419,7 +419,7 @@ namespace TinyOPDS.Server
         public int SuccessfulLoginAttempts { get { return _successfulLoginAttempts; } set { _successfulLoginAttempts = value; if (StatisticsUpdated != null) StatisticsUpdated(this, null); } }
         public int WrongLoginAttempts { get { return _wrongLoginAttempts; } set { _wrongLoginAttempts = value; if (StatisticsUpdated != null) StatisticsUpdated(this, null); } }
         public int UniqueClientsCount { get { return _uniqueClients.Count; } }
-        public int BannedClientsCount { get { return HttpProcessor.BannedClients.Count(сlient => сlient.Value >= Properties.Settings.Default.WrongAttemptsCount); } }
+        public int BannedClientsCount { get { return HttpProcessor.BannedClients.Count(сlient => сlient.Value >= TinyOPDS.Properties.Settings.Default.WrongAttemptsCount); } }
         public void AddClient(string newClient) { _uniqueClients[newClient] = true; }
         private Dictionary<string, bool> _uniqueClients = new Dictionary<string, bool>();
         public void Clear()

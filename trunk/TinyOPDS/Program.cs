@@ -50,8 +50,8 @@ namespace TinyOPDS
             {
                 using (MainForm mainForm = new MainForm())
                 {
-                    mainForm.WindowState = (Properties.Settings.Default.StartMinimized) ? FormWindowState.Minimized : FormWindowState.Normal;
-                    mainForm.ShowInTaskbar = (Properties.Settings.Default.StartMinimized && Properties.Settings.Default.CloseToTray) ? false : true;
+                    mainForm.WindowState = (TinyOPDS.Properties.Settings.Default.StartMinimized) ? FormWindowState.Minimized : FormWindowState.Normal;
+                    mainForm.ShowInTaskbar = (TinyOPDS.Properties.Settings.Default.StartMinimized && TinyOPDS.Properties.Settings.Default.CloseToTray) ? false : true;
                     Application.Run(mainForm);
                 }
             }

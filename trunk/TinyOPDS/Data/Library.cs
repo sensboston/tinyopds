@@ -42,7 +42,7 @@ namespace TinyOPDS.Data
             // Load and parse genres
             try
             {
-                var doc = XDocument.Load(Assembly.GetExecutingAssembly().GetManifestResourceStream("TinyOPDS.genres.xml"));
+                var doc = XDocument.Load(Assembly.GetExecutingAssembly().GetManifestResourceStream(Assembly.GetExecutingAssembly().GetName().Name + ".genres.xml"));
                 _genres = doc.Root.Descendants("genre").Select(g =>
                     new Genre()
                     {
@@ -82,7 +82,7 @@ namespace TinyOPDS.Data
             GC.Collect();
 
             // Create unique database name, based on library path
-            LibraryPath = Properties.Settings.Default.LibraryPath;
+            LibraryPath = TinyOPDS.Properties.Settings.Default.LibraryPath;
             string databaseFileName = Utils.CreateGuid(Utils.IsoOidNamespace, LibraryPath).ToString() + ".db";
             _databaseFullPath = Path.Combine(Utils.ServiceFilesLocation, databaseFileName);
 

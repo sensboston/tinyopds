@@ -1,6 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
+﻿/***********************************************************
+ * This file is a part of TinyOPDS server project
+ * 
+ * Copyright (c) 2013 SeNSSoFT
+ *
+ * This code is licensed under the Microsoft Public License, 
+ * see http://tinyopds.codeplex.com/license for the details.
+ *
+ * This module provides system service manipulation routines
+ * Code copied from http://dl.dropboxusercontent.com/u/152585/ServiceInstaller.cs
+ * 
+ ************************************************************/
+
+using System;
 using System.Text;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 namespace TinyOPDS

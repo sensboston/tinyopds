@@ -56,16 +56,16 @@ namespace TinyOPDS.Server
                 string request = processor.HttpUrl;
 
                 // Check for www request
-                bool isWWWRequest = request.StartsWith("/" + Properties.Settings.Default.HttpPrefix) && !request.StartsWith("/" + Properties.Settings.Default.RootPrefix) ? true : false;
+                bool isWWWRequest = request.StartsWith("/" + TinyOPDS.Properties.Settings.Default.HttpPrefix) && !request.StartsWith("/" + TinyOPDS.Properties.Settings.Default.RootPrefix) ? true : false;
 
                 // Remove prefix if any
-                if (!string.IsNullOrEmpty(Properties.Settings.Default.RootPrefix))
+                if (!string.IsNullOrEmpty(TinyOPDS.Properties.Settings.Default.RootPrefix))
                 {
-                    request = request.Replace(Properties.Settings.Default.RootPrefix, "/");
+                    request = request.Replace(TinyOPDS.Properties.Settings.Default.RootPrefix, "/");
                 }
-                if (!string.IsNullOrEmpty(Properties.Settings.Default.HttpPrefix))
+                if (!string.IsNullOrEmpty(TinyOPDS.Properties.Settings.Default.HttpPrefix))
                 {
-                    request = request.Replace(Properties.Settings.Default.HttpPrefix, "/");
+                    request = request.Replace(TinyOPDS.Properties.Settings.Default.HttpPrefix, "/");
                 }
 
                 while (request.IndexOf("//") >= 0) request = request.Replace("//", "/");
@@ -142,18 +142,18 @@ namespace TinyOPDS.Server
 
                         xml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" + xml.Insert(5, " xmlns=\"http://www.w3.org/2005/Atom\"");
 
-                        if (Properties.Settings.Default.UseAbsoluteUri)
+                        if (TinyOPDS.Properties.Settings.Default.UseAbsoluteUri)
                         {
                             try
                             {
                                 string host = processor.HttpHeaders["Host"].ToString();
-                                xml = xml.Replace("href=\"", "href=\"http://" + (isWWWRequest ? host.UrlCombine(Properties.Settings.Default.HttpPrefix) : host.UrlCombine(Properties.Settings.Default.RootPrefix)));
+                                xml = xml.Replace("href=\"", "href=\"http://" + (isWWWRequest ? host.UrlCombine(TinyOPDS.Properties.Settings.Default.HttpPrefix) : host.UrlCombine(TinyOPDS.Properties.Settings.Default.RootPrefix)));
                             }
                             catch { }
                         }
                         else
                         {
-                            string prefix = isWWWRequest ? Properties.Settings.Default.HttpPrefix : Properties.Settings.Default.RootPrefix;
+                            string prefix = isWWWRequest ? TinyOPDS.Properties.Settings.Default.HttpPrefix : TinyOPDS.Properties.Settings.Default.RootPrefix;
                             if (!string.IsNullOrEmpty(prefix)) prefix = "/" + prefix;
                             xml = xml.Replace("href=\"", "href=\"" + prefix);
                             // Fix open search link
@@ -193,12 +193,12 @@ namespace TinyOPDS.Server
                     xml = new OpenSearch().OpenSearchDescription().ToString();
                     xml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" + xml.Insert(22, " xmlns=\"http://a9.com/-/spec/opensearch/1.1/\"");
 
-                    if (Properties.Settings.Default.UseAbsoluteUri)
+                    if (TinyOPDS.Properties.Settings.Default.UseAbsoluteUri)
                     {
                         try
                         {
                             string host = processor.HttpHeaders["Host"].ToString();
-                            xml = xml.Replace("href=\"", "href=\"http://" + host.UrlCombine(Properties.Settings.Default.RootPrefix));
+                            xml = xml.Replace("href=\"", "href=\"http://" + host.UrlCombine(TinyOPDS.Properties.Settings.Default.RootPrefix));
                         }
                         catch { }
                     }
@@ -288,7 +288,7 @@ namespace TinyOPDS.Server
                         if (book.BookType == BookType.FB2)
                         {
                             // No convertor found, return an error
-                            if (string.IsNullOrEmpty(Properties.Settings.Default.ConvertorPath))
+                            if (string.IsNullOrEmpty(TinyOPDS.Properties.Settings.Default.ConvertorPath))
                             {
                                 Log.WriteLine(LogLevel.Error, "No FB2 to EPUB convertor found, file request can not be completed!");
                                 processor.WriteFailure();
@@ -302,7 +302,7 @@ namespace TinyOPDS.Server
 
                             // Run converter 
                             string outFileName = Path.Combine(Path.GetTempPath(), book.ID + ".epub");
-                            string command = Path.Combine(Properties.Settings.Default.ConvertorPath, Utils.IsLinux ? "fb2toepub" : "Fb2ePub.exe");
+                            string command = Path.Combine(TinyOPDS.Properties.Settings.Default.ConvertorPath, Utils.IsLinux ? "fb2toepub" : "Fb2ePub.exe");
                             string arguments = string.Format(Utils.IsLinux ? "{0} {1}" : "\"{0}\" \"{1}\"", inFileName, outFileName);
 
                             using (ProcessHelper converter = new ProcessHelper(command, arguments))

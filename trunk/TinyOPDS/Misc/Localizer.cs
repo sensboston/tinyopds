@@ -38,8 +38,8 @@ namespace TinyOPDS
         public static void Init(string xmlFile = "translation.xml")
         {
             try 
-            { 
-                _xml = XDocument.Load(Assembly.GetExecutingAssembly().GetManifestResourceStream("TinyOPDS."+xmlFile));
+            {
+                _xml = XDocument.Load(Assembly.GetExecutingAssembly().GetManifestResourceStream(Assembly.GetExecutingAssembly().GetName().Name + "." + xmlFile));
             }
             catch (Exception e)
             {
@@ -72,7 +72,42 @@ namespace TinyOPDS
         /// <summary>
         /// Current selected language
         /// </summary>
-        public static string Language { get { return _lang; } }
+        public static string Language 
+        { 
+            get { return _lang; }
+            set
+            {
+                if (_lang != value && _xml != null)
+                {
+                    _lang = value;
+                    try
+                    {
+                        // Update localized string dictionary
+                        List<string> t = _xml.Descendants("property") // .Where(a => !a.HasAttributes)
+                                             .Descendants("text").Where(b => b.Attribute("lang").Value == "en" || b.Attribute("lang").Value == _lang)
+                                             .Select(c => c.Value).ToList();
+                        _translations.Clear();
+
+                        if (_lang.Equals("en"))
+                        {
+                            for (int i = 0; i < t.Count; i++)
+                                if (!string.IsNullOrEmpty(t[i]))
+                                    _translations.Add(t[i], t[i]);
+                        }
+                        else
+                        {
+                            for (int i = 0; i < t.Count / 2; i++)
+                                if (!string.IsNullOrEmpty(t[i * 2]))
+                                    _translations.Add(t[i * 2], t[i * 2 + 1]);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Log.WriteLine(".SetLanguage({0}) exception: {1}", _lang, e.Message);
+                    }
+                }
+            }
+        }
 
 #if !CONSOLE
         /// <summary>

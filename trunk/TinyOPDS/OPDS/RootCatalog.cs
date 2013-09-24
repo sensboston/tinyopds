@@ -36,7 +36,7 @@ namespace TinyOPDS.OPDS
                                          new XAttribute(XNamespace.Xmlns + "opds", Namespaces.opds),
 
                           new XElement("id", "tag:root"),
-                          new XElement("title", Properties.Settings.Default.ServerName),
+                          new XElement("title", TinyOPDS.Properties.Settings.Default.ServerName),
                           new XElement("subtitle", Utils.ServerVersionName),
                           new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                           new XElement("icon", "/favicon.ico"),

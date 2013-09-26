@@ -12,10 +12,13 @@
 
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+#if !MONO
 using System.ServiceProcess;
+#endif
 using System.Threading;
 using System.Threading.Tasks;
 using System.Reflection;
@@ -30,7 +33,11 @@ using UPnP;
 
 namespace TinyOPDSConsole
 {
+#if MONO
+    class Program
+#else
     class Program : ServiceBase
+#endif
     {
         private static readonly string _exePath = Assembly.GetExecutingAssembly().Location;
         private const string SERVICE_NAME = "TinyOPDSSvc";
@@ -50,11 +57,64 @@ namespace TinyOPDSConsole
 
         #region Startup, command line processing and service overrides
 
+        /// <summary>
+        /// Extra assembly loader
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="args"></param>
+        /// <returns></returns>
+        static Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
+        {
+            Assembly asm = Assembly.GetExecutingAssembly();
+            String resourceName = asm.GetName().Name + ".Libs." + new AssemblyName(args.Name).Name + ".dll.gz";
+            using (var stream = asm.GetManifestResourceStream(resourceName))
+            {
+                if (stream != null)
+                {
+                    using (MemoryStream memStream = new MemoryStream())
+                    {
+                        GZipStream decompress = new GZipStream(stream, CompressionMode.Decompress);
+                        decompress.CopyTo(memStream);
+                        return Assembly.Load(memStream.GetBuffer());
+                    }
+                }
+                else return null;
+            }
+        }
+
+        /// <summary>
+        /// Process unhandled exceptions
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs args)
+        {
+            if (args != null)
+            {
+                Exception e = (Exception)args.ExceptionObject;
+                if (e != null)
+                {
+                    Log.WriteLine(LogLevel.Error, "{2}: {0}\nStack trace: {1}", e.Message, e.StackTrace, args.IsTerminating ? "Fatal exception" : "Unhandled exception");
+                }
+                else
+                {
+                    Log.WriteLine(LogLevel.Error, "Unhandled exception, args.ExceptionObject is null");
+                }
+            }
+            else
+            {
+                Log.WriteLine(LogLevel.Error, "Unhandled exception, args is null");
+            }
+        }
+
         static int Main(string[] args)
         {
-            if (System.Environment.UserInteractive)
+            AppDomain.CurrentDomain.AssemblyResolve += new ResolveEventHandler(CurrentDomain_AssemblyResolve);
+            AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+
+            if (Utils.IsLinux || System.Environment.UserInteractive)
             {
-                Console.WriteLine("\nTinyOPDS console, {0}, copyright (c) 2013 SeNSSoFT", string.Format(Localizer.Text("version {0}.{1} {2}"), Utils.Version.Major, Utils.Version.Minor, Utils.Version.Major == 0 ? " (beta)" : ""));
+                Console.WriteLine("TinyOPDS console, {0}, copyright (c) 2013 SeNSSoFT", string.Format(Localizer.Text("version {0}.{1} {2}"), Utils.Version.Major, Utils.Version.Minor, Utils.Version.Major == 0 ? " (beta)" : ""));
 
                 Console.CancelKeyPress += (sender, eventArgs) =>
                 {
@@ -94,12 +154,26 @@ namespace TinyOPDSConsole
                         // Uninstall service command
                         case "uninstall":
                             {
+                                if (!TinyOPDS.ServiceInstaller.ServiceIsInstalled(SERVICE_NAME))
+                                {
+                                    Console.WriteLine(SERVICE_DESC + " is not installed");
+                                    return (-1);
+                                }
+
                                 if (Utils.IsElevated)
                                 {
                                     try
                                     {
                                         TinyOPDS.ServiceInstaller.Uninstall(SERVICE_NAME);
                                         Console.WriteLine(SERVICE_DESC + " uninstalled");
+
+                                        // Let's close service process (except ourselves)
+                                        Process[] localByName = Process.GetProcessesByName("TinyOPDSConsole");
+                                        foreach (Process p in localByName)
+                                        {
+                                            // Don't kill ourselves!
+                                            if (!p.StartInfo.Arguments.Contains("uninstall")) p.Kill();
+                                        }
                                     }
                                     catch (Exception e)
                                     {
@@ -119,7 +193,7 @@ namespace TinyOPDSConsole
                         // Start service command
                         case "start":
                             {
-                                if (TinyOPDS.ServiceInstaller.ServiceIsInstalled(SERVICE_NAME))
+                                if (!Utils.IsLinux && TinyOPDS.ServiceInstaller.ServiceIsInstalled(SERVICE_NAME))
                                 {
                                     if (Utils.IsElevated)
                                     {
@@ -148,29 +222,31 @@ namespace TinyOPDSConsole
                         // Stop service command
                         case "stop":
                             {
-                                if (TinyOPDS.ServiceInstaller.ServiceIsInstalled(SERVICE_NAME))
+                                if (!TinyOPDS.ServiceInstaller.ServiceIsInstalled(SERVICE_NAME))
                                 {
-                                    if (Utils.IsElevated)
+                                    Console.WriteLine(SERVICE_DESC + " is not installed");
+                                    return (-1);
+                                }
+
+                                if (Utils.IsElevated)
+                                {
+                                    try
                                     {
-                                        try
-                                        {
-                                            TinyOPDS.ServiceInstaller.StopService(SERVICE_NAME);
-                                            Console.WriteLine(SERVICE_DESC + " stopped");
-                                        }
-                                        catch (Exception e)
-                                        {
-                                            Console.WriteLine(SERVICE_DESC + " failed to stop with exception: \"{0}\"", e.Message);
-                                            return(-1);
-                                        }
+                                        TinyOPDS.ServiceInstaller.StopService(SERVICE_NAME);
+                                        Console.WriteLine(SERVICE_DESC + " stopped");
                                     }
-                                    else
+                                    catch (Exception e)
                                     {
-                                        // Re-run app with elevated privileges 
-                                        if (RunElevated("stop")) Console.WriteLine(SERVICE_DESC + " stopped");
-                                        else Console.WriteLine(SERVICE_DESC + " failed to stop");
+                                        Console.WriteLine(SERVICE_DESC + " failed to stop with exception: \"{0}\"", e.Message);
+                                        return (-1);
                                     }
                                 }
-                                else StopServer();
+                                else
+                                {
+                                    // Re-run app with elevated privileges 
+                                    if (RunElevated("stop")) Console.WriteLine(SERVICE_DESC + " stopped");
+                                    else Console.WriteLine(SERVICE_DESC + " failed to stop");
+                                }
                                 return (0);
                             }
 
@@ -197,20 +273,24 @@ namespace TinyOPDSConsole
                     }
                     return (0);
                 }
+
+                bool l = Utils.IsLinux;
                 Console.WriteLine("Use: TinyOPDSConsole.exe [command], where [command] is \n\n" +
-                                        "\t install \t - install and run TinyOPDS service\n" +
-                                        "\t uninstall \t - uninstall TinyOPDS service\n" +
+                              (l ? "" : "\t install \t - install and run TinyOPDS service\n") +
+                              (l ? "" : "\t uninstall \t - uninstall TinyOPDS service\n") +
                                         "\t start \t\t - start service\n" +
-                                        "\t stop \t\t - stop service\n" +
+                              (l ? "" : "\t stop \t\t - stop service\n") +
                                         "\t scan \t\t - scan book directory\n" +
                                         "\t encred usr pwd\t - encode credentials\n\n" +
                                         "For more info please visit https://tinyopds.codeplex.com");
             }
             else
             {
+#if !MONO
                 ServiceBase[] ServicesToRun;
                 ServicesToRun = new ServiceBase[] { new Program() };
                 ServiceBase.Run(ServicesToRun);
+#endif
             }
 
             return (0);
@@ -233,6 +313,7 @@ namespace TinyOPDSConsole
             return process.ExitCode == 0;
         }
 
+#if !MONO
         protected override void OnStart(string[] args)
         {
             StartServer();
@@ -242,6 +323,7 @@ namespace TinyOPDSConsole
         {
             StopServer();
         }
+#endif
         #endregion
 
         #region OPDS server routines
@@ -321,10 +403,12 @@ namespace TinyOPDSConsole
                 {
                     if (_server.ServerException is System.Net.Sockets.SocketException)
                     {
+                        Console.WriteLine(string.Format("Probably, port {0} is already in use. Please try different port value."), TinyOPDS.Properties.Settings.Default.ServerPort);
                         Log.WriteLine(LogLevel.Error, string.Format("Probably, port {0} is already in use. Please try different port value."), TinyOPDS.Properties.Settings.Default.ServerPort);
                     }
                     else
                     {
+                        Console.WriteLine(_server.ServerException.Message);
                         Log.WriteLine(LogLevel.Error, _server.ServerException.Message);
                     }
 
@@ -334,7 +418,11 @@ namespace TinyOPDSConsole
             else
             {
                 Log.WriteLine("HTTP server started");
-                while (_server != null && _server.IsActive) Thread.Sleep(1000);
+                if (Utils.IsLinux || System.Environment.UserInteractive)
+                {
+                    Console.WriteLine("Server is running. Press <{0}> to shutdown server", Utils.IsLinux ? "Ctrl+c" : "Ctrl+Break");
+                    while (_server != null && _server.IsActive) Thread.Sleep(1000);
+                }
             }
         }
 

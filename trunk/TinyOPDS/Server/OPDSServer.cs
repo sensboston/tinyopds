@@ -31,13 +31,13 @@ namespace TinyOPDS.Server
 {
     public class OPDSServer : HttpServer
     {
-        private XslCompiledTransform _xslTransform;
+        private XslCompiledTransform _xslTransform = new XslCompiledTransform();
 
         public OPDSServer(IPAddress interfaceIP, int port, int timeout = 5000) : base(interfaceIP, port, timeout)
         {
             // Check external template (will be used instead of built-in)
             string xslFileName = Path.Combine(Utils.ServiceFilesLocation, "xml2html.xsl");
-            XslCompiledTransform _xslTransform = new XslCompiledTransform();
+
             if (File.Exists(xslFileName))
             {
                 _xslTransform.Load(xslFileName);

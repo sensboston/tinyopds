@@ -34,9 +34,9 @@ using UPnP;
 namespace TinyOPDSConsole
 {
 #if MONO
-    public class Program
+    class Program
 #else
-    public class Program : ServiceBase
+    class Program : ServiceBase
 #endif
     {
         private static readonly string _exePath = Assembly.GetExecutingAssembly().Location;

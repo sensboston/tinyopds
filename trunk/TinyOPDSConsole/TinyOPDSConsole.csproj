@@ -185,6 +185,15 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <EmbeddedResource Include="..\TinyOPDS\Libs\eBdb.EpubReader.dll.gz">
+      <Link>Libs\eBdb.EpubReader.dll.gz</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\Libs\FB2Library.dll.gz">
+      <Link>Libs\FB2Library.dll.gz</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\Libs\Ionic.Zip.Reduced.dll.gz">
+      <Link>Libs\Ionic.Zip.Reduced.dll.gz</Link>
+    </EmbeddedResource>
     <None Include="Properties\app.manifest" />
     <None Include="..\TinyOPDS\Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -198,9 +207,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <None Include="Libs\eBdb.EpubReader.dll.gz" />
-    <None Include="Libs\FB2Library.dll.gz" />
-    <None Include="Libs\Ionic.Zip.Reduced.dll.gz" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="..\TinyOPDS\xml2html.xsl">

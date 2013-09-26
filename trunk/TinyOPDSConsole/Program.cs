@@ -34,9 +34,9 @@ using UPnP;
 namespace TinyOPDSConsole
 {
 #if MONO
-    class Program
+    public class Program
 #else
-    class Program : ServiceBase
+    public class Program : ServiceBase
 #endif
     {
         private static readonly string _exePath = Assembly.GetExecutingAssembly().Location;
@@ -420,7 +420,7 @@ namespace TinyOPDSConsole
                 Log.WriteLine("HTTP server started");
                 if (Utils.IsLinux || System.Environment.UserInteractive)
                 {
-                    Console.WriteLine("Server is running. Press <{0}> to shutdown server", Utils.IsLinux ? "Ctrl+c" : "Ctrl+Break");
+                    Console.WriteLine("Server is running... Press <Ctrl+c> to shutdown server.");
                     while (_server != null && _server.IsActive) Thread.Sleep(1000);
                 }
             }

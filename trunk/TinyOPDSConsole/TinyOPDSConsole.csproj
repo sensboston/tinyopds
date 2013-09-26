@@ -181,9 +181,7 @@
     <Compile Include="..\TinyOPDS\Server\OPDSServer.cs">
       <Link>Server\OPDSServer.cs</Link>
     </Compile>
-    <Compile Include="Program.cs">
-      <SubType>Component</SubType>
-    </Compile>
+    <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="..\TinyOPDS\Libs\eBdb.EpubReader.dll.gz">
       <Link>Libs\eBdb.EpubReader.dll.gz</Link>

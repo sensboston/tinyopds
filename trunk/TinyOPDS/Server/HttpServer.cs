@@ -141,7 +141,7 @@ namespace TinyOPDS.Server
                         // Is remote IP banned?
                         if (TinyOPDS.Properties.Settings.Default.BanClients)
                         {
-                            if (BannedClients.ContainsKey(remoteIP) && BannedClients[remoteIP] >= TinyOPDS.Properties.Settings.Default.WrongAttemptsCount)
+                            if (BannedClients.Count > 0 && BannedClients.ContainsKey(remoteIP) && BannedClients[remoteIP] >= TinyOPDS.Properties.Settings.Default.WrongAttemptsCount)
                             {
                                 checkLogin = false;
                             }
@@ -161,17 +161,23 @@ namespace TinyOPDS.Server
                             if (!authorized && HttpHeaders.ContainsKey("Authorization"))
                             {
                                 string hash = HttpHeaders["Authorization"].ToString();
+
                                 if (hash.StartsWith("Basic "))
                                 {
                                     try
                                     {
                                         string[] credential = hash.Substring(6).DecodeFromBase64().Split(':');
+
                                         if (credential.Length == 2)
                                         {
+                                            string user = credential[0];
+                                            string password = credential[1];
+
                                             foreach (Credential cred in Credentials)
-                                                if (cred.User.Equals(credential[0]))
+                                            {
+                                                if (cred.User.Equals(user))
                                                 {
-                                                    authorized = cred.Password.Equals(credential[1]);
+                                                    authorized = cred.Password.Equals(password);
                                                     if (authorized)
                                                     {
                                                         AuthorizedClients.Add(clientHash);
@@ -179,23 +185,27 @@ namespace TinyOPDS.Server
                                                     }
                                                     break;
                                                 }
+                                            }
+
                                             if (!authorized)
                                             {
-                                                Log.WriteLine(LogLevel.Warning, "Authentication failed! IP: {0} user: {1} pass: {2}", remoteIP, credential[0], credential[1]);
+                                                Log.WriteLine(LogLevel.Warning, "Authentication failed! IP: {0} user: {1} pass: {2}", remoteIP, user, password);
                                             }
                                             else
                                             {
-                                                Log.WriteLine(LogLevel.Info, "User {1} from {0} user successfully logged in", remoteIP, credential[0]);
+                                                Log.WriteLine(LogLevel.Info, "User {0} from {1} successfully logged in", user, remoteIP);
                                             }
                                         }
+
+                                        authorized = true;
                                     }
                                     catch (Exception e)
                                     {
                                         Log.WriteLine(LogLevel.Error, "Authentication exception: IP: {0}, {1}", remoteIP, e.Message);
                                     }
-                                }
-                            }
-                        }
+                                } 
+                            } 
+                        }  
                     }
 
                     if (authorized)
@@ -506,7 +516,7 @@ namespace TinyOPDS.Server
                         processor = new HttpProcessor(socket, this);
                         ThreadPool.QueueUserWorkItem(new WaitCallback(processor.Process));
                     }
-                    else Thread.Sleep(10);
+                    else Thread.Sleep(100);
                 }
             }
             catch (Exception e)

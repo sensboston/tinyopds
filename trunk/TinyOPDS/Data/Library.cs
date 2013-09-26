@@ -443,7 +443,8 @@ namespace TinyOPDS.Data
                                 book.Sequence = reader.ReadString();
                                 book.NumberInSequence = reader.ReadUInt32();
                                 book.Annotation = reader.ReadString();
-                                book.DocumentSize = reader.ReadUInt32();
+                                if (TinyOPDS.Properties.Settings.Default.LowMemoryProfile) { var s = reader.ReadString(); }
+                                else book.DocumentSize = reader.ReadUInt32();
                                 int count = reader.ReadInt32();
                                 for (int i = 0; i < count; i++) book.Authors.Add(reader.ReadString());
                                 count = reader.ReadInt32();

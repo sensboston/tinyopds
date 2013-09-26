@@ -19,7 +19,6 @@ using System.Xml;
 using System.Xml.Linq;
 using System.Text;
 using System.ComponentModel;
-using System.Windows;
 #if !CONSOLE
 using System.Windows.Forms;
 #endif

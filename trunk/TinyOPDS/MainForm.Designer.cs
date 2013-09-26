@@ -105,6 +105,7 @@
             this.rememberClients = new System.Windows.Forms.CheckBox();
             this.useHTTPAuth = new System.Windows.Forms.CheckBox();
             this.tabPage3 = new System.Windows.Forms.TabPage();
+            this.viewLogFile = new System.Windows.Forms.Button();
             this.label32 = new System.Windows.Forms.Label();
             this.updateCombo = new System.Windows.Forms.ComboBox();
             this.label22 = new System.Windows.Forms.Label();
@@ -138,7 +139,6 @@
             this.serverMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripSeparator();
             this.exitMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.viewLogFile = new System.Windows.Forms.Button();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.tabPage2.SuspendLayout();
@@ -763,6 +763,7 @@
             this.webPrefix.Size = new System.Drawing.Size(82, 20);
             this.webPrefix.TabIndex = 49;
             this.webPrefix.Text = global::TinyOPDS.Properties.Settings.Default.HttpPrefix;
+            this.webPrefix.TextChanged += new System.EventHandler(this.rootPrefix_TextChanged);
             // 
             // openPort
             // 
@@ -994,6 +995,16 @@
             this.tabPage3.Size = new System.Drawing.Size(478, 308);
             this.tabPage3.TabIndex = 2;
             this.tabPage3.Text = "Miscellaneous";
+            // 
+            // viewLogFile
+            // 
+            this.viewLogFile.Location = new System.Drawing.Point(299, 218);
+            this.viewLogFile.Name = "viewLogFile";
+            this.viewLogFile.Size = new System.Drawing.Size(130, 23);
+            this.viewLogFile.TabIndex = 39;
+            this.viewLogFile.Text = "View log file";
+            this.viewLogFile.UseVisualStyleBackColor = true;
+            this.viewLogFile.Click += new System.EventHandler(this.viewLogFile_Click);
             // 
             // label32
             // 
@@ -1345,16 +1356,6 @@
             this.exitMenuItem.Size = new System.Drawing.Size(144, 22);
             this.exitMenuItem.Text = "Exit";
             this.exitMenuItem.Click += new System.EventHandler(this.exitMenuItem_Click);
-            // 
-            // viewLogFile
-            // 
-            this.viewLogFile.Location = new System.Drawing.Point(299, 218);
-            this.viewLogFile.Name = "viewLogFile";
-            this.viewLogFile.Size = new System.Drawing.Size(130, 23);
-            this.viewLogFile.TabIndex = 39;
-            this.viewLogFile.Text = "View log file";
-            this.viewLogFile.UseVisualStyleBackColor = true;
-            this.viewLogFile.Click += new System.EventHandler(this.viewLogFile_Click);
             // 
             // MainForm
             // 

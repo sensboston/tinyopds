@@ -196,8 +196,6 @@ namespace TinyOPDS.Server
                                                 Log.WriteLine(LogLevel.Info, "User {0} from {1} successfully logged in", user, remoteIP);
                                             }
                                         }
-
-                                        authorized = true;
                                     }
                                     catch (Exception e)
                                     {

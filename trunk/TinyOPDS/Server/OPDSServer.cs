@@ -90,6 +90,10 @@ namespace TinyOPDS.Server
 
                 while (request.IndexOf("//") >= 0) request = request.Replace("//", "/");
 
+                // Remove params from request (if any)
+                int paramPos = request.IndexOf('?');
+                if (paramPos >= 0) request = request.Substring(0, paramPos);
+
                 string ext = Path.GetExtension(request);
                 string[] http_params = request.Split(new Char[] { '?', '=', '&' });
 

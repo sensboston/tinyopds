@@ -134,9 +134,6 @@ namespace TinyOPDS
             intLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), TinyOPDS.Properties.Settings.Default.ServerPort, rootPrefix.Text);
             intWebLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), TinyOPDS.Properties.Settings.Default.ServerPort, webPrefix.Text);
 
-            _upnpController.DiscoverCompleted += _upnpController_DiscoverCompleted;
-            _upnpController.DiscoverAsync(TinyOPDS.Properties.Settings.Default.UseUPnP);
-
             Log.WriteLine("TinyOPDS version {0}.{1} started", Utils.Version.Major, Utils.Version.Minor);
 
             // Start OPDS server
@@ -159,6 +156,17 @@ namespace TinyOPDS
 
             _scanStartTime = DateTime.Now;
             _notifyIcon.Visible = TinyOPDS.Properties.Settings.Default.CloseToTray;
+        }
+
+        /// <summary>
+        /// We should call DiscoverAsync when windows handle already created (invoker used)
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void MainForm_Load(object sender, EventArgs e)
+        {
+            _upnpController.DiscoverCompleted += _upnpController_DiscoverCompleted;
+            _upnpController.DiscoverAsync(TinyOPDS.Properties.Settings.Default.UseUPnP);
         }
 
         /// <summary>
@@ -665,14 +673,19 @@ namespace TinyOPDS
         /// <param name="e"></param>
         private void rootPrefix_TextChanged(object sender, EventArgs e)
         {
-            if (rootPrefix.Text.EndsWith("/")) rootPrefix.Text = rootPrefix.Text.Remove(rootPrefix.Text.Length - 1);
-            if (webPrefix.Text.EndsWith("/")) webPrefix.Text = webPrefix.Text.Remove(webPrefix.Text.Length - 1);
-            if (rootPrefix.Text.ToLower().Equals(webPrefix.Text.ToLower()))
+            // TODO: should be fixed, it's a temporary solution
+            bool initialized = (rootPrefix.Text != "" && webPrefix.Text != "") || (rootPrefix.Text == "" && webPrefix.Text != "") || (rootPrefix.Text != "" && webPrefix.Text == "");
+            if (initialized)
             {
-                MessageBox.Show(Localizer.Text("OPDS and web root prefixes can not be the same."), Localizer.Text("Warning"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                (sender as TextBox).Undo();
+                if (rootPrefix.Text.EndsWith("/")) rootPrefix.Text = rootPrefix.Text.Remove(rootPrefix.Text.Length - 1);
+                if (webPrefix.Text.EndsWith("/")) webPrefix.Text = webPrefix.Text.Remove(webPrefix.Text.Length - 1);
+                if (rootPrefix.Text.ToLower().Equals(webPrefix.Text.ToLower()))
+                {
+                    MessageBox.Show(Localizer.Text("OPDS and web root prefixes can not be the same."), Localizer.Text("Warning"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    (sender as TextBox).Undo();
+                }
+                UpdateServerLinks();
             }
-            UpdateServerLinks();
         }
 
         /// <summary>
@@ -855,6 +868,5 @@ namespace TinyOPDS
         }
 
         #endregion
-
     }
 }

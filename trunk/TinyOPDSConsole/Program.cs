@@ -120,6 +120,15 @@ namespace TinyOPDSConsole
                 {
                     eventArgs.Cancel = true;
                     StopServer();
+
+                    if (_scanner != null)
+                    {
+                        _scanner.Stop();
+                        Library.Save();
+                        UpdateInfo();
+                        Console.WriteLine("\nScanner interruped by user.");
+                        Log.WriteLine("Directory scanner stopped");
+                    }
                 };
 
                 if (args.Length > 0)
@@ -344,23 +353,19 @@ namespace TinyOPDSConsole
             _watcher.OnBookAdded += (object sender, BookAddedEventArgs e) =>
             {
                 if (e.BookType == BookType.FB2) _fb2Count++; else _epubCount++;
-                UpdateInfo();
                 Log.WriteLine(LogLevel.Info, "Added: \"{0}\"", e.BookPath);
             };
             _watcher.OnInvalidBook += (_, __) =>
             {
                 _invalidFiles++;
-                UpdateInfo();
             };
             _watcher.OnFileSkipped += (object _sender, FileSkippedEventArgs _e) =>
             {
                 _skippedFiles = _e.Count;
-                UpdateInfo();
             };
 
             _watcher.OnBookDeleted += (object sender, BookDeletedEventArgs e) =>
             {
-                UpdateInfo();
                 Log.WriteLine(LogLevel.Info, "Deleted: \"{0}\"", e.BookPath);
             };
             _watcher.IsEnabled = false;
@@ -471,12 +476,60 @@ namespace TinyOPDSConsole
             }
         }
 
-        private static void UpdateInfo()
-        {
-        }
-
         private static void ScanFolder()
         {
+            _scanner.OnBookFound += scanner_OnBookFound;
+            _scanner.OnInvalidBook += (_, __) => { _invalidFiles++; };
+            _scanner.OnFileSkipped += (object _sender, FileSkippedEventArgs _e) =>
+            {
+                _skippedFiles = _e.Count;
+                UpdateInfo();
+            };
+            _scanner.OnScanCompleted += (_, __) =>
+            {
+                Library.Save();
+                UpdateInfo(true);
+                Log.WriteLine("Directory scanner completed");
+            };
+            _fb2Count = _epubCount = _skippedFiles = _invalidFiles = _duplicates = 0;
+            _scanStartTime = DateTime.Now;
+            //startTime.Text = _scanStartTime.ToString(@"hh\:mm\:ss");
+            _scanner.Start(Library.LibraryPath);
+            UpdateInfo();
+            while (_scanner != null && _scanner.Status == FileScannerStatus.SCANNING) Thread.Sleep(500);
+        }
+
+        static void scanner_OnBookFound(object sender, BookFoundEventArgs e)
+        {
+            if (Library.Add(e.Book))
+            {
+                if (e.Book.BookType == BookType.FB2) _fb2Count++; else _epubCount++;
+            }
+            else _duplicates++;
+            if (Library.Count % 500 == 0) Library.Save();
+            UpdateInfo();
+        }
+
+        private static void UpdateInfo(bool IsScanFinished = false)
+        {
+            TimeSpan dt = DateTime.Now.Subtract(_scanStartTime);
+            int totalBooksProcessed = _fb2Count + _epubCount + _skippedFiles + _invalidFiles + _duplicates;
+            string rate = (dt.TotalSeconds) > 0 ? string.Format("{0:0.} books/min", totalBooksProcessed / dt.TotalSeconds * 60) : "---";
+
+            string info = string.Format("Scan started: {0}, elapsed: {1}, rate: {2}, found fb2: {3}, epub: {4}, skipped: {5}, dups: {6}, invalid: {7}, total: {8}",
+                _scanStartTime.ToString(@"hh\:mm\:ss"),
+                dt.ToString(@"hh\:mm\:ss"),
+                rate,
+                _fb2Count,
+                _epubCount,
+                _skippedFiles, 
+                _duplicates,
+                _invalidFiles,
+                totalBooksProcessed);
+
+            Console.Write(info+"\r");
+            float dy = (float) info.Length / (float) Console.WindowWidth;
+            Console.SetCursorPosition(0, Console.CursorTop - (int)dy);
         }
 
         #endregion

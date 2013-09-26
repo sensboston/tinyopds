@@ -57,15 +57,20 @@ namespace TinyOPDS
         /// </summary>
         internal static void WriteLine(LogLevel level, string format, params object[] args)
         {
-            if (level >= VerbosityLevel)
+            if (level >= VerbosityLevel || level == LogLevel.Authentication)
             {
                 string caller = "---";
-                try
+
+                if (level != LogLevel.Authentication)
                 {
-                    caller = new StackTrace().GetFrame(2).GetMethod().ReflectedType.Name;
-                    if (caller.StartsWith("<>")) caller = new StackTrace().GetFrame(1).GetMethod().ReflectedType.Name;
+                    try
+                    {
+                        caller = new StackTrace().GetFrame(2).GetMethod().ReflectedType.Name;
+                        if (caller.StartsWith("<>")) caller = new StackTrace().GetFrame(1).GetMethod().ReflectedType.Name;
+                    }
+                    catch { }
                 }
-                catch { }
+                else caller = "HTTPServer";
                 string prefix = string.Format("{0}\t{1}\t{2}", (level == LogLevel.Info) ? 'I' : ((level == LogLevel.Warning) ? 'W' : 'E'), caller, (caller.Length > 7 ? "" : "\t"));
 
                 string message = string.Format(prefix + format, args);
@@ -118,6 +123,10 @@ namespace TinyOPDS
         /// <summary>
         /// A fatal error message.
         /// </summary>
-        Error = 2
+        Error = 2,
+        /// <summary>
+        /// Authentication message, MUST be logged.
+        /// </summary>
+        Authentication = 3,
     }
 }

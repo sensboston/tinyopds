@@ -141,9 +141,12 @@ namespace TinyOPDS.Server
                         // Is remote IP banned?
                         if (TinyOPDS.Properties.Settings.Default.BanClients)
                         {
-                            if (BannedClients.Count > 0 && BannedClients.ContainsKey(remoteIP) && BannedClients[remoteIP] >= TinyOPDS.Properties.Settings.Default.WrongAttemptsCount)
+                            lock (BannedClients)
                             {
-                                checkLogin = false;
+                                if (BannedClients.Count > 0 && BannedClients.ContainsKey(remoteIP) && BannedClients[remoteIP] >= TinyOPDS.Properties.Settings.Default.WrongAttemptsCount)
+                                {
+                                    checkLogin = false;
+                                }
                             }
                         }
 
@@ -189,17 +192,17 @@ namespace TinyOPDS.Server
 
                                             if (!authorized)
                                             {
-                                                Log.WriteLine(LogLevel.Warning, "Authentication failed! IP: {0} user: {1} pass: {2}", remoteIP, user, password);
+                                                Log.WriteLine(LogLevel.Authentication, "Authentication failed! IP: {0} user: {1} pass: {2}", remoteIP, user, password);
                                             }
                                             else
                                             {
-                                                Log.WriteLine(LogLevel.Info, "User {0} from {1} successfully logged in", user, remoteIP);
+                                                Log.WriteLine(LogLevel.Authentication, "User {0} from {1} successfully logged in", user, remoteIP);
                                             }
                                         }
                                     }
                                     catch (Exception e)
                                     {
-                                        Log.WriteLine(LogLevel.Error, "Authentication exception: IP: {0}, {1}", remoteIP, e.Message);
+                                        Log.WriteLine(LogLevel.Authentication, "Authentication exception: IP: {0}, {1}", remoteIP, e.Message);
                                     }
                                 } 
                             } 
@@ -225,11 +228,14 @@ namespace TinyOPDS.Server
                     {
                         if (TinyOPDS.Properties.Settings.Default.BanClients)
                         {
-                            if (!BannedClients.ContainsKey(remoteIP)) BannedClients[remoteIP] = 0;
-                            BannedClients[remoteIP]++;
+                            lock (BannedClients)
+                            {
+                                if (!BannedClients.ContainsKey(remoteIP)) BannedClients[remoteIP] = 0;
+                                BannedClients[remoteIP]++;
+                            }
                             if (!checkLogin)
                             {
-                                Log.WriteLine(LogLevel.Warning, "IP address {0} is banned!", remoteIP);
+                                Log.WriteLine(LogLevel.Authentication, "IP address {0} is banned!", remoteIP);
                                 WriteForbidden();
                             }
                         }
@@ -427,7 +433,7 @@ namespace TinyOPDS.Server
         public int SuccessfulLoginAttempts { get { return _successfulLoginAttempts; } set { _successfulLoginAttempts = value; if (StatisticsUpdated != null) StatisticsUpdated(this, null); } }
         public int WrongLoginAttempts { get { return _wrongLoginAttempts; } set { _wrongLoginAttempts = value; if (StatisticsUpdated != null) StatisticsUpdated(this, null); } }
         public int UniqueClientsCount { get { return _uniqueClients.Count; } }
-        public int BannedClientsCount { get { return HttpProcessor.BannedClients.Count(сlient => сlient.Value >= TinyOPDS.Properties.Settings.Default.WrongAttemptsCount); } }
+        public int BannedClientsCount { get { lock (HttpProcessor.BannedClients) { return HttpProcessor.BannedClients.Count(сlient => сlient.Value >= TinyOPDS.Properties.Settings.Default.WrongAttemptsCount); } } }
         public void AddClient(string newClient) { _uniqueClients[newClient] = true; }
         private Dictionary<string, bool> _uniqueClients = new Dictionary<string, bool>();
         public void Clear()

@@ -77,5 +77,8 @@
     <Setting Name="UseAbsoluteUri" Type="System.Boolean" Scope="User">
        <Value Profile="(Default)">False</Value>
     </Setting>
+    <Setting Name="LowMemoryProfile" Type="System.Boolean" Scope="User">
+       <Value Profile="(Default)">False</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

@@ -402,5 +402,20 @@ namespace TinyOPDS.Properties {
                 this["UseAbsoluteUri"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool LowMemoryProfile
+        {
+            get
+            {
+                return ((bool)(this["LowMemoryProfile"]));
+            }
+            set
+            {
+                this["LowMemoryProfile"] = value;
+            }
+        }
     }
 }

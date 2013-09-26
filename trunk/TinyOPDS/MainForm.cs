@@ -168,8 +168,22 @@ namespace TinyOPDS
         /// <param name="e"></param>
         void currentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs args)
         {
-            Exception e = (Exception) args.ExceptionObject;
-            Log.WriteLine(LogLevel.Error, "{2}: {0}\nStack trace: {1}", e.Message, e.StackTrace, args.IsTerminating ? "Fatal exception" : "Unhandled exception");
+            if (args != null)
+            {
+                Exception e = (Exception)args.ExceptionObject;
+                if (e != null)
+                {
+                    Log.WriteLine(LogLevel.Error, "{2}: {0}\nStack trace: {1}", e.Message, e.StackTrace, args.IsTerminating ? "Fatal exception" : "Unhandled exception");
+                }
+                else
+                {
+                    Log.WriteLine(LogLevel.Error, "Unhandled exception, args.ExceptionObject is null");
+                }
+            }
+            else
+            {
+                Log.WriteLine(LogLevel.Error, "Unhandled exception, args is null");
+            }
         }
 
         void _upnpController_DiscoverCompleted(object sender, EventArgs e)
@@ -426,11 +440,11 @@ namespace TinyOPDS
                 {
                     if (_server.ServerException is System.Net.Sockets.SocketException)
                     {
-                        MessageBox.Show(string.Format(Localizer.Text("Probably, port {0} is already in use. Please try different port value."), TinyOPDS.Properties.Settings.Default.ServerPort));
+                        MessageBox.Show(string.Format(Localizer.Text("Probably, port {0} is already in use. Please try different port value."), TinyOPDS.Properties.Settings.Default.ServerPort), Localizer.Text("Warning"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     }
                     else
                     {
-                        MessageBox.Show(_server.ServerException.Message);
+                        MessageBox.Show(_server.ServerException.Message, Localizer.Text("Error"), MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                     _server.StopServer();
                     _serverThread = null;
@@ -565,14 +579,16 @@ namespace TinyOPDS
 
             if (_upnpController != null)
             {
+                if (TinyOPDS.Properties.Settings.Default.UseUPnP)
+                {
+                    int port = int.Parse(TinyOPDS.Properties.Settings.Default.ServerPort);
+                    _upnpController.DeleteForwardingRule(port, System.Net.Sockets.ProtocolType.Tcp);
+                }
                 _upnpController.DiscoverCompleted -= _upnpController_DiscoverCompleted;
                 _upnpController.Dispose();
             }
 
             _notifyIcon.Visible = false;
-
-            // Remove port forwarding
-            openPort.Checked = false;
 
             Log.WriteLine("TinyOPDS closed\n");
         }
@@ -649,11 +665,14 @@ namespace TinyOPDS
         /// <param name="e"></param>
         private void rootPrefix_TextChanged(object sender, EventArgs e)
         {
-            if (_upnpController != null && _upnpController.UPnPReady)
+            if (rootPrefix.Text.EndsWith("/")) rootPrefix.Text = rootPrefix.Text.Remove(rootPrefix.Text.Length - 1);
+            if (webPrefix.Text.EndsWith("/")) webPrefix.Text = webPrefix.Text.Remove(webPrefix.Text.Length - 1);
+            if (rootPrefix.Text.ToLower().Equals(webPrefix.Text.ToLower()))
             {
-                if (rootPrefix.Text.EndsWith("/")) rootPrefix.Text = rootPrefix.Text.Remove(rootPrefix.Text.Length - 1);
-                UpdateServerLinks();
+                MessageBox.Show(Localizer.Text("OPDS and web root prefixes can not be the same."), Localizer.Text("Warning"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                (sender as TextBox).Undo();
             }
+            UpdateServerLinks();
         }
 
         /// <summary>
@@ -681,7 +700,7 @@ namespace TinyOPDS
             }
             else
             {
-                MessageBox.Show(Localizer.Text("Invalid port value: value must be numeric and in range from 1 to 65535"));
+                MessageBox.Show(Localizer.Text("Invalid port value: value must be numeric and in range from 1 to 65535"), Localizer.Text("Warning"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 serverPort.Text = TinyOPDS.Properties.Settings.Default.ServerPort.ToString();
             }
             // Update link labels

@@ -434,6 +434,18 @@
       <text lang="ru">Новая версия [OK} доступна для загрузки.\nЖелаете загрузить сейчас?</text>
     </property>
     <property>
+      <text lang="en">OPDS and web root prefixes can not be the same.</text>
+      <text lang="ru">Префиксы OPDS и web не могут быть одинаковыми.</text>
+    </property>
+    <property>
+      <text lang="en">Error</text>
+      <text lang="ru">Ошибка</text>
+    </property>
+    <property>
+      <text lang="en">Warning</text>
+      <text lang="ru">Предупреждение</text>
+    </property>
+    <property>
       <text lang="en"></text>
       <text lang="ru"></text>
     </property>

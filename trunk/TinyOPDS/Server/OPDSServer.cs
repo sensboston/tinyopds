@@ -21,6 +21,7 @@ using System.Net;
 using System.Xml;
 using System.Xml.Xsl;
 using System.Xml.XPath;
+using System.Reflection;
 
 using Ionic.Zip;
 using TinyOPDS.OPDS;
@@ -30,7 +31,26 @@ namespace TinyOPDS.Server
 {
     public class OPDSServer : HttpServer
     {
-        public OPDSServer(IPAddress interfaceIP, int port, int timeout = 5000) : base(interfaceIP, port, timeout) { }
+        private XslCompiledTransform _xslTransform;
+
+        public OPDSServer(IPAddress interfaceIP, int port, int timeout = 5000) : base(interfaceIP, port, timeout)
+        {
+            // Check external template (will be used instead of built-in)
+            string xslFileName = Path.Combine(Utils.ServiceFilesLocation, "xml2html.xsl");
+            XslCompiledTransform _xslTransform = new XslCompiledTransform();
+            if (File.Exists(xslFileName))
+            {
+                _xslTransform.Load(xslFileName);
+            }
+            else
+            {
+                using (Stream resStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(Assembly.GetExecutingAssembly().GetName().Name + ".xml2html.xsl"))
+                {
+                    using (XmlReader reader = XmlReader.Create(resStream))
+                        _xslTransform.Load(reader);
+                }
+            }
+        }
 
         /// <summary>
         /// Dummy for POST requests
@@ -137,9 +157,6 @@ namespace TinyOPDS.Server
                             return;
                         }
 
-                        // Add xsl template
-                        bool xslExists = File.Exists(Path.Combine(Utils.ServiceFilesLocation, "opds.xsl"));
-
                         xml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" + xml.Insert(5, " xmlns=\"http://www.w3.org/2005/Atom\"");
 
                         if (TinyOPDS.Properties.Settings.Default.UseAbsoluteUri)
@@ -160,16 +177,33 @@ namespace TinyOPDS.Server
                             xml = xml.Replace(prefix + "/opds-opensearch.xml", "/opds-opensearch.xml");
                         }
 
-                        if (isWWWRequest && xslExists)
+                        // Apply xsl transform
+                        if (isWWWRequest)
                         {
                             MemoryStream htmlStream = new MemoryStream();
                             using (StringReader stream = new StringReader(xml))
                             {
                                 XPathDocument myXPathDoc = new XPathDocument(stream);
-                                XslCompiledTransform myXslTrans = new XslCompiledTransform();
-                                myXslTrans.Load("opds.xsl");
+
+// for easy debug of xsl transform, we'll reload external file in DEBUG build
+#if DEBUG 
+                                string xslFileName = Path.Combine(Utils.ServiceFilesLocation, "xml2html.xsl");
+                                _xslTransform = new XslCompiledTransform();
+                                if (File.Exists(xslFileName))
+                                {
+                                    _xslTransform.Load(xslFileName);
+                                }
+                                else 
+                                {
+                                    using (Stream resStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(Assembly.GetExecutingAssembly().GetName().Name + ".xml2html.xsl"))
+                                    {
+                                        using (XmlReader reader = XmlReader.Create(resStream)) 
+                                            _xslTransform.Load(reader);
+                                    }
+                                }
+#endif
                                 XmlTextWriter myWriter = new XmlTextWriter(htmlStream, null);
-                                myXslTrans.Transform(myXPathDoc, null, myWriter);
+                                _xslTransform.Transform(myXPathDoc, null, myWriter);
                                 htmlStream.Position = 0;
                             }
 
@@ -393,7 +427,7 @@ namespace TinyOPDS.Server
                 else if (ext.Contains(".ico"))
                 {
                     string icon = Path.GetFileName(request);
-                    Stream stream = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("TinyOPDS.Icons." + icon);
+                    Stream stream = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream(Assembly.GetExecutingAssembly().GetName().Name + ".Icons." + icon);
                     if (stream != null && stream.Length > 0)
                     {
                         processor.WriteSuccess("image/x-icon");

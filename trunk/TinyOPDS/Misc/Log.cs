@@ -59,8 +59,13 @@ namespace TinyOPDS
         {
             if (level >= VerbosityLevel)
             {
-                string caller = new StackTrace().GetFrame(2).GetMethod().ReflectedType.Name;
-                if (caller.StartsWith("<>")) caller = new StackTrace().GetFrame(1).GetMethod().ReflectedType.Name;
+                string caller = "---";
+                try
+                {
+                    caller = new StackTrace().GetFrame(2).GetMethod().ReflectedType.Name;
+                    if (caller.StartsWith("<>")) caller = new StackTrace().GetFrame(1).GetMethod().ReflectedType.Name;
+                }
+                catch { }
                 string prefix = string.Format("{0}\t{1}\t{2}", (level == LogLevel.Info) ? 'I' : ((level == LogLevel.Warning) ? 'W' : 'E'), caller, (caller.Length > 7 ? "" : "\t"));
 
                 string message = string.Format(prefix + format, args);

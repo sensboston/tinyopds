@@ -673,9 +673,7 @@ namespace TinyOPDS
         /// <param name="e"></param>
         private void rootPrefix_TextChanged(object sender, EventArgs e)
         {
-            // TODO: should be fixed, it's a temporary solution
-            bool initialized = (rootPrefix.Text != "" && webPrefix.Text != "") || (rootPrefix.Text == "" && webPrefix.Text != "") || (rootPrefix.Text != "" && webPrefix.Text == "");
-            if (initialized)
+            if (sender is TextBox && (sender as TextBox).CanUndo)
             {
                 if (rootPrefix.Text.EndsWith("/")) rootPrefix.Text = rootPrefix.Text.Remove(rootPrefix.Text.Length - 1);
                 if (webPrefix.Text.EndsWith("/")) webPrefix.Text = webPrefix.Text.Remove(webPrefix.Text.Length - 1);

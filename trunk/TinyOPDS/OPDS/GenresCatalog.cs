@@ -41,7 +41,7 @@ namespace TinyOPDS.OPDS
             );
 
             bool topLevel = true;
-            bool useCyrillic = Localizer.Language.Equals("ru");
+            bool useCyrillic = TinyOPDS.Properties.Settings.Default.SortOrder > 0;
 
             List<Genre> libGenres = Library.Genres;
             List<Genre> genres = null;

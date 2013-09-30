@@ -35,9 +35,6 @@
     <Setting Name="SaveLogToDisk" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
-    <Setting Name="RootPrefix" Type="System.String" Scope="User">
-      <Value Profile="(Default)">opds</Value>
-    </Setting>
     <Setting Name="WatchLibrary" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
@@ -75,10 +72,25 @@
       <Value Profile="(Default)">lib</Value>
     </Setting>
     <Setting Name="UseAbsoluteUri" Type="System.Boolean" Scope="User">
-       <Value Profile="(Default)">False</Value>
+      <Value Profile="(Default)">False</Value>
     </Setting>
     <Setting Name="LowMemoryProfile" Type="System.Boolean" Scope="User">
-       <Value Profile="(Default)">False</Value>
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="RootPrefix" Type="System.String" Scope="User">
+      <Value Profile="(Default)">opds</Value>
+    </Setting>
+    <Setting Name="ItemsPerOPDSPage" Type="System.Decimal" Scope="User">
+      <Value Profile="(Default)">50</Value>
+    </Setting>
+    <Setting Name="ItemsPerWebPage" Type="System.Decimal" Scope="User">
+      <Value Profile="(Default)">1000</Value>
+    </Setting>
+    <Setting Name="SortOrder" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">1</Value>
+    </Setting>
+    <Setting Name="NewBooksPeriod" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">2</Value>
     </Setting>
   </Settings>
 </SettingsFile>

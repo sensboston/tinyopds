@@ -246,6 +246,8 @@ namespace TinyOPDS
             logVerbosity.SelectedIndex = Math.Min(2, TinyOPDS.Properties.Settings.Default.LogLevel);
             updateCombo.SelectedIndex = Math.Min(2, TinyOPDS.Properties.Settings.Default.UpdatesCheck);
             langCombo.SelectedValue = TinyOPDS.Properties.Settings.Default.Language;
+            sortOrderCombo.SelectedIndex = TinyOPDS.Properties.Settings.Default.SortOrder;
+            newBooksPeriodCombo.SelectedIndex = TinyOPDS.Properties.Settings.Default.NewBooksPeriod;
 
             openPort.Checked = TinyOPDS.Properties.Settings.Default.UseUPnP ? TinyOPDS.Properties.Settings.Default.OpenNATPort : false;
             banClients.Enabled = rememberClients.Enabled = dataGridView1.Enabled = TinyOPDS.Properties.Settings.Default.UseHTTPAuth;
@@ -737,6 +739,15 @@ namespace TinyOPDS
             updateCombo.Items[0] = Localizer.Text("Never");
             updateCombo.Items[1] = Localizer.Text("Once a week");
             updateCombo.Items[2] = Localizer.Text("Once a month");
+            sortOrderCombo.Items[0] = Localizer.Text("Latin first");
+            sortOrderCombo.Items[1] = Localizer.Text("Cyrillic first");
+            newBooksPeriodCombo.Items[0] = Localizer.Text("one week");
+            newBooksPeriodCombo.Items[1] = Localizer.Text("two weeks");
+            newBooksPeriodCombo.Items[2] = Localizer.Text("three weeks");
+            newBooksPeriodCombo.Items[3] = Localizer.Text("month");
+            newBooksPeriodCombo.Items[4] = Localizer.Text("month and half");
+            newBooksPeriodCombo.Items[5] = Localizer.Text("two month");
+            newBooksPeriodCombo.Items[6] = Localizer.Text("three month");
         }
 
         /// <summary>

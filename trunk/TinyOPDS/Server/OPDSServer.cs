@@ -100,6 +100,7 @@ namespace TinyOPDS.Server
                 // User-agent check: some e-book readers can handle fb2 files (no conversion is  needed)
                 string userAgent = processor.HttpHeaders["User-Agent"] as string;
                 bool acceptFB2 = Utils.DetectFB2Reader(userAgent) || isWWWRequest;
+                int threshold = (int) (isWWWRequest ? TinyOPDS.Properties.Settings.Default.ItemsPerWebPage : TinyOPDS.Properties.Settings.Default.ItemsPerOPDSPage);
 
                 // Is it OPDS request?
                 if (string.IsNullOrEmpty(ext))
@@ -114,11 +115,11 @@ namespace TinyOPDS.Server
                         else if (request.StartsWith("/authorsindex"))
                         {
                             int numChars = request.StartsWith("/authorsindex/") ? 14 : 13;
-                            xml = new AuthorsCatalog().GetCatalog(request.Substring(numChars)).ToString();
+                            xml = new AuthorsCatalog().GetCatalog(request.Substring(numChars), false, threshold).ToString();
                         }
                         else if (request.StartsWith("/author/"))
                         {
-                            xml = new BooksCatalog().GetCatalogByAuthor(request.Substring(8), acceptFB2, (isWWWRequest ? 1000 : 100)).ToString();
+                            xml = new BooksCatalog().GetCatalogByAuthor(request.Substring(8), acceptFB2, threshold).ToString();
                         }
                         else if (request.StartsWith("/sequencesindex"))
                         {
@@ -127,7 +128,7 @@ namespace TinyOPDS.Server
                         }
                         else if (request.Contains("/sequence/"))
                         {
-                            xml = new BooksCatalog().GetCatalogBySequence(request.Substring(10), acceptFB2, (isWWWRequest ? 1000 : 100)).ToString();
+                            xml = new BooksCatalog().GetCatalogBySequence(request.Substring(10), acceptFB2, threshold).ToString();
                         }
                         else if (request.StartsWith("/genres"))
                         {
@@ -136,7 +137,7 @@ namespace TinyOPDS.Server
                         }
                         else if (request.StartsWith("/genre/"))
                         {
-                            xml = new BooksCatalog().GetCatalogByGenre(request.Substring(7), acceptFB2, (isWWWRequest ? 1000 : 100)).ToString();
+                            xml = new BooksCatalog().GetCatalogByGenre(request.Substring(7), acceptFB2, threshold).ToString();
                         }
                         else if (request.StartsWith("/search"))
                         {

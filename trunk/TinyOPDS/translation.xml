@@ -126,12 +126,16 @@
       <text lang="ru">Использовать UPnP</text>
     </property>
     <property form="MainForm" ctrl="tabPage1">
-      <text lang="en">Scanner settings</text>
-      <text lang="ru">Настройки сканера</text>
+      <text lang="en">Scanner</text>
+      <text lang="ru">Сканер</text>
     </property>
     <property form="MainForm" ctrl="tabPage2">
-      <text lang="en">OPDS server settings</text>
-      <text lang="ru">Настройки OPDS сервера</text>
+      <text lang="en">Server</text>
+      <text lang="ru">Сервер</text>
+    </property>
+    <property form="MainForm" ctrl="tabPage6">
+      <text lang="en">OPDS catalog</text>
+      <text lang="ru">OPDS каталог</text>
     </property>
     <property form="MainForm" ctrl="tabPage3">
       <text lang="en">Miscellaneous</text>
@@ -444,6 +448,70 @@
     <property>
       <text lang="en">Warning</text>
       <text lang="ru">Предупреждение</text>
+    </property>
+    <property form="MainForm" ctrl="label36">
+      <text lang="en">Items per OPDS page:</text>
+      <text lang="ru">Число элементов на странице OPDS:</text>
+    </property>
+    <property form="MainForm" ctrl="label37">
+      <text lang="en">Items per web page:</text>
+      <text lang="ru">Число элементов на web-странице:</text>
+    </property>
+    <property form="MainForm" ctrl="label38">
+      <text lang="en">Items sort order:</text>
+      <text lang="ru">Порядок сортировки:</text>
+    </property>
+    <property>
+      <text lang="en">Latin first</text>
+      <text lang="ru">Сначала латинские</text>
+    </property>
+    <property>
+      <text lang="en">Cyrillic first</text>
+      <text lang="ru">Сначала русские</text>
+    </property>
+    <property>
+      <text lang="en">one week</text>
+      <text lang="ru">неделя</text>
+    </property>
+    <property form="MainForm" ctrl="label39">
+      <text lang="en">"New books" check period:</text>
+      <text lang="ru">Период для "новых книг":</text>
+    </property>
+    <property>
+      <text lang="en">two weeks</text>
+      <text lang="ru">две недели</text>
+    </property>
+    <property>
+      <text lang="en">three weeks</text>
+      <text lang="ru">три недели</text>
+    </property>
+    <property>
+      <text lang="en">month</text>
+      <text lang="ru">месяц</text>
+    </property>
+    <property>
+      <text lang="en">month and half</text>
+      <text lang="ru">полтора месяца</text>
+    </property>
+    <property>
+      <text lang="en">two month</text>
+      <text lang="ru">два месяца</text>
+    </property>
+    <property>
+      <text lang="en">three month</text>
+      <text lang="ru">три месяца</text>
+    </property>
+    <property form="MainForm" ctrl="checkBox1">
+      <text lang="en">"Low memory" model (do not load book description)</text>
+      <text lang="ru">Режим "экономии памяти" (не загружать сразу описания книг)</text>
+    </property>
+    <property>
+      <text lang="en"></text>
+      <text lang="ru"></text>
+    </property>
+    <property>
+      <text lang="en"></text>
+      <text lang="ru"></text>
     </property>
     <property>
       <text lang="en"></text>

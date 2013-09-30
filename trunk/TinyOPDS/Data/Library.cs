@@ -264,7 +264,7 @@ namespace TinyOPDS.Data
             {
                 lock (_books)
                 {
-                    return _books.Values.Select(b => b.Title).Distinct().OrderBy(a => a, new OPDSComparer(Localizer.Language.Equals("ru"))).ToList();
+                    return _books.Values.Select(b => b.Title).Distinct().OrderBy(a => a, new OPDSComparer(TinyOPDS.Properties.Settings.Default.SortOrder > 0)).ToList();
                 }
             }
         }
@@ -278,7 +278,7 @@ namespace TinyOPDS.Data
             {
                 lock (_books)
                 {
-                    return ((_books.Values.SelectMany(b => b.Authors)).ToList()).Distinct().OrderBy(a => a, new OPDSComparer(Localizer.Language.Equals("ru"))).Where(с => с.Length > 1).ToList();
+                    return ((_books.Values.SelectMany(b => b.Authors)).ToList()).Distinct().OrderBy(a => a, new OPDSComparer(TinyOPDS.Properties.Settings.Default.SortOrder > 0)).Where(с => с.Length > 1).ToList();
                 }
             }
         }
@@ -292,7 +292,7 @@ namespace TinyOPDS.Data
             {
                 lock (_books)
                 {
-                    return ((_books.Values.Select(b => b.Sequence)).ToList()).Distinct().OrderBy(a => a, new OPDSComparer(Localizer.Language.Equals("ru"))).Where(с => с.Length > 1).ToList();
+                    return ((_books.Values.Select(b => b.Sequence)).ToList()).Distinct().OrderBy(a => a, new OPDSComparer(TinyOPDS.Properties.Settings.Default.SortOrder > 0)).Where(с => с.Length > 1).ToList();
                 }
             }
         }
@@ -325,7 +325,7 @@ namespace TinyOPDS.Data
             {
                 lock (_books)
                 {
-                    var libGenres = _books.Values.SelectMany(b => b.Genres).ToList().Distinct().OrderBy(a => a, new OPDSComparer(Localizer.Language.Equals("ru"))).Where(с => с.Length > 1).Select(g => g.ToLower().Trim()).ToList();
+                    var libGenres = _books.Values.SelectMany(b => b.Genres).ToList().Distinct().OrderBy(a => a, new OPDSComparer(TinyOPDS.Properties.Settings.Default.SortOrder > 0)).Where(с => с.Length > 1).Select(g => g.ToLower().Trim()).ToList();
                     return _genres.SelectMany(g => g.Subgenres).Where(sg => libGenres.Contains(sg.Tag) || libGenres.Contains(sg.Name.ToLower()) || libGenres.Contains(sg.Translation.ToLower())).ToList();
                 }
             }

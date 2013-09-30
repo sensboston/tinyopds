@@ -143,7 +143,7 @@ namespace TinyOPDS.OPDS
             // else sort by title
             else
             {
-                books = books.OrderBy(b => b.Title, new OPDSComparer(Localizer.Language.Equals("ru"))).ToList();
+                books = books.OrderBy(b => b.Title, new OPDSComparer(TinyOPDS.Properties.Settings.Default.SortOrder > 0)).ToList();
             }
 
             int startIndex = pageNumber * threshold;

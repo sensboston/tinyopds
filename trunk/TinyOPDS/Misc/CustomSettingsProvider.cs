@@ -95,7 +95,14 @@ namespace TinyOPDS
                 if (SettingsDictionary.ContainsKey(setting.Name))
                 {
                     value.SerializedValue = SettingsDictionary[setting.Name].value;
-                    value.PropertyValue = Convert.ChangeType(SettingsDictionary[setting.Name].value, t);
+                    try
+                    {
+                        value.PropertyValue = Convert.ChangeType(SettingsDictionary[setting.Name].value, t);
+                    }
+                    catch
+                    {
+                        value.PropertyValue = Convert.ChangeType(setting.DefaultValue, t);
+                    }
                 }
                 else //use defaults in the case where there are no settings yet
                 {

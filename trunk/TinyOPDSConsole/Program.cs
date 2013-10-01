@@ -46,7 +46,7 @@ namespace TinyOPDSConsole
 
         private static OPDSServer _server;
         private static Thread _serverThread;
-        private static FileScanner _scanner = new FileScanner();
+        private static FileScanner _scanner;
         private static Watcher _watcher;
         private static DateTime _scanStartTime;
         private static UPnPController _upnpController = new UPnPController();
@@ -125,7 +125,6 @@ namespace TinyOPDSConsole
                     {
                         _scanner.Stop();
                         Library.Save();
-                        UpdateInfo();
                         Console.WriteLine("\nScanner interruped by user.");
                         Log.WriteLine("Directory scanner stopped");
                     }
@@ -262,7 +261,7 @@ namespace TinyOPDSConsole
                         case "scan":
                             {
                                 ScanFolder();
-                                break;
+                                return (0);
                             }
 
                         case "encred":
@@ -277,10 +276,9 @@ namespace TinyOPDSConsole
                                 {
                                     Console.WriteLine("To encode credentials, please provide additional parameters: user1 password1 user2 password2 ...");
                                 }
-                                break;
+                                return (0);
                             }
                     }
-                    return (0);
                 }
 
                 bool l = Utils.IsLinux;
@@ -478,6 +476,7 @@ namespace TinyOPDSConsole
 
         private static void ScanFolder()
         {
+            _scanner = new FileScanner();
             _scanner.OnBookFound += scanner_OnBookFound;
             _scanner.OnInvalidBook += (_, __) => { _invalidFiles++; };
             _scanner.OnFileSkipped += (object _sender, FileSkippedEventArgs _e) =>

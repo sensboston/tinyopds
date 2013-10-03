@@ -111,9 +111,13 @@ namespace TinyOPDSConsole
         {
             AppDomain.CurrentDomain.AssemblyResolve += new ResolveEventHandler(CurrentDomain_AssemblyResolve);
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+            Log.SaveToFile = TinyOPDS.Properties.Settings.Default.SaveLogToDisk;
 
             if (Utils.IsLinux || System.Environment.UserInteractive)
             {
+                // On Linux, we need clear console (terminal) window first
+                if (Utils.IsLinux) Console.Write("\u001b[1J\u001b[0;0H");
+
                 Console.WriteLine("TinyOPDS console, {0}, copyright (c) 2013 SeNSSoFT", string.Format(Localizer.Text("version {0}.{1} {2}"), Utils.Version.Major, Utils.Version.Minor, Utils.Version.Major == 0 ? " (beta)" : ""));
 
                 Console.CancelKeyPress += (sender, eventArgs) =>
@@ -340,8 +344,9 @@ namespace TinyOPDSConsole
         /// </summary>
         private static void StartServer()
         {
+            // Init log file settings
             Log.SaveToFile = TinyOPDS.Properties.Settings.Default.SaveLogToDisk;
-
+            
             // Init localization service
             Localizer.Init();
             Localizer.Language = TinyOPDS.Properties.Settings.Default.Language;
@@ -476,6 +481,9 @@ namespace TinyOPDSConsole
 
         private static void ScanFolder()
         {
+            // Init log file settings
+            Log.SaveToFile = TinyOPDS.Properties.Settings.Default.SaveLogToDisk;
+
             _scanner = new FileScanner();
             _scanner.OnBookFound += scanner_OnBookFound;
             _scanner.OnInvalidBook += (_, __) => { _invalidFiles++; };
@@ -515,7 +523,7 @@ namespace TinyOPDSConsole
             int totalBooksProcessed = _fb2Count + _epubCount + _skippedFiles + _invalidFiles + _duplicates;
             string rate = (dt.TotalSeconds) > 0 ? string.Format("{0:0.} books/min", totalBooksProcessed / dt.TotalSeconds * 60) : "---";
 
-            string info = string.Format("Scan started: {0}, elapsed: {1}, rate: {2}, found fb2: {3}, epub: {4}, skipped: {5}, dups: {6}, invalid: {7}, total: {8}",
+            string info = string.Format("Scan started: {0}, elapsed: {1}, rate: {2}, found fb2: {3}, epub: {4}, skipped: {5}, dups: {6}, invalid: {7}, total: {8}     ",
                 _scanStartTime.ToString(@"hh\:mm\:ss"),
                 dt.ToString(@"hh\:mm\:ss"),
                 rate,
@@ -526,9 +534,17 @@ namespace TinyOPDSConsole
                 _invalidFiles,
                 totalBooksProcessed);
 
-            Console.Write(info+"\r");
-            float dy = (float) info.Length / (float) Console.WindowWidth;
-            Console.SetCursorPosition(0, Console.CursorTop - (int)dy);
+            if (!Utils.IsLinux)
+            {
+                Console.Write(info + "\r");
+                float dy = (float)info.Length / (float)Console.WindowWidth;
+                Console.SetCursorPosition(0, Console.CursorTop - (int)dy);
+            }
+            // For Linux we should use ANSI escape sequences to control cursor
+            else
+            {
+                Console.Write("\u001b[s" + info + "\u001b[u");
+            }
         }
 
         #endregion

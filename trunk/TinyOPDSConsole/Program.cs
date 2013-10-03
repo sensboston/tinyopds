@@ -115,11 +115,7 @@ namespace TinyOPDSConsole
 
             if (Utils.IsLinux || System.Environment.UserInteractive)
             {
-                // On Linux, we need clear console (terminal) window first
-                if (Utils.IsLinux) Console.Write("\u001b[1J\u001b[0;0H");
-
-                Console.WriteLine("TinyOPDS console, {0}, copyright (c) 2013 SeNSSoFT", string.Format(Localizer.Text("version {0}.{1} {2}"), Utils.Version.Major, Utils.Version.Minor, Utils.Version.Major == 0 ? " (beta)" : ""));
-
+                // Add Ctrl+c handler
                 Console.CancelKeyPress += (sender, eventArgs) =>
                 {
                     eventArgs.Cancel = true;
@@ -133,6 +129,10 @@ namespace TinyOPDSConsole
                         Log.WriteLine("Directory scanner stopped");
                     }
                 };
+
+                // On Linux, we need clear console (terminal) window first
+                if (Utils.IsLinux) Console.Write("\u001b[1J\u001b[0;0H");
+                Console.WriteLine("TinyOPDS console, {0}, copyright (c) 2013 SeNSSoFT", string.Format(Localizer.Text("version {0}.{1} {2}"), Utils.Version.Major, Utils.Version.Minor, Utils.Version.Major == 0 ? " (beta)" : ""));
 
                 if (args.Length > 0)
                 {
@@ -429,7 +429,7 @@ namespace TinyOPDSConsole
                 if (Utils.IsLinux || System.Environment.UserInteractive)
                 {
                     Console.WriteLine("Server is running... Press <Ctrl+c> to shutdown server.");
-                    while (_server != null && _server.IsActive) Thread.Sleep(1000);
+                    while (_server != null && _server.IsActive) Thread.Sleep(500);
                 }
             }
         }
@@ -494,16 +494,18 @@ namespace TinyOPDSConsole
             };
             _scanner.OnScanCompleted += (_, __) =>
             {
-                Library.Save();
                 UpdateInfo(true);
                 Log.WriteLine("Directory scanner completed");
             };
             _fb2Count = _epubCount = _skippedFiles = _invalidFiles = _duplicates = 0;
             _scanStartTime = DateTime.Now;
-            //startTime.Text = _scanStartTime.ToString(@"hh\:mm\:ss");
             _scanner.Start(Library.LibraryPath);
+            Console.WriteLine("Scanning directory {0}", Library.LibraryPath);
+            Log.WriteLine("Directory scanner started");
             UpdateInfo();
             while (_scanner != null && _scanner.Status == FileScannerStatus.SCANNING) Thread.Sleep(500);
+            // Save library in the main thread
+            Library.Save();
         }
 
         static void scanner_OnBookFound(object sender, BookFoundEventArgs e)
@@ -514,36 +516,41 @@ namespace TinyOPDSConsole
             }
             else _duplicates++;
             if (Library.Count % 500 == 0) Library.Save();
+            if (Library.Count % 10000 == 0) GC.Collect();
             UpdateInfo();
         }
 
         private static void UpdateInfo(bool IsScanFinished = false)
         {
-            TimeSpan dt = DateTime.Now.Subtract(_scanStartTime);
             int totalBooksProcessed = _fb2Count + _epubCount + _skippedFiles + _invalidFiles + _duplicates;
-            string rate = (dt.TotalSeconds) > 0 ? string.Format("{0:0.} books/min", totalBooksProcessed / dt.TotalSeconds * 60) : "---";
 
-            string info = string.Format("Scan started: {0}, elapsed: {1}, rate: {2}, found fb2: {3}, epub: {4}, skipped: {5}, dups: {6}, invalid: {7}, total: {8}     ",
-                _scanStartTime.ToString(@"hh\:mm\:ss"),
-                dt.ToString(@"hh\:mm\:ss"),
-                rate,
-                _fb2Count,
-                _epubCount,
-                _skippedFiles, 
-                _duplicates,
-                _invalidFiles,
-                totalBooksProcessed);
+            if (IsScanFinished || totalBooksProcessed % 10 == 0)
+            {
+                TimeSpan dt = DateTime.Now.Subtract(_scanStartTime);
+                string rate = (dt.TotalSeconds) > 0 ? string.Format("{0:0.} books/min", totalBooksProcessed / dt.TotalSeconds * 60) : "---";
 
-            if (!Utils.IsLinux)
-            {
-                Console.Write(info + "\r");
-                float dy = (float)info.Length / (float)Console.WindowWidth;
-                Console.SetCursorPosition(0, Console.CursorTop - (int)dy);
-            }
-            // For Linux we should use ANSI escape sequences to control cursor
-            else
-            {
-                Console.Write("\u001b[s" + info + "\u001b[u");
+                string info = string.Format("Elapsed time: {1}, rate: {2}, found fb2: {3}, epub: {4}, skipped: {5}, dups: {6}, invalid: {7}, total: {8}     ",
+                    _scanStartTime.ToString(@"hh\:mm\:ss"),
+                    dt.ToString(@"hh\:mm\:ss"),
+                    rate,
+                    _fb2Count,
+                    _epubCount,
+                    _skippedFiles,
+                    _duplicates,
+                    _invalidFiles,
+                    totalBooksProcessed);
+
+                if (!Utils.IsLinux)
+                {
+                    Console.Write(info + "\r");
+                    float dy = (float)info.Length / (float)Console.WindowWidth;
+                    Console.SetCursorPosition(0, Console.CursorTop - (int)dy);
+                }
+                // For Linux we should use ANSI escape sequences to control cursor
+                else
+                {
+                    Console.Write("\u001b[s" + info + "\u001b[u");
+                }
             }
         }
 

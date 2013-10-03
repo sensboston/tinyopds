@@ -469,13 +469,13 @@
       <text lang="en">Cyrillic first</text>
       <text lang="ru">Сначала русские</text>
     </property>
-    <property>
-      <text lang="en">one week</text>
-      <text lang="ru">неделя</text>
-    </property>
     <property form="MainForm" ctrl="label39">
       <text lang="en">"New books" check period:</text>
       <text lang="ru">Период для "новых книг":</text>
+    </property>
+    <property>
+      <text lang="en">one week</text>
+      <text lang="ru">неделя</text>
     </property>
     <property>
       <text lang="en">two weeks</text>
@@ -506,12 +506,12 @@
       <text lang="ru">Режим "экономии памяти" (не загружать сразу описания книг)</text>
     </property>
     <property>
-      <text lang="en"></text>
-      <text lang="ru"></text>
+      <text lang="en">New books</text>
+      <text lang="ru">Новые книги</text>
     </property>
     <property>
-      <text lang="en"></text>
-      <text lang="ru"></text>
+      <text lang="en">Books recently added to the library</text>
+      <text lang="ru">Книги, недавно добавленные в библиотеку</text>
     </property>
     <property>
       <text lang="en"></text>

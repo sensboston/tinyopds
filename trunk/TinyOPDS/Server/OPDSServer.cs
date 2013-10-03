@@ -102,33 +102,42 @@ namespace TinyOPDS.Server
                 bool acceptFB2 = Utils.DetectFB2Reader(userAgent) || isWWWRequest;
                 int threshold = (int) (isWWWRequest ? TinyOPDS.Properties.Settings.Default.ItemsPerWebPage : TinyOPDS.Properties.Settings.Default.ItemsPerOPDSPage);
 
+                bool newBooksOnly = false;
+
                 // Is it OPDS request?
                 if (string.IsNullOrEmpty(ext))
                 {
                     try
                     {
+                        if (request.StartsWith("/new"))
+                        {
+                            request = request.Substring(4);
+                            newBooksOnly = true;
+                            if (string.IsNullOrEmpty(request)) request = "/";
+                        }
+
                         // Is it root node requested?
                         if (request.Equals("/"))
                         {
-                            xml = new RootCatalog().Catalog.ToString();
+                            xml = new RootCatalog().GetCatalog(newBooksOnly).ToString();
                         }
                         else if (request.StartsWith("/authorsindex"))
                         {
                             int numChars = request.StartsWith("/authorsindex/") ? 14 : 13;
-                            xml = new AuthorsCatalog().GetCatalog(request.Substring(numChars), false, threshold).ToString();
+                            xml = new AuthorsCatalog().GetCatalog(request.Substring(numChars), false, threshold, newBooksOnly).ToString();
                         }
                         else if (request.StartsWith("/author/"))
                         {
-                            xml = new BooksCatalog().GetCatalogByAuthor(request.Substring(8), acceptFB2, threshold).ToString();
+                            xml = new BooksCatalog().GetCatalogByAuthor(request.Substring(8), acceptFB2, threshold, newBooksOnly).ToString();
                         }
                         else if (request.StartsWith("/sequencesindex"))
                         {
                             int numChars = request.StartsWith("/sequencesindex/") ? 16 : 15;
-                            xml = new SequencesCatalog().GetCatalog(request.Substring(numChars)).ToString();
+                            xml = new SequencesCatalog().GetCatalog(request.Substring(numChars), threshold, newBooksOnly).ToString();
                         }
                         else if (request.Contains("/sequence/"))
                         {
-                            xml = new BooksCatalog().GetCatalogBySequence(request.Substring(10), acceptFB2, threshold).ToString();
+                            xml = new BooksCatalog().GetCatalogBySequence(request.Substring(10), acceptFB2, threshold, newBooksOnly).ToString();
                         }
                         else if (request.StartsWith("/genres"))
                         {
@@ -137,7 +146,7 @@ namespace TinyOPDS.Server
                         }
                         else if (request.StartsWith("/genre/"))
                         {
-                            xml = new BooksCatalog().GetCatalogByGenre(request.Substring(7), acceptFB2, threshold).ToString();
+                            xml = new BooksCatalog().GetCatalogByGenre(request.Substring(7), acceptFB2, threshold, newBooksOnly).ToString();
                         }
                         else if (request.StartsWith("/search"))
                         {

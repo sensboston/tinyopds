@@ -32,7 +32,7 @@ namespace TinyOPDS.OPDS
         /// <param name="searchPattern"></param>
         /// <param name="threshold"></param>
         /// <returns></returns>
-        public XDocument GetCatalog(string searchPattern, bool isOpenSearch = false, int threshold = 100)
+        public XDocument GetCatalog(string searchPattern, bool isOpenSearch = false, int threshold = 100, bool newBooksOnly = false)
         {
             if (!string.IsNullOrEmpty(searchPattern)) searchPattern = Uri.UnescapeDataString(searchPattern).Replace('+', ' ').ToLower();
 
@@ -93,7 +93,7 @@ namespace TinyOPDS.OPDS
                 // Add catalog entries
                 foreach (string author in Authors)
                 {
-                    var booksCount = Library.GetBooksByAuthor(author).Count;
+                    var booksCount = Library.GetBooksByAuthor(author, newBooksOnly).Count;
 
                     doc.Root.Add(
                         new XElement("entry",

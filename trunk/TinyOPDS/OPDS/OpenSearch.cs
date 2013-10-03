@@ -73,10 +73,10 @@ namespace TinyOPDS.OPDS
                 {
                     authors = Library.GetAuthorsByName(transSearchPattern, true);
                 }
-                titles = Library.GetBooksByTitle(searchPattern);
+                titles = Library.GetBooksByTitle(searchPattern, false);
                 if (titles.Count == 0 && !string.IsNullOrEmpty(transSearchPattern))
                 {
-                    titles = Library.GetBooksByTitle(transSearchPattern);
+                    titles = Library.GetBooksByTitle(transSearchPattern, false);
                 }
             }
 

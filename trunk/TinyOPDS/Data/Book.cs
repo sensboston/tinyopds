@@ -62,7 +62,14 @@ namespace TinyOPDS.Data
         }
         public float Version { get; set; }
         public string FileName { get; private set; }
-        public string FilePath { get { return Path.Combine(Library.LibraryPath, FileName); } }
+        public string FilePath 
+        { 
+            get 
+            {
+                string path = Path.Combine(Library.LibraryPath, FileName);
+                return Utils.IsLinux ? path.Replace('\\', '/') : path;
+            } 
+        }
         public string Title { get; set; }
         public string Language { get; set; }
         public bool HasCover { get; set; }

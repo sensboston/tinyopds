@@ -464,7 +464,6 @@ namespace TinyOPDS
         /// <param name="hService">The handle to the windows service</param>
         private static void StartService(IntPtr hService)
         {
-            SERVICE_STATUS status = new SERVICE_STATUS();
             StartService(hService, 0, 0);
             WaitForServiceStatus(hService, ServiceState.Starting, ServiceState.Run);
         }

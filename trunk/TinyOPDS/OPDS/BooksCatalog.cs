@@ -29,7 +29,7 @@ namespace TinyOPDS.OPDS
             Author = 0,
             Sequence,
             Genre,
-            Title
+            Title,
         }
 
         /// <summary>
@@ -37,7 +37,7 @@ namespace TinyOPDS.OPDS
         /// </summary>
         /// <param name="author"></param>
         /// <returns></returns>
-        public XDocument GetCatalogByAuthor(string author, bool fb2Only, int threshold = 100)
+        public XDocument GetCatalogByAuthor(string author, bool fb2Only, int threshold = 100, bool newBooksOnly = false)
         {
             return GetCatalog(author, SearchFor.Author, fb2Only, threshold);
         }
@@ -47,7 +47,7 @@ namespace TinyOPDS.OPDS
         /// </summary>
         /// <param name="sequence"></param>
         /// <returns></returns>
-        public XDocument GetCatalogBySequence(string sequence, bool fb2Only, int threshold = 100)
+        public XDocument GetCatalogBySequence(string sequence, bool fb2Only, int threshold = 100, bool newBooksOnly = false)
         {
             return GetCatalog(sequence, SearchFor.Sequence, fb2Only, threshold);
         }
@@ -57,7 +57,7 @@ namespace TinyOPDS.OPDS
         /// </summary>
         /// <param name="author"></param>
         /// <returns></returns>
-        public XDocument GetCatalogByGenre(string genre, bool fb2Only, int threshold = 100)
+        public XDocument GetCatalogByGenre(string genre, bool fb2Only, int threshold = 100, bool newBooksOnly = false)
         {
             return GetCatalog(genre, SearchFor.Genre, fb2Only, threshold);
         }
@@ -80,7 +80,7 @@ namespace TinyOPDS.OPDS
         /// <param name="acceptFB2">Client can accept fb2 files</param>
         /// <param name="threshold">Items per page</param>
         /// <returns></returns>
-        private XDocument GetCatalog(string searchPattern, SearchFor searchFor, bool acceptFB2, int threshold = 100)
+        private XDocument GetCatalog(string searchPattern, SearchFor searchFor, bool acceptFB2, int threshold = 100, bool newBooksOnly = false)
         {
             if (!string.IsNullOrEmpty(searchPattern)) searchPattern = Uri.UnescapeDataString(searchPattern).Replace('+', ' ');
 
@@ -109,26 +109,26 @@ namespace TinyOPDS.OPDS
             switch (searchFor)
             {
                 case SearchFor.Author:
-                    books = Library.GetBooksByAuthor(searchPattern);
+                    books = Library.GetBooksByAuthor(searchPattern, newBooksOnly);
                     catalogType = "/author/" + Uri.EscapeDataString(searchPattern);
                     break;
                 case SearchFor.Sequence:
-                    books = Library.GetBooksBySequence(searchPattern);
+                    books = Library.GetBooksBySequence(searchPattern, newBooksOnly);
                     catalogType = "/sequence/" + Uri.EscapeDataString(searchPattern);
                     break;
                 case SearchFor.Genre:
-                    books = Library.GetBooksByGenre(searchPattern);
+                    books = Library.GetBooksByGenre(searchPattern, newBooksOnly);
                     catalogType = "/genre/" + Uri.EscapeDataString(searchPattern);
                     break;
                 case SearchFor.Title:
-                    books = Library.GetBooksByTitle(searchPattern);
+                    books = Library.GetBooksByTitle(searchPattern, newBooksOnly);
                     // For search, also return books by 
                     if (threshold > 50)
                     {
                         string translit = Transliteration.Back(searchPattern, TransliterationType.GOST);
                         if (!string.IsNullOrEmpty(translit))
                         {
-                            List<Book> transTitles = Library.GetBooksByTitle(translit);
+                            List<Book> transTitles = Library.GetBooksByTitle(translit, newBooksOnly);
                             if (transTitles.Count > 0) books.AddRange(transTitles);
                         }
                     }

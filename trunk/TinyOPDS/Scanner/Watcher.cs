@@ -219,8 +219,7 @@ namespace TinyOPDS.Scanner
 
         private bool IsFileInUse(string path)
         {
-            if (string.IsNullOrEmpty(path)) throw new ArgumentException("'path' cannot be null or empty.", "path");
-
+            if (string.IsNullOrEmpty(path)) return true;
             try
             {
                 using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read)) { }

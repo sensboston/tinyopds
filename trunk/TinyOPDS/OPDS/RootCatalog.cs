@@ -25,53 +25,60 @@ namespace TinyOPDS.OPDS
     /// </summary>
     class RootCatalog
     {
-        public XDocument Catalog
+        public XDocument GetCatalog(bool newBooksOnly = false)
         {
-            get
-            {
-                return new XDocument(
-                    // Add root element with namespaces
-                    new XElement("feed", new XAttribute(XNamespace.Xmlns + "dc", Namespaces.dc), 
-                                         new XAttribute(XNamespace.Xmlns + "os", Namespaces.os), 
-                                         new XAttribute(XNamespace.Xmlns + "opds", Namespaces.opds),
+            return new XDocument(
+                // Add root element with namespaces
+                new XElement("feed", new XAttribute(XNamespace.Xmlns + "dc", Namespaces.dc),
+                                     new XAttribute(XNamespace.Xmlns + "os", Namespaces.os),
+                                     new XAttribute(XNamespace.Xmlns + "opds", Namespaces.opds),
 
-                          new XElement("id", "tag:root"),
-                          new XElement("title", TinyOPDS.Properties.Settings.Default.ServerName),
-                          new XElement("subtitle", Utils.ServerVersionName),
+                      new XElement("id", "tag:root"),
+                      new XElement("title", TinyOPDS.Properties.Settings.Default.ServerName),
+                      new XElement("subtitle", Utils.ServerVersionName),
+                      new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
+                      new XElement("icon", "/favicon.ico"),
+
+                      // Add links
+                      Links.opensearch,
+                      Links.search,
+                      Links.start,
+                      Links.self,
+
+                      // Add new books entry (if we have a new books of course!)
+                      (newBooksOnly || Library.NewBooksCount == 0) ? null :
+                      new XElement("entry",
                           new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                          new XElement("icon", "/favicon.ico"),
+                          new XElement("id", "tag:root:new"),
+                          new XElement("title", Localizer.Text("New books"), new XAttribute("type", "text")),
+                          new XElement("content", string.Format(Localizer.Text("{0} new books"), Library.NewBooksCount), new XAttribute("type", "text")),
+                          new XElement("link", new XAttribute("href", "/new"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
+                          ),
 
-                          // Add links
-                          Links.opensearch,
-                          Links.search,
-                          Links.start,
-                          Links.self,
-
-                          // Add catalog entries
-                          new XElement("entry",
-                              new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                              new XElement("id", "tag:root:authors"),
-                              new XElement("title", Localizer.Text("By authors"), new XAttribute("type", "text")),
-                              new XElement("content", string.Format(Localizer.Text("{0} books by {1} authors"), Library.Count, Library.Authors.Count), new XAttribute("type", "text")),
-                              new XElement("link", new XAttribute("href", "/authorsindex"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
-                              ),
-                          new XElement("entry",
-                              new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                              new XElement("id", "tag:root:sequences"),
-                              new XElement("title", Localizer.Text("By series"), new XAttribute("type", "text")),
-                              new XElement("content", string.Format(Localizer.Text("{0} books by {1} series"), Library.Count, Library.Sequences.Count), new XAttribute("type", "text")),
-                              new XElement("link", new XAttribute("href", "/sequencesindex"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
-                              ),
-                          new XElement("entry",
-                              new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                              new XElement("id", "tag:root:genre"),
-                              new XElement("title", Localizer.Text("By genres"), new XAttribute("type", "text")),
-                              new XElement("content", Localizer.Text("Books grouped by genres"), new XAttribute("type", "text")),
-                              new XElement("link", new XAttribute("href", "/genres"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
-                          )
+                      // Add catalog entries
+                      new XElement("entry",
+                          new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
+                          new XElement("id", "tag:root:authors"),
+                          new XElement("title", Localizer.Text("By authors"), new XAttribute("type", "text")),
+                          new XElement("content", string.Format(Localizer.Text("{0} books by {1} authors"), newBooksOnly ? Library.NewBooksCount : Library.Count, newBooksOnly ? Library.NewBookAuthors.Count : Library.Authors.Count), new XAttribute("type", "text")),
+                          new XElement("link", new XAttribute("href", (newBooksOnly ? "/new" : "") + "/authorsindex"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
+                          ),
+                      new XElement("entry",
+                          new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
+                          new XElement("id", "tag:root:sequences"),
+                          new XElement("title", Localizer.Text("By series"), new XAttribute("type", "text")),
+                          new XElement("content", string.Format(Localizer.Text("{0} books by {1} series"), newBooksOnly ? Library.NewBooksCount : Library.Count, newBooksOnly ? Library.NewBookSequences.Count : Library.Sequences.Count), new XAttribute("type", "text")),
+                          new XElement("link", new XAttribute("href", (newBooksOnly ? "/new" : "") + "/sequencesindex"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
+                          ),
+                      new XElement("entry",
+                          new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
+                          new XElement("id", "tag:root:genre"),
+                          new XElement("title", Localizer.Text("By genres"), new XAttribute("type", "text")),
+                          new XElement("content", Localizer.Text("Books grouped by genres"), new XAttribute("type", "text")),
+                          new XElement("link", new XAttribute("href", (newBooksOnly ? "/new" : "") + "/genres"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                       )
-                  );
-            }
+                  )
+              );
         }
     }
 }

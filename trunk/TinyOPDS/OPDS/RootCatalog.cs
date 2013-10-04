@@ -25,7 +25,7 @@ namespace TinyOPDS.OPDS
     /// </summary>
     class RootCatalog
     {
-        public XDocument GetCatalog(bool newBooksOnly = false)
+        public XDocument GetCatalog()
         {
             return new XDocument(
                 // Add root element with namespaces
@@ -46,13 +46,22 @@ namespace TinyOPDS.OPDS
                       Links.self,
 
                       // Add new books entry (if we have a new books of course!)
-                      (newBooksOnly || Library.NewBooksCount == 0) ? null :
+                      Library.NewBooksCount == 0 ? null :
                       new XElement("entry",
                           new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                           new XElement("id", "tag:root:new"),
-                          new XElement("title", Localizer.Text("New books"), new XAttribute("type", "text")),
-                          new XElement("content", string.Format(Localizer.Text("{0} new books"), Library.NewBooksCount), new XAttribute("type", "text")),
-                          new XElement("link", new XAttribute("href", "/new"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
+                          new XElement("title", Localizer.Text("New books (by date added)"), new XAttribute("type", "text")),
+                          new XElement("content", string.Format(Localizer.Text("{0} new books ordered by date"), Library.NewBooksCount), new XAttribute("type", "text")),
+                          new XElement("link", new XAttribute("href", "/newdate"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
+                          ),
+
+                      Library.NewBooksCount == 0 ? null :
+                      new XElement("entry",
+                          new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
+                          new XElement("id", "tag:root:new"),
+                          new XElement("title", Localizer.Text("New books (alphabetically)"), new XAttribute("type", "text")),
+                          new XElement("content", string.Format(Localizer.Text("{0} new books ordered alphabetically"), Library.NewBooksCount), new XAttribute("type", "text")),
+                          new XElement("link", new XAttribute("href", "/newtitle"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                           ),
 
                       // Add catalog entries
@@ -60,22 +69,22 @@ namespace TinyOPDS.OPDS
                           new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                           new XElement("id", "tag:root:authors"),
                           new XElement("title", Localizer.Text("By authors"), new XAttribute("type", "text")),
-                          new XElement("content", string.Format(Localizer.Text("{0} books by {1} authors"), newBooksOnly ? Library.NewBooksCount : Library.Count, newBooksOnly ? Library.NewBookAuthors.Count : Library.Authors.Count), new XAttribute("type", "text")),
-                          new XElement("link", new XAttribute("href", (newBooksOnly ? "/new" : "") + "/authorsindex"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
+                          new XElement("content", string.Format(Localizer.Text("{0} books by {1} authors"), Library.Count, Library.Authors.Count), new XAttribute("type", "text")),
+                          new XElement("link", new XAttribute("href", "/authorsindex"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                           ),
                       new XElement("entry",
                           new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                           new XElement("id", "tag:root:sequences"),
                           new XElement("title", Localizer.Text("By series"), new XAttribute("type", "text")),
-                          new XElement("content", string.Format(Localizer.Text("{0} books by {1} series"), newBooksOnly ? Library.NewBooksCount : Library.Count, newBooksOnly ? Library.NewBookSequences.Count : Library.Sequences.Count), new XAttribute("type", "text")),
-                          new XElement("link", new XAttribute("href", (newBooksOnly ? "/new" : "") + "/sequencesindex"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
+                          new XElement("content", string.Format(Localizer.Text("{0} books by {1} series"), Library.Count, Library.Sequences.Count), new XAttribute("type", "text")),
+                          new XElement("link", new XAttribute("href", "/sequencesindex"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                           ),
                       new XElement("entry",
                           new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                           new XElement("id", "tag:root:genre"),
                           new XElement("title", Localizer.Text("By genres"), new XAttribute("type", "text")),
                           new XElement("content", Localizer.Text("Books grouped by genres"), new XAttribute("type", "text")),
-                          new XElement("link", new XAttribute("href", (newBooksOnly ? "/new" : "") + "/genres"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
+                          new XElement("link", new XAttribute("href", "/genres"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                       )
                   )
               );

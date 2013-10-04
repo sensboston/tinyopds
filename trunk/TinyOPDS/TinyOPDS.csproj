@@ -163,6 +163,7 @@
     <Compile Include="OPDS\BooksCatalog.cs" />
     <Compile Include="OPDS\GenresCatalog.cs" />
     <Compile Include="OPDS\Links.cs" />
+    <Compile Include="OPDS\NewBooksCatalog.cs" />
     <Compile Include="OPDS\OpenSearch.cs" />
     <Compile Include="OPDS\RootCatalog.cs" />
     <Compile Include="OPDS\Namespaces.cs" />

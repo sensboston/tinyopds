@@ -242,7 +242,6 @@ namespace TinyOPDS.Data
             return result;
         }
 
-
         /// <summary>
         /// Total number of books in library
         /// </summary>
@@ -255,7 +254,7 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Return new books count
+        /// New books count
         /// </summary>
         /// <returns></returns>
         public static int NewBooksCount
@@ -291,21 +290,6 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Returns list of the new book titles sorted by added time
-        /// </summary>
-        public static List<string> NewBookTitles
-        {
-            get
-            {
-                lock (_books)
-                {
-                    return _books.Values.Where(b => DateTime.Now.Subtract(b.AddedDate) <= _periods[TinyOPDS.Properties.Settings.Default.NewBooksPeriod])
-                        .Select(b => b.Title).Distinct().OrderBy(a => a, new OPDSComparer(TinyOPDS.Properties.Settings.Default.SortOrder > 0)).ToList();
-                }
-            }
-        }
-
-        /// <summary>
         /// Returns list of the authors sorted in alphabetical order 
         /// </summary>
         public static List<string> Authors
@@ -320,21 +304,6 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Returns list of the new boos authors
-        /// </summary>
-        public static List<string> NewBookAuthors
-        {
-            get
-            {
-                lock (_books)
-                {
-                    return ((_books.Values.Where(b => DateTime.Now.Subtract(b.AddedDate) <= _periods[TinyOPDS.Properties.Settings.Default.NewBooksPeriod])
-                        .SelectMany(b => b.Authors)).ToList()).Distinct().OrderBy(a => a, new OPDSComparer(TinyOPDS.Properties.Settings.Default.SortOrder > 0)).Where(с => с.Length > 1).ToList();
-                }
-            }
-        }
-
-        /// <summary>
         /// Returns list of the library books series sorted in alphabetical order
         /// </summary>
         public static List<string> Sequences
@@ -344,21 +313,6 @@ namespace TinyOPDS.Data
                 lock (_books)
                 {
                     return ((_books.Values.Select(b => b.Sequence)).ToList()).Distinct().OrderBy(a => a, new OPDSComparer(TinyOPDS.Properties.Settings.Default.SortOrder > 0)).Where(с => с.Length > 1).ToList();
-                }
-            }
-        }
-
-        /// <summary>
-        /// Returns list of the library books series sorted in alphabetical order
-        /// </summary>
-        public static List<string> NewBookSequences
-        {
-            get
-            {
-                lock (_books)
-                {
-                    return ((_books.Values.Where(b => DateTime.Now.Subtract(b.AddedDate) <= _periods[TinyOPDS.Properties.Settings.Default.NewBooksPeriod])
-                        .Select(b => b.Sequence)).ToList()).Distinct().OrderBy(a => a, new OPDSComparer(TinyOPDS.Properties.Settings.Default.SortOrder > 0)).Where(с => с.Length > 1).ToList();
                 }
             }
         }
@@ -398,23 +352,6 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Returns sorted in alphabetical order list of library books genres
-        /// </summary>
-        public static List<Genre> NewBookGenres
-        {
-            get
-            {
-                lock (_books)
-                {
-                    var libGenres = _books.Values.Where(b => DateTime.Now.Subtract(b.AddedDate) <= _periods[TinyOPDS.Properties.Settings.Default.NewBooksPeriod])
-                        .SelectMany(b => b.Genres).ToList().Distinct().OrderBy(a => a, new OPDSComparer(TinyOPDS.Properties.Settings.Default.SortOrder > 0)).Where(с => с.Length > 1).Select(g => g.ToLower().Trim()).ToList();
-                    return _genres.SelectMany(g => g.Subgenres).Where(sg => libGenres.Contains(sg.Tag) || libGenres.Contains(sg.Name.ToLower()) || libGenres.Contains(sg.Translation.ToLower())).ToList();
-                }
-            }
-        }
-
-
-        /// <summary>
         /// Return list of authors by name
         /// </summary>
         /// <param name="name"></param>
@@ -440,10 +377,9 @@ namespace TinyOPDS.Data
         /// </summary>
         /// <param name="title"></param>
         /// <returns></returns>
-        public static List<Book> GetBooksByTitle(string title, bool newBooksOnly)
+        public static List<Book> GetBooksByTitle(string title)
         {
-            TimeSpan period = getPeriod(newBooksOnly);
-            lock (_books) return _books.Values.Where(b => DateTime.Now.Subtract(b.AddedDate) <= period && b.Title.IndexOf(title, StringComparison.OrdinalIgnoreCase) >= 0 || b.Sequence.IndexOf(title, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
+            lock (_books) return _books.Values.Where(b => b.Title.IndexOf(title, StringComparison.OrdinalIgnoreCase) >= 0 || b.Sequence.IndexOf(title, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
         }
 
         /// <summary>
@@ -451,10 +387,9 @@ namespace TinyOPDS.Data
         /// </summary>
         /// <param name="author"></param>
         /// <returns></returns>
-        public static List<Book> GetBooksByAuthor(string author, bool newBooksOnly)
+        public static List<Book> GetBooksByAuthor(string author)
         {
-            TimeSpan period = getPeriod(newBooksOnly);
-            lock (_books) return _books.Values.Where(b => DateTime.Now.Subtract(b.AddedDate) <= period && b.Authors.Contains(author)).ToList();
+            lock (_books) return _books.Values.Where(b => b.Authors.Contains(author)).ToList();
         }
 
         /// <summary>
@@ -462,10 +397,9 @@ namespace TinyOPDS.Data
         /// </summary>
         /// <param name="author"></param>
         /// <returns></returns>
-        public static List<Book> GetBooksBySequence(string sequence, bool newBooksOnly)
+        public static List<Book> GetBooksBySequence(string sequence)
         {
-            TimeSpan period = getPeriod(newBooksOnly);
-            lock (_books) return _books.Values.Where(b => DateTime.Now.Subtract(b.AddedDate) <= period && b.Sequence.Contains(sequence)).ToList();
+            lock (_books) return _books.Values.Where(b => b.Sequence.Contains(sequence)).ToList();
         }
 
         /// <summary>
@@ -473,20 +407,21 @@ namespace TinyOPDS.Data
         /// </summary>
         /// <param name="author"></param>
         /// <returns></returns>
-        public static List<Book> GetBooksByGenre(string genre, bool newBooksOnly)
+        public static List<Book> GetBooksByGenre(string genre)
         {
-            TimeSpan period = getPeriod(newBooksOnly);
-            lock (_books) return _books.Values.Where(b => DateTime.Now.Subtract(b.AddedDate) <= period && b.Genres.Contains(genre)).ToList();
+            lock (_books) return _books.Values.Where(b => b.Genres.Contains(genre)).ToList();
         }
 
         /// <summary>
-        /// 
+        /// Return list of new books
         /// </summary>
-        /// <param name="newBooksOnly"></param>
-        /// <returns></returns>
-        private static TimeSpan getPeriod(bool newBooksOnly)
+        public static List<Book> NewBooks
         {
-            return newBooksOnly ? _periods[TinyOPDS.Properties.Settings.Default.NewBooksPeriod] : TimeSpan.FromDays(3650);
+            get
+            {
+                TimeSpan period = _periods[TinyOPDS.Properties.Settings.Default.NewBooksPeriod];
+                lock (_books) return _books.Values.Where(b => DateTime.Now.Subtract(b.AddedDate) <= period).ToList();
+            }
         }
 
         #region Serialization and deserialization

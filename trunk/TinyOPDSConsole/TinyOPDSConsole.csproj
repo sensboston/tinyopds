@@ -145,6 +145,9 @@
     <Compile Include="..\TinyOPDS\OPDS\Namespaces.cs">
       <Link>OPDS\Namespaces.cs</Link>
     </Compile>
+    <Compile Include="..\TinyOPDS\OPDS\NewBooksCatalog.cs">
+      <Link>OPDS\NewBooksCatalog.cs</Link>
+    </Compile>
     <Compile Include="..\TinyOPDS\OPDS\OpenSearch.cs">
       <Link>OPDS\OpenSearch.cs</Link>
     </Compile>

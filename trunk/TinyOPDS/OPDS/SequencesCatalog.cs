@@ -26,7 +26,7 @@ namespace TinyOPDS.OPDS
     /// </summary>
     public class SequencesCatalog
     {
-        public XDocument GetCatalog(string searchPattern, int threshold = 100, bool newBooksOnly = false)
+        public XDocument GetCatalog(string searchPattern, int threshold = 100)
         {
             if (!string.IsNullOrEmpty(searchPattern)) searchPattern = Uri.UnescapeDataString(searchPattern).Replace('+', ' ');
 
@@ -71,7 +71,7 @@ namespace TinyOPDS.OPDS
                 // Add catalog entries
                 foreach (string sequence in sequences)
                 {
-                    var seriesCount = Library.GetBooksBySequence(sequence, newBooksOnly).Count;
+                    var seriesCount = Library.GetBooksBySequence(sequence).Count;
 
                     doc.Root.Add(
                         new XElement("entry",
@@ -79,7 +79,7 @@ namespace TinyOPDS.OPDS
                             new XElement("id", "tag:sequences:" + sequence),
                             new XElement("title", sequence),
                             new XElement("content", string.Format(Localizer.Text("{0} books in {1}"), seriesCount, sequence), new XAttribute("type", "text")),
-                            new XElement("link", new XAttribute("href", (newBooksOnly ? "/new" : "") + "/sequence/" + Uri.EscapeDataString(sequence)), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
+                            new XElement("link", new XAttribute("href", "/sequence/" + Uri.EscapeDataString(sequence)), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                         )
                     );
                 }

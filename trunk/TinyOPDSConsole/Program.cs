@@ -16,9 +16,7 @@ using System.IO.Compression;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-#if !MONO
 using System.ServiceProcess;
-#endif
 using System.Threading;
 using System.Threading.Tasks;
 using System.Reflection;
@@ -33,11 +31,7 @@ using UPnP;
 
 namespace TinyOPDSConsole
 {
-#if MONO
-    class Program
-#else
     class Program : ServiceBase
-#endif
     {
         private static readonly string _exePath = Assembly.GetExecutingAssembly().Location;
         private const string SERVICE_NAME = "TinyOPDSSvc";
@@ -297,11 +291,12 @@ namespace TinyOPDSConsole
             }
             else
             {
-#if !MONO
-                ServiceBase[] ServicesToRun;
-                ServicesToRun = new ServiceBase[] { new Program() };
-                ServiceBase.Run(ServicesToRun);
-#endif
+                if (!Utils.IsLinux)
+                {
+                    ServiceBase[] ServicesToRun;
+                    ServicesToRun = new ServiceBase[] { new Program() };
+                    ServiceBase.Run(ServicesToRun);
+                }
             }
 
             return (0);
@@ -324,7 +319,6 @@ namespace TinyOPDSConsole
             return process.ExitCode == 0;
         }
 
-#if !MONO
         protected override void OnStart(string[] args)
         {
             StartServer();
@@ -334,7 +328,7 @@ namespace TinyOPDSConsole
         {
             StopServer();
         }
-#endif
+
         #endregion
 
         #region OPDS server routines

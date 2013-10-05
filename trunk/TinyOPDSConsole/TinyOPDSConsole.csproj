@@ -51,15 +51,6 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Mono|AnyCPU'">
-    <OutputPath>bin\Mono\</OutputPath>
-    <DefineConstants>TRACE;CONSOLE;MONO</DefineConstants>
-    <Optimize>true</Optimize>
-    <DebugType>pdbonly</DebugType>
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <ErrorReport>prompt</ErrorReport>
-    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-  </PropertyGroup>
   <ItemGroup>
     <Reference Include="eBdb.EpubReader, Version=1.0.0.6, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -200,17 +191,6 @@
     </Compile>
   </ItemGroup>
   <ItemGroup Condition=" '$(Configuration)' == 'Release' ">
-    <EmbeddedResource Include="..\TinyOPDS\Libs\eBdb.EpubReader.dll.gz">
-      <Link>Libs\eBdb.EpubReader.dll.gz</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\TinyOPDS\Libs\FB2Library.dll.gz">
-      <Link>Libs\FB2Library.dll.gz</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\TinyOPDS\Libs\Ionic.Zip.Reduced.dll.gz">
-      <Link>Libs\Ionic.Zip.Reduced.dll.gz</Link>
-    </EmbeddedResource>
-  </ItemGroup>
-  <ItemGroup Condition=" '$(Configuration)' == 'Mono' ">
     <EmbeddedResource Include="..\TinyOPDS\Libs\eBdb.EpubReader.dll.gz">
       <Link>Libs\eBdb.EpubReader.dll.gz</Link>
     </EmbeddedResource>

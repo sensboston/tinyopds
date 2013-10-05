@@ -202,6 +202,8 @@ namespace TinyOPDS.Server
                         // Apply xsl transform
                         if (isWWWRequest)
                         {
+                            string html = string.Empty;
+
                             MemoryStream htmlStream = new MemoryStream();
                             using (StringReader stream = new StringReader(xml))
                             {
@@ -227,10 +229,11 @@ namespace TinyOPDS.Server
                                 XmlTextWriter myWriter = new XmlTextWriter(htmlStream, null);
                                 _xslTransform.Transform(myXPathDoc, null, myWriter);
                                 htmlStream.Position = 0;
+                                using (StreamReader sr = new StreamReader(htmlStream)) html = sr.ReadToEnd();
                             }
 
                             processor.WriteSuccess("text/html");
-                            htmlStream.CopyTo(processor.OutputStream.BaseStream);
+                            processor.OutputStream.Write(html);
                         }
                         else
                         {
@@ -372,10 +375,8 @@ namespace TinyOPDS.Server
                                         fileStream.CopyTo(memStream);
 
                                     // Cleanup temp folder
-                                    try { File.Delete(inFileName); }
-                                    catch { }
-                                    try { File.Delete(outFileName); }
-                                    catch { }
+                                    try { File.Delete(inFileName); } catch { }
+                                    try { File.Delete(outFileName); } catch { }
                                 }
                                 else
                                 {

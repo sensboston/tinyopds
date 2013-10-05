@@ -244,7 +244,7 @@
             this.useWatcher.AutoSize = true;
             this.useWatcher.Checked = global::TinyOPDS.Properties.Settings.Default.WatchLibrary;
             this.useWatcher.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "WatchLibrary", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.useWatcher.Location = new System.Drawing.Point(324, 34);
+            this.useWatcher.Location = new System.Drawing.Point(313, 34);
             this.useWatcher.Name = "useWatcher";
             this.useWatcher.Size = new System.Drawing.Size(135, 17);
             this.useWatcher.TabIndex = 30;
@@ -455,7 +455,7 @@
             // 
             this.folderButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.folderButton.Image = global::TinyOPDS.Properties.Resources.folder;
-            this.folderButton.Location = new System.Drawing.Point(287, 30);
+            this.folderButton.Location = new System.Drawing.Point(266, 30);
             this.folderButton.Name = "folderButton";
             this.folderButton.Size = new System.Drawing.Size(29, 23);
             this.folderButton.TabIndex = 10;
@@ -500,7 +500,7 @@
             this.libraryPath.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::TinyOPDS.Properties.Settings.Default, "LibraryPath", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
             this.libraryPath.Location = new System.Drawing.Point(17, 32);
             this.libraryPath.Name = "libraryPath";
-            this.libraryPath.Size = new System.Drawing.Size(268, 20);
+            this.libraryPath.Size = new System.Drawing.Size(246, 20);
             this.libraryPath.TabIndex = 6;
             this.libraryPath.Text = global::TinyOPDS.Properties.Settings.Default.LibraryPath;
             this.libraryPath.Validated += new System.EventHandler(this.libraryPath_Validated);

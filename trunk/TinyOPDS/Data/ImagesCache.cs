@@ -33,10 +33,14 @@ namespace TinyOPDS.Data
 
         public static void Add(CoverImage image)
         {
-            if (!_cache.ContainsKey(image.ID))
+            // Add image to cache for "large memory" profile only
+            if (!TinyOPDS.Properties.Settings.Default.LowMemoryProfile)
             {
-                if (_cache.Count >= 1000) _cache.Remove(_cache.First().Key);
-                _cache[image.ID] = image;
+                if (!_cache.ContainsKey(image.ID))
+                {
+                    if (_cache.Count >= 1000) _cache.Remove(_cache.First().Key);
+                    _cache[image.ID] = image;
+                }
             }
         }
 

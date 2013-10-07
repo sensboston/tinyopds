@@ -244,7 +244,7 @@
             this.useWatcher.AutoSize = true;
             this.useWatcher.Checked = global::TinyOPDS.Properties.Settings.Default.WatchLibrary;
             this.useWatcher.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "WatchLibrary", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.useWatcher.Location = new System.Drawing.Point(313, 34);
+            this.useWatcher.Location = new System.Drawing.Point(321, 34);
             this.useWatcher.Name = "useWatcher";
             this.useWatcher.Size = new System.Drawing.Size(135, 17);
             this.useWatcher.TabIndex = 30;
@@ -455,7 +455,7 @@
             // 
             this.folderButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.folderButton.Image = global::TinyOPDS.Properties.Resources.folder;
-            this.folderButton.Location = new System.Drawing.Point(266, 30);
+            this.folderButton.Location = new System.Drawing.Point(281, 30);
             this.folderButton.Name = "folderButton";
             this.folderButton.Size = new System.Drawing.Size(29, 23);
             this.folderButton.TabIndex = 10;
@@ -500,7 +500,7 @@
             this.libraryPath.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::TinyOPDS.Properties.Settings.Default, "LibraryPath", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
             this.libraryPath.Location = new System.Drawing.Point(17, 32);
             this.libraryPath.Name = "libraryPath";
-            this.libraryPath.Size = new System.Drawing.Size(246, 20);
+            this.libraryPath.Size = new System.Drawing.Size(259, 20);
             this.libraryPath.TabIndex = 6;
             this.libraryPath.Text = global::TinyOPDS.Properties.Settings.Default.LibraryPath;
             this.libraryPath.Validated += new System.EventHandler(this.libraryPath_Validated);
@@ -699,7 +699,7 @@
             // 
             this.extLink.Location = new System.Drawing.Point(19, 188);
             this.extLink.Name = "extLink";
-            this.extLink.Size = new System.Drawing.Size(203, 13);
+            this.extLink.Size = new System.Drawing.Size(214, 13);
             this.extLink.TabIndex = 37;
             this.extLink.TabStop = true;
             this.extLink.Text = "- - - - - -";
@@ -709,7 +709,7 @@
             // 
             this.intLink.Location = new System.Drawing.Point(19, 148);
             this.intLink.Name = "intLink";
-            this.intLink.Size = new System.Drawing.Size(203, 13);
+            this.intLink.Size = new System.Drawing.Size(214, 13);
             this.intLink.TabIndex = 36;
             this.intLink.TabStop = true;
             this.intLink.Text = "- - - - - -";
@@ -775,7 +775,7 @@
             this.webPrefix.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::TinyOPDS.Properties.Settings.Default, "HttpPrefix", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
             this.webPrefix.Location = new System.Drawing.Point(340, 103);
             this.webPrefix.Name = "webPrefix";
-            this.webPrefix.Size = new System.Drawing.Size(82, 20);
+            this.webPrefix.Size = new System.Drawing.Size(118, 20);
             this.webPrefix.TabIndex = 49;
             this.webPrefix.Text = global::TinyOPDS.Properties.Settings.Default.HttpPrefix;
             this.webPrefix.TextChanged += new System.EventHandler(this.rootPrefix_TextChanged);
@@ -799,7 +799,7 @@
             this.serverPort.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::TinyOPDS.Properties.Settings.Default, "ServerPort", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
             this.serverPort.Location = new System.Drawing.Point(408, 36);
             this.serverPort.Name = "serverPort";
-            this.serverPort.Size = new System.Drawing.Size(54, 20);
+            this.serverPort.Size = new System.Drawing.Size(50, 20);
             this.serverPort.TabIndex = 10;
             this.serverPort.Text = global::TinyOPDS.Properties.Settings.Default.ServerPort;
             this.serverPort.Validated += new System.EventHandler(this.serverPort_Validated);
@@ -823,7 +823,7 @@
             this.rootPrefix.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::TinyOPDS.Properties.Settings.Default, "RootPrefix", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
             this.rootPrefix.Location = new System.Drawing.Point(115, 103);
             this.rootPrefix.Name = "rootPrefix";
-            this.rootPrefix.Size = new System.Drawing.Size(91, 20);
+            this.rootPrefix.Size = new System.Drawing.Size(118, 20);
             this.rootPrefix.TabIndex = 19;
             this.rootPrefix.Text = global::TinyOPDS.Properties.Settings.Default.RootPrefix;
             this.rootPrefix.TextChanged += new System.EventHandler(this.rootPrefix_TextChanged);
@@ -833,7 +833,7 @@
             this.serverName.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::TinyOPDS.Properties.Settings.Default, "ServerName", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
             this.serverName.Location = new System.Drawing.Point(22, 35);
             this.serverName.Name = "serverName";
-            this.serverName.Size = new System.Drawing.Size(200, 20);
+            this.serverName.Size = new System.Drawing.Size(211, 20);
             this.serverName.TabIndex = 12;
             this.serverName.Text = global::TinyOPDS.Properties.Settings.Default.ServerName;
             // 

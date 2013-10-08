@@ -135,6 +135,7 @@
     <Compile Include="Data\Genre.cs" />
     <Compile Include="Data\ImagesCache.cs" />
     <Compile Include="Data\Library.cs" />
+    <EmbeddedResource Include="a_aliases.txt.gz" />
     <None Include="Libs\gzip.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>

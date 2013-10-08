@@ -13,6 +13,7 @@
 
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -31,6 +32,7 @@ namespace TinyOPDS.Data
         private static Dictionary<string, string> _soundexedGenres;
         private static bool _converted = false;
         private static TimeSpan[] _periods = new TimeSpan[7];
+        private static Dictionary<string,string> _aliases = new Dictionary<string,string>();
 
         /// <summary>
         /// Default constructor
@@ -38,8 +40,7 @@ namespace TinyOPDS.Data
         /// </summary>
         static Library()
         {
-            LoadAsync();
-
+            // Initialize "new books" periods
             _periods[0] = TimeSpan.FromDays(7);
             _periods[1] = TimeSpan.FromDays(14);
             _periods[2] = TimeSpan.FromDays(21);
@@ -77,6 +78,29 @@ namespace TinyOPDS.Data
 
             }
             catch { }
+
+            // Load gzipped authors aliases
+            using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(Assembly.GetExecutingAssembly().GetName().Name + ".a_aliases.txt.gz"))
+            {
+                if (stream != null)
+                {
+                    using (GZipStream decompress = new GZipStream(stream, CompressionMode.Decompress))
+                    {
+                        using (TextReader tr = new StreamReader(decompress))
+                        {
+                            string line = string.Empty;
+                            while ((line = tr.ReadLine()) != null)
+                            {
+                                string[] parts = line.Split('\t');
+                                _aliases[string.Format("{2} {0} {1}", parts[5], parts[6], parts[7]).Trim()] = string.Format("{2} {0} {1}", parts[1], parts[2], parts[3]).Trim();
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Load library in separate thread (avoid UI blocking)
+            LoadAsync();
         }
 
         /// <summary>
@@ -478,7 +502,12 @@ namespace TinyOPDS.Data
                                 if (lowMemory) { var s = reader.ReadString(); } else book.Annotation = reader.ReadString();
                                 book.DocumentSize = reader.ReadUInt32();
                                 int count = reader.ReadInt32();
-                                for (int i = 0; i < count; i++) book.Authors.Add(reader.ReadString());
+                                for (int i = 0; i < count; i++)
+                                {
+                                    string a = reader.ReadString();
+                                    // Replace author's alias (if any) by name
+                                    book.Authors.Add(_aliases.ContainsKey(a) ? _aliases[a] : a);
+                                }
                                 count = reader.ReadInt32();
                                 for (int i = 0; i < count; i++) book.Translators.Add(reader.ReadString());
                                 count = reader.ReadInt32();

@@ -179,6 +179,9 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <EmbeddedResource Include="..\TinyOPDS\a_aliases.txt.gz">
+      <Link>a_aliases.txt.gz</Link>
+    </EmbeddedResource>
     <None Include="Properties\app.manifest" />
     <None Include="..\TinyOPDS\Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>

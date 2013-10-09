@@ -71,7 +71,7 @@ namespace TinyOPDS
                     catch { }
                 }
                 else caller = "HTTPServer";
-                string prefix = string.Format("{0}\t{1}\t{2}", (level == LogLevel.Info) ? 'I' : ((level == LogLevel.Warning) ? 'W' : 'E'), caller, (caller.Length > 7 ? "" : "\t"));
+                string prefix = string.Format("{0}\t{1}\t{2}", (level == LogLevel.Info) ? 'I' : ((level == LogLevel.Warning) ? 'W' : ((level == LogLevel.Authentication) ? 'A' : 'E')), caller, (caller.Length > 7 ? "" : "\t"));
 
                 string message = string.Format(prefix + format, args);
                 Debug.WriteLine(message);

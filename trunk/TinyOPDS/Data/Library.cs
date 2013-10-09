@@ -80,19 +80,59 @@ namespace TinyOPDS.Data
             catch { }
 
             // Load gzipped authors aliases
-            using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(Assembly.GetExecutingAssembly().GetName().Name + ".a_aliases.txt.gz"))
+            string aliasesFileName = Path.Combine(Utils.ServiceFilesLocation, "a_aliases.txt");
+            if (File.Exists(aliasesFileName))
             {
-                if (stream != null)
+                using (var stream = File.OpenRead(aliasesFileName))
                 {
-                    using (GZipStream decompress = new GZipStream(stream, CompressionMode.Decompress))
+                    if (stream != null)
                     {
-                        using (TextReader tr = new StreamReader(decompress))
+                        try
                         {
-                            string line = string.Empty;
-                            while ((line = tr.ReadLine()) != null)
+                            using (TextReader tr = new StreamReader(stream))
                             {
-                                string[] parts = line.Split('\t');
-                                _aliases[string.Format("{2} {0} {1}", parts[5], parts[6], parts[7]).Trim()] = string.Format("{2} {0} {1}", parts[1], parts[2], parts[3]).Trim();
+                                string line = string.Empty;
+                                while ((line = tr.ReadLine()) != null)
+                                {
+                                    if (!string.IsNullOrEmpty(line))
+                                    {
+                                        string[] parts = line.Split(new char[] { '\t', ',' });
+                                        try
+                                        {
+                                            _aliases[string.Format("{2} {0} {1}", parts[5], parts[6], parts[7]).Trim()] = string.Format("{2} {0} {1}", parts[1], parts[2], parts[3]).Trim();
+                                        }
+                                        catch
+                                        {
+                                            Log.WriteLine(LogLevel.Warning, "Error parsing alias '{0}'", line);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            Log.WriteLine(LogLevel.Error, "Error loading aliases: exception {0}", e.Message);
+                        }
+                    }
+                }
+                Log.WriteLine(LogLevel.Info, "Loaded {0} authors aliases from {1}", _aliases.Count, aliasesFileName);
+            }
+            else
+            {
+                using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(Assembly.GetExecutingAssembly().GetName().Name + ".a_aliases.txt.gz"))
+                {
+                    if (stream != null)
+                    {
+                        using (GZipStream decompress = new GZipStream(stream, CompressionMode.Decompress))
+                        {
+                            using (TextReader tr = new StreamReader(decompress))
+                            {
+                                string line = string.Empty;
+                                while ((line = tr.ReadLine()) != null)
+                                {
+                                    string[] parts = line.Split('\t');
+                                    _aliases[string.Format("{2} {0} {1}", parts[5], parts[6], parts[7]).Trim()] = string.Format("{2} {0} {1}", parts[1], parts[2], parts[3]).Trim();
+                                }
                             }
                         }
                     }

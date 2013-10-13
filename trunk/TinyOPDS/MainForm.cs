@@ -812,6 +812,16 @@ namespace TinyOPDS
             System.Diagnostics.Process.Start(Log.LogFileName);
         }
 
+        private void sortOrderCombo_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            TinyOPDS.Properties.Settings.Default.SortOrder = sortOrderCombo.SelectedIndex;
+        }
+
+        private void newBooksPeriodCombo_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            TinyOPDS.Properties.Settings.Default.NewBooksPeriod = newBooksPeriodCombo.SelectedIndex;
+        }
+
         #endregion
 
         #region TinyOPDS updates checker

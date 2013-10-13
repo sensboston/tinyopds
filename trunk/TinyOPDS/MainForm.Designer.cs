@@ -883,6 +883,7 @@
             this.newBooksPeriodCombo.Name = "newBooksPeriodCombo";
             this.newBooksPeriodCombo.Size = new System.Drawing.Size(176, 21);
             this.newBooksPeriodCombo.TabIndex = 7;
+            this.newBooksPeriodCombo.SelectedIndexChanged += new System.EventHandler(this.newBooksPeriodCombo_SelectedIndexChanged);
             // 
             // label39
             // 
@@ -904,6 +905,7 @@
             this.sortOrderCombo.Name = "sortOrderCombo";
             this.sortOrderCombo.Size = new System.Drawing.Size(176, 21);
             this.sortOrderCombo.TabIndex = 5;
+            this.sortOrderCombo.SelectedIndexChanged += new System.EventHandler(this.sortOrderCombo_SelectedIndexChanged);
             // 
             // label38
             // 

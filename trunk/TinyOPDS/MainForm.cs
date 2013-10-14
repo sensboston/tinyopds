@@ -58,6 +58,8 @@ namespace TinyOPDS
             AppDomain currentDomain = AppDomain.CurrentDomain;
             currentDomain.UnhandledException += currentDomain_UnhandledException;
 
+            Log.WriteLine("TinyOPDS version {0}.{1} started", Utils.Version.Major, Utils.Version.Minor);
+
             InitializeComponent();
 
             // Assign combo data source to the list of all available interfaces
@@ -133,8 +135,6 @@ namespace TinyOPDS
 
             intLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), TinyOPDS.Properties.Settings.Default.ServerPort, rootPrefix.Text);
             intWebLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), TinyOPDS.Properties.Settings.Default.ServerPort, webPrefix.Text);
-
-            Log.WriteLine("TinyOPDS version {0}.{1} started", Utils.Version.Major, Utils.Version.Minor);
 
             // Start OPDS server
             StartHttpServer();

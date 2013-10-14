@@ -193,7 +193,11 @@ namespace TinyOPDS.Scanner
         /// <param name="e"></param>
         private void _fileWatcher_Created(object sender, FileSystemEventArgs e)
         {
-            lock (_addedBooks) _addedBooks.Add(e.FullPath);
+            string[] extensions = { ".zip", ".fb2", ".epub" };
+            if (extensions.Contains(Path.GetExtension(e.FullPath).ToLower()))
+            {
+                lock (_addedBooks) _addedBooks.Add(e.FullPath);
+            }
         }
 
         /// <summary>

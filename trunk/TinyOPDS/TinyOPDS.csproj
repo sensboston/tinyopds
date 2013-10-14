@@ -247,8 +247,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>
-    </PostBuildEvent>
+    <PostBuildEvent>copy $(TargetPath) $(ProjectDir)\Sign</PostBuildEvent>
   </PropertyGroup>
   <Target Name="BeforeBuild">
   </Target>

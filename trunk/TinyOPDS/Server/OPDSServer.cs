@@ -31,6 +31,7 @@ namespace TinyOPDS.Server
 {
     public class OPDSServer : HttpServer
     {
+        private string[] _extensions = { ".zip", ".epub", ".jpeg", ".ico", ".xml" };
         private XslCompiledTransform _xslTransform = new XslCompiledTransform();
 
         public OPDSServer(IPAddress interfaceIP, int port, int timeout = 5000) : base(interfaceIP, port, timeout)
@@ -103,7 +104,9 @@ namespace TinyOPDS.Server
                     else request = request.Substring(0, paramPos);
                 }
 
-                string ext = Path.GetExtension(request);
+                string ext = Path.GetExtension(request).ToLower();
+                if (!_extensions.Contains(ext)) ext = string.Empty;
+
                 string[] http_params = request.Split(new Char[] { '?', '=', '&' });
 
                 // User-agent check: some e-book readers can handle fb2 files (no conversion is  needed)
@@ -268,143 +271,144 @@ namespace TinyOPDS.Server
                 }
 
                 // fb2.zip book request
-                else if (request.Contains(".fb2.zip"))
+                else if ((request.Contains(".fb2.zip") && ext.Equals(".zip")) || ext.Equals(".epub"))
                 {
-                    MemoryStream memStream = null;
-                    try
+                    string bookID = request.Substring(1, request.IndexOf('/', 1) - 1);
+                    Book book = Library.GetBook(bookID);
+
+                    if (book != null)
                     {
+                        MemoryStream memStream = null;
                         memStream = new MemoryStream();
-                        Book book = Library.GetBook(request.Substring(1, request.IndexOf('/', 1) - 1));
 
-                        if (book.FilePath.ToLower().Contains(".zip@"))
+                        if (request.Contains(".fb2.zip"))
                         {
-                            string[] pathParts = book.FilePath.Split('@');
-                            using (ZipFile zipFile = new ZipFile(pathParts[0]))
+                            try
                             {
-                                ZipEntry entry = zipFile.Entries.First(e => e.FileName.Contains(pathParts[1]));
-                                if (entry != null) entry.Extract(memStream);
-                            }
-                        }
-                        else
-                        {
-                            using (FileStream stream = new FileStream(book.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
-                                stream.CopyTo(memStream);
-                        }
-                        memStream.Position = 0;
-
-                        // Compress fb2 document to zip
-                        using (ZipFile zip = new ZipFile())
-                        {
-                            zip.AddEntry(Transliteration.Front(string.Format("{0}_{1}.fb2", book.Authors.First(), book.Title)), memStream);
-                            using (MemoryStream outputStream = new MemoryStream())
-                            {
-                                zip.Save(outputStream);
-                                outputStream.Position = 0;
-                                processor.WriteSuccess("application/fb2+zip");
-                                outputStream.CopyTo(processor.OutputStream.BaseStream);
-                            }
-                        }
-                        HttpServer.ServerStatistics.BooksSent++;
-                    }
-                    catch (Exception e)
-                    {
-                        Log.WriteLine(LogLevel.Error, "FB2 file exception {0}", e.Message);
-                    }
-                    finally
-                    {
-                        processor.OutputStream.BaseStream.Flush();
-                        if (memStream != null) memStream.Dispose();
-                    }
-                    return;
-                }
-                // epub book request
-                else if (ext.Contains(".epub"))
-                {
-                    MemoryStream memStream = null;
-                    try
-                    {
-                        memStream = new MemoryStream();
-                        Book book = Library.GetBook(request.Substring(1, request.IndexOf('/', 1) - 1));
-
-                        if (book.FilePath.ToLower().Contains(".zip@"))
-                        {
-                            string[] pathParts = book.FilePath.Split('@');
-                            using (ZipFile zipFile = new ZipFile(pathParts[0]))
-                            {
-                                ZipEntry entry = zipFile.Entries.First(e => e.FileName.Contains(pathParts[1]));
-                                if (entry != null) entry.Extract(memStream);
-                                entry = null;
-                            }
-                        }
-                        else
-                        {
-                            using (FileStream stream = new FileStream(book.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
-                                stream.CopyTo(memStream);
-                        }
-                        memStream.Position = 0;
-                        // At this moment, memStream has a copy of requested book
-                        // For fb2, we need convert book to epub
-                        if (book.BookType == BookType.FB2)
-                        {
-                            // No convertor found, return an error
-                            if (string.IsNullOrEmpty(TinyOPDS.Properties.Settings.Default.ConvertorPath))
-                            {
-                                Log.WriteLine(LogLevel.Error, "No FB2 to EPUB convertor found, file request can not be completed!");
-                                processor.WriteFailure();
-                                return;
-                            }
-
-                            // Save fb2 book to the temp folder
-                            string inFileName = Path.Combine(Path.GetTempPath(), book.ID + ".fb2");
-                            using (FileStream stream = new FileStream(inFileName, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite))
-                                memStream.CopyTo(stream);
-
-                            // Run converter 
-                            string outFileName = Path.Combine(Path.GetTempPath(), book.ID + ".epub");
-                            string command = Path.Combine(TinyOPDS.Properties.Settings.Default.ConvertorPath, Utils.IsLinux ? "fb2toepub" : "Fb2ePub.exe");
-                            string arguments = string.Format(Utils.IsLinux ? "{0} {1}" : "\"{0}\" \"{1}\"", inFileName, outFileName);
-
-                            using (ProcessHelper converter = new ProcessHelper(command, arguments))
-                            {
-                                converter.Run();
-
-                                if (File.Exists(outFileName))
+                                if (book.FilePath.ToLower().Contains(".zip@"))
                                 {
-                                    memStream = new MemoryStream();
-                                    using (FileStream fileStream = new FileStream(outFileName, FileMode.Open, FileAccess.Read, FileShare.Read))
-                                        fileStream.CopyTo(memStream);
-
-                                    // Cleanup temp folder
-                                    try { File.Delete(inFileName); } catch { }
-                                    try { File.Delete(outFileName); } catch { }
+                                    string[] pathParts = book.FilePath.Split('@');
+                                    using (ZipFile zipFile = new ZipFile(pathParts[0]))
+                                    {
+                                        ZipEntry entry = zipFile.Entries.First(e => e.FileName.Contains(pathParts[1]));
+                                        if (entry != null) entry.Extract(memStream);
+                                    }
                                 }
                                 else
                                 {
-                                    string converterError = string.Empty;
-                                    foreach (string s in converter.ProcessOutput) converterError += s + " ";
-                                    Log.WriteLine(LogLevel.Error, "EPUB conversion error on file {0}. Error description: {1}", inFileName, converterError);
-                                    processor.WriteFailure();
-                                    return;
+                                    using (FileStream stream = new FileStream(book.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                                        stream.CopyTo(memStream);
                                 }
+                                memStream.Position = 0;
+
+                                // Compress fb2 document to zip
+                                using (ZipFile zip = new ZipFile())
+                                {
+                                    zip.AddEntry(Transliteration.Front(string.Format("{0}_{1}.fb2", book.Authors.First(), book.Title)), memStream);
+                                    using (MemoryStream outputStream = new MemoryStream())
+                                    {
+                                        zip.Save(outputStream);
+                                        outputStream.Position = 0;
+                                        processor.WriteSuccess("application/fb2+zip");
+                                        outputStream.CopyTo(processor.OutputStream.BaseStream);
+                                    }
+                                }
+                                HttpServer.ServerStatistics.BooksSent++;
+                            }
+                            catch (Exception e)
+                            {
+                                Log.WriteLine(LogLevel.Error, "FB2 file exception {0}", e.Message);
+                            }
+                        }
+                        else if (ext.Equals(".epub"))
+                        {
+                            try
+                            {
+                                if (book.FilePath.ToLower().Contains(".zip@"))
+                                {
+                                    string[] pathParts = book.FilePath.Split('@');
+                                    using (ZipFile zipFile = new ZipFile(pathParts[0]))
+                                    {
+                                        ZipEntry entry = zipFile.Entries.First(e => e.FileName.Contains(pathParts[1]));
+                                        if (entry != null) entry.Extract(memStream);
+                                        entry = null;
+                                    }
+                                }
+                                else
+                                {
+                                    using (FileStream stream = new FileStream(book.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                                        stream.CopyTo(memStream);
+                                }
+                                memStream.Position = 0;
+                                // At this moment, memStream has a copy of requested book
+                                // For fb2, we need convert book to epub
+                                if (book.BookType == BookType.FB2)
+                                {
+                                    // No convertor found, return an error
+                                    if (string.IsNullOrEmpty(TinyOPDS.Properties.Settings.Default.ConvertorPath))
+                                    {
+                                        Log.WriteLine(LogLevel.Error, "No FB2 to EPUB convertor found, file request can not be completed!");
+                                        processor.WriteFailure();
+                                        return;
+                                    }
+
+                                    // Save fb2 book to the temp folder
+                                    string inFileName = Path.Combine(Path.GetTempPath(), book.ID + ".fb2");
+                                    using (FileStream stream = new FileStream(inFileName, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite))
+                                        memStream.CopyTo(stream);
+
+                                    // Run converter 
+                                    string outFileName = Path.Combine(Path.GetTempPath(), book.ID + ".epub");
+                                    string command = Path.Combine(TinyOPDS.Properties.Settings.Default.ConvertorPath, Utils.IsLinux ? "fb2toepub" : "Fb2ePub.exe");
+                                    string arguments = string.Format(Utils.IsLinux ? "{0} {1}" : "\"{0}\" \"{1}\"", inFileName, outFileName);
+
+                                    using (ProcessHelper converter = new ProcessHelper(command, arguments))
+                                    {
+                                        converter.Run();
+
+                                        if (File.Exists(outFileName))
+                                        {
+                                            memStream = new MemoryStream();
+                                            using (FileStream fileStream = new FileStream(outFileName, FileMode.Open, FileAccess.Read, FileShare.Read))
+                                                fileStream.CopyTo(memStream);
+
+                                            // Cleanup temp folder
+                                            try { File.Delete(inFileName); }
+                                            catch { }
+                                            try { File.Delete(outFileName); }
+                                            catch { }
+                                        }
+                                        else
+                                        {
+                                            string converterError = string.Empty;
+                                            foreach (string s in converter.ProcessOutput) converterError += s + " ";
+                                            Log.WriteLine(LogLevel.Error, "EPUB conversion error on file {0}. Error description: {1}", inFileName, converterError);
+                                            processor.WriteFailure();
+                                            return;
+                                        }
+                                    }
+                                }
+
+                                // At this moment, memStream has a copy of epub
+                                processor.WriteSuccess("application/epub+zip");
+                                memStream.Position = 0;
+                                memStream.CopyTo(processor.OutputStream.BaseStream);
+                                HttpServer.ServerStatistics.BooksSent++;
+                            }
+
+                            catch (Exception e)
+                            {
+                                Log.WriteLine(LogLevel.Error, "EPUB file exception {0}", e.Message);
                             }
                         }
 
-                        // At this moment, memStream has a copy of epub
-                        processor.WriteSuccess("application/epub+zip");
-                        memStream.Position = 0;
-                        memStream.CopyTo(processor.OutputStream.BaseStream);
-                        HttpServer.ServerStatistics.BooksSent++;
-                    }
-                    catch (Exception e)
-                    {
-                        Log.WriteLine(LogLevel.Error, "EPUB file exception {0}", e.Message);
-                    }
-                    finally
-                    {
                         processor.OutputStream.BaseStream.Flush();
                         if (memStream != null) memStream.Dispose();
                     }
-                    return;
+                    else
+                    {
+                        Log.WriteLine(LogLevel.Error, "Book {0} not found in library.", bookID);
+                    }
                 }
                 // Cover image or thumbnail request
                 else if (ext.Contains(".jpeg"))

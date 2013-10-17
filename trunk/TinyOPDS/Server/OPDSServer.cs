@@ -95,7 +95,7 @@ namespace TinyOPDS.Server
                 int paramPos = request.IndexOf('?');
                 if (paramPos >= 0)
                 {
-                    int ourParamPos = request.IndexOf("pageNumber");
+                    int ourParamPos = request.IndexOf("pageNumber") + request.IndexOf("searchTerm");
                     if (ourParamPos >= 0)
                     {
                         ourParamPos = request.IndexOf('&', ourParamPos + 10);
@@ -161,7 +161,7 @@ namespace TinyOPDS.Server
                         }
                         else if (request.StartsWith("/search"))
                         {
-                            if (http_params[1].Equals("searchTerm"))
+                            if (http_params.Length > 1 && http_params[1].Equals("searchTerm"))
                             {
                                 xml = new OpenSearch().Search(http_params[2], "", acceptFB2).ToString();
                             }

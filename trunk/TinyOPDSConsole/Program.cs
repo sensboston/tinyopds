@@ -276,6 +276,20 @@ namespace TinyOPDSConsole
                                 }
                                 return (0);
                             }
+
+                        case "encpath":
+                            {
+                                if (args.Length > 1)
+                                {
+                                    string libName = Utils.CreateGuid(Utils.IsoOidNamespace, args[1]).ToString() + ".db";
+                                    Console.WriteLine("Library name for the path \"{0}\" is: {1}", args[1], libName);
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Please provide a path to the library files (without closing slash), for example: TinyOPDSConsole.exe \"C:\\My Documents\\My ebooks\"");
+                                }
+                                return (0);
+                            }
                     }
                 }
 
@@ -286,7 +300,8 @@ namespace TinyOPDSConsole
                                         "\t start \t\t - start service\n" +
                               (l ? "" : "\t stop \t\t - stop service\n") +
                                         "\t scan \t\t - scan book directory\n" +
-                                        "\t encred usr pwd\t - encode credentials\n\n" +
+                                        "\t encred usr pwd\t - encode credentials\n" +
+                                        "\t encpath path\t - get library file name from path\n\n" +
                                         "For more info please visit https://tinyopds.codeplex.com");
             }
             else

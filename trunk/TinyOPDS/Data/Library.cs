@@ -139,13 +139,6 @@ namespace TinyOPDS.Data
                 }
             }
 
-            string newAuthor = string.Empty;
-            string key = "Хольм ван Зайчик";
-            if (_aliases.ContainsKey(key))
-            {
-                newAuthor = _aliases[key];
-            }
-
             // Load library in separate thread (avoid UI blocking)
             LoadAsync();
         }

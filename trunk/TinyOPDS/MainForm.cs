@@ -222,6 +222,8 @@ namespace TinyOPDS
             linkLabel3.Links.Add(0, linkLabel3.Text.Length, "https://code.google.com/p/fb2librarynet/");
             linkLabel5.Links.Add(0, linkLabel5.Text.Length, "http://epubreader.codeplex.com/");
             linkLabel4.Links.Add(0, linkLabel4.Text.Length, "http://dotnetzip.codeplex.com/");
+            linkLabel6.Links.Add(0, linkLabel6.Text.Length, "http://www.fb2library.net/projects/fb2fix");
+
             // Setup settings controls
             if (!string.IsNullOrEmpty(TinyOPDS.Properties.Settings.Default.LibraryPath))
             {

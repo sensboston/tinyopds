@@ -149,6 +149,7 @@
             this.serverMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripSeparator();
             this.exitMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.linkLabel6 = new System.Windows.Forms.LinkLabel();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.tabPage2.SuspendLayout();
@@ -1319,6 +1320,7 @@
             // tabPage4
             // 
             this.tabPage4.BackColor = System.Drawing.SystemColors.Control;
+            this.tabPage4.Controls.Add(this.linkLabel6);
             this.tabPage4.Controls.Add(this.linkLabel5);
             this.tabPage4.Controls.Add(this.linkLabel4);
             this.tabPage4.Controls.Add(this.linkLabel3);
@@ -1507,6 +1509,17 @@
             this.exitMenuItem.Text = "Exit";
             this.exitMenuItem.Click += new System.EventHandler(this.exitMenuItem_Click);
             // 
+            // linkLabel6
+            // 
+            this.linkLabel6.AutoSize = true;
+            this.linkLabel6.Location = new System.Drawing.Point(195, 258);
+            this.linkLabel6.Name = "linkLabel6";
+            this.linkLabel6.Size = new System.Drawing.Size(165, 13);
+            this.linkLabel6.TabIndex = 13;
+            this.linkLabel6.TabStop = true;
+            this.linkLabel6.Text = "Gremlin2, author of Fb2Fix project";
+            this.linkLabel6.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel3_LinkClicked);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -1666,6 +1679,7 @@
         private System.Windows.Forms.NumericUpDown itemsPerOPDS;
         private System.Windows.Forms.Label label36;
         private System.Windows.Forms.CheckBox checkBox1;
+        private System.Windows.Forms.LinkLabel linkLabel6;
     }
 }
 

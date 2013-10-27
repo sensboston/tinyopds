@@ -175,12 +175,21 @@
     <Compile Include="..\TinyOPDS\Server\OPDSServer.cs">
       <Link>Server\OPDSServer.cs</Link>
     </Compile>
+    <Compile Include="..\TinyOPDS\SgmlReader\SgmlParser.cs">
+      <Link>SgmlReader\SgmlParser.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\SgmlReader\SgmlReader.cs">
+      <Link>SgmlReader\SgmlReader.cs</Link>
+    </Compile>
     <Compile Include="Program.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="..\TinyOPDS\a_aliases.txt.gz">
       <Link>a_aliases.txt.gz</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\Resources\fb2.dtd">
+      <Link>Resources\fb2.dtd</Link>
     </EmbeddedResource>
     <None Include="Properties\app.manifest" />
     <None Include="..\TinyOPDS\Properties\Settings.settings">
@@ -244,6 +253,7 @@
       <Install>false</Install>
     </BootstrapperPackage>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>if exist $(ProjectDir)\Sign\\ copy $(TargetPath) $(SolutionDir)\Sign

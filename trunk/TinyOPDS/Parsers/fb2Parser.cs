@@ -11,10 +11,13 @@
  ************************************************************/
 
 using System;
+using System.Diagnostics.Contracts;
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
+using System.Xml;
 using System.Xml.Linq;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -23,11 +26,27 @@ using FB2Library;
 using FB2Library.HeaderItems;
 using FB2Library.Elements;
 using TinyOPDS.Data;
+using TinyOPDS.Sgml;
 
 namespace TinyOPDS.Parsers
 {
     public class FB2Parser : BookParser
     {
+        private static SgmlDtd LoadFb2Dtd(SgmlReader sgml)
+        {
+            Contract.Requires(sgml != null);
+            Contract.Ensures(Contract.Result<SgmlDtd>() != null);
+
+            Assembly assembly = Assembly.GetExecutingAssembly();
+            using (Stream stream = assembly.GetManifestResourceStream("TinyOPDS.Resources.fb2.dtd"))
+            {
+                using (StreamReader reader = new StreamReader(stream))
+                {
+                    return SgmlDtd.Parse(new Uri("http://localhost"), sgml.DocType, null, reader, null, sgml.WebProxy, sgml.NameTable);
+                }
+            }
+        }
+
         /// <summary>
         /// 
         /// </summary>
@@ -66,18 +85,20 @@ namespace TinyOPDS.Parsers
                                 {
                                     xml = XDocument.Parse(xmlStr, LoadOptions.PreserveWhitespace);
                                 }
-                                catch (Exception e)
+                                catch
                                 {
-                                    if (e.Message.IndexOf("nbsp", StringComparison.InvariantCultureIgnoreCase) > 0)
+                                    stream.Position = 0;
+
+                                    using (HtmlStream reader = new HtmlStream(stream, Encoding.Default))
                                     {
-                                        xmlStr = xmlStr.Replace("&nbsp;", "&#160;").Replace("&NBSP;", "&#160;");
-                                        xml = XDocument.Parse(xmlStr, LoadOptions.PreserveWhitespace);
+                                        using (SgmlReader sgmlReader = new SgmlReader())
+                                        {
+                                            sgmlReader.InputStream = reader;
+                                            sgmlReader.Dtd = LoadFb2Dtd(sgmlReader);
+
+                                            xml = XDocument.Load(sgmlReader);
+                                        }
                                     }
-                                    else if (e.Message.IndexOf("is an invalid character", StringComparison.InvariantCultureIgnoreCase) > 0)
-                                    {
-                                        xml = XDocument.Parse(this.SanitizeXmlString(xmlStr), LoadOptions.PreserveWhitespace);
-                                    }
-                                    else throw e;
                                 }
                             }
                         }
@@ -90,72 +111,62 @@ namespace TinyOPDS.Parsers
                     {
                         xml = XDocument.Load(stream);
                     }
-                    // This code will try to improve xml loading
-                    catch (Exception e)
+                    catch
                     {
                         stream.Position = 0;
-                        if (e.Message.IndexOf("nbsp", StringComparison.InvariantCultureIgnoreCase) > 0)
+
+                        // This code will try to use the sgml based reader for not well-formed xml files
+                        using (HtmlStream reader = new HtmlStream(stream, Encoding.Default))
                         {
-                            using (StreamReader sr = new StreamReader(stream))
+                            using (SgmlReader sgmlReader = new SgmlReader())
                             {
-                                string xmlStr = sr.ReadToEnd();
-                                xmlStr = xmlStr.Replace("&nbsp;", "&#160;").Replace("&NBSP;", "&#160;");
-                                xml = XDocument.Parse(xmlStr, LoadOptions.PreserveWhitespace);
+                                sgmlReader.InputStream = reader;
+                                sgmlReader.Dtd = LoadFb2Dtd(sgmlReader);
+
+                                xml = XDocument.Load(sgmlReader);
                             }
                         }
-                        else if (e.Message.IndexOf("is an invalid character", StringComparison.InvariantCultureIgnoreCase) > 0)
-                        {
-                            using (StreamReader sr = new StreamReader(stream))
-                            {
-                                string xmlStr = sr.ReadToEnd();
-                                xml = XDocument.Parse(this.SanitizeXmlString(xmlStr), LoadOptions.PreserveWhitespace);
-                            }
-                        }
-                        else throw e;
                     }
                 }
 
-                if (xml != null)
+                fb2.Load(xml, true);
+
+                if (fb2.DocumentInfo != null)
                 {
-                    fb2.Load(xml, true);
+                    book.ID = fb2.DocumentInfo.ID;
+                    if (fb2.DocumentInfo.DocumentVersion != null) book.Version = (float)fb2.DocumentInfo.DocumentVersion;
+                    if (fb2.DocumentInfo.DocumentDate != null) book.DocumentDate = fb2.DocumentInfo.DocumentDate.DateValue;
+                }
 
-                    if (fb2.DocumentInfo != null)
+                if (fb2.TitleInfo != null)
+                {
+                    if (fb2.TitleInfo.Cover != null && fb2.TitleInfo.Cover.HasImages()) book.HasCover = true;
+                    if (fb2.TitleInfo.BookTitle != null) book.Title = fb2.TitleInfo.BookTitle.Text;
+                    if (fb2.TitleInfo.Annotation != null) book.Annotation = fb2.TitleInfo.Annotation.ToString();
+                    if (fb2.TitleInfo.Sequences != null && fb2.TitleInfo.Sequences.Count > 0)
                     {
-                        book.ID = fb2.DocumentInfo.ID;
-                        if (fb2.DocumentInfo.DocumentVersion != null) book.Version = (float)fb2.DocumentInfo.DocumentVersion;
-                        if (fb2.DocumentInfo.DocumentDate != null) book.DocumentDate = fb2.DocumentInfo.DocumentDate.DateValue;
+                        book.Sequence = fb2.TitleInfo.Sequences.First().Name.Capitalize(true);
+                        if (fb2.TitleInfo.Sequences.First().Number != null)
+                        {
+                            book.NumberInSequence = (UInt32)(fb2.TitleInfo.Sequences.First().Number);
+                        }
                     }
-
-                    if (fb2.TitleInfo != null)
+                    if (fb2.TitleInfo.Language != null) book.Language = fb2.TitleInfo.Language;
+                    if (fb2.TitleInfo.BookDate != null) book.BookDate = fb2.TitleInfo.BookDate.DateValue;
+                    if (fb2.TitleInfo.BookAuthors != null && fb2.TitleInfo.BookAuthors.Any())
                     {
-                        if (fb2.TitleInfo.Cover != null && fb2.TitleInfo.Cover.HasImages()) book.HasCover = true;
-                        if (fb2.TitleInfo.BookTitle != null) book.Title = fb2.TitleInfo.BookTitle.Text;
-                        if (fb2.TitleInfo.Annotation != null) book.Annotation = fb2.TitleInfo.Annotation.ToString();
-                        if (fb2.TitleInfo.Sequences != null && fb2.TitleInfo.Sequences.Count > 0)
-                        {
-                            book.Sequence = fb2.TitleInfo.Sequences.First().Name.Capitalize(true);
-                            if (fb2.TitleInfo.Sequences.First().Number != null)
-                            {
-                                book.NumberInSequence = (UInt32)(fb2.TitleInfo.Sequences.First().Number);
-                            }
-                        }
-                        if (fb2.TitleInfo.Language != null) book.Language = fb2.TitleInfo.Language;
-                        if (fb2.TitleInfo.BookDate != null) book.BookDate = fb2.TitleInfo.BookDate.DateValue;
-                        if (fb2.TitleInfo.BookAuthors != null && fb2.TitleInfo.BookAuthors.Count() > 0)
-                        {
-                            book.Authors = new List<string>();
-                            book.Authors.AddRange(from ba in fb2.TitleInfo.BookAuthors select string.Concat(ba.LastName, " ", ba.FirstName, " ", ba.MiddleName).Replace("  ", " ").Capitalize());
-                        }
-                        if (fb2.TitleInfo.Translators != null && fb2.TitleInfo.Translators.Count() > 0)
-                        {
-                            book.Translators = new List<string>();
-                            book.Translators.AddRange(from ba in fb2.TitleInfo.Translators select string.Concat(ba.LastName, " ", ba.FirstName, " ", ba.MiddleName).Replace("  ", " ").Capitalize());
-                        }
-                        if (fb2.TitleInfo.Genres != null && fb2.TitleInfo.Genres.Count() > 0)
-                        {
-                            book.Genres = new List<string>();
-                            book.Genres.AddRange((from g in fb2.TitleInfo.Genres select g.Genre).ToList());
-                        }
+                        book.Authors = new List<string>();
+                        book.Authors.AddRange(from ba in fb2.TitleInfo.BookAuthors select string.Concat(ba.LastName, " ", ba.FirstName, " ", ba.MiddleName).Replace("  ", " ").Capitalize());
+                    }
+                    if (fb2.TitleInfo.Translators != null && fb2.TitleInfo.Translators.Any())
+                    {
+                        book.Translators = new List<string>();
+                        book.Translators.AddRange(from ba in fb2.TitleInfo.Translators select string.Concat(ba.LastName, " ", ba.FirstName, " ", ba.MiddleName).Replace("  ", " ").Capitalize());
+                    }
+                    if (fb2.TitleInfo.Genres != null && fb2.TitleInfo.Genres.Any())
+                    {
+                        book.Genres = new List<string>();
+                        book.Genres.AddRange((from g in fb2.TitleInfo.Genres select g.Genre).ToList());
                     }
                 }
             }

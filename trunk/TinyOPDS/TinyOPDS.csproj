@@ -36,7 +36,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
     <DebugSymbols>true</DebugSymbols>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
     <DebugType>full</DebugType>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <CodeAnalysisLogFile>bin\Debug\TinyOPDS.exe.CodeAnalysisLog.xml</CodeAnalysisLogFile>
@@ -135,6 +135,8 @@
     <Compile Include="Data\Genre.cs" />
     <Compile Include="Data\ImagesCache.cs" />
     <Compile Include="Data\Library.cs" />
+    <Compile Include="SgmlReader\SgmlParser.cs" />
+    <Compile Include="SgmlReader\SgmlReader.cs" />
     <EmbeddedResource Include="a_aliases.txt.gz" />
     <None Include="Libs\gzip.cs" />
     <Compile Include="MainForm.cs">
@@ -227,6 +229,7 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="xml2html.xsl" />
+    <EmbeddedResource Include="Resources\fb2.dtd" />
     <None Include="TinyOPDS.png" />
     <EmbeddedResource Include="translation.xml" />
     <EmbeddedResource Include="Icons\authors.ico" />

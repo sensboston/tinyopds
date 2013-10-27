@@ -1,0 +1,595 @@
+<!ENTITY quot    CDATA "&#34;"   -- quotation mark = APL quote, U+0022 ISOnum -->
+<!ENTITY amp     CDATA "&#38;"   -- ampersand, U+0026 ISOnum -->
+<!ENTITY lt      CDATA "&#60;"   -- less-than sign, U+003C ISOnum -->
+<!ENTITY gt      CDATA "&#62;"   -- greater-than sign, U+003E ISOnum -->
+
+<!--Root element-->
+<!ELEMENT FictionBook - - (stylesheet* & description & body+ & binary*)>
+
+<!ELEMENT stylesheet - - (#PCDATA)>
+<!ATTLIST stylesheet
+	type CDATA #REQUIRED
+>
+
+<!ELEMENT description - - (title-info & src-title-info? & document-info & publish-info? & custom-info* & (output?, output?))>
+
+<!--Generic information about the book-->
+<!ELEMENT title-info - - (genre+ & author+ & book-title & annotation? & keywords? & date? & coverpage? & lang & src-lang? & translator* & sequence*)>
+
+<!--Generic information about the original book (for translations) -->
+<!ELEMENT src-title-info - - (genre+ & author+ & book-title & annotation? & keywords? & date? & coverpage? & lang & src-lang? & translator* & sequence*)>
+
+<!--Information about this particular (xml) document-->
+<!ELEMENT document-info - - (author+ & program-used? & date & src-url* & src-ocr? & id & version & history?)>
+
+<!--Author(s) of this particular document-->
+<!ELEMENT author - - ((first-name & middle-name? & last-name & nickname? & home-page* & email*) | (nickname & home-page* & email*))>
+
+<!--Any software used in preparation of this document, in free format-->
+<!ELEMENT program-used  - - (#PCDATA)>
+<!ATTLIST program-used
+	lang CDATA #IMPLIED
+>
+
+<!--Date this document was created, same guidelines as in the &lt;title-info&gt; section apply-->
+<!ELEMENT date - - (#PCDATA)>
+<!ATTLIST date
+	value NMTOKEN #IMPLIED
+	lang CDATA #IMPLIED
+>
+
+<!--Source URL if this document is a conversion of some other (online) document-->
+<!ELEMENT src-url - - (#PCDATA)>
+
+<!--Author of the original (online) document, if this is a conversion-->
+<!ELEMENT src-ocr - - (#PCDATA)>
+<!ATTLIST src-ocr
+	lang CDATA #IMPLIED
+>
+<!--this is a unique identifier for a document. this must not change-->
+<!ELEMENT id - - (#PCDATA)>
+
+<!--Document version, in free format, should be incremented if the document is changed and re-released to the public-->
+<!ELEMENT version - - (#PCDATA)>
+
+<!--Short description for all changes made to this document, like &quot;Added missing chapter 6&quot;, in free form.-->
+<!ELEMENT history  - - (p | poem | cite | subtitle | table | empty-line)*>
+<!ATTLIST history
+	id ID #IMPLIED
+	lang CDATA #IMPLIED
+>
+
+<!--Information about some paper/outher published document, that was used as a source of this xml document-->
+<!ELEMENT publish-info - - (book-name? & publisher? & city? & year? & isbn? & sequence*)>
+
+<!--Original (paper) book name-->
+<!ELEMENT book-name - - (#PCDATA)>
+<!ATTLIST book-name
+	lang CDATA #IMPLIED
+>
+
+<!--Original (paper) book publisher-->
+<!ELEMENT publisher - - (#PCDATA)>
+<!ATTLIST publisher
+	lang CDATA #IMPLIED
+>
+
+<!--City where the original (paper) book was published-->
+<!ELEMENT city - - (#PCDATA)>
+<!ATTLIST city
+	lang CDATA #IMPLIED
+>
+
+<!--Year of the original (paper) publication-->
+<!ELEMENT year - - (#PCDATA)>
+
+<!ELEMENT isbn - - (#PCDATA)>
+<!ATTLIST isbn
+	lang CDATA #IMPLIED
+>
+
+<!ELEMENT sequence - - (sequence*)>
+<!ATTLIST sequence
+	name CDATA #REQUIRED
+	number NMTOKEN #IMPLIED
+	lang CDATA #IMPLIED
+>
+
+<!--Any other information about the book/document that didnt fit in the above groups-->
+<!ELEMENT custom-info - - (#PCDATA)>
+<!ATTLIST custom-info
+	lang CDATA #IMPLIED
+	info-type CDATA #REQUIRED
+>
+
+<!ELEMENT output - - (part | output-document-class)*>
+<!ATTLIST output
+	mode (free | paid) #REQUIRED
+	include-all (require | allow | deny) #REQUIRED
+	price NMTOKEN #IMPLIED
+	currency CDATA #IMPLIED
+>
+
+<!--Main content of the book, multiple bodies are used for additional information, like footnotes, that do not appear in the main book flow. The first body is presented to the reader by default, and content in the other bodies should be accessible by hyperlinks. Name attribute should describe the meaning of this body, this is optional for the main body.-->
+<!ELEMENT body - - (image? & title? & epigraph* & section+)>
+<!ATTLIST body
+	name CDATA #IMPLIED
+	lang CDATA #IMPLIED
+>
+
+<!--Image to be displayed at the top of this section-->
+<!ELEMENT image - - EMPTY>
+<!ATTLIST image
+	type CDATA #IMPLIED
+	href CDATA #IMPLIED
+	alt CDATA #IMPLIED
+	title CDATA #IMPLIED
+	id ID #IMPLIED
+>
+
+<!--A fancy title for the entire book, should be used if the simple text version in &lt;description&gt; is not adequate, e.g. the book title has multiple paragraphs and/or character styles-->
+<!ELEMENT title - - (p | empty-line)*>
+<!ATTLIST title
+	lang CDATA #IMPLIED
+>
+
+<!--Epigraph(s) for the entire book, if any-->
+<!ELEMENT epigraph - - ((p | poem | cite | empty-line)*, text-author*)>
+<!ATTLIST epigraph
+	id ID #IMPLIED
+>
+
+<!ELEMENT section - - (title?, epigraph*, image?, annotation?, ((section+) | ((p | poem | subtitle | cite | empty-line | table), (p | image | poem | subtitle | cite | empty-line | table)*)))?>
+<!ATTLIST section
+	id ID #IMPLIED
+	lang CDATA #IMPLIED
+>
+
+<!--Any binary data that is required for the presentation of this book in base64 format. Currently only images are used.-->
+<!ELEMENT binary - - (#PCDATA)>
+<!ATTLIST binary
+	content-type CDATA #REQUIRED
+	id ID #REQUIRED
+>
+
+<!ELEMENT first-name - - (#PCDATA)>
+<!ATTLIST first-name
+	lang CDATA #IMPLIED
+>
+
+<!ELEMENT middle-name - - (#PCDATA)>
+<!ATTLIST middle-name
+	lang CDATA #IMPLIED
+>
+
+<!ELEMENT last-name - - (#PCDATA)>
+<!ATTLIST last-name
+	lang CDATA #IMPLIED
+>
+
+<!ELEMENT nickname - - (#PCDATA)>
+<!ATTLIST nickname
+	lang CDATA #IMPLIED
+>
+
+<!ELEMENT home-page - - (#PCDATA)>
+
+<!ELEMENT email - - (#PCDATA)>
+
+<!ELEMENT p - - (#PCDATA | strong | emphasis | style | a | strikethrough | sub | sup | code | image)*>
+<!ATTLIST p
+	lang CDATA #IMPLIED
+	id ID #IMPLIED
+	style CDATA #IMPLIED
+>
+
+<!ELEMENT empty-line - - (#PCDATA)>
+
+<!ELEMENT poem - - (title?, epigraph*, stanza+, text-author*, date?)>
+<!ATTLIST poem
+	id ID #IMPLIED
+	lang CDATA #IMPLIED
+>
+
+<!ELEMENT subtitle - - (#PCDATA | strong | emphasis | style | a | strikethrough | sub | sup | code | image)*>
+<!ATTLIST subtitle
+	lang CDATA #IMPLIED
+	id ID #IMPLIED
+	style CDATA #IMPLIED
+>
+
+<!ELEMENT table - - (tr+)>
+<!ATTLIST table
+	style CDATA #IMPLIED
+	id ID #IMPLIED
+>
+
+<!ELEMENT text-author - - (#PCDATA | strong | emphasis | style | a | strikethrough | sub | sup | code | image)*>
+<!ATTLIST text-author
+	lang CDATA #IMPLIED
+	id ID #IMPLIED
+	style CDATA #IMPLIED
+>
+
+<!--Poem title-->
+<!ATTLIST title
+	lang CDATA #IMPLIED
+>
+
+<!--Poem epigraph(s), if any-->
+<!ATTLIST epigraph
+	id ID #IMPLIED
+>
+
+<!--Each poem should have at least one stanza. Stanzas are usually separated with empty lines by user agents.-->
+<!ELEMENT stanza - - (title?, subtitle?, v+)>
+<!ATTLIST stanza
+	lang CDATA #IMPLIED
+>
+
+<!ATTLIST title
+	lang CDATA #IMPLIED
+>
+
+<!ATTLIST subtitle
+	lang CDATA #IMPLIED
+	id ID #IMPLIED
+	style CDATA #IMPLIED
+>
+
+<!--An individual line in a stanza-->
+<!ELEMENT v - - (#PCDATA | strong | emphasis | style | a | strikethrough | sub | sup | code | image)*>
+<!ATTLIST v
+	lang CDATA #IMPLIED
+	id ID #IMPLIED
+	style CDATA #IMPLIED
+>
+
+<!ATTLIST text-author
+	lang CDATA #IMPLIED
+	id ID #IMPLIED
+	style CDATA #IMPLIED
+>
+
+<!--Date this poem was written.-->
+<!ATTLIST date
+	value NMTOKEN #IMPLIED
+	lang CDATA #IMPLIED
+>
+
+<!ATTLIST p
+	lang CDATA #IMPLIED
+	id ID #IMPLIED
+	style CDATA #IMPLIED
+>
+
+<!ATTLIST poem
+	id ID #IMPLIED
+	lang CDATA #IMPLIED
+>
+
+<!ELEMENT cite - - ((p | poem | empty-line | subtitle | table)*, text-author*)>
+<!ATTLIST cite
+	id ID #IMPLIED
+	lang CDATA #IMPLIED
+>
+
+<!ATTLIST text-author
+	lang CDATA #IMPLIED
+	id ID #IMPLIED
+	style CDATA #IMPLIED
+>
+
+<!ATTLIST p
+	lang CDATA #IMPLIED
+	id ID #IMPLIED
+	style CDATA #IMPLIED
+>
+
+<!ATTLIST poem
+	id ID #IMPLIED
+	lang CDATA #IMPLIED
+>
+
+<!ATTLIST cite
+	id ID #IMPLIED
+	lang CDATA #IMPLIED
+>
+
+<!ATTLIST subtitle
+	lang CDATA #IMPLIED
+	id ID #IMPLIED
+	style CDATA #IMPLIED
+>
+
+<!ATTLIST table
+	style CDATA #IMPLIED
+	id ID #IMPLIED
+>
+
+<!--Section&apos;s title-->
+<!ATTLIST title
+	lang CDATA #IMPLIED
+>
+
+<!--Epigraph(s) for this section-->
+<!ATTLIST epigraph
+	id ID #IMPLIED
+>
+
+<!--Image to be displayed at the top of this section-->
+<!ATTLIST image
+	type CDATA #IMPLIED
+	href CDATA #IMPLIED
+	alt CDATA #IMPLIED
+	title CDATA #IMPLIED
+	id ID #IMPLIED
+>
+
+<!--Annotation for this section, if any-->
+<!ELEMENT annotation - - (p | poem | cite | subtitle | table | empty-line)*>
+<!ATTLIST annotation
+	id ID #IMPLIED
+	lang CDATA #IMPLIED
+>
+
+<!--Child sections-->
+<!ATTLIST section
+	id ID #IMPLIED
+	lang CDATA #IMPLIED
+>
+
+<!ATTLIST p
+	lang CDATA #IMPLIED
+	id ID #IMPLIED
+	style CDATA #IMPLIED
+>
+
+<!ATTLIST poem
+	id ID #IMPLIED
+	lang CDATA #IMPLIED
+>
+<!ATTLIST subtitle
+	lang CDATA #IMPLIED
+	id ID #IMPLIED
+	style CDATA #IMPLIED
+>
+
+<!ATTLIST cite
+	id ID #IMPLIED
+	lang CDATA #IMPLIED
+>
+
+<!ATTLIST table
+	style CDATA #IMPLIED
+	id ID #IMPLIED
+>
+
+<!ATTLIST p
+	lang CDATA #IMPLIED
+	id ID #IMPLIED
+	style CDATA #IMPLIED
+>
+
+<!ATTLIST image
+	type CDATA #IMPLIED
+	href CDATA #IMPLIED
+	alt CDATA #IMPLIED
+	title CDATA #IMPLIED
+	id ID #IMPLIED
+>
+
+<!ATTLIST poem
+	id ID #IMPLIED
+	lang CDATA #IMPLIED
+>
+
+<!ATTLIST subtitle
+	lang CDATA #IMPLIED
+	id ID #IMPLIED
+	style CDATA #IMPLIED
+>
+
+<!ATTLIST cite
+	id ID #IMPLIED
+	lang CDATA #IMPLIED
+>
+
+<!ATTLIST table
+	style CDATA #IMPLIED
+	id ID #IMPLIED
+>
+
+<!ELEMENT strong - - (#PCDATA)>
+<!ATTLIST strong
+	lang CDATA #IMPLIED
+>
+
+<!ELEMENT emphasis - - (#PCDATA)>
+<!ATTLIST emphasis
+	lang CDATA #IMPLIED
+>
+
+<!ELEMENT style - - (#PCDATA)>
+<!ATTLIST style
+	lang CDATA #IMPLIED
+	name CDATA #REQUIRED
+>
+
+<!ELEMENT a - - (#PCDATA | strong | emphasis | style | strikethrough | sub | sup | code | image)*>
+<!ATTLIST a
+	href CDATA #IMPLIED
+	type CDATA #IMPLIED
+>
+
+<!ELEMENT strikethrough - - (#PCDATA)>
+<!ATTLIST strikethrough
+	lang CDATA #IMPLIED
+>
+
+<!ELEMENT sub - - (#PCDATA)>
+<!ATTLIST sub
+	lang CDATA #IMPLIED
+>
+
+<!ELEMENT sup - - (#PCDATA)>
+<!ATTLIST sup
+	lang CDATA #IMPLIED
+>
+
+<!ELEMENT code - - (#PCDATA)>
+<!ATTLIST code
+	lang CDATA #IMPLIED
+>
+
+<!ATTLIST image
+	type CDATA #IMPLIED
+	href CDATA #IMPLIED
+	alt CDATA #IMPLIED
+>
+
+<!ATTLIST strong
+	lang CDATA #IMPLIED
+>
+
+<!ATTLIST emphasis
+	lang CDATA #IMPLIED
+>
+
+<!ATTLIST style
+	lang CDATA #IMPLIED
+	name CDATA #REQUIRED
+>
+
+<!ATTLIST a
+	href CDATA #IMPLIED
+	type CDATA #IMPLIED
+>
+
+<!ATTLIST strikethrough
+	lang CDATA #IMPLIED
+>
+
+<!ATTLIST sub
+	lang CDATA #IMPLIED
+>
+
+<!ATTLIST sup
+	lang CDATA #IMPLIED
+>
+
+<!ATTLIST code
+	lang CDATA #IMPLIED
+>
+
+<!ATTLIST image
+	type CDATA #IMPLIED
+	href CDATA #IMPLIED
+	alt CDATA #IMPLIED
+>
+
+<!ATTLIST sequence
+	name CDATA #REQUIRED
+	number NMTOKEN #IMPLIED
+	lang CDATA #IMPLIED
+>
+
+<!ELEMENT tr - - (th | td)+>
+<!ATTLIST tr
+	align (left | right | center) "left"
+>
+
+<!ELEMENT th - - (#PCDATA | strong | emphasis | style | a | strikethrough | sub | sup | code | image)*>
+<!ATTLIST th
+	lang CDATA #IMPLIED
+	id ID #IMPLIED
+	style CDATA #IMPLIED
+	colspan NMTOKEN #IMPLIED
+	rowspan NMTOKEN #IMPLIED
+	align (left | right | center) "left"
+>
+
+<!ELEMENT td - - (#PCDATA | strong | emphasis | style | a | strikethrough | sub | sup | code | image)*>
+<!ATTLIST td
+	lang CDATA #IMPLIED
+	id ID #IMPLIED
+	style CDATA #IMPLIED
+	colspan NMTOKEN #IMPLIED
+	rowspan NMTOKEN #IMPLIED
+	align (left | right | center) "left"
+>
+
+<!--Genre of this book, with the optional match percentage-->
+<!ELEMENT genre - - (#PCDATA)>
+<!ATTLIST genre
+	match NMTOKEN "100"
+>
+
+<!--Author(s) of this book-->
+<!--Book title-->
+<!ELEMENT book-title - - (#PCDATA)>
+<!ATTLIST book-title
+	lang CDATA #IMPLIED
+>
+
+<!--Annotation for this book-->
+<!ATTLIST annotation
+	id ID #IMPLIED
+	lang CDATA #IMPLIED
+>
+
+<!--Any keywords for this book, intended for use in search engines-->
+<!ELEMENT keywords - - (#PCDATA)>
+<!ATTLIST keywords
+	lang CDATA #IMPLIED
+>
+
+<!--Date this book was written, can be not exact, e.g. 1863-1867. If an optional attribute is present, then it should contain some computer-readable date from the interval for use by search and indexingengines-->
+<!ATTLIST date
+	value NMTOKEN #IMPLIED
+	lang CDATA #IMPLIED
+>
+
+<!--Any coverpage items, currently only images-->
+<!ELEMENT coverpage - - (image+)>
+<!ATTLIST image
+	type CDATA #IMPLIED
+	href CDATA #IMPLIED
+	alt CDATA #IMPLIED
+>
+
+<!--Book&apos;s language-->
+<!ELEMENT lang - - (#PCDATA)>
+
+<!--Book&apos;s source language if this is a translation-->
+<!ELEMENT src-lang - - (#PCDATA)>
+
+<!--Translators if this is a translation-->
+<!ELEMENT translator - - ((first-name & middle-name? & last-name & nickname? & home-page* & email*) | (nickname & home-page* & email*))>
+
+<!--Any sequences this book might be part of-->
+<!ATTLIST sequence
+	name CDATA #REQUIRED
+	number NMTOKEN #IMPLIED
+	lang CDATA #IMPLIED
+>
+
+<!ELEMENT part - - EMPTY>
+<!ATTLIST part
+	type CDATA #IMPLIED
+	href CDATA #REQUIRED
+	include (require | allow | deny) #REQUIRED
+>
+
+<!ELEMENT output-document-class - - (part)*>
+<!ATTLIST output-document-class
+	name CDATA #REQUIRED
+	create (require | allow | deny) #IMPLIED
+	price NMTOKEN #IMPLIED
+>
+
+<!ATTLIST part
+	type CDATA #IMPLIED
+	href CDATA #REQUIRED
+	include (require | allow | deny) #REQUIRED
+>

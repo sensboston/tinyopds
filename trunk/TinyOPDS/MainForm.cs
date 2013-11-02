@@ -87,8 +87,8 @@ namespace TinyOPDS
             // Load application settings
             LoadSettings();
 
-            // Initialize update checker timer
-            _updateChecker.Interval = 1000 * 30;
+            // Initialize update checker timer to tick every minute
+            _updateChecker.Interval = 1000 * 60;
             _updateChecker.Tick += _updateChecker_Tick;
 
             // Setup credentials grid
@@ -256,7 +256,7 @@ namespace TinyOPDS
             wrongAttemptsCount.Enabled = banClients.Checked && useHTTPAuth.Checked;
 
             _notifyIcon.Visible = TinyOPDS.Properties.Settings.Default.CloseToTray;
-            if (TinyOPDS.Properties.Settings.Default.UpdatesCheck > 0) _updateChecker.Start();
+            _updateChecker.Start();
 
             // Load saved credentials
             try
@@ -806,7 +806,7 @@ namespace TinyOPDS
 
         private void updateCombo_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (TinyOPDS.Properties.Settings.Default.UpdatesCheck == 0) _updateChecker.Stop(); else _updateChecker.Start();
+            TinyOPDS.Properties.Settings.Default.UpdatesCheck = updateCombo.SelectedIndex;
         }
 
         private void viewLogFile_Click(object sender, EventArgs e)
@@ -834,9 +834,10 @@ namespace TinyOPDS
         /// <param name="sender"></param>
         /// <param name="e"></param>
         static int[] checkIntervals = new int[] { 0, 60 * 24 * 7, 60 * 24 * 30, 1};
+        static int _forwardPortCount = 0;
         void _updateChecker_Tick(object sender, EventArgs e)
         {
-            if (TinyOPDS.Properties.Settings.Default.UpdatesCheck >= 0)
+            if (TinyOPDS.Properties.Settings.Default.UpdatesCheck > 0)
             {
                 _updateUrl = string.Empty;
                 int minutesFromLastCheck = (int)Math.Round(DateTime.Now.Subtract(TinyOPDS.Properties.Settings.Default.LastCheck).TotalMinutes);
@@ -846,6 +847,23 @@ namespace TinyOPDS
                     WebClient wc = new WebClient();
                     wc.DownloadStringCompleted += wc_DownloadStringCompleted;
                     wc.DownloadStringAsync(new Uri("http://senssoft.com/tinyopds.txt"));
+                }
+            }
+
+            if (TinyOPDS.Properties.Settings.Default.UseUPnP && _forwardPortCount++ > 5)
+            {
+                _forwardPortCount = 0;
+                if (_server.IsActive && _server.IsIdle && _upnpController != null && _upnpController.UPnPReady)
+                {
+                    if (!_upnpController.Discovered)
+                    {
+                        _upnpController.DiscoverAsync(true);
+                    }
+                    else if (openPort.Checked)
+                    {
+                        int port = int.Parse(TinyOPDS.Properties.Settings.Default.ServerPort);
+                        _upnpController.ForwardPort(port, System.Net.Sockets.ProtocolType.Tcp, "TinyOPDS server");
+                    }
                 }
             }
         }

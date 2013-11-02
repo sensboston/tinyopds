@@ -834,7 +834,7 @@ namespace TinyOPDS
         /// <param name="sender"></param>
         /// <param name="e"></param>
         static int[] checkIntervals = new int[] { 0, 60 * 24 * 7, 60 * 24 * 30, 1};
-        static int _forwardPortCount = 0;
+        static int _timerCallsCount = 0;
         void _updateChecker_Tick(object sender, EventArgs e)
         {
             if (TinyOPDS.Properties.Settings.Default.UpdatesCheck > 0)
@@ -850,9 +850,9 @@ namespace TinyOPDS
                 }
             }
 
-            if (TinyOPDS.Properties.Settings.Default.UseUPnP && _forwardPortCount++ > 5)
+            if (TinyOPDS.Properties.Settings.Default.UseUPnP && _timerCallsCount++ > 5)
             {
-                _forwardPortCount = 0;
+                _timerCallsCount = 0;
                 if (_server.IsActive && _server.IsIdle && _upnpController != null && _upnpController.UPnPReady)
                 {
                     if (!_upnpController.Discovered)

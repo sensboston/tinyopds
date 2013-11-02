@@ -459,6 +459,10 @@ namespace TinyOPDS.Server
         public AutoResetEvent ServerReady = null;
         public static Statistics ServerStatistics = new Statistics();
 
+        private bool _isIdle = true;
+        private TimeSpan _idleTimeout = TimeSpan.FromMinutes(10);
+        public bool IsIdle { get { return _isIdle; } }
+
         public HttpServer(int Port, int Timeout = 10000)
         {
             _port = Port;
@@ -501,6 +505,8 @@ namespace TinyOPDS.Server
         /// </summary>
         public void Listen() 
         {
+            DateTime requestTime = DateTime.Now;
+            int loopCount = 0;
             HttpProcessor processor = null;
             ServerException = null;
             try
@@ -518,9 +524,20 @@ namespace TinyOPDS.Server
                         socket.SendBufferSize = 1024 * 1024;
                         socket.NoDelay = true;
                         processor = new HttpProcessor(socket, this);
+                        // Reset idle state
+                        _isIdle = false;
+                        requestTime = DateTime.Now;
+                        loopCount = 0;
                         ThreadPool.QueueUserWorkItem(new WaitCallback(processor.Process));
                     }
                     else Thread.Sleep(100);
+
+                    // Check the idle state once a minute
+                    if (loopCount++ > 600)
+                    {
+                        loopCount = 0;
+                        if (DateTime.Now.Subtract(requestTime) > _idleTimeout) _isIdle = true;
+                    }
                 }
             }
             catch (Exception e)

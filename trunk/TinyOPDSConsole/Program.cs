@@ -44,6 +44,7 @@ namespace TinyOPDSConsole
         private static Watcher _watcher;
         private static DateTime _scanStartTime;
         private static UPnPController _upnpController = new UPnPController();
+        private static Timer _upnpRefreshTimer = null;
 
         #region Statistical information
         private static int _fb2Count, _epubCount, _skippedFiles, _invalidFiles, _duplicates;
@@ -360,6 +361,9 @@ namespace TinyOPDSConsole
             Localizer.Init();
             Localizer.Language = TinyOPDS.Properties.Settings.Default.Language;
 
+            // Create timer for periodical refresh UPnP forwarding
+            _upnpRefreshTimer = new Timer(UpdateUPnPForwarding, null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
+
             // Create file watcher
             _watcher = new Watcher(Library.LibraryPath);
             _watcher.OnBookAdded += (object sender, BookAddedEventArgs e) =>
@@ -448,6 +452,11 @@ namespace TinyOPDSConsole
         /// </summary>
         private static void StopServer()
         {
+            if (_upnpRefreshTimer != null)
+            {
+                _upnpRefreshTimer.Dispose();
+            }
+
             if (_server != null)
             {
                 _server.StopServer();
@@ -484,6 +493,25 @@ namespace TinyOPDSConsole
                     int port = int.Parse(TinyOPDS.Properties.Settings.Default.ServerPort);
                     _upnpController.ForwardPort(port, System.Net.Sockets.ProtocolType.Tcp, "TinyOPDS server");
                     Log.WriteLine("Port {0} forwarded by UPnP", port);
+                }
+            }
+        }
+
+        private static void UpdateUPnPForwarding(Object state)
+        {
+            if (TinyOPDS.Properties.Settings.Default.UseUPnP)
+            {
+                if (_server != null &&  _server.IsActive && _server.IsIdle && _upnpController != null && _upnpController.UPnPReady)
+                {
+                    if (!_upnpController.Discovered)
+                    {
+                        _upnpController.DiscoverAsync(true);
+                    }
+                    else if (TinyOPDS.Properties.Settings.Default.OpenNATPort && _upnpController.UPnPReady)
+                    {
+                        int port = int.Parse(TinyOPDS.Properties.Settings.Default.ServerPort);
+                        _upnpController.ForwardPort(port, System.Net.Sockets.ProtocolType.Tcp, "TinyOPDS server");
+                    }
                 }
             }
         }

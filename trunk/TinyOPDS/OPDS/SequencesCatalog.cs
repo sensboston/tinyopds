@@ -33,6 +33,7 @@ namespace TinyOPDS.OPDS
             XDocument doc = new XDocument(
                 // Add root element and namespaces
                 new XElement("feed", new XAttribute(XNamespace.Xmlns + "dc", Namespaces.dc), new XAttribute(XNamespace.Xmlns + "os", Namespaces.os), new XAttribute(XNamespace.Xmlns + "opds", Namespaces.opds),
+                    new XElement("id", "tag:sequences"),
                     new XElement("title", Localizer.Text("Book series")),
                     new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                     new XElement("icon", "/series.ico"),

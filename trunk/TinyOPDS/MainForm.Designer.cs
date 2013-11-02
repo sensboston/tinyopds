@@ -131,6 +131,7 @@
             this.startMinimized = new System.Windows.Forms.CheckBox();
             this.startWithWindows = new System.Windows.Forms.CheckBox();
             this.tabPage4 = new System.Windows.Forms.TabPage();
+            this.linkLabel6 = new System.Windows.Forms.LinkLabel();
             this.linkLabel5 = new System.Windows.Forms.LinkLabel();
             this.linkLabel4 = new System.Windows.Forms.LinkLabel();
             this.linkLabel3 = new System.Windows.Forms.LinkLabel();
@@ -149,7 +150,6 @@
             this.serverMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripSeparator();
             this.exitMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.linkLabel6 = new System.Windows.Forms.LinkLabel();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.tabPage2.SuspendLayout();
@@ -1341,6 +1341,17 @@
             this.tabPage4.TabIndex = 3;
             this.tabPage4.Text = "About program";
             // 
+            // linkLabel6
+            // 
+            this.linkLabel6.AutoSize = true;
+            this.linkLabel6.Location = new System.Drawing.Point(195, 258);
+            this.linkLabel6.Name = "linkLabel6";
+            this.linkLabel6.Size = new System.Drawing.Size(165, 13);
+            this.linkLabel6.TabIndex = 13;
+            this.linkLabel6.TabStop = true;
+            this.linkLabel6.Text = "Gremlin2, author of Fb2Fix project";
+            this.linkLabel6.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel3_LinkClicked);
+            // 
             // linkLabel5
             // 
             this.linkLabel5.AutoSize = true;
@@ -1508,17 +1519,6 @@
             this.exitMenuItem.Size = new System.Drawing.Size(144, 22);
             this.exitMenuItem.Text = "Exit";
             this.exitMenuItem.Click += new System.EventHandler(this.exitMenuItem_Click);
-            // 
-            // linkLabel6
-            // 
-            this.linkLabel6.AutoSize = true;
-            this.linkLabel6.Location = new System.Drawing.Point(195, 258);
-            this.linkLabel6.Name = "linkLabel6";
-            this.linkLabel6.Size = new System.Drawing.Size(165, 13);
-            this.linkLabel6.TabIndex = 13;
-            this.linkLabel6.TabStop = true;
-            this.linkLabel6.Text = "Gremlin2, author of Fb2Fix project";
-            this.linkLabel6.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel3_LinkClicked);
             // 
             // MainForm
             // 

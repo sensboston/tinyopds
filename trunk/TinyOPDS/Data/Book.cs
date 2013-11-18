@@ -66,7 +66,7 @@ namespace TinyOPDS.Data
         { 
             get 
             {
-                string path = Path.Combine(Library.LibraryPath, FileName);
+                string path = Path.Combine(Library.LibraryPath, FileName).Replace ("\\\\", "\\");
                 return Utils.IsLinux ? path.Replace('\\', '/') : path;
             } 
         }

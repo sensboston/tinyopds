@@ -282,7 +282,7 @@ namespace TinyOPDSConsole
                             {
                                 if (args.Length > 1)
                                 {
-                                    string libName = Utils.CreateGuid(Utils.IsoOidNamespace, args[1]).ToString() + ".db";
+                                    string libName = Utils.CreateGuid(Utils.IsoOidNamespace, args[1].SanitizePathName()).ToString() + ".db";
                                     Console.WriteLine("Library name for the path \"{0}\" is: {1}", args[1], libName);
                                 }
                                 else
@@ -389,7 +389,7 @@ namespace TinyOPDSConsole
             _upnpController.DiscoverCompleted += _upnpController_DiscoverCompleted;
             _upnpController.DiscoverAsync(TinyOPDS.Properties.Settings.Default.UseUPnP);
 
-            Library.LibraryPath = TinyOPDS.Properties.Settings.Default.LibraryPath;
+            Library.LibraryPath = TinyOPDS.Properties.Settings.Default.LibraryPath.SanitizePathName();
             Library.LibraryLoaded += (_, __) =>
             {
                 _watcher.DirectoryToWatch = Library.LibraryPath;

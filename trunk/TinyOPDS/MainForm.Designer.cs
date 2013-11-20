@@ -498,12 +498,11 @@
             // 
             this.libraryPath.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.libraryPath.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::TinyOPDS.Properties.Settings.Default, "LibraryPath", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
             this.libraryPath.Location = new System.Drawing.Point(17, 32);
             this.libraryPath.Name = "libraryPath";
             this.libraryPath.Size = new System.Drawing.Size(259, 20);
             this.libraryPath.TabIndex = 6;
-            this.libraryPath.Text = global::TinyOPDS.Properties.Settings.Default.LibraryPath;
+            this.libraryPath.TextChanged += new System.EventHandler(this.libraryPath_TextChanged);
             this.libraryPath.Validated += new System.EventHandler(this.libraryPath_Validated);
             // 
             // tabPage2

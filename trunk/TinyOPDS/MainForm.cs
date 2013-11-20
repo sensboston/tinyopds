@@ -99,7 +99,7 @@ namespace TinyOPDS
             bs.CurrentItemChanged += bs_CurrentItemChanged;
             foreach (DataGridViewColumn col in dataGridView1.Columns) col.Width = 180;
 
-            Library.LibraryPath = TinyOPDS.Properties.Settings.Default.LibraryPath;
+            Library.LibraryPath = TinyOPDS.Properties.Settings.Default.LibraryPath.SanitizePathName();
             Library.LibraryLoaded += (_, __) => 
             { 
                 UpdateInfo();
@@ -225,9 +225,10 @@ namespace TinyOPDS
             linkLabel6.Links.Add(0, linkLabel6.Text.Length, "http://www.fb2library.net/projects/fb2fix");
 
             // Setup settings controls
+            libraryPath.Text = TinyOPDS.Properties.Settings.Default.LibraryPath;
             if (!string.IsNullOrEmpty(TinyOPDS.Properties.Settings.Default.LibraryPath))
             {
-                databaseFileName.Text = Utils.CreateGuid(Utils.IsoOidNamespace, TinyOPDS.Properties.Settings.Default.LibraryPath).ToString() + ".db";
+                databaseFileName.Text = Utils.CreateGuid(Utils.IsoOidNamespace, TinyOPDS.Properties.Settings.Default.LibraryPath.SanitizePathName()).ToString() + ".db";
             }
             if (Utils.IsLinux) startWithWindows.Enabled = false;
             if (string.IsNullOrEmpty(TinyOPDS.Properties.Settings.Default.ConvertorPath))
@@ -274,6 +275,7 @@ namespace TinyOPDS
 
         private void SaveSettings()
         {
+            TinyOPDS.Properties.Settings.Default.LibraryPath = libraryPath.Text.SanitizePathName();
             TinyOPDS.Properties.Settings.Default.Language = langCombo.SelectedValue as string;
             TinyOPDS.Properties.Settings.Default.Save();
         }
@@ -314,21 +316,29 @@ namespace TinyOPDS
 
         #region Library scanning support
 
+        private void libraryPath_TextChanged(object sender, EventArgs e)
+        {
+            databaseFileName.Text = Utils.CreateGuid(Utils.IsoOidNamespace, libraryPath.Text.SanitizePathName()).ToString() + ".db";
+        }
+
         private void libraryPath_Validated(object sender, EventArgs e)
         {
-            if (!string.IsNullOrEmpty(TinyOPDS.Properties.Settings.Default.LibraryPath) &&
-                !Library.LibraryPath.Equals(TinyOPDS.Properties.Settings.Default.LibraryPath) &&
-                Directory.Exists(TinyOPDS.Properties.Settings.Default.LibraryPath))
+            if (!string.IsNullOrEmpty(databaseFileName.Text) && !Library.LibraryPath.Equals(databaseFileName.Text.SanitizePathName()) &&
+                Directory.Exists(databaseFileName.Text.SanitizePathName()))
             {
                 if (Library.IsChanged) Library.Save();
-                Library.LibraryPath = TinyOPDS.Properties.Settings.Default.LibraryPath;
+                Library.LibraryPath = TinyOPDS.Properties.Settings.Default.LibraryPath = databaseFileName.Text.SanitizePathName();
                 booksInDB.Text = string.Format("{0}       fb2: {1}      epub: {2}", 0, 0, 0);
                 databaseFileName.Text = Utils.CreateGuid(Utils.IsoOidNamespace, TinyOPDS.Properties.Settings.Default.LibraryPath).ToString() + ".db";
                 _watcher.IsEnabled = false;
                 // Reload library
                 Library.LoadAsync();
             }
-            else libraryPath.Undo();
+            else
+            {
+                if (!string.IsNullOrEmpty(TinyOPDS.Properties.Settings.Default.LibraryPath)) libraryPath.Text = TinyOPDS.Properties.Settings.Default.LibraryPath.SanitizePathName();
+                else libraryPath.Undo();
+            }
         }
 
         private void folderButton_Click(object sender, EventArgs e)
@@ -340,7 +350,7 @@ namespace TinyOPDS
                 {
                     if (sender as Button == folderButton)
                     {
-                        libraryPath.Text = dialog.SelectedPath;
+                        libraryPath.Text = dialog.SelectedPath.SanitizePathName();
                         libraryPath_Validated(sender, e);
                     }
                     else
@@ -373,7 +383,7 @@ namespace TinyOPDS
                 _fb2Count = _epubCount = _skippedFiles = _invalidFiles = _duplicates = 0;
                 _scanStartTime = DateTime.Now;
                 startTime.Text = _scanStartTime.ToString(@"hh\:mm\:ss");
-                _scanner.Start(libraryPath.Text);
+                _scanner.Start(libraryPath.Text.SanitizePathName());
                 scannerButton.Text = Localizer.Text("Stop scanning");
 
                 Log.WriteLine("Directory scanner started");
@@ -907,5 +917,6 @@ namespace TinyOPDS
         }
 
         #endregion
+
     }
 }

@@ -37,6 +37,14 @@ namespace TinyOPDS
             return String.Join("", fileName.Split(System.IO.Path.GetInvalidFileNameChars()));
         }
 
+        public static string SanitizePathName(this string pathName)
+        {
+            while (pathName.IndexOf("\\\\") >= 0) pathName = pathName.Replace("\\\\", "\\");
+            while (pathName.IndexOf("//") >= 0) pathName = pathName.Replace("//", "/");
+            if (pathName.EndsWith("\\") || pathName.EndsWith("/")) pathName = pathName.Remove(pathName.Length-1);
+            return pathName;
+        }
+
         public static int WordsCount(this string s)
         {
             return s.Split(' ', ',').Length;

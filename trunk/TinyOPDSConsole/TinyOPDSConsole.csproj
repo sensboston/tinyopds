@@ -219,6 +219,7 @@
   <ItemGroup>
     <EmbeddedResource Include="..\TinyOPDS\xml2html.xsl">
       <Link>xml2html.xsl</Link>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="..\TinyOPDS\translation.xml">
       <Link>translation.xml</Link>

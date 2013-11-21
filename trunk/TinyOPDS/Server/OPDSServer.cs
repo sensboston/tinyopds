@@ -273,7 +273,7 @@ namespace TinyOPDS.Server
                 // fb2.zip book request
                 else if ((request.Contains(".fb2.zip") && ext.Equals(".zip")) || ext.Equals(".epub"))
                 {
-                    string bookID = request.Substring(1, request.IndexOf('/', 1) - 1);
+                    string bookID = request.Substring(1, request.IndexOf('/', 1) - 1).Replace("%7B", "{").Replace("%7D", "}");
                     Book book = Library.GetBook(bookID);
 
                     if (book != null)
@@ -424,6 +424,8 @@ namespace TinyOPDS.Server
                         bookID = Path.GetFileNameWithoutExtension(request.Substring(request.IndexOf("/thumbnail/") + 11));
                         getCover = false;
                     }
+
+                    bookID = bookID.Replace("%7B", "{").Replace("%7D", "}");
 
                     if (!string.IsNullOrEmpty(bookID))
                     {

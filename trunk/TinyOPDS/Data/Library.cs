@@ -155,7 +155,7 @@ namespace TinyOPDS.Data
             GC.Collect();
 
             // Create unique database name, based on library path
-            LibraryPath = TinyOPDS.Properties.Settings.Default.LibraryPath;
+            LibraryPath = TinyOPDS.Properties.Settings.Default.LibraryPath.SanitizePathName();
             string databaseFileName = Utils.CreateGuid(Utils.IsoOidNamespace, LibraryPath).ToString() + ".db";
             _databaseFullPath = Path.Combine(Utils.ServiceFilesLocation, databaseFileName);
 

@@ -101,7 +101,7 @@ namespace TinyOPDS
 
             Library.LibraryPath = TinyOPDS.Properties.Settings.Default.LibraryPath.SanitizePathName();
             Library.LibraryLoaded += (_, __) => 
-            { 
+            {
                 UpdateInfo();
                 _watcher.DirectoryToWatch = Library.LibraryPath;
                 _watcher.IsEnabled = TinyOPDS.Properties.Settings.Default.WatchLibrary;
@@ -351,7 +351,7 @@ namespace TinyOPDS
                     if (sender as Button == folderButton)
                     {
                         libraryPath.Text = dialog.SelectedPath.SanitizePathName();
-                        libraryPath_Validated(sender, e);
+                        libraryPath_TextChanged(sender, e);
                     }
                     else
                     {

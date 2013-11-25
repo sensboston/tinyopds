@@ -110,6 +110,7 @@ namespace TinyOPDS.Scanner
                     _fileWatcher.Deleted += new FileSystemEventHandler(_fileWatcher_Deleted);
                     _fileWatcher.Renamed += new RenamedEventHandler(_fileWatcher_Renamed);
                     _fileWatcher.IncludeSubdirectories = true;
+                    _fileWatcher.NotifyFilter = NotifyFilters.FileName;
                     _fileWatcher.EnableRaisingEvents = _isEnabled;
                 }
             }
@@ -141,8 +142,6 @@ namespace TinyOPDS.Scanner
         /// <param name="e"></param>
         void _booksManager_DoWork(object sender, DoWorkEventArgs e)
         {
-            string[] extensions = { ".zip", ".fb2", ".epub" };
-
             string fileName = string.Empty;
             while (_isEnabled && !_disposed)
             {
@@ -174,14 +173,11 @@ namespace TinyOPDS.Scanner
                 else if (_deletedBooks.Count > 0)
                 {
                     fileName = _deletedBooks.First();
-                    if (File.Exists(fileName) && extensions.Contains(Path.GetExtension(fileName).ToLower()))
+                    if (Library.Delete(fileName))
                     {
-                        if (Library.Delete(fileName))
-                        {
-                            if (OnBookDeleted != null) OnBookDeleted(this, new BookDeletedEventArgs(fileName));
-                        }
-                        _deletedBooks.Remove(fileName);
+                        if (OnBookDeleted != null) OnBookDeleted(this, new BookDeletedEventArgs(fileName));
                     }
+                    _deletedBooks.Remove(fileName);
                 }
                 // Get some rest for UI
                 else
@@ -224,7 +220,6 @@ namespace TinyOPDS.Scanner
         {
             lock (_deletedBooks) _deletedBooks.Add(e.FullPath);
         }
-
 
         private bool IsFileInUse(string path)
         {

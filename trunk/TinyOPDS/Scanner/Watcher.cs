@@ -141,6 +141,8 @@ namespace TinyOPDS.Scanner
         /// <param name="e"></param>
         void _booksManager_DoWork(object sender, DoWorkEventArgs e)
         {
+            string[] extensions = { ".zip", ".fb2", ".epub" };
+
             string fileName = string.Empty;
             while (_isEnabled && !_disposed)
             {
@@ -172,11 +174,14 @@ namespace TinyOPDS.Scanner
                 else if (_deletedBooks.Count > 0)
                 {
                     fileName = _deletedBooks.First();
-                    if (Library.Delete(fileName))
+                    if (File.Exists(fileName) && extensions.Contains(Path.GetExtension(fileName).ToLower()))
                     {
-                        if (OnBookDeleted != null) OnBookDeleted(this, new BookDeletedEventArgs(fileName));
+                        if (Library.Delete(fileName))
+                        {
+                            if (OnBookDeleted != null) OnBookDeleted(this, new BookDeletedEventArgs(fileName));
+                        }
+                        _deletedBooks.Remove(fileName);
                     }
-                    _deletedBooks.Remove(fileName);
                 }
                 // Get some rest for UI
                 else

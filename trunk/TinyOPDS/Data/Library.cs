@@ -286,10 +286,10 @@ namespace TinyOPDS.Data
                             }
                         }
                     }
-                    // removed object should be a zip archive: let's remove all books with that zip
+                    // removed object should be a zip archive; we have to remove all books contained in this archive
                     else 
                     {
-                        List<Book> booksForRemove = _books.Where(b => b.Value.FileName.Contains(fileName+"@")).Select(b => b.Value).ToList();
+                        List<Book> booksForRemove = _books.Where(b => b.Value.FileName.StartsWith(fileName+"@")).Select(b => b.Value).ToList();
                         foreach (Book book in booksForRemove)
                         {
                             _books.Remove(book.ID);

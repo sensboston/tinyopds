@@ -35,7 +35,8 @@ namespace TinyOPDSConsole
     {
         private static readonly string _exePath = Assembly.GetExecutingAssembly().Location;
         private const string SERVICE_NAME = "TinyOPDSSvc";
-        private const string SERVICE_DESC = "TinyOPDS service";
+        private const string SERVICE_DISPLAY_NAME = "TinyOPDS service";
+        private const string SERVICE_DESCRIPTION = "Simple, fast and portable OPDS service and HTTP server";
         private const string _urlTemplate = "http://{0}:{1}/{2}";
 
         private static OPDSServer _server;
@@ -140,20 +141,20 @@ namespace TinyOPDSConsole
                                 {
                                     try
                                     {
-                                        TinyOPDS.ServiceInstaller.InstallAndStart(SERVICE_NAME, SERVICE_DESC, _exePath);
-                                        Console.WriteLine(SERVICE_DESC + " installed");
+                                        TinyOPDS.ServiceInstaller.InstallAndStart(SERVICE_NAME, SERVICE_DISPLAY_NAME, _exePath, SERVICE_DESCRIPTION);
+                                        Console.WriteLine(SERVICE_DISPLAY_NAME + " installed");
                                     }
                                     catch (Exception e)
                                     {
-                                        Console.WriteLine(SERVICE_DESC + " failed to install with exception: \"{0}\"", e.Message);
+                                        Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to install with exception: \"{0}\"", e.Message);
                                         return (-1);
                                     }
                                 }
                                 else
                                 {
                                     // Re-run app with elevated privileges 
-                                    if (RunElevated("install")) Console.WriteLine(SERVICE_DESC + " installed");
-                                    else Console.WriteLine(SERVICE_DESC + " failed to install");
+                                    if (RunElevated("install")) Console.WriteLine(SERVICE_DISPLAY_NAME + " installed");
+                                    else Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to install");
                                 }
                                 return (0);
                             }
@@ -163,7 +164,7 @@ namespace TinyOPDSConsole
                             {
                                 if (!TinyOPDS.ServiceInstaller.ServiceIsInstalled(SERVICE_NAME))
                                 {
-                                    Console.WriteLine(SERVICE_DESC + " is not installed");
+                                    Console.WriteLine(SERVICE_DISPLAY_NAME + " is not installed");
                                     return (-1);
                                 }
 
@@ -172,7 +173,7 @@ namespace TinyOPDSConsole
                                     try
                                     {
                                         TinyOPDS.ServiceInstaller.Uninstall(SERVICE_NAME);
-                                        Console.WriteLine(SERVICE_DESC + " uninstalled");
+                                        Console.WriteLine(SERVICE_DISPLAY_NAME + " uninstalled");
 
                                         // Let's close service process (except ourselves)
                                         Process[] localByName = Process.GetProcessesByName("TinyOPDSConsole");
@@ -184,15 +185,15 @@ namespace TinyOPDSConsole
                                     }
                                     catch (Exception e)
                                     {
-                                        Console.WriteLine(SERVICE_DESC + " failed to uninstall with exception: \"{0}\"", e.Message);
+                                        Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to uninstall with exception: \"{0}\"", e.Message);
                                         return (-1);
                                     }
                                 }
                                 else
                                 {
                                     // Re-run app with elevated privileges 
-                                    if (RunElevated("uninstall")) Console.WriteLine(SERVICE_DESC + " uninstalled");
-                                    else Console.WriteLine(SERVICE_DESC + " failed to uninstall");
+                                    if (RunElevated("uninstall")) Console.WriteLine(SERVICE_DISPLAY_NAME + " uninstalled");
+                                    else Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to uninstall");
                                 }
                                 return (0);
                             }
@@ -207,19 +208,19 @@ namespace TinyOPDSConsole
                                         try
                                         {
                                             TinyOPDS.ServiceInstaller.StartService(SERVICE_NAME);
-                                            Console.WriteLine(SERVICE_DESC + " started");
+                                            Console.WriteLine(SERVICE_DISPLAY_NAME + " started");
                                         }
                                         catch (Exception e)
                                         {
-                                            Console.WriteLine(SERVICE_DESC + " failed to start with exception: \"{0}\"", e.Message);
+                                            Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to start with exception: \"{0}\"", e.Message);
                                             return (-1);
                                         }
                                     }
                                     else
                                     {
                                         // Re-run app with elevated privileges 
-                                        if (RunElevated("start")) Console.WriteLine(SERVICE_DESC + " started");
-                                        else Console.WriteLine(SERVICE_DESC + " failed to start");
+                                        if (RunElevated("start")) Console.WriteLine(SERVICE_DISPLAY_NAME + " started");
+                                        else Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to start");
                                     }
                                 }
                                 else StartServer();
@@ -231,7 +232,7 @@ namespace TinyOPDSConsole
                             {
                                 if (!TinyOPDS.ServiceInstaller.ServiceIsInstalled(SERVICE_NAME))
                                 {
-                                    Console.WriteLine(SERVICE_DESC + " is not installed");
+                                    Console.WriteLine(SERVICE_DISPLAY_NAME + " is not installed");
                                     return (-1);
                                 }
 
@@ -240,19 +241,19 @@ namespace TinyOPDSConsole
                                     try
                                     {
                                         TinyOPDS.ServiceInstaller.StopService(SERVICE_NAME);
-                                        Console.WriteLine(SERVICE_DESC + " stopped");
+                                        Console.WriteLine(SERVICE_DISPLAY_NAME + " stopped");
                                     }
                                     catch (Exception e)
                                     {
-                                        Console.WriteLine(SERVICE_DESC + " failed to stop with exception: \"{0}\"", e.Message);
+                                        Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to stop with exception: \"{0}\"", e.Message);
                                         return (-1);
                                     }
                                 }
                                 else
                                 {
                                     // Re-run app with elevated privileges 
-                                    if (RunElevated("stop")) Console.WriteLine(SERVICE_DESC + " stopped");
-                                    else Console.WriteLine(SERVICE_DESC + " failed to stop");
+                                    if (RunElevated("stop")) Console.WriteLine(SERVICE_DISPLAY_NAME + " stopped");
+                                    else Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to stop");
                                 }
                                 return (0);
                             }
@@ -424,8 +425,9 @@ namespace TinyOPDSConsole
                 {
                     if (_server.ServerException is System.Net.Sockets.SocketException)
                     {
-                        Console.WriteLine(string.Format("Probably, port {0} is already in use. Please try different port value."), TinyOPDS.Properties.Settings.Default.ServerPort);
-                        Log.WriteLine(LogLevel.Error, string.Format("Probably, port {0} is already in use. Please try different port value."), TinyOPDS.Properties.Settings.Default.ServerPort);
+                        string msg = string.Format("Probably, port {0} is already in use. Please try the different port.", TinyOPDS.Properties.Settings.Default.ServerPort);
+                        Console.WriteLine(msg);
+                        Log.WriteLine(msg);
                     }
                     else
                     {

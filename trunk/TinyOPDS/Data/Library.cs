@@ -523,6 +523,7 @@ namespace TinyOPDS.Data
 
                         DateTime now = DateTime.Now;
                         bool lowMemory = TinyOPDS.Properties.Settings.Default.LowMemoryProfile;
+                        bool useAliases = TinyOPDS.Properties.Settings.Default.UseAuthorsAliases;
 
                         while (reader.BaseStream.Position < reader.BaseStream.Length)
                         {
@@ -546,7 +547,7 @@ namespace TinyOPDS.Data
                                 {
                                     string a = reader.ReadString();
                                     // Replace author's alias (if any) by name
-                                    book.Authors.Add(_aliases.ContainsKey(a) ? _aliases[a] : a);
+                                    book.Authors.Add( (useAliases && _aliases.ContainsKey(a)) ? _aliases[a] : a);
                                 }
                                 count = reader.ReadInt32();
                                 for (int i = 0; i < count; i++) book.Translators.Add(reader.ReadString());

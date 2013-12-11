@@ -30,6 +30,7 @@ namespace TinyOPDS.Scanner
     {
         private FileSystemWatcher _fileWatcher;
         private bool _disposed = false;
+        private string[] _extensions = { ".zip", ".fb2", ".epub" };
 
         private List<string> _addedBooks = new List<string>();
         private List<string> _deletedBooks = new List<string>();
@@ -194,8 +195,7 @@ namespace TinyOPDS.Scanner
         /// <param name="e"></param>
         private void _fileWatcher_Created(object sender, FileSystemEventArgs e)
         {
-            string[] extensions = { ".zip", ".fb2", ".epub" };
-            if (extensions.Contains(Path.GetExtension(e.FullPath).ToLower()))
+            if (_extensions.Contains(Path.GetExtension(e.FullPath).ToLower()))
             {
                 lock (_addedBooks) _addedBooks.Add(e.FullPath);
             }
@@ -208,7 +208,10 @@ namespace TinyOPDS.Scanner
         /// <param name="e"></param>
         private void _fileWatcher_Renamed(object sender, RenamedEventArgs e)
         {
-            lock (_deletedBooks) _deletedBooks.Add(e.FullPath);
+            if (_extensions.Contains(Path.GetExtension(e.FullPath).ToLower()))
+            {
+                lock (_deletedBooks) _deletedBooks.Add(e.FullPath);
+            }
         }
 
         /// <summary>
@@ -218,7 +221,10 @@ namespace TinyOPDS.Scanner
         /// <param name="e"></param>
         private void _fileWatcher_Deleted(object sender, FileSystemEventArgs e)
         {
-            lock (_deletedBooks) _deletedBooks.Add(e.FullPath);
+            if (_extensions.Contains(Path.GetExtension(e.FullPath).ToLower()))
+            {
+                lock (_deletedBooks) _deletedBooks.Add(e.FullPath);
+            }
         }
 
         private bool IsFileInUse(string path)

@@ -605,6 +605,7 @@ namespace TinyOPDS.Data
 
             int numRecords = 0;
             DateTime start = DateTime.Now;
+            Dictionary<string, Book> shallowCopy = null;
 
             Stream fileStream = null;
             try
@@ -616,7 +617,6 @@ namespace TinyOPDS.Data
                     writer.Write("VER1.1");
 
                     // Create shallow copy (to prevent exception on dictionary modifications during foreach loop)
-                    Dictionary<string, Book> shallowCopy = null;
                     lock (_books) shallowCopy = new Dictionary<string, Book>(_books);
                     foreach (Book book in shallowCopy.Values)
                     {
@@ -631,6 +631,7 @@ namespace TinyOPDS.Data
             }
             finally
             {
+                shallowCopy = null;
                 if (fileStream != null) fileStream.Dispose();
                 IsChanged = false;
                 Log.WriteLine(LogLevel.Info, "Database save time = {0}, {1} book records written to disk", DateTime.Now.Subtract(start), numRecords);

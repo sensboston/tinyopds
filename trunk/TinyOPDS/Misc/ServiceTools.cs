@@ -245,6 +245,12 @@ namespace TinyOPDS
         Critical = 0x00000003
     }
 
+    public enum InfoLevel
+    {
+        SERVICE_CONFIG_DESCRIPTION = 1,
+        SERVICE_CONFIG_FAILURE_ACTIONS = 2
+    }
+
     /// <summary>
     /// Installs and provides functionality for handling windows services
     /// </summary>
@@ -263,6 +269,12 @@ namespace TinyOPDS
             public int dwServiceSpecificExitCode = 0;
             public int dwCheckPoint = 0;
             public int dwWaitHint = 0;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct SERVICE_DESCRIPTION
+        {
+            public string lpDescription;
         }
 
         [DllImport("advapi32.dll", EntryPoint = "OpenSCManagerA")]
@@ -291,6 +303,8 @@ namespace TinyOPDS
         [DllImport("advapi32.dll", EntryPoint = "StartServiceA")]
         private static extern int StartService(IntPtr hService, int
         dwNumServiceArgs, int lpServiceArgVectors);
+        [DllImport("advapi32.dll", EntryPoint = "ChangeServiceConfig2A")]
+        private static extern int ChangeServiceConfig2(IntPtr hService, int dwServiceConfigDescription, ref SERVICE_DESCRIPTION lpInfo);
 
         /// <summary>
         /// 
@@ -364,20 +378,26 @@ namespace TinyOPDS
         /// <param name="ServiceName">The service name that this service will have</param>
         /// <param name="DisplayName">The display name that this service will have</param>
         /// <param name="FileName">The path to the executable of the service</param>
-        public static void InstallAndStart(string ServiceName, string DisplayName, string FileName)
+        public static void InstallAndStart(string ServiceName, string DisplayName, string FileName, string Description)
         {
             IntPtr scman = OpenSCManager(ServiceManagerRights.Connect |
             ServiceManagerRights.CreateService);
             try
             {
-                IntPtr service = OpenService(scman, ServiceName,
-                ServiceRights.QueryStatus | ServiceRights.Start);
+                IntPtr service = OpenService(scman, ServiceName, ServiceRights.QueryStatus | ServiceRights.Start);
                 if (service == IntPtr.Zero)
                 {
-                    service = CreateService(scman, ServiceName, DisplayName,
-                    ServiceRights.QueryStatus | ServiceRights.Start, SERVICE_WIN32_OWN_PROCESS,
-                    ServiceBootFlag.AutoStart, ServiceError.Normal, FileName, null, IntPtr.Zero,
-                    null, null, null);
+                    service = CreateService(scman, ServiceName, DisplayName, ServiceRights.QueryStatus | ServiceRights.Start, SERVICE_WIN32_OWN_PROCESS,
+                            ServiceBootFlag.AutoStart, ServiceError.Normal, FileName, null, IntPtr.Zero, null, null, null);
+
+                    if (service != IntPtr.Zero)
+                    {
+                        // Set service description
+                        SERVICE_DESCRIPTION desc = new SERVICE_DESCRIPTION();
+                        desc.lpDescription = Description;
+                        ChangeServiceConfig2(OpenService(scman, ServiceName, ServiceRights.ChangeConfig), (int)InfoLevel.SERVICE_CONFIG_DESCRIPTION, ref desc);
+                    }
+
                 }
                 if (service == IntPtr.Zero)
                 {

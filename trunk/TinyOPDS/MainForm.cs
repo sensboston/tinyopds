@@ -918,5 +918,21 @@ namespace TinyOPDS
 
         #endregion
 
+        /// <summary>
+        /// This event raised on the checkbox change and should reload library
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void checkBox_CheckedChanged(object sender, EventArgs e)
+        {
+            if (((sender as CheckBox).Name.Equals("checkBox1") && (sender as CheckBox).Checked != TinyOPDS.Properties.Settings.Default.LowMemoryProfile) ||
+                 ((sender as CheckBox).Name.Equals("checkBox2") && (sender as CheckBox).Checked != TinyOPDS.Properties.Settings.Default.UseAuthorsAliases))
+            {
+                // Reload library
+                _watcher.IsEnabled = false;
+                Library.LoadAsync();
+            }
+        }
+
     }
 }

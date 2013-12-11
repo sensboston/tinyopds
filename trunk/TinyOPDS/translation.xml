@@ -502,7 +502,7 @@
       <text lang="ru">три месяца</text>
     </property>
     <property form="MainForm" ctrl="checkBox1">
-      <text lang="en">"Low memory" model (do not load book description)</text>
+      <text lang="en">"Low memory" model (do not load book descriptions)</text>
       <text lang="ru">Режим "экономии памяти" (не загружать сразу описания книг)</text>
     </property>
     <property>
@@ -521,9 +521,9 @@
       <text lang="en">{0} new books ordered alphabetically</text>
       <text lang="ru">{0} новых книг, упорядоченных по алфавиту</text>
     </property>
-    <property>
-      <text lang="en"></text>
-      <text lang="ru"></text>
+    <property form="MainForm" ctrl="checkBox2">
+      <text lang="en">Use authors aliases</text>
+      <text lang="ru">Использовать алиасы для авторов</text>
     </property>
     <property>
       <text lang="en"></text>

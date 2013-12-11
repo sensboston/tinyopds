@@ -92,6 +92,7 @@
             this.rootPrefix = new System.Windows.Forms.TextBox();
             this.serverName = new System.Windows.Forms.TextBox();
             this.tabPage6 = new System.Windows.Forms.TabPage();
+            this.checkBox2 = new System.Windows.Forms.CheckBox();
             this.checkBox1 = new System.Windows.Forms.CheckBox();
             this.newBooksPeriodCombo = new System.Windows.Forms.ComboBox();
             this.label39 = new System.Windows.Forms.Label();
@@ -840,6 +841,7 @@
             // tabPage6
             // 
             this.tabPage6.BackColor = System.Drawing.SystemColors.Control;
+            this.tabPage6.Controls.Add(this.checkBox2);
             this.tabPage6.Controls.Add(this.checkBox1);
             this.tabPage6.Controls.Add(this.newBooksPeriodCombo);
             this.tabPage6.Controls.Add(this.label39);
@@ -855,17 +857,32 @@
             this.tabPage6.TabIndex = 5;
             this.tabPage6.Text = "OPDS catalog";
             // 
+            // checkBox2
+            // 
+            this.checkBox2.AutoSize = true;
+            this.checkBox2.Checked = global::TinyOPDS.Properties.Settings.Default.UseAuthorsAliases;
+            this.checkBox2.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.checkBox2.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "UseAuthorsAliases", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.checkBox2.Location = new System.Drawing.Point(25, 162);
+            this.checkBox2.Name = "checkBox2";
+            this.checkBox2.Size = new System.Drawing.Size(118, 17);
+            this.checkBox2.TabIndex = 9;
+            this.checkBox2.Text = "Use authors aliases";
+            this.checkBox2.UseVisualStyleBackColor = true;
+            this.checkBox2.CheckedChanged += new System.EventHandler(this.checkBox_CheckedChanged);
+            // 
             // checkBox1
             // 
             this.checkBox1.AutoSize = true;
             this.checkBox1.Checked = global::TinyOPDS.Properties.Settings.Default.LowMemoryProfile;
             this.checkBox1.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "LowMemoryProfile", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.checkBox1.Location = new System.Drawing.Point(25, 174);
+            this.checkBox1.Location = new System.Drawing.Point(25, 202);
             this.checkBox1.Name = "checkBox1";
-            this.checkBox1.Size = new System.Drawing.Size(269, 17);
+            this.checkBox1.Size = new System.Drawing.Size(274, 17);
             this.checkBox1.TabIndex = 8;
-            this.checkBox1.Text = "\"Low memory\" model (do not load book description)";
+            this.checkBox1.Text = "\"Low memory\" model (do not load book descriptions)";
             this.checkBox1.UseVisualStyleBackColor = true;
+            this.checkBox1.CheckedChanged += new System.EventHandler(this.checkBox_CheckedChanged);
             // 
             // newBooksPeriodCombo
             // 
@@ -1679,6 +1696,7 @@
         private System.Windows.Forms.Label label36;
         private System.Windows.Forms.CheckBox checkBox1;
         private System.Windows.Forms.LinkLabel linkLabel6;
+        private System.Windows.Forms.CheckBox checkBox2;
     }
 }
 

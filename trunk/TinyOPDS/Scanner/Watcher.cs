@@ -126,7 +126,10 @@ namespace TinyOPDS.Scanner
                 if (_fileWatcher != null)
                 {
                     _fileWatcher.EnableRaisingEvents = _isEnabled = value;
-                    if (_isEnabled) _booksManager.RunWorkerAsync();
+                    if (_isEnabled)
+                    {
+                        if (!_booksManager.IsBusy) _booksManager.RunWorkerAsync();
+                    }
                     else
                     {
                         _addedBooks.Clear();

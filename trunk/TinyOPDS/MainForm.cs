@@ -324,10 +324,10 @@ namespace TinyOPDS
         private void libraryPath_Validated(object sender, EventArgs e)
         {
             if (!string.IsNullOrEmpty(databaseFileName.Text) && !Library.LibraryPath.Equals(databaseFileName.Text.SanitizePathName()) &&
-                Directory.Exists(databaseFileName.Text.SanitizePathName()))
+                Directory.Exists(libraryPath.Text.SanitizePathName()))
             {
                 if (Library.IsChanged) Library.Save();
-                Library.LibraryPath = TinyOPDS.Properties.Settings.Default.LibraryPath = databaseFileName.Text.SanitizePathName();
+                Library.LibraryPath = TinyOPDS.Properties.Settings.Default.LibraryPath = libraryPath.Text.SanitizePathName();
                 booksInDB.Text = string.Format("{0}       fb2: {1}      epub: {2}", 0, 0, 0);
                 databaseFileName.Text = Utils.CreateGuid(Utils.IsoOidNamespace, TinyOPDS.Properties.Settings.Default.LibraryPath).ToString() + ".db";
                 _watcher.IsEnabled = false;
@@ -351,7 +351,7 @@ namespace TinyOPDS
                     if (sender as Button == folderButton)
                     {
                         libraryPath.Text = dialog.SelectedPath.SanitizePathName();
-                        libraryPath_TextChanged(sender, e);
+                        libraryPath_Validated(sender, e);
                     }
                     else
                     {
@@ -863,7 +863,7 @@ namespace TinyOPDS
             if (TinyOPDS.Properties.Settings.Default.UseUPnP && _timerCallsCount++ > 5)
             {
                 _timerCallsCount = 0;
-                if (_server.IsActive && _server.IsIdle && _upnpController != null && _upnpController.UPnPReady)
+                if (_server != null && _server.IsActive && _server.IsIdle && _upnpController != null && _upnpController.UPnPReady)
                 {
                     if (!_upnpController.Discovered)
                     {

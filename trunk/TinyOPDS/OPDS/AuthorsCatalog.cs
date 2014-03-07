@@ -62,51 +62,64 @@ namespace TinyOPDS.OPDS
                 }
             }
 
+            // if there are more authors then threshold, try to collapse them into groups
+            // and render these groups first and authors after them
             if (Authors.Count > threshold)
             {
-                Dictionary<string, int> authors = null;
+                Dictionary<string, int> catalogGroups = null;
                 do
                 {
-                    authors = (from a in Authors
-                               group a by (a.Length > searchPattern.Length ? a.Substring(0, searchPattern.Length + 1).Capitalize(true) : a.Capitalize(true)) into g
-                               where g.Count() > 1
-                               select new { Name = g, Count = g.Count() }).ToDictionary(x => x.Name.Key, y => y.Count);
-                    if (authors.Count == 1) searchPattern = authors.First().Key;
-                } while (authors.Count <= 1);
+                    catalogGroups = (from a in Authors
+                           group a by (a.Length > searchPattern.Length ? a.Substring(0, searchPattern.Length + 1).Capitalize(true)
+                                                                       : a.Capitalize(true)) into g
+                           where g.Count() > 1
+                           select new { Name = g, Count = g.Count() }).ToDictionary(x => x.Name.Key, y => y.Count);
 
-                // Add catalog entries
-                foreach (KeyValuePair<string, int> author in authors)
+                    if (catalogGroups.Count == 1) searchPattern = catalogGroups.First().Key;
+                    else break;
+                } while (true);
+
+                // remove entry that exactly matches search pattern to avoid recurtion 
+                catalogGroups.Remove(searchPattern.Capitalize(true));
+                // from "Authors" remove entryes that are groupped ( if any )
+                foreach (var kv in catalogGroups)
+                {
+                    Authors.RemoveAll(a => a.StartsWith(kv.Key, StringComparison.InvariantCultureIgnoreCase));
+                }
+
+                // Add catalog groups
+                foreach (KeyValuePair<string, int> cg in catalogGroups)
                 {
                     doc.Root.Add(
                         new XElement("entry",
                             new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                            new XElement("id", "tag:authors:" + author.Key),
-                            new XElement("title", author.Key),
-                            new XElement("content", string.Format(Localizer.Text("Total authors on {0}: {1}"), author.Key, author.Value), new XAttribute("type", "text")),
-                            new XElement("link", new XAttribute("href", "/authorsindex/" + Uri.EscapeDataString(author.Key)), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
+                            new XElement("id", "tag:authors:" + cg.Key),
+                            new XElement("title", cg.Key),
+                            new XElement("content", string.Format(Localizer.Text("Total authors on {0}: {1}"), cg.Key, cg.Value),
+                                         new XAttribute("type", "text")),
+                            new XElement("link", new XAttribute("href", "/authorsindex/" + Uri.EscapeDataString(cg.Key)),
+                                         new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                         )
                     );
                 }
             }
-            // 
-            else
+
+            // Add catalog entries
+            foreach (string author in Authors)
             {
-                // Add catalog entries
-                foreach (string author in Authors)
-                {
-                    var booksCount = Library.GetBooksByAuthor(author).Count;
+                var booksCount = Library.GetBooksByAuthor(author).Count;
 
-                    doc.Root.Add(
-                        new XElement("entry",
-                            new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                            new XElement("id", "tag:authors:" + author),
-                            new XElement("title", author),
-                            new XElement("content", string.Format(Localizer.Text("Books: {0}"), booksCount), new XAttribute("type", "text")),
-                            new XElement("link", new XAttribute("href", "/author/" + Uri.EscapeDataString(author)), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
-                        )
-                    );
-                }
+                doc.Root.Add(
+                    new XElement("entry",
+                        new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
+                        new XElement("id", "tag:authors:" + author),
+                        new XElement("title", author),
+                        new XElement("content", string.Format(Localizer.Text("Books: {0}"), booksCount), new XAttribute("type", "text")),
+                        new XElement("link", new XAttribute("href", "/author/" + Uri.EscapeDataString(author)), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
+                    )
+                );
             }
+
             return doc;
         }
     }

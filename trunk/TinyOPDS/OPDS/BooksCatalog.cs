@@ -202,13 +202,13 @@ namespace TinyOPDS.OPDS
                     if (genre != null)
                         entry.Add(new XElement("category", new XAttribute("term", (useCyrillic ? genre.Translation : genre.Name)), new XAttribute("label", (useCyrillic ? genre.Translation : genre.Name))));
                 }
-
+                
                 // Build a content entry (translator(s), year, size, annotation etc.)
                 string bookInfo = string.Empty;
 
                 if (!string.IsNullOrEmpty(book.Annotation))
                 {
-                    bookInfo += string.Format("<p class=book>{0}</p><br/>", book.Annotation);
+                    bookInfo += string.Format(@"<p>{0}<br/></p>", System.Security.SecurityElement.Escape(book.Annotation.Trim()));
                 }
                 if (book.Translators.Count > 0)
                 {
@@ -220,8 +220,7 @@ namespace TinyOPDS.OPDS
                 {
                     bookInfo += string.Format("<b>{0}</b> {1}<br/>", Localizer.Text("Year of publication:"), book.BookDate.Year);
                 }
-                bookInfo += string.Format("<b>{0}</b> {1}<br/>", Localizer.Text("Format:"), book.BookType == BookType.EPUB ? "epub" : "fb2");
-                bookInfo += string.Format("<b>{0}</b> {1} Kb<br/>", Localizer.Text("Size:"), (int) book.DocumentSize / 1024);
+
                 if (!string.IsNullOrEmpty(book.Sequence))
                 {
                     bookInfo += string.Format("<b>{0} {1} #{2}</b><br/>", Localizer.Text("Series:"), book.Sequence, book.NumberInSequence);
@@ -230,7 +229,10 @@ namespace TinyOPDS.OPDS
                 entry.Add(
                     new XElement(Namespaces.dc + "language", book.Language),
                     new XElement(Namespaces.dc + "format", book.BookType == BookType.FB2 ? "fb2+zip" : "epub+zip"),
-                    new XElement("content", new XAttribute("type", "text/html"), bookInfo));
+                    new XElement("content", new XAttribute("type", "text/html"), XElement.Parse("<div>" + bookInfo + "<br/></div>")),
+                    new XElement( "format", book.BookType == BookType.EPUB ? "epub" : "fb2"),
+                    new XElement( "size", string.Format("{0} Kb", (int)book.DocumentSize / 1024)));
+
 
                 if (book.HasCover)
                 {

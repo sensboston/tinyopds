@@ -41,7 +41,7 @@ namespace TinyOPDS
         {
             while (pathName.IndexOf("\\\\") >= 0) pathName = pathName.Replace("\\\\", "\\");
             while (pathName.IndexOf("//") >= 0) pathName = pathName.Replace("//", "/");
-            if (pathName.EndsWith("\\") || pathName.EndsWith("/")) pathName = pathName.Remove(pathName.Length-1);
+            if ((pathName.EndsWith("\\") || pathName.EndsWith("/")) && (pathName.Length > 2)) pathName = pathName.Remove(pathName.Length-1);
             return pathName;
         }
 

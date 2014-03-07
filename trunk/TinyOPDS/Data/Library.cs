@@ -503,6 +503,7 @@ namespace TinyOPDS.Data
             if (File.Exists(_databaseFullPath))
             {
                 _books.Clear();
+                FB2Count = EPUBCount = 0;
                 memStream = new MemoryStream();
 
                 try
@@ -530,8 +531,10 @@ namespace TinyOPDS.Data
                             try
                             {
                                 string fileName = reader.ReadString();
-                                Book book = new Book(Path.Combine(LibraryPath,fileName));
-                                book.ID = reader.ReadString();
+                                Book book = new Book(Path.Combine(LibraryPath, fileName));
+                                string id = reader.ReadString();
+                                id = id.Replace("{", "").Replace("}", "");
+                                book.ID = id;
                                 book.Version = reader.ReadSingle();
                                 book.Title = reader.ReadString();
                                 book.Language = reader.ReadString();
@@ -547,7 +550,7 @@ namespace TinyOPDS.Data
                                 {
                                     string a = reader.ReadString();
                                     // Replace author's alias (if any) by name
-                                    book.Authors.Add( (useAliases && _aliases.ContainsKey(a)) ? _aliases[a] : a);
+                                    book.Authors.Add((useAliases && _aliases.ContainsKey(a)) ? _aliases[a] : a);
                                 }
                                 count = reader.ReadInt32();
                                 for (int i = 0; i < count; i++) book.Translators.Add(reader.ReadString());
@@ -556,6 +559,7 @@ namespace TinyOPDS.Data
                                 lock (_books) _books[book.ID] = book;
                                 lock (_paths) _paths[book.FileName] = book.ID;
                                 book.AddedDate = newFormat ? DateTime.FromBinary(reader.ReadInt64()) : now;
+                                if (book.BookType == BookType.FB2) FB2Count++; else EPUBCount++;
 
                                 numRecords++;
                             }
@@ -584,10 +588,6 @@ namespace TinyOPDS.Data
                     }
                     // Call garbage collector now
                     GC.Collect();
-
-                    FB2Count = _books.Count(b => b.Value.BookType == BookType.FB2);
-                    EPUBCount = _books.Count(b => b.Value.BookType == BookType.EPUB);
-
                     IsChanged = false;
                 }
             }

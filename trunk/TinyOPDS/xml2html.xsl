@@ -7,44 +7,44 @@ xmlns:x="http://www.w3.org/2005/Atom">
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
         <!--<link rel="stylesheet" type="text/css" href="Stylesheet1.css" />-->
         <style>
-          body{
-          margin: 0 auto;
-          max-width: 700px;
-          font-family: Century Gothic;
-          padding-top: 40px;
-          }
-          ul
-          {
-          list-style-type: none;
-          }
+			body{
+			margin: 0 auto;
+			max-width: 700px;
+			font-family: Century Gothic;
+			padding-top: 40px;
+			}
+			ul
+			{
+			list-style-type: none;
+			}
 
-          .right
-          {
-          float:right;
-          margin-right: 20px
-          }
+			.right
+			{
+			float:right;
+			margin-right: 20px
+			}
 
-          .category-descr
-          {
-          margin-left:20px;
-          font-size:8pt
-          }
+			.category-descr
+			{
+			margin-left:20px;
+			font-size:8pt
+			}
 
-          .book-descr
-          {
-          margin-top:10px; font-size:8pt;
-          }
+			.book-descr
+			{
+			margin-top:10px; font-size:8pt;
+			}
 
-          .download-link
-          {
-          font-size: 8pt;margin-top:10px
-          }
+			.download-link
+			{
+			font-size: 8pt;margin-top:10px
+			}
 
-          .cover
-          {
-          width: 192px;float:left;margin-right:20px;
-          }
-        </style>
+			.cover
+			{
+			width: 192px;float:left;margin-right:20px;
+			}
+		</style>
       </head>
       <body>
         <h1>TinyOPDS</h1>
@@ -141,6 +141,18 @@ xmlns:x="http://www.w3.org/2005/Atom">
                     <div  class="book-descr">
                       <xsl:value-of select="x:content"/>
                     </div>
+					  
+					<p>
+						<div>
+							<a style="font-size: 9pt">
+								<b>Format: </b>
+								<xsl:value-of select="x:format"/>
+								<br/>
+								<b>Size: </b>
+								<xsl:value-of select="x:size"/>
+							</a>
+						</div>
+					</p>
 
                     <a class="right download-link">
                       <xsl:attribute name="href">

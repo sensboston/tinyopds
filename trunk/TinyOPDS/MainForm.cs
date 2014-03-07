@@ -594,21 +594,21 @@ namespace TinyOPDS
                 _server.StopServer();
                 _serverThread = null;
                 _server = null;
+
+                if (_upnpController != null)
+                {
+                    if (TinyOPDS.Properties.Settings.Default.UseUPnP)
+                    {
+                        int port = int.Parse(TinyOPDS.Properties.Settings.Default.ServerPort);
+                        _upnpController.DeleteForwardingRule(port, System.Net.Sockets.ProtocolType.Tcp);
+                    }
+                    _upnpController.DiscoverCompleted -= _upnpController_DiscoverCompleted;
+                    _upnpController.Dispose();
+                }
             }
 
             if (_scanner.Status == FileScannerStatus.SCANNING) _scanner.Stop();
             if (Library.IsChanged) Library.Save();
-
-            if (_upnpController != null)
-            {
-                if (TinyOPDS.Properties.Settings.Default.UseUPnP)
-                {
-                    int port = int.Parse(TinyOPDS.Properties.Settings.Default.ServerPort);
-                    _upnpController.DeleteForwardingRule(port, System.Net.Sockets.ProtocolType.Tcp);
-                }
-                _upnpController.DiscoverCompleted -= _upnpController_DiscoverCompleted;
-                _upnpController.Dispose();
-            }
 
             _notifyIcon.Visible = false;
 

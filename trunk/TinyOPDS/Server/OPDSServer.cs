@@ -80,7 +80,7 @@ namespace TinyOPDS.Server
                 bool isWWWRequest = request.StartsWith("/" + TinyOPDS.Properties.Settings.Default.HttpPrefix) && !request.StartsWith("/" + TinyOPDS.Properties.Settings.Default.RootPrefix) ? true : false;
 
                 // Remove prefix if any
-                if (!string.IsNullOrEmpty(TinyOPDS.Properties.Settings.Default.RootPrefix))
+                if (!request.Contains("opds-opensearch.xml") && !string.IsNullOrEmpty(TinyOPDS.Properties.Settings.Default.RootPrefix))
                 {
                     request = request.Replace(TinyOPDS.Properties.Settings.Default.RootPrefix, "/");
                 }
@@ -122,48 +122,48 @@ namespace TinyOPDS.Server
                         // Is it root node requested?
                         if (request.Equals("/"))
                         {
-                            xml = new RootCatalog().GetCatalog().ToString();
+                            xml = new RootCatalog().GetCatalog().ToStringWithDeclaration();
                         }
                         else if (request.StartsWith("/newdate"))
                         {
-                            xml = new NewBooksCatalog().GetCatalog(request.Substring(8), true, acceptFB2, threshold).ToString();
+                            xml = new NewBooksCatalog().GetCatalog(request.Substring(8), true, acceptFB2, threshold).ToStringWithDeclaration();
                         }
                         else if (request.StartsWith("/newtitle"))
                         {
-                            xml = new NewBooksCatalog().GetCatalog(request.Substring(9), false, acceptFB2, threshold).ToString();
+                            xml = new NewBooksCatalog().GetCatalog(request.Substring(9), false, acceptFB2, threshold).ToStringWithDeclaration();
                         }
                         else if (request.StartsWith("/authorsindex"))
                         {
                             int numChars = request.StartsWith("/authorsindex/") ? 14 : 13;
-                            xml = new AuthorsCatalog().GetCatalog(request.Substring(numChars), false, threshold).ToString();
+                            xml = new AuthorsCatalog().GetCatalog(request.Substring(numChars), false, threshold).ToStringWithDeclaration();
                         }
                         else if (request.StartsWith("/author/"))
                         {
-                            xml = new BooksCatalog().GetCatalogByAuthor(request.Substring(8), acceptFB2, threshold).ToString();
+                            xml = new BooksCatalog().GetCatalogByAuthor(request.Substring(8), acceptFB2, threshold).ToStringWithDeclaration();
                         }
                         else if (request.StartsWith("/sequencesindex"))
                         {
                             int numChars = request.StartsWith("/sequencesindex/") ? 16 : 15;
-                            xml = new SequencesCatalog().GetCatalog(request.Substring(numChars), threshold).ToString();
+                            xml = new SequencesCatalog().GetCatalog(request.Substring(numChars), threshold).ToStringWithDeclaration();
                         }
                         else if (request.Contains("/sequence/"))
                         {
-                            xml = new BooksCatalog().GetCatalogBySequence(request.Substring(10), acceptFB2, threshold).ToString();
+                            xml = new BooksCatalog().GetCatalogBySequence(request.Substring(10), acceptFB2, threshold).ToStringWithDeclaration();
                         }
                         else if (request.StartsWith("/genres"))
                         {
                             int numChars = request.Contains("/genres/") ? 8 : 7;
-                            xml = new GenresCatalog().GetCatalog(request.Substring(numChars)).ToString();
+                            xml = new GenresCatalog().GetCatalog(request.Substring(numChars)).ToStringWithDeclaration();
                         }
                         else if (request.StartsWith("/genre/"))
                         {
-                            xml = new BooksCatalog().GetCatalogByGenre(request.Substring(7), acceptFB2, threshold).ToString();
+                            xml = new BooksCatalog().GetCatalogByGenre(request.Substring(7), acceptFB2, threshold).ToStringWithDeclaration();
                         }
                         else if (request.StartsWith("/search"))
                         {
                             if (http_params.Length > 1 && http_params[1].Equals("searchTerm"))
                             {
-                                xml = new OpenSearch().Search(http_params[2], "", acceptFB2).ToString();
+                                xml = new OpenSearch().Search(http_params[2], "", acceptFB2).ToStringWithDeclaration();
                             }
                             else if (http_params[1].Equals("searchType"))
                             {
@@ -172,7 +172,7 @@ namespace TinyOPDS.Server
                                 {
                                     int.TryParse(http_params[6], out pageNumber);
                                 }
-                                xml = new OpenSearch().Search(http_params[4], http_params[2], acceptFB2, pageNumber).ToString();
+                                xml = new OpenSearch().Search(http_params[4], http_params[2], acceptFB2, pageNumber).ToStringWithDeclaration();
                             }
                         }
 
@@ -182,7 +182,9 @@ namespace TinyOPDS.Server
                             return;
                         }
 
-                        xml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" + xml.Insert(5, " xmlns=\"http://www.w3.org/2005/Atom\"");
+                        // Fix for the root namespace
+                        // TODO: fix with standard way (how?)
+                        xml = xml.Insert(xml.IndexOf("<feed ")+5, " xmlns=\"http://www.w3.org/2005/Atom\"");
 
                         if (TinyOPDS.Properties.Settings.Default.UseAbsoluteUri)
                         {
@@ -252,8 +254,8 @@ namespace TinyOPDS.Server
                 }
                 else if (request.Contains("opds-opensearch.xml"))
                 {
-                    xml = new OpenSearch().OpenSearchDescription().ToString();
-                    xml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" + xml.Insert(22, " xmlns=\"http://a9.com/-/spec/opensearch/1.1/\"");
+                    xml = new OpenSearch().OpenSearchDescription().ToStringWithDeclaration();
+                    xml = xml.Insert(xml.IndexOf("<OpenSearchDescription")+22, " xmlns=\"http://a9.com/-/spec/opensearch/1.1/\"");
 
                     if (TinyOPDS.Properties.Settings.Default.UseAbsoluteUri)
                     {

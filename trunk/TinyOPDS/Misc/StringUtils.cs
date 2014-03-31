@@ -14,11 +14,24 @@
 using System;
 using System.Text;
 using System.Collections.Generic;
+using System.Linq;
+using System.Xml;
+using System.Xml.Linq;
 
 namespace TinyOPDS
 {
     public static class StringExtensions
     {
+        public static string ToStringWithDeclaration(this XDocument doc)
+        {
+            StringBuilder sb = new StringBuilder();
+            XmlWriterSettings xws = new XmlWriterSettings();
+            xws.OmitXmlDeclaration = false;
+            xws.Indent = true;
+            using (XmlWriter xw = XmlWriter.Create(sb, xws)) doc.WriteTo(xw);
+            return sb.ToString().Replace("utf-16","utf-8");
+        }
+
         public static string Reverse(this string sentence)
         {
             string[] words = sentence.Split(' ');

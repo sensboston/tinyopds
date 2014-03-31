@@ -79,9 +79,9 @@ namespace TinyOPDS.OPDS
                     else break;
                 } while (true);
 
-                // remove entry that exactly matches search pattern to avoid recurtion 
+                // remove entry that exactly matches search pattern to avoid recursion 
                 catalogGroups.Remove(searchPattern.Capitalize(true));
-                // from "Authors" remove entryes that are groupped ( if any )
+                // remove entries that are groupped ( if any )
                 foreach (var kv in catalogGroups)
                 {
                     Authors.RemoveAll(a => a.StartsWith(kv.Key, StringComparison.InvariantCultureIgnoreCase));
@@ -107,7 +107,7 @@ namespace TinyOPDS.OPDS
             // Add catalog entries
             foreach (string author in Authors)
             {
-                var booksCount = Library.GetBooksByAuthor(author).Count;
+                var booksCount = Library.GetBooksByAuthorCount(author);
 
                 doc.Root.Add(
                     new XElement("entry",
@@ -119,7 +119,6 @@ namespace TinyOPDS.OPDS
                     )
                 );
             }
-
             return doc;
         }
     }

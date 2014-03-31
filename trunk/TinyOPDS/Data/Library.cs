@@ -27,6 +27,7 @@ namespace TinyOPDS.Data
         public static event EventHandler LibraryLoaded;
         private static Dictionary<string, string> _paths = new Dictionary<string, string>();
         private static Dictionary<string, Book> _books = new Dictionary<string, Book>();
+        private static Dictionary<string, int> _authors = new Dictionary<string, int>();
         private static string _databaseFullPath;
         private static List<Genre> _genres;
         private static Dictionary<string, string> _soundexedGenres;
@@ -457,6 +458,16 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
+        /// Return number of books by specific author
+        /// </summary>
+        /// <param name="author"></param>
+        /// <returns></returns>
+        public static int GetBooksByAuthorCount(string author)
+        {
+            return _authors.ContainsKey(author) ? _authors[author] : 0;
+        }
+
+        /// <summary>
         /// Return list of books by selected sequence
         /// </summary>
         /// <param name="author"></param>
@@ -503,6 +514,7 @@ namespace TinyOPDS.Data
             if (File.Exists(_databaseFullPath))
             {
                 _books.Clear();
+                _authors.Clear();
                 FB2Count = EPUBCount = 0;
                 memStream = new MemoryStream();
 
@@ -550,7 +562,9 @@ namespace TinyOPDS.Data
                                 {
                                     string a = reader.ReadString();
                                     // Replace author's alias (if any) by name
-                                    book.Authors.Add((useAliases && _aliases.ContainsKey(a)) ? _aliases[a] : a);
+                                    string name = (useAliases && _aliases.ContainsKey(a)) ? _aliases[a] : a;
+                                    book.Authors.Add(name);
+                                    if (!_authors.ContainsKey(name)) _authors[name] = 1; else _authors[name]++;
                                 }
                                 count = reader.ReadInt32();
                                 for (int i = 0; i < count; i++) book.Translators.Add(reader.ReadString());

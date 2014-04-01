@@ -245,6 +245,9 @@ namespace TinyOPDS.Data
                     {
                         IsChanged = true;
                         if (book.BookType == BookType.FB2) FB2Count++; else EPUBCount++;
+                        // Increase authors book count
+                        foreach (var name in book.Authors)
+                            if (!_authors.ContainsKey(name)) _authors[name] = 1; else _authors[name]++;
                     }
                     else
                     {
@@ -283,6 +286,9 @@ namespace TinyOPDS.Data
                                 _books.Remove(book.ID);
                                 _paths.Remove(book.FileName);
                                 if (book.BookType == BookType.FB2) FB2Count--; else EPUBCount--;
+                                // Decrease authors book count
+                                foreach (var name in book.Authors)
+                                    if (_authors.ContainsKey(name)) _authors[name]--;
                                 result = IsChanged = true;
                             }
                         }
@@ -296,6 +302,9 @@ namespace TinyOPDS.Data
                             _books.Remove(book.ID);
                             _paths.Remove(book.FileName);
                             if (book.BookType == BookType.FB2) FB2Count--; else EPUBCount--;
+                            // Decrease authors book count
+                            foreach (var name in book.Authors)
+                                if (_authors.ContainsKey(name)) _authors[name]--;
                         }
                         if (booksForRemove.Count > 0)
                         {

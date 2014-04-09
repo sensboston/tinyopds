@@ -407,6 +407,7 @@ namespace TinyOPDS
             }
             else _duplicates++;
             if (Library.Count % 500 == 0) Library.Save();
+            if (Library.Count % 20000 == 0) GC.Collect();
             UpdateInfo();
         }
 

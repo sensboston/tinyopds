@@ -38,7 +38,7 @@ namespace TinyOPDS.Parsers
             Contract.Ensures(Contract.Result<SgmlDtd>() != null);
 
             Assembly assembly = Assembly.GetExecutingAssembly();
-            using (Stream stream = assembly.GetManifestResourceStream("TinyOPDS.Resources.fb2.dtd"))
+            using (Stream stream = assembly.GetManifestResourceStream(assembly.GetName().Name + ".Resources.fb2.dtd"))
             {
                 using (StreamReader reader = new StreamReader(stream))
                 {

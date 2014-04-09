@@ -16,6 +16,7 @@ using System.IO.Compression;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Net;
 using System.ServiceProcess;
 using System.Threading;
 using System.Threading.Tasks;
@@ -105,7 +106,7 @@ namespace TinyOPDSConsole
 
         static int Main(string[] args)
         {
-            AppDomain.CurrentDomain.AssemblyResolve += new ResolveEventHandler(CurrentDomain_AssemblyResolve);
+            AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
             Log.SaveToFile = TinyOPDS.Properties.Settings.Default.SaveLogToDisk;
 
@@ -555,7 +556,7 @@ namespace TinyOPDSConsole
             }
             else _duplicates++;
             if (Library.Count % 500 == 0) Library.Save();
-            if (Library.Count % 10000 == 0) GC.Collect();
+            if (Library.Count % 20000 == 0) GC.Collect();
             UpdateInfo();
         }
 

@@ -77,6 +77,14 @@ namespace TinyOPDS.Parsers
             {
                 Log.WriteLine(LogLevel.Error, "exception {0}" , e.Message);
             }
+            finally
+            {
+                if (stream != null)
+                {
+                    stream.Dispose();
+                    stream = null;
+                }
+            }
             return book;
         }
 

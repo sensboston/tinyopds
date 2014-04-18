@@ -6,8 +6,11 @@
  * This code is licensed under the Microsoft Public License, 
  * see http://tinyopds.codeplex.com/license for the details.
  *
- * One of the base project classes, the Library class
- * We are using static dictionaries instead of database
+ * One of the base project's classes, the Library class
+ * serves all database services using LINQ queries and
+ * static dictionaries
+ * 
+ * TODO: refactor this class to work with SQLite database
  * 
  ************************************************************/
 

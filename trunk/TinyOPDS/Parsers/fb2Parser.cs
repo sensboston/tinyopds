@@ -32,6 +32,8 @@ namespace TinyOPDS.Parsers
 {
     public class FB2Parser : BookParser
     {
+        private XDocument xml = null;
+
         private static SgmlDtd LoadFb2Dtd(SgmlReader sgml)
         {
             Contract.Requires(sgml != null);
@@ -55,7 +57,6 @@ namespace TinyOPDS.Parsers
         /// <returns></returns>
         public override Book Parse(Stream stream, string fileName)
         {
-            XDocument xml = null;
             Book book = new Book(fileName);
             book.DocumentSize = (UInt32)stream.Length;
 
@@ -176,8 +177,11 @@ namespace TinyOPDS.Parsers
             }
             finally
             {
-                // Dispose xml document
-                xml = null;
+                if (stream != null)
+                {
+                    stream.Dispose();
+                    stream = null;
+                }
             }
 
             return book;
@@ -191,7 +195,6 @@ namespace TinyOPDS.Parsers
         public override Image GetCoverImage(Stream stream, string fileName)
         {
             Image image = null;
-            XDocument xml = null;
             try
             {
                 FB2File fb2 = new FB2File();
@@ -223,8 +226,6 @@ namespace TinyOPDS.Parsers
             {
                 Log.WriteLine(LogLevel.Error, "Book.GetCoverImage() exception {0} on file: {1}", e.Message, fileName);
             }
-            // Dispose xml document
-            xml = null;
             return image;
         }
 

@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TinyOPDS", "TinyOPDS.csproj", "{D4508020-1E2C-4D8E-B879-77D5C213E8EC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TinyOPDSConsole", "..\TinyOPDSConsole\TinyOPDSConsole.csproj", "{5A92FA9B-B91C-48F4-9488-77103868D226}"
+EndProject
+Global
+	GlobalSection(SubversionScc) = preSolution
+		Svn-Managed = True
+		Manager = AnkhSVN - Subversion Support for Visual Studio
+	EndGlobalSection
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Full debug|Any CPU = Full debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D4508020-1E2C-4D8E-B879-77D5C213E8EC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D4508020-1E2C-4D8E-B879-77D5C213E8EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D4508020-1E2C-4D8E-B879-77D5C213E8EC}.Full debug|Any CPU.ActiveCfg = Full debug|Any CPU
+		{D4508020-1E2C-4D8E-B879-77D5C213E8EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D4508020-1E2C-4D8E-B879-77D5C213E8EC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5A92FA9B-B91C-48F4-9488-77103868D226}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5A92FA9B-B91C-48F4-9488-77103868D226}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5A92FA9B-B91C-48F4-9488-77103868D226}.Full debug|Any CPU.ActiveCfg = Release|Any CPU
+		{5A92FA9B-B91C-48F4-9488-77103868D226}.Full debug|Any CPU.Build.0 = Release|Any CPU
+		{5A92FA9B-B91C-48F4-9488-77103868D226}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5A92FA9B-B91C-48F4-9488-77103868D226}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

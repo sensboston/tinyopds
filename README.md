@@ -2,7 +2,7 @@
 
 Lightweight and simple OPDS server for the home use
 
-
+![](https://github.com/sensboston/tinyopds/blob/master/wiki/Home_screen1-en.jpg?raw=true)
 
 TinyOPDS is a lightweight, simple OPDS server for Windows, written on C#. Does not require database engine or web server. Just copy executable to the folder with read/write access (for example, to the C:\Users\User\Desktop (or /home/user/tinyopds), run the application, select your "book storage", i.e. folder with epub and fb2 books (files may be stored to archive(s)) and press "Start scanning" button.
 

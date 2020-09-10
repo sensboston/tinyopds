@@ -13,11 +13,7 @@
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <IsWebBootstrapper>false</IsWebBootstrapper>
-    <TargetFrameworkProfile>Client</TargetFrameworkProfile>
-    <SccProjectName>Svn</SccProjectName>
-    <SccLocalPath>Svn</SccLocalPath>
-    <SccAuxPath>Svn</SccAuxPath>
-    <SccProvider>SubversionScc</SccProvider>
+    <TargetFrameworkProfile />
     <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Disk</InstallFrom>
@@ -32,11 +28,15 @@
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
+    <SccProjectName>Svn</SccProjectName>
+    <SccLocalPath>Svn</SccLocalPath>
+    <SccAuxPath>Svn</SccAuxPath>
+    <SccProvider>SubversionScc</SccProvider>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
     <DebugSymbols>true</DebugSymbols>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG</DefineConstants>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
     <DebugType>full</DebugType>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <CodeAnalysisLogFile>bin\Debug\TinyOPDS.exe.CodeAnalysisLog.xml</CodeAnalysisLogFile>
@@ -64,8 +64,6 @@
     <CodeAnalysisRuleDirectories>;C:\Program Files\Microsoft Visual Studio 10.0\Team Tools\Static Analysis Tools\FxCop\\Rules</CodeAnalysisRuleDirectories>
     <CodeAnalysisIgnoreBuiltInRules>true</CodeAnalysisIgnoreBuiltInRules>
     <CodeAnalysisIgnoreGeneratedCode>true</CodeAnalysisIgnoreGeneratedCode>
-    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
-    <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationIcon>TinyOPDS.ico</ApplicationIcon>
@@ -90,42 +88,15 @@
   <PropertyGroup>
     <StartupObject>TinyOPDS.Program</StartupObject>
   </PropertyGroup>
-  <PropertyGroup>
-    <SignAssembly>false</SignAssembly>
-  </PropertyGroup>
-  <PropertyGroup>
-    <AssemblyOriginatorKeyFile>
-    </AssemblyOriginatorKeyFile>
-  </PropertyGroup>
-  <PropertyGroup>
-    <TargetZone>LocalIntranet</TargetZone>
-  </PropertyGroup>
-  <PropertyGroup>
-    <GenerateManifests>false</GenerateManifests>
-  </PropertyGroup>
-  <PropertyGroup>
-    <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
-  </PropertyGroup>
   <ItemGroup>
-    <Reference Include="eBdb.EpubReader, Version=1.0.0.6, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>Libs\eBdb.EpubReader.dll</HintPath>
-    </Reference>
-    <Reference Include="FB2Library, Version=1.0.22.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>Libs\FB2Library.dll</HintPath>
-    </Reference>
-    <Reference Include="Ionic.Zip.Reduced, Version=1.9.1.9000, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>Libs\Ionic.Zip.Reduced.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
-    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Xml" />
+    <Reference Include="System.Web" />
     <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Deployment" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Data\Book.cs" />
@@ -133,9 +104,6 @@
     <Compile Include="Data\Genre.cs" />
     <Compile Include="Data\ImagesCache.cs" />
     <Compile Include="Data\Library.cs" />
-    <Compile Include="SgmlReader\SgmlParser.cs" />
-    <Compile Include="SgmlReader\SgmlReader.cs" />
-    <EmbeddedResource Include="a_aliases.txt.gz" />
     <None Include="Libs\gzip.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
@@ -143,19 +111,15 @@
     <Compile Include="MainForm.Designer.cs">
       <DependentUpon>MainForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="Misc\Crypt.cs" />
-    <Compile Include="Misc\CustomSettingsProvider.cs" />
     <Compile Include="Misc\Localizer.cs" />
     <Compile Include="Misc\Log.cs" />
     <Compile Include="Misc\OPDSComparer.cs" />
-    <Compile Include="Misc\ServiceTools.cs" />
     <Compile Include="Misc\StringUtils.cs" />
     <Compile Include="Misc\UPnP.cs" />
     <Compile Include="OPDS\AuthorsCatalog.cs" />
     <Compile Include="OPDS\BooksCatalog.cs" />
     <Compile Include="OPDS\GenresCatalog.cs" />
     <Compile Include="OPDS\Links.cs" />
-    <Compile Include="OPDS\NewBooksCatalog.cs" />
     <Compile Include="OPDS\OpenSearch.cs" />
     <Compile Include="OPDS\RootCatalog.cs" />
     <Compile Include="OPDS\Namespaces.cs" />
@@ -187,7 +151,6 @@
       <DesignTime>True</DesignTime>
     </Compile>
     <None Include="app.config" />
-    <None Include="Properties\app.manifest" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -225,30 +188,45 @@
       <Install>true</Install>
     </BootstrapperPackage>
   </ItemGroup>
+  <ItemGroup Condition=" '$(Configuration)' == 'Full debug' ">
+    <ProjectReference Include="..\dotNetZip\Zip Reduced\Zip Reduced.csproj">
+      <Project>{49A128D3-C3F2-46B1-8F7A-EECD209EA860}</Project>
+      <Name>Zip Reduced</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ePubReader\ePubReader\ePubReader.csproj">
+      <Project>{B5D1C9DA-D5F6-42CD-B639-E6796DD2BDBB}</Project>
+      <Name>ePubReader</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\fb2library\FB2Library.csproj">
+      <Project>{4DEC5888-E71A-4D00-93B7-7F11C92D0A3F}</Project>
+      <Name>FB2Library</Name>
+    </ProjectReference>
+  </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="xml2html.xsl" />
-    <EmbeddedResource Include="Resources\fb2.dtd" />
-    <None Include="TinyOPDS.png" />
     <EmbeddedResource Include="translation.xml" />
     <EmbeddedResource Include="Icons\authors.ico" />
     <EmbeddedResource Include="Icons\books.ico" />
     <EmbeddedResource Include="Icons\favicon.ico" />
     <EmbeddedResource Include="Icons\genres.ico" />
     <EmbeddedResource Include="genres.xml" />
-    <None Include="donate.png" />
-    <None Include="Icons\folder.png" />
     <Content Include="Icons\lib.png" />
     <Content Include="Icons\TinyOPDS.ico" />
-    <Content Include="Libs\eBdb.EpubReader.dll" />
-    <Content Include="Libs\FB2Library.dll" />
-    <Content Include="Libs\Ionic.Zip.Reduced.dll" />
-    <Content Include="License.txt" />
-    <None Include="Resources\trayIcon.ico" />
     <Content Include="TinyOPDS.ico" />
+  </ItemGroup>
+  <ItemGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <None Include="Libs\eBdb.EpubReader.dll" />
+    <None Include="Libs\FB2Library.dll" />
+    <None Include="Libs\Ionic.Zip.Reduced.dll" />
+  </ItemGroup>
+  <ItemGroup Condition=" '$(Configuration)' == 'Release' ">
+    <None Include="Libs\eBdb.EpubReader.dll" />
+    <None Include="Libs\FB2Library.dll" />
+    <None Include="Libs\Ionic.Zip.Reduced.dll" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>if exist $(ProjectDir)\Sign\\ copy $(TargetPath) $(ProjectDir)\Sign</PostBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
   </PropertyGroup>
   <Target Name="BeforeBuild">
   </Target>

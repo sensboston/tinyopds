@@ -1,0 +1,29 @@
+﻿<Window x:Class="Tiny_ePub.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Tiny ePub (Example/Test Program)" Height="350" Width="525">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="25" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Menu IsMainMenu="True" >
+            <MenuItem Header="_File">
+                <MenuItem x:Name="MenuFileOpen" Header="_Open" Click="MenuFileOpen_Click" />
+                <Separator />
+                <MenuItem x:Name="MenuFileExit" Header="_Exit" Click="MenuFileExit_Click" />
+            </MenuItem>
+            <MenuItem Header="_View">
+                <MenuItem x:Name="MenuViewBoookInfo" Header="_Info" Click="MenuViewBoookInfo_Click" />
+                <!--<MenuItem x:Name="MenuViewContent" Header="_Content" Click="MenuViewContent_Click" />-->
+                <MenuItem x:Name="MenuViewBook" Header="_Book" Click="MenuViewBook_Click" />
+            </MenuItem>
+        </Menu>
+
+        <DockPanel Grid.Row="1">
+            <WebBrowser x:Name="BookDocBrowser" Visibility="Collapsed" />
+            <WebBrowser x:Name="InfoDocBrowser" Visibility="Collapsed" />
+        </DockPanel>
+    </Grid>
+</Window>

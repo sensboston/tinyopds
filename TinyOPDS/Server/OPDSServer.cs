@@ -12,11 +12,7 @@
 
 using System;
 using System.IO;
-using System.IO.Compression;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading;
 using System.Net;
 using System.Xml;
 using System.Xml.Xsl;
@@ -77,16 +73,16 @@ namespace TinyOPDS.Server
                 string request = processor.HttpUrl;
 
                 // Check for www request
-                bool isWWWRequest = request.StartsWith("/" + TinyOPDS.Properties.Settings.Default.HttpPrefix) && !request.StartsWith("/" + TinyOPDS.Properties.Settings.Default.RootPrefix) ? true : false;
+                bool isWWWRequest = request.StartsWith("/" + Properties.Settings.Default.HttpPrefix) && !request.StartsWith("/" + TinyOPDS.Properties.Settings.Default.RootPrefix) ? true : false;
 
                 // Remove prefix if any
-                if (!request.Contains("opds-opensearch.xml") && !string.IsNullOrEmpty(TinyOPDS.Properties.Settings.Default.RootPrefix))
+                if (!request.Contains("opds-opensearch.xml") && !string.IsNullOrEmpty(Properties.Settings.Default.RootPrefix))
                 {
-                    request = request.Replace(TinyOPDS.Properties.Settings.Default.RootPrefix, "/");
+                    request = request.Replace(Properties.Settings.Default.RootPrefix, "/");
                 }
-                if (!string.IsNullOrEmpty(TinyOPDS.Properties.Settings.Default.HttpPrefix))
+                if (!string.IsNullOrEmpty(Properties.Settings.Default.HttpPrefix))
                 {
-                    request = request.Replace(TinyOPDS.Properties.Settings.Default.HttpPrefix, "/");
+                    request = request.Replace(Properties.Settings.Default.HttpPrefix, "/");
                 }
 
                 while (request.IndexOf("//") >= 0) request = request.Replace("//", "/");
@@ -112,7 +108,7 @@ namespace TinyOPDS.Server
                 // User-agent check: some e-book readers can handle fb2 files (no conversion is  needed)
                 string userAgent = processor.HttpHeaders["User-Agent"] as string;
                 bool acceptFB2 = Utils.DetectFB2Reader(userAgent) || isWWWRequest;
-                int threshold = (int) (isWWWRequest ? TinyOPDS.Properties.Settings.Default.ItemsPerWebPage : TinyOPDS.Properties.Settings.Default.ItemsPerOPDSPage);
+                int threshold = (int) (isWWWRequest ? Properties.Settings.Default.ItemsPerWebPage : Properties.Settings.Default.ItemsPerOPDSPage);
 
                 // Is it OPDS request?
                 if (string.IsNullOrEmpty(ext))
@@ -186,7 +182,7 @@ namespace TinyOPDS.Server
                         // TODO: fix with standard way (how?)
                         xml = xml.Insert(xml.IndexOf("<feed ")+5, " xmlns=\"http://www.w3.org/2005/Atom\"");
 
-                        if (TinyOPDS.Properties.Settings.Default.UseAbsoluteUri)
+                        if (Properties.Settings.Default.UseAbsoluteUri)
                         {
                             try
                             {
@@ -315,7 +311,7 @@ namespace TinyOPDS.Server
                                         outputStream.CopyTo(processor.OutputStream.BaseStream);
                                     }
                                 }
-                                HttpServer.ServerStatistics.BooksSent++;
+                                ServerStatistics.BooksSent++;
                             }
                             catch (Exception e)
                             {
@@ -395,7 +391,7 @@ namespace TinyOPDS.Server
                                 processor.WriteSuccess("application/epub+zip");
                                 memStream.Position = 0;
                                 memStream.CopyTo(processor.OutputStream.BaseStream);
-                                HttpServer.ServerStatistics.BooksSent++;
+                                ServerStatistics.BooksSent++;
                             }
 
                             catch (Exception e)
@@ -448,7 +444,7 @@ namespace TinyOPDS.Server
                                 processor.WriteSuccess("image/jpeg");
                                 (getCover ? image.CoverImageStream : image.ThumbnailImageStream).CopyTo(processor.OutputStream.BaseStream);
                                 processor.OutputStream.BaseStream.Flush();
-                                HttpServer.ServerStatistics.ImagesSent++;
+                                ServerStatistics.ImagesSent++;
                                 return;
                             }
                         }
@@ -458,7 +454,7 @@ namespace TinyOPDS.Server
                 else if (ext.Contains(".ico"))
                 {
                     string icon = Path.GetFileName(request);
-                    Stream stream = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream(Assembly.GetExecutingAssembly().GetName().Name + ".Icons." + icon);
+                    Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(Assembly.GetExecutingAssembly().GetName().Name + ".Icons." + icon);
                     if (stream != null && stream.Length > 0)
                     {
                         processor.WriteSuccess("image/x-icon");

@@ -1,14 +1,9 @@
 ﻿/***********************************************************
  * This file is a part of TinyOPDS server project
- * 
- * Copyright (c) 2013 SeNSSoFT
- *
- * This code is licensed under the Microsoft Public License, 
- * see http://tinyopds.codeplex.com/license for the details.
  *
  * Enhanced HTTP server implementation with improved
  * stability, thread safety, and resource management
- * 
+ *
  ************************************************************/
 
 using System;
@@ -22,6 +17,11 @@ using System.Net.Sockets;
 using System.Threading;
 using System.ComponentModel;
 using System.Text;
+
+// IMPORTANT: we need types and extensions from TinyOPDS root namespace:
+// - Log, Utils.CreateGuid(...)
+// - StringExtensions.DecodeFromBase64()
+using TinyOPDS;
 
 namespace TinyOPDS.Server
 {
@@ -58,7 +58,7 @@ namespace TinyOPDS.Server
 
         // Enhanced constants
         private const int MAX_POST_SIZE = 1024 * 1024; // 1 MB
-        private const int OUTPUT_BUFFER_SIZE = 64 * 1024; // 64 KB - more reasonable for books
+        private const int OUTPUT_BUFFER_SIZE = 64 * 1024; // 64 KB
         private const int INPUT_BUFFER_SIZE = 32 * 1024; // 32 KB
         private const int READ_TIMEOUT_MS = 30000; // 30 seconds
         private const int MAX_HEADER_SIZE = 8192; // 8 KB max for headers
@@ -137,6 +137,27 @@ namespace TinyOPDS.Server
         }
 
         /// <summary>
+        /// Lazily ensure OutputStream is created even for early-error paths.
+        /// </summary>
+        private void EnsureOutputStream()
+        {
+            if (OutputStream != null || Socket == null) return;
+            try
+            {
+                var net = Socket.GetStream();
+                OutputStream = new StreamWriter(new BufferedStream(net, OUTPUT_BUFFER_SIZE), Encoding.UTF8)
+                {
+                    AutoFlush = false
+                };
+            }
+            catch (Exception e)
+            {
+                // If we cannot create an OutputStream, we can only log.
+                Log.WriteLine(LogLevel.Error, "EnsureOutputStream() failed: {0}", e.Message);
+            }
+        }
+
+        /// <summary>
         /// Enhanced stream reading with timeout and proper error handling
         /// </summary>
         private string StreamReadLine(Stream inputStream, CancellationToken cancellationToken)
@@ -188,14 +209,14 @@ namespace TinyOPDS.Server
                 if (ParseRequest())
                 {
                     // Enhanced output stream
-                    OutputStream = new StreamWriter(
-                        new BufferedStream(Socket.GetStream(), OUTPUT_BUFFER_SIZE),
-                        Encoding.UTF8)
-                    {
-                        AutoFlush = false // Manual flushing for better control
-                    };
-
+                    EnsureOutputStream();
                     ProcessRequestSafely();
+                }
+                else
+                {
+                    // Malformed start-line
+                    EnsureOutputStream();
+                    WriteBadRequest();
                 }
             }
             catch (ObjectDisposedException)
@@ -207,11 +228,11 @@ namespace TinyOPDS.Server
                 Log.WriteLine(LogLevel.Error, "Process() exception: {0}", e.Message);
                 try
                 {
+                    EnsureOutputStream();
                     WriteFailure();
                 }
                 catch
                 {
-                    // If we can't even write failure response, just log and exit
                     Log.WriteLine(LogLevel.Error, "Failed to write error response");
                 }
             }
@@ -557,16 +578,14 @@ namespace TinyOPDS.Server
         {
             try
             {
+                EnsureOutputStream();
                 OutputStream.WriteLine("HTTP/1.1 200 OK");
                 OutputStream.WriteLine($"Content-Type: {contentType}");
                 OutputStream.WriteLine($"Date: {DateTime.UtcNow:R}");
                 OutputStream.WriteLine("Server: TinyOPDS/2.0");
-
-                if (isGZip)
-                    OutputStream.WriteLine("Content-Encoding: gzip");
-
+                if (isGZip) OutputStream.WriteLine("Content-Encoding: gzip");
                 OutputStream.WriteLine("Connection: close");
-                OutputStream.WriteLine(); // Empty line to end headers
+                OutputStream.WriteLine();
                 OutputStream.Flush();
             }
             catch (Exception e)
@@ -579,7 +598,8 @@ namespace TinyOPDS.Server
         {
             try
             {
-                OutputStream.WriteLine("HTTP/1.1 404 Not Found");
+                EnsureOutputStream();
+                OutputStream.WriteLine("HTTP/1.1 500 Internal Server Error");
                 OutputStream.WriteLine($"Date: {DateTime.UtcNow:R}");
                 OutputStream.WriteLine("Server: TinyOPDS/2.0");
                 OutputStream.WriteLine("Connection: close");
@@ -592,10 +612,29 @@ namespace TinyOPDS.Server
             }
         }
 
+        public void WriteBadRequest()
+        {
+            try
+            {
+                EnsureOutputStream();
+                OutputStream.WriteLine("HTTP/1.1 400 Bad Request");
+                OutputStream.WriteLine($"Date: {DateTime.UtcNow:R}");
+                OutputStream.WriteLine("Server: TinyOPDS/2.0");
+                OutputStream.WriteLine("Connection: close");
+                OutputStream.WriteLine();
+                OutputStream.Flush();
+            }
+            catch (Exception e)
+            {
+                Log.WriteLine(LogLevel.Error, "WriteBadRequest() exception: {0}", e.Message);
+            }
+        }
+
         public void WriteNotAuthorized()
         {
             try
             {
+                EnsureOutputStream();
                 OutputStream.WriteLine("HTTP/1.1 401 Unauthorized");
                 OutputStream.WriteLine("WWW-Authenticate: Basic realm=\"TinyOPDS\"");
                 OutputStream.WriteLine($"Date: {DateTime.UtcNow:R}");
@@ -614,6 +653,7 @@ namespace TinyOPDS.Server
         {
             try
             {
+                EnsureOutputStream();
                 OutputStream.WriteLine("HTTP/1.1 403 Forbidden");
                 OutputStream.WriteLine($"Date: {DateTime.UtcNow:R}");
                 OutputStream.WriteLine("Server: TinyOPDS/2.0");
@@ -631,6 +671,7 @@ namespace TinyOPDS.Server
         {
             try
             {
+                EnsureOutputStream();
                 OutputStream.WriteLine("HTTP/1.1 405 Method Not Allowed");
                 OutputStream.WriteLine("Allow: GET, POST");
                 OutputStream.WriteLine($"Date: {DateTime.UtcNow:R}");

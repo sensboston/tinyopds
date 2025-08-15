@@ -17,13 +17,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using System.Xml;
 using System.Xml.Linq;
 using System.Drawing;
 using System.Drawing.Imaging;
 
 using FB2Library;
-using FB2Library.HeaderItems;
 using FB2Library.Elements;
 using TinyOPDS.Data;
 using TinyOPDS.Sgml;

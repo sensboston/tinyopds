@@ -13,16 +13,8 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
-using System.Xml;
-using System.Xml.Linq;
-using System.Text;
 using System.ComponentModel;
-#if !CONSOLE
-using System.Windows.Forms;
-#endif
-using System.Threading;
 
 using TinyOPDS.Data;
 using TinyOPDS.Parsers;

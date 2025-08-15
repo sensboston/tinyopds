@@ -12,13 +12,8 @@
  * 
  ************************************************************/
 
-using System;
-using System.IO;
 using System.Collections.Generic;
 using System.Linq;
-using System.ComponentModel;
-using System.Threading;
-using System.Drawing;
 
 namespace TinyOPDS.Data
 {
@@ -34,7 +29,7 @@ namespace TinyOPDS.Data
         public static void Add(CoverImage image)
         {
             // Add image to cache for "large memory" profile only
-            if (!TinyOPDS.Properties.Settings.Default.LowMemoryProfile)
+            if (!Properties.Settings.Default.LowMemoryProfile)
             {
                 if (!_cache.ContainsKey(image.ID))
                 {

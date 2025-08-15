@@ -14,13 +14,7 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
-using System.Xml;
-using System.Xml.Linq;
-using System.Text;
-using System.ComponentModel;
-using System.Threading;
 
 using Ionic.Zip;
 using TinyOPDS.Data;

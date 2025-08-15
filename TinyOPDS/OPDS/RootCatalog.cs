@@ -6,14 +6,11 @@
  * This code is licensed under the Microsoft Public License, 
  * see http://tinyopds.codeplex.com/license for the details.
  *
- * This module defines the OPDS RootCatalog class
+ * This module defines the OPDS RootCatalog class with SQLite support
  * 
  ************************************************************/
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Xml.Linq;
 
 using TinyOPDS.Data;
@@ -45,7 +42,7 @@ namespace TinyOPDS.OPDS
                       Links.start,
                       Links.self,
 
-                      // Add new books entry (if we have a new books of course!)
+                      // Add new books entry (if we have a new books of course!) - use SQLite version
                       Library.NewBooksCount == 0 ? null :
                       new XElement("entry",
                           new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
@@ -64,7 +61,7 @@ namespace TinyOPDS.OPDS
                           new XElement("link", new XAttribute("href", "/newtitle"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                           ),
 
-                      // Add catalog entries
+                      // Add catalog entries - use SQLite version
                       new XElement("entry",
                           new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                           new XElement("id", "tag:root:authors"),

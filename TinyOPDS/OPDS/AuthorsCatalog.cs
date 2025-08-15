@@ -6,7 +6,7 @@
  * This code is licensed under the Microsoft Public License, 
  * see http://tinyopds.codeplex.com/license for the details.
  *
- * This module defines the OPDS AuthorsCatalog class
+ * This module defines the OPDS AuthorsCatalog class with SQLite support
  * 
  ************************************************************/
 
@@ -47,7 +47,7 @@ namespace TinyOPDS.OPDS
                     Links.opensearch, Links.search, Links.start)
                 );
 
-            // Get all authors names starting with searchPattern
+            // Get all authors names starting with searchPattern - use SQLite version
             List<string> Authors = Library.GetAuthorsByName(searchPattern, isOpenSearch);
 
             // For search, also check transliterated names
@@ -70,10 +70,11 @@ namespace TinyOPDS.OPDS
                 do
                 {
                     catalogGroups = (from a in Authors
-                           group a by (a.Length > searchPattern.Length ? a.Substring(0, searchPattern.Length + 1).Capitalize(true)
-                                                                       : a.Capitalize(true)) into g
-                           where g.Count() > 1
-                           select new { Name = g, Count = g.Count() }).ToDictionary(x => x.Name.Key, y => y.Count);
+                                     group a by (a.Length > searchPattern.Length ?
+                                                                                 a.Substring(0, searchPattern.Length + 1).Capitalize(true)
+                                                                                 : a.Capitalize(true)) into g
+                                     where g.Count() > 1
+                                     select new { Name = g, Count = g.Count() }).ToDictionary(x => x.Name.Key, y => y.Count);
 
                     if (catalogGroups.Count == 1) searchPattern = catalogGroups.First().Key;
                     else break;
@@ -107,6 +108,7 @@ namespace TinyOPDS.OPDS
             // Add catalog entries
             foreach (string author in Authors)
             {
+                // Use SQLite version for book count
                 var booksCount = Library.GetBooksByAuthorCount(author);
 
                 doc.Root.Add(

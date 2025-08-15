@@ -6,7 +6,7 @@
  * This code is licensed under the Microsoft Public License, 
  * see http://tinyopds.codeplex.com/license for the details.
  *
- * TinyOPDS main UI thread
+ * TinyOPDS main UI thread with SQLite migration support
  * 
  ************************************************************/
 
@@ -42,6 +42,9 @@ namespace TinyOPDS
         BindingSource bs = new BindingSource();
         System.Windows.Forms.Timer _updateChecker = new System.Windows.Forms.Timer();
         string _updateUrl = string.Empty;
+
+        // SQLite mode flag
+        private bool _useSQLite = true;
 
         #region Statistical information
         int _fb2Count, _epubCount, _skippedFiles, _invalidFiles, _duplicates;
@@ -100,37 +103,53 @@ namespace TinyOPDS
             foreach (DataGridViewColumn col in dataGridView1.Columns) col.Width = 180;
 
             Library.LibraryPath = TinyOPDS.Properties.Settings.Default.LibraryPath.SanitizePathName();
-            Library.LibraryLoaded += (_, __) => 
+
+            // Initialize SQLite database with automatic migration
+            InitializeSQLiteDatabase();
+
+            if (_useSQLite)
             {
-                UpdateInfo();
-                _watcher.DirectoryToWatch = Library.LibraryPath;
-                _watcher.IsEnabled = TinyOPDS.Properties.Settings.Default.WatchLibrary;
-            };
+                Library.LibraryLoaded += (_, __) =>
+                {
+                    UpdateInfo();
+                    _watcher.DirectoryToWatch = Library.LibraryPath;
+                    _watcher.IsEnabled = TinyOPDS.Properties.Settings.Default.WatchLibrary;
+                };
+            }
+            else
+            {
+                Library.LibraryLoaded += (_, __) =>
+                {
+                    UpdateInfo();
+                    _watcher.DirectoryToWatch = Library.LibraryPath;
+                    _watcher.IsEnabled = TinyOPDS.Properties.Settings.Default.WatchLibrary;
+                };
+            }
 
             // Create file watcher
             _watcher = new Watcher(Library.LibraryPath);
-            _watcher.OnBookAdded += (object sender, BookAddedEventArgs e) => 
-                {
-                    if (e.BookType == BookType.FB2) _fb2Count++; else _epubCount++;
-                    UpdateInfo();
-                    Log.WriteLine(LogLevel.Info, "Added: \"{0}\"", e.BookPath);
-                };
-            _watcher.OnInvalidBook += (_, __) => 
-                {
-                    _invalidFiles++;
-                    UpdateInfo();
-                };
+            _watcher.OnBookAdded += (object sender, BookAddedEventArgs e) =>
+            {
+                if (e.BookType == BookType.FB2) _fb2Count++; else _epubCount++;
+                UpdateInfo();
+                Log.WriteLine(LogLevel.Info, "Added: \"{0}\"", e.BookPath);
+            };
+            _watcher.OnInvalidBook += (_, __) =>
+            {
+                _invalidFiles++;
+                UpdateInfo();
+            };
             _watcher.OnFileSkipped += (object _sender, FileSkippedEventArgs _e) =>
-                {
-                    _skippedFiles = _e.Count;
-                    UpdateInfo();
-                };
+            {
+                _skippedFiles = _e.Count;
+                UpdateInfo();
+            };
 
-            _watcher.OnBookDeleted += (object sender, BookDeletedEventArgs e) => 
-                {
-                    UpdateInfo();
-                    Log.WriteLine(LogLevel.Info, "Deleted: \"{0}\"", e.BookPath);
-                };
+            _watcher.OnBookDeleted += (object sender, BookDeletedEventArgs e) =>
+            {
+                UpdateInfo();
+                Log.WriteLine(LogLevel.Info, "Deleted: \"{0}\"", e.BookPath);
+            };
             _watcher.IsEnabled = false;
 
             intLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), TinyOPDS.Properties.Settings.Default.ServerPort, rootPrefix.Text);
@@ -141,18 +160,18 @@ namespace TinyOPDS
 
             // Set server statistics handler
             HttpServer.ServerStatistics.StatisticsUpdated += (_, __) =>
+            {
+                this.BeginInvoke((MethodInvoker)delegate
                 {
-                    this.BeginInvoke((MethodInvoker)delegate
-                    {
-                        statRequests.Text = HttpServer.ServerStatistics.GetRequests.ToString();
-                        statBooks.Text = HttpServer.ServerStatistics.BooksSent.ToString();
-                        statImages.Text = HttpServer.ServerStatistics.ImagesSent.ToString();
-                        statUniqueClients.Text = HttpServer.ServerStatistics.UniqueClientsCount.ToString();
-                        statGoodLogins.Text = HttpServer.ServerStatistics.SuccessfulLoginAttempts.ToString();
-                        statWrongLogins.Text = HttpServer.ServerStatistics.WrongLoginAttempts.ToString();
-                        statBannedClients.Text = HttpServer.ServerStatistics.BannedClientsCount.ToString();
-                    });
-                };
+                    statRequests.Text = HttpServer.ServerStatistics.GetRequests.ToString();
+                    statBooks.Text = HttpServer.ServerStatistics.BooksSent.ToString();
+                    statImages.Text = HttpServer.ServerStatistics.ImagesSent.ToString();
+                    statUniqueClients.Text = HttpServer.ServerStatistics.UniqueClientsCount.ToString();
+                    statGoodLogins.Text = HttpServer.ServerStatistics.SuccessfulLoginAttempts.ToString();
+                    statWrongLogins.Text = HttpServer.ServerStatistics.WrongLoginAttempts.ToString();
+                    statBannedClients.Text = HttpServer.ServerStatistics.BannedClientsCount.ToString();
+                });
+            };
 
             _scanStartTime = DateTime.Now;
             _notifyIcon.Visible = TinyOPDS.Properties.Settings.Default.CloseToTray;
@@ -167,6 +186,13 @@ namespace TinyOPDS
         {
             _upnpController.DiscoverCompleted += _upnpController_DiscoverCompleted;
             _upnpController.DiscoverAsync(TinyOPDS.Properties.Settings.Default.UseUPnP);
+
+            // Update UI after form is fully loaded
+            if (_useSQLite)
+            {
+                UpdateInfo(); // Show correct book counts
+                databaseFileName.Text = "books.sqlite";
+            }
         }
 
         /// <summary>
@@ -213,6 +239,167 @@ namespace TinyOPDS
 
         #endregion
 
+        #region SQLite Migration
+
+        /// <summary>
+        /// Initialize SQLite database with automatic migration
+        /// </summary>
+        private void InitializeSQLiteDatabase()
+        {
+            try
+            {
+                // Determine database paths
+                string libraryPath = TinyOPDS.Properties.Settings.Default.LibraryPath.SanitizePathName();
+                string binaryDbPath = GetBinaryDatabasePath(libraryPath);
+                string sqliteDbPath = GetSQLiteDatabasePath();
+
+                Log.WriteLine("Initializing SQLite database...");
+                Log.WriteLine("Library path: {0}", libraryPath);
+                Log.WriteLine("Binary database: {0}", binaryDbPath);
+                Log.WriteLine("SQLite database: {0}", sqliteDbPath);
+
+                // Initialize SQLite
+                Library.LibraryPath = libraryPath;
+                Library.Initialize(sqliteDbPath);
+
+                // Check if migration is needed
+                if (NeedsMigration(binaryDbPath, sqliteDbPath))
+                {
+                    PerformMigration(binaryDbPath);
+                }
+
+                Log.WriteLine("✓ SQLite database successfully initialized");
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "✗ Error initializing SQLite: {0}", ex.Message);
+                _useSQLite = false; // Fallback to original mode
+            }
+        }
+
+        /// <summary>
+        /// Get binary database path (same logic as original)
+        /// </summary>
+        /// <param name="libraryPath"></param>
+        /// <returns></returns>
+        private string GetBinaryDatabasePath(string libraryPath)
+        {
+            string dbFileName = Utils.CreateGuid(Utils.IsoOidNamespace, libraryPath).ToString() + ".db";
+            return Path.Combine(Utils.ServiceFilesLocation, dbFileName);
+        }
+
+        /// <summary>
+        /// Get SQLite database path
+        /// </summary>
+        /// <returns></returns>
+        private string GetSQLiteDatabasePath()
+        {
+            return Path.Combine(Utils.ServiceFilesLocation, "books.sqlite");
+        }
+
+        /// <summary>
+        /// Check if migration is needed
+        /// </summary>
+        /// <param name="binaryDbPath"></param>
+        /// <param name="sqliteDbPath"></param>
+        /// <returns></returns>
+        private bool NeedsMigration(string binaryDbPath, string sqliteDbPath)
+        {
+            // Migration needed if binary DB exists but SQLite is empty or doesn't exist
+            if (!File.Exists(binaryDbPath))
+            {
+                Log.WriteLine("No binary database found, no migration needed");
+                return false;
+            }
+
+            if (!File.Exists(sqliteDbPath))
+            {
+                Log.WriteLine("SQLite database doesn't exist, migration needed");
+                return true;
+            }
+
+            // Check if SQLite database is empty
+            int sqliteCount = Library.Count;
+            Log.WriteLine("SQLite database has {0} books", sqliteCount);
+
+            return sqliteCount == 0;
+        }
+
+        /// <summary>
+        /// Perform migration from binary to SQLite
+        /// </summary>
+        /// <param name="binaryDbPath"></param>
+        private void PerformMigration(string binaryDbPath)
+        {
+            try
+            {
+                Log.WriteLine("Starting migration from binary database to SQLite...");
+
+                var start = DateTime.Now;
+                Library.MigrateFromBinaryDatabase(binaryDbPath);
+                var elapsed = DateTime.Now - start;
+
+                int migratedCount = Library.Count;
+                Log.WriteLine("✓ Migration completed: {0} books migrated in {1} ms",
+                    migratedCount, elapsed.TotalMilliseconds);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "✗ Migration failed: {0}", ex.Message);
+                _useSQLite = false;
+            }
+        }
+
+        /// <summary>
+        /// Wrapper for Library.Add with SQLite support
+        /// </summary>
+        /// <param name="book"></param>
+        /// <returns></returns>
+        private bool AddBook(Book book)
+        {
+            if (_useSQLite)
+            {
+                return Library.Add(book);
+            }
+            else
+            {
+                return Library.Add(book);
+            }
+        }
+
+        /// <summary>
+        /// Wrapper for Library.Save with SQLite support
+        /// </summary>
+        private void SaveLibrary()
+        {
+            if (_useSQLite)
+            {
+                Library.Save();
+            }
+            else
+            {
+                Library.Save();
+            }
+        }
+
+        /// <summary>
+        /// Get library statistics with SQLite support
+        /// </summary>
+        /// <returns></returns>
+        private (int Total, int FB2, int EPUB) GetLibraryStats()
+        {
+            if (_useSQLite)
+            {
+                return (Library.Count, Library.FB2Count, Library.EPUBCount);
+            }
+            else
+            {
+                return (Library.Count, Library.FB2Count, Library.EPUBCount);
+            }
+        }
+
+        #endregion
+
         #region Application settings
 
         private void LoadSettings()
@@ -228,7 +415,14 @@ namespace TinyOPDS
             libraryPath.Text = TinyOPDS.Properties.Settings.Default.LibraryPath;
             if (!string.IsNullOrEmpty(TinyOPDS.Properties.Settings.Default.LibraryPath))
             {
-                databaseFileName.Text = Utils.CreateGuid(Utils.IsoOidNamespace, TinyOPDS.Properties.Settings.Default.LibraryPath.SanitizePathName()).ToString() + ".db";
+                if (_useSQLite)
+                {
+                    databaseFileName.Text = "books.sqlite";
+                }
+                else
+                {
+                    databaseFileName.Text = Utils.CreateGuid(Utils.IsoOidNamespace, TinyOPDS.Properties.Settings.Default.LibraryPath.SanitizePathName()).ToString() + ".db";
+                }
             }
             if (Utils.IsLinux) startWithWindows.Enabled = false;
             if (string.IsNullOrEmpty(TinyOPDS.Properties.Settings.Default.ConvertorPath))
@@ -267,7 +461,7 @@ namespace TinyOPDS
                 foreach (string pair in pairs)
                 {
                     string[] cred = pair.Split(':');
-                    if (cred.Length == 2) HttpProcessor.Credentials.Add( new Credential(cred[0], cred[1]));
+                    if (cred.Length == 2) HttpProcessor.Credentials.Add(new Credential(cred[0], cred[1]));
                 }
             }
             catch { }
@@ -302,13 +496,13 @@ namespace TinyOPDS
         {
             string s = string.Empty;
             foreach (Credential cred in HttpProcessor.Credentials) s += cred.User + ":" + cred.Password + ";";
-            try 
+            try
             {
-                TinyOPDS.Properties.Settings.Default.Credentials = string.IsNullOrEmpty(s) ? string.Empty : Crypt.EncryptStringAES(s, urlTemplate); 
+                TinyOPDS.Properties.Settings.Default.Credentials = string.IsNullOrEmpty(s) ? string.Empty : Crypt.EncryptStringAES(s, urlTemplate);
             }
-            finally 
+            finally
             {
-                TinyOPDS.Properties.Settings.Default.Save(); 
+                TinyOPDS.Properties.Settings.Default.Save();
             }
         }
 
@@ -318,7 +512,14 @@ namespace TinyOPDS
 
         private void libraryPath_TextChanged(object sender, EventArgs e)
         {
-            databaseFileName.Text = Utils.CreateGuid(Utils.IsoOidNamespace, libraryPath.Text.SanitizePathName()).ToString() + ".db";
+            if (_useSQLite)
+            {
+                databaseFileName.Text = "books.sqlite";
+            }
+            else
+            {
+                databaseFileName.Text = Utils.CreateGuid(Utils.IsoOidNamespace, libraryPath.Text.SanitizePathName()).ToString() + ".db";
+            }
         }
 
         private void libraryPath_Validated(object sender, EventArgs e)
@@ -328,11 +529,29 @@ namespace TinyOPDS
             {
                 if (Library.IsChanged) Library.Save();
                 Library.LibraryPath = TinyOPDS.Properties.Settings.Default.LibraryPath = libraryPath.Text.SanitizePathName();
+
+                var stats = GetLibraryStats();
                 booksInDB.Text = string.Format("{0}       fb2: {1}      epub: {2}", 0, 0, 0);
-                databaseFileName.Text = Utils.CreateGuid(Utils.IsoOidNamespace, TinyOPDS.Properties.Settings.Default.LibraryPath).ToString() + ".db";
+
+                if (_useSQLite)
+                {
+                    databaseFileName.Text = "books.sqlite";
+                }
+                else
+                {
+                    databaseFileName.Text = Utils.CreateGuid(Utils.IsoOidNamespace, TinyOPDS.Properties.Settings.Default.LibraryPath).ToString() + ".db";
+                }
+
                 _watcher.IsEnabled = false;
                 // Reload library
-                Library.LoadAsync();
+                if (_useSQLite)
+                {
+                    Library.Load();
+                }
+                else
+                {
+                    Library.LoadAsync();
+                }
             }
             else
             {
@@ -368,14 +587,14 @@ namespace TinyOPDS
             {
                 _scanner.OnBookFound += scanner_OnBookFound;
                 _scanner.OnInvalidBook += (_, __) => { _invalidFiles++; };
-                _scanner.OnFileSkipped += (object _sender, FileSkippedEventArgs _e) => 
-                { 
-                    _skippedFiles = _e.Count; 
-                    UpdateInfo(); 
-                };
-                _scanner.OnScanCompleted += (_, __) => 
+                _scanner.OnFileSkipped += (object _sender, FileSkippedEventArgs _e) =>
                 {
-                    Library.Save();
+                    _skippedFiles = _e.Count;
+                    UpdateInfo();
+                };
+                _scanner.OnScanCompleted += (_, __) =>
+                {
+                    SaveLibrary();
                     UpdateInfo(true);
 
                     Log.WriteLine("Directory scanner completed");
@@ -391,7 +610,7 @@ namespace TinyOPDS
             else
             {
                 _scanner.Stop();
-                Library.Save();
+                SaveLibrary();
                 UpdateInfo(true);
                 scannerButton.Text = Localizer.Text("Start scanning");
 
@@ -401,13 +620,15 @@ namespace TinyOPDS
 
         void scanner_OnBookFound(object sender, BookFoundEventArgs e)
         {
-            if (Library.Add(e.Book))
+            if (AddBook(e.Book))
             {
                 if (e.Book.BookType == BookType.FB2) _fb2Count++; else _epubCount++;
             }
             else _duplicates++;
-            if (Library.Count % 500 == 0) Library.Save();
-            if (Library.Count % 20000 == 0) GC.Collect();
+
+            var stats = GetLibraryStats();
+            if (stats.Total % 500 == 0) SaveLibrary();
+            if (stats.Total % 20000 == 0) GC.Collect();
             UpdateInfo();
         }
 
@@ -419,7 +640,8 @@ namespace TinyOPDS
 
         private void internalUpdateInfo(bool IsScanFinished)
         {
-            booksInDB.Text = string.Format("{0}       fb2: {1}      epub: {2}", Library.Count, Library.FB2Count,  Library.EPUBCount);
+            var stats = GetLibraryStats();
+            booksInDB.Text = string.Format("{0}       fb2: {1}      epub: {2}", stats.Total, stats.FB2, stats.EPUB);
             booksFound.Text = string.Format("fb2: {0}   epub: {1}", _fb2Count, _epubCount);
             skippedBooks.Text = _skippedFiles.ToString();
             invalidBooks.Text = _invalidFiles.ToString();
@@ -609,7 +831,16 @@ namespace TinyOPDS
             }
 
             if (_scanner.Status == FileScannerStatus.SCANNING) _scanner.Stop();
-            if (Library.IsChanged) Library.Save();
+
+            // Save library using appropriate method
+            if (_useSQLite)
+            {
+                if (Library.IsChanged) Library.Save();
+            }
+            else
+            {
+                if (Library.IsChanged) Library.Save();
+            }
 
             _notifyIcon.Visible = false;
 
@@ -741,8 +972,8 @@ namespace TinyOPDS
         private void langCombo_SelectedValueChanged(object sender, EventArgs e)
         {
             Localizer.SetLanguage(this, langCombo.SelectedValue as string);
-            appVersion.Text = string.Format(Localizer.Text("version {0}.{1} {2}"), Utils.Version.Major, Utils.Version.Minor, Utils.Version.Major == 0?" (beta)":"");
-            scannerButton.Text = Localizer.Text( (_scanner.Status == FileScannerStatus.STOPPED) ? "Start scanning" : "Stop scanning");
+            appVersion.Text = string.Format(Localizer.Text("version {0}.{1} {2}"), Utils.Version.Major, Utils.Version.Minor, Utils.Version.Major == 0 ? " (beta)" : "");
+            scannerButton.Text = Localizer.Text((_scanner.Status == FileScannerStatus.STOPPED) ? "Start scanning" : "Stop scanning");
             serverButton.Text = Localizer.Text((_server == null) ? "Start server" : "Stop server");
             serverMenuItem.Text = Localizer.Text((_server == null) ? "Start server" : "Stop server");
             windowMenuItem.Text = Localizer.Text(Visible || ShowInTaskbar ? "Hide window" : "Show window");
@@ -844,7 +1075,7 @@ namespace TinyOPDS
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        static int[] checkIntervals = new int[] { 0, 60 * 24 * 7, 60 * 24 * 30, 1};
+        static int[] checkIntervals = new int[] { 0, 60 * 24 * 7, 60 * 24 * 30, 1 };
         static int _timerCallsCount = 0;
         void _updateChecker_Tick(object sender, EventArgs e)
         {
@@ -931,7 +1162,14 @@ namespace TinyOPDS
             {
                 // Reload library
                 _watcher.IsEnabled = false;
-                Library.LoadAsync();
+                if (_useSQLite)
+                {
+                    Library.Load();
+                }
+                else
+                {
+                    Library.LoadAsync();
+                }
             }
         }
 

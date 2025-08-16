@@ -46,13 +46,6 @@ namespace TinyOPDS.Data
 
             try
             {
-                // Check if file exists first
-                if (!File.Exists(book.FilePath))
-                {
-                    Log.WriteLine(LogLevel.Error, "Book file not found: {0}", book.FilePath);
-                    return;
-                }
-
                 using (MemoryStream memStream = new MemoryStream())
                 {
                     if (book.FilePath.ToLower().Contains(".zip@"))
@@ -83,6 +76,13 @@ namespace TinyOPDS.Data
                     }
                     else
                     {
+                        // For regular files, check existence
+                        if (!File.Exists(book.FilePath))
+                        {
+                            Log.WriteLine(LogLevel.Error, "Book file not found: {0}", book.FilePath);
+                            return;
+                        }
+
                         using (FileStream stream = new FileStream(book.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
                         {
                             stream.CopyTo(memStream);

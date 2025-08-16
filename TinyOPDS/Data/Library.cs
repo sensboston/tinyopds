@@ -468,7 +468,7 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Get book by ID with enhanced logging for debugging
+        /// Get book by ID - simplified version without file existence check
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
@@ -491,16 +491,11 @@ namespace TinyOPDS.Data
             {
                 Log.WriteLine(LogLevel.Info, "Found book: {0}, HasCover: {1}, FilePath: {2}",
                     book.Title, book.HasCover, book.FilePath);
-
-                // Verify file exists
-                if (!File.Exists(book.FilePath))
-                {
-                    Log.WriteLine(LogLevel.Warning, "Book file does not exist: {0}", book.FilePath);
-                }
             }
 
             return book;
         }
+
 
         /// <summary>
         /// Remove books that no longer exist on disk

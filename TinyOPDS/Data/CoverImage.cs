@@ -17,6 +17,8 @@ using System.Linq;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Drawing.Drawing2D;
+using System.Drawing.Text;
+using System.Reflection;
 
 using Ionic.Zip;
 using TinyOPDS.Parsers;
@@ -117,6 +119,233 @@ namespace TinyOPDS.Data
                 Log.WriteLine(LogLevel.Error, "Exception in CoverImage constructor for file {0}: {1}", book.FilePath, e.Message);
                 Log.WriteLine(LogLevel.Error, "Stack trace: {0}", e.StackTrace);
                 _cover = null;
+            }
+
+            // Generate default cover if no cover was found
+            if (_cover == null)
+            {
+                Log.WriteLine(LogLevel.Info, "No cover found, generating default cover for: {0}", book.Title);
+                try
+                {
+                    string author = book.Authors.FirstOrDefault() ?? "Unknown Author";
+                    _cover = GenerateDefaultCover(author, book.Title);
+                    if (_cover != null)
+                    {
+                        Log.WriteLine(LogLevel.Info, "Default cover generated successfully");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.WriteLine(LogLevel.Error, "Error generating default cover: {0}", ex.Message);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Generate a default cover image with author and title text
+        /// </summary>
+        /// <param name="author">Author name</param>
+        /// <param name="title">Book title</param>
+        /// <returns>Generated cover image</returns>
+        private Image GenerateDefaultCover(string author, string title)
+        {
+            try
+            {
+                // Load background image from embedded resource
+                Image backgroundImage = LoadBackgroundImage();
+                if (backgroundImage == null)
+                {
+                    Log.WriteLine(LogLevel.Warning, "Could not load background image, creating solid color background");
+                    backgroundImage = new Bitmap(CoverSize.Width, CoverSize.Height);
+                    using (Graphics tempG = Graphics.FromImage(backgroundImage))
+                    {
+                        // Create a dark leather-like background
+                        using (var brush = new SolidBrush(Color.FromArgb(45, 35, 25)))
+                        {
+                            tempG.FillRectangle(brush, 0, 0, CoverSize.Width, CoverSize.Height);
+                        }
+                    }
+                }
+
+                // Resize background to cover size if needed
+                Image resizedBackground = backgroundImage.Resize(CoverSize, false);
+                backgroundImage.Dispose();
+
+                // Create graphics object for drawing text
+                using (Graphics g = Graphics.FromImage(resizedBackground))
+                {
+                    // Set high quality rendering
+                    g.SmoothingMode = SmoothingMode.AntiAlias;
+                    g.TextRenderingHint = TextRenderingHint.AntiAlias;
+                    g.CompositingQuality = CompositingQuality.HighQuality;
+
+                    // Define colors
+                    Color goldColor = Color.FromArgb(212, 175, 55); // #D4AF37
+                    Color shadowColor = Color.FromArgb(100, 0, 0, 0); // Semi-transparent black
+
+                    // Create fonts
+                    Font authorFont = GetBestFont("Times New Roman", 24, FontStyle.Bold | FontStyle.Italic);
+                    Font titleFont = GetBestFont("Times New Roman", 28, FontStyle.Bold);
+
+                    // Calculate text areas
+                    Rectangle authorArea = new Rectangle(40, 60, CoverSize.Width - 80, 120);
+                    Rectangle titleArea = new Rectangle(40, CoverSize.Height - 200, CoverSize.Width - 80, 140);
+
+                    // Draw author text (top)
+                    DrawTextWithShadow(g, author, authorFont, goldColor, shadowColor, authorArea, true);
+
+                    // Draw title text (bottom)
+                    DrawTextWithShadow(g, title, titleFont, goldColor, shadowColor, titleArea, false);
+
+                    // Clean up fonts
+                    authorFont.Dispose();
+                    titleFont.Dispose();
+                }
+
+                return resizedBackground;
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error in GenerateDefaultCover: {0}", ex.Message);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Load background image from embedded resource
+        /// </summary>
+        /// <returns>Background image or null if not found</returns>
+        private Image LoadBackgroundImage()
+        {
+            try
+            {
+                string resourceName = Assembly.GetExecutingAssembly().GetName().Name + ".Icons.book_cover.jpg";
+                using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
+                {
+                    if (stream != null && stream.Length > 0)
+                    {
+                        return Image.FromStream(stream);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Warning, "Could not load embedded background image: {0}", ex.Message);
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Get the best available font, falling back to defaults if needed
+        /// </summary>
+        /// <param name="fontName">Preferred font name</param>
+        /// <param name="size">Font size</param>
+        /// <param name="style">Font style</param>
+        /// <returns>Font object</returns>
+        private Font GetBestFont(string fontName, float size, FontStyle style)
+        {
+            try
+            {
+                return new Font(fontName, size, style);
+            }
+            catch
+            {
+                try
+                {
+                    // Fallback to Georgia
+                    return new Font("Georgia", size, style);
+                }
+                catch
+                {
+                    try
+                    {
+                        // Final fallback to system serif font
+                        return new Font(FontFamily.GenericSerif, size, style);
+                    }
+                    catch
+                    {
+                        // Last resort - default font
+                        return new Font(FontFamily.GenericSansSerif, size, style);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Draw text with shadow effect
+        /// </summary>
+        /// <param name="g">Graphics object</param>
+        /// <param name="text">Text to draw</param>
+        /// <param name="font">Font to use</param>
+        /// <param name="textColor">Main text color</param>
+        /// <param name="shadowColor">Shadow color</param>
+        /// <param name="area">Area to draw in</param>
+        /// <param name="isAuthor">True if this is author text (top), false for title (bottom)</param>
+        private void DrawTextWithShadow(Graphics g, string text, Font font, Color textColor, Color shadowColor, Rectangle area, bool isAuthor)
+        {
+            if (string.IsNullOrEmpty(text)) return;
+
+            // Create brushes
+            using (Brush textBrush = new SolidBrush(textColor))
+            using (Brush shadowBrush = new SolidBrush(shadowColor))
+            {
+                // Set text alignment
+                StringFormat format = new StringFormat();
+                format.Alignment = StringAlignment.Center;
+                format.LineAlignment = isAuthor ? StringAlignment.Near : StringAlignment.Far;
+                format.Trimming = StringTrimming.Word;
+                format.FormatFlags = StringFormatFlags.LineLimit;
+
+                // Calculate optimal font size for the text area
+                Font scaledFont = GetOptimalFontSize(g, text, font, area);
+
+                // Draw shadow (offset by 2 pixels)
+                Rectangle shadowArea = new Rectangle(area.X + 2, area.Y + 2, area.Width, area.Height);
+                g.DrawString(text, scaledFont, shadowBrush, shadowArea, format);
+
+                // Draw main text
+                g.DrawString(text, scaledFont, textBrush, area, format);
+
+                // Clean up
+                if (scaledFont != font)
+                    scaledFont.Dispose();
+                format.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Calculate optimal font size to fit text in given area
+        /// </summary>
+        /// <param name="g">Graphics object</param>
+        /// <param name="text">Text to measure</param>
+        /// <param name="baseFont">Base font to scale</param>
+        /// <param name="area">Target area</param>
+        /// <returns>Optimally sized font</returns>
+        private Font GetOptimalFontSize(Graphics g, string text, Font baseFont, Rectangle area)
+        {
+            float fontSize = baseFont.Size;
+            Font testFont = new Font(baseFont.FontFamily, fontSize, baseFont.Style);
+
+            try
+            {
+                // Measure text with current font
+                SizeF textSize = g.MeasureString(text, testFont, area.Width);
+
+                // Scale down if text is too large
+                while ((textSize.Width > area.Width || textSize.Height > area.Height) && fontSize > 8)
+                {
+                    fontSize -= 1;
+                    testFont.Dispose();
+                    testFont = new Font(baseFont.FontFamily, fontSize, baseFont.Style);
+                    textSize = g.MeasureString(text, testFont, area.Width);
+                }
+
+                return testFont;
+            }
+            catch
+            {
+                testFont?.Dispose();
+                return new Font(baseFont.FontFamily, Math.Max(8, fontSize), baseFont.Style);
             }
         }
     }

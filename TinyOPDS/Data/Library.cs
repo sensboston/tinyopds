@@ -468,7 +468,7 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Get book by ID - simplified version without file existence check
+        /// Get book by ID
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>

@@ -817,7 +817,7 @@ namespace TinyOPDS.Server
             });
         }
 
-        private void WriteMethodNotAllowed()
+        public void WriteMethodNotAllowed()
         {
             if (!EnsureOutputStream()) return;
 

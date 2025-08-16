@@ -251,6 +251,7 @@
     <EmbeddedResource Include="genres.xml" />
     <None Include="donate.png" />
     <None Include="Icons\folder.png" />
+    <EmbeddedResource Include="Icons\book_cover.jpg" />
     <Content Include="Icons\lib.png" />
     <Content Include="Icons\TinyOPDS.ico" />
     <Content Include="Libs\eBdb.EpubReader.dll" />

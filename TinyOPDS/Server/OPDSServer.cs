@@ -6,7 +6,7 @@
  * This code is licensed under the Microsoft Public License, 
  * see http://tinyopds.codeplex.com/license for the details.
  *
- * This module defines OPDS HTTP server class
+ * Enhanced OPDS HTTP server with improved stability and error handling
  * 
  ************************************************************/
 
@@ -27,434 +27,763 @@ namespace TinyOPDS.Server
 {
     public class OPDSServer : HttpServer
     {
-        private string[] _extensions = { ".zip", ".epub", ".jpeg", ".ico", ".xml" };
+        private readonly string[] _extensions = { ".zip", ".epub", ".jpeg", ".ico", ".xml" };
         private XslCompiledTransform _xslTransform = new XslCompiledTransform();
+        private readonly object _xslLock = new object();
 
         public OPDSServer(IPAddress interfaceIP, int port, int timeout = 5000) : base(interfaceIP, port, timeout)
         {
-            // Check external template (will be used instead of built-in)
-            string xslFileName = Path.Combine(Utils.ServiceFilesLocation, "xml2html.xsl");
+            InitializeXslTransform();
+        }
 
-            if (File.Exists(xslFileName))
+        private void InitializeXslTransform()
+        {
+            try
             {
-                _xslTransform.Load(xslFileName);
-            }
-            else
-            {
-                using (Stream resStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(Assembly.GetExecutingAssembly().GetName().Name + ".xml2html.xsl"))
+                // Check external template (will be used instead of built-in)
+                string xslFileName = Path.Combine(Utils.ServiceFilesLocation, "xml2html.xsl");
+
+                if (File.Exists(xslFileName))
                 {
-                    using (XmlReader reader = XmlReader.Create(resStream))
-                        _xslTransform.Load(reader);
+                    _xslTransform.Load(xslFileName);
+                    Log.WriteLine(LogLevel.Info, "Loaded external XSL template: {0}", xslFileName);
                 }
+                else
+                {
+                    using (Stream resStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(
+                        Assembly.GetExecutingAssembly().GetName().Name + ".xml2html.xsl"))
+                    {
+                        if (resStream != null)
+                        {
+                            using (XmlReader reader = XmlReader.Create(resStream))
+                                _xslTransform.Load(reader);
+                            Log.WriteLine(LogLevel.Info, "Loaded embedded XSL template");
+                        }
+                        else
+                        {
+                            Log.WriteLine(LogLevel.Warning, "XSL template not found");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error loading XSL template: {0}", ex.Message);
             }
         }
 
         /// <summary>
         /// Dummy for POST requests
         /// </summary>
-        /// <param name="p"></param>
-        /// <param name="inputData"></param>
         public override void HandlePOSTRequest(HttpProcessor processor, StreamReader inputData)
         {
-            Log.WriteLine(LogLevel.Warning, "HTTP POST request from {0}: {1}  : NOT IMPLEMENTED", ((System.Net.IPEndPoint)processor.Socket.Client.RemoteEndPoint).Address, processor.HttpUrl);
+            Log.WriteLine(LogLevel.Warning, "HTTP POST request from {0}: {1} : NOT IMPLEMENTED",
+                GetClientIP(processor), processor.HttpUrl);
+            processor.WriteMethodNotAllowed();
         }
 
         /// <summary>
-        /// POST requests handler
+        /// Main GET requests handler
         /// </summary>
-        /// <param name="p"></param>
         public override void HandleGETRequest(HttpProcessor processor)
         {
-            Log.WriteLine("HTTP GET request from {0}: {1}", ((System.Net.IPEndPoint)processor.Socket.Client.RemoteEndPoint).Address, processor.HttpUrl);
+            string clientIP = GetClientIP(processor);
+            Log.WriteLine("HTTP GET request from {0}: {1}", clientIP, processor.HttpUrl);
+
             try
             {
-                // Parse request
-                string xml = string.Empty;
-                string request = processor.HttpUrl;
+                string request = NormalizeRequest(processor.HttpUrl);
+                string ext = GetFileExtension(request);
 
-                // Check for www request
-                bool isWWWRequest = request.StartsWith("/" + Properties.Settings.Default.HttpPrefix) && !request.StartsWith("/" + TinyOPDS.Properties.Settings.Default.RootPrefix) ? true : false;
-
-                // Remove prefix if any
-                if (!request.Contains("opds-opensearch.xml") && !string.IsNullOrEmpty(Properties.Settings.Default.RootPrefix))
+                // Check if this is a valid request
+                if (!IsValidRequest(request, ext))
                 {
-                    request = request.Replace(Properties.Settings.Default.RootPrefix, "/");
-                }
-                if (!string.IsNullOrEmpty(Properties.Settings.Default.HttpPrefix))
-                {
-                    request = request.Replace(Properties.Settings.Default.HttpPrefix, "/");
+                    processor.WriteBadRequest();
+                    return;
                 }
 
-                while (request.IndexOf("//") >= 0) request = request.Replace("//", "/");
+                // Parse request parameters
+                bool isWWWRequest = IsWebRequest(processor.HttpUrl);
+                bool acceptFB2 = DetectFB2Support(processor.HttpHeaders["User-Agent"] as string) || isWWWRequest;
+                int threshold = (int)(isWWWRequest ?
+                    Properties.Settings.Default.ItemsPerWebPage :
+                    Properties.Settings.Default.ItemsPerOPDSPage);
 
-                // Remove any parameters from request except TinyOPDS params
-                int paramPos = request.IndexOf('?');
-                if (paramPos >= 0)
-                {
-                    int ourParamPos = request.IndexOf("pageNumber") + request.IndexOf("searchTerm");
-                    if (ourParamPos >= 0)
-                    {
-                        ourParamPos = request.IndexOf('&', ourParamPos + 10);
-                        if (ourParamPos >= 0) request = request.Substring(0, ourParamPos);
-                    }
-                    else request = request.Substring(0, paramPos);
-                }
-
-                string ext = Path.GetExtension(request).ToLower();
-                if (!_extensions.Contains(ext)) ext = string.Empty;
-
-                string[] http_params = request.Split(new Char[] { '?', '=', '&' });
-
-                // User-agent check: some e-book readers can handle fb2 files (no conversion is  needed)
-                string userAgent = processor.HttpHeaders["User-Agent"] as string;
-                bool acceptFB2 = Utils.DetectFB2Reader(userAgent) || isWWWRequest;
-                int threshold = (int) (isWWWRequest ? Properties.Settings.Default.ItemsPerWebPage : Properties.Settings.Default.ItemsPerOPDSPage);
-
-                // Is it OPDS request?
+                // Route request to appropriate handler
                 if (string.IsNullOrEmpty(ext))
                 {
-                    try
-                    {
-                        // Is it root node requested?
-                        if (request.Equals("/"))
-                        {
-                            xml = new RootCatalog().GetCatalog().ToStringWithDeclaration();
-                        }
-                        else if (request.StartsWith("/newdate"))
-                        {
-                            xml = new NewBooksCatalog().GetCatalog(request.Substring(8), true, acceptFB2, threshold).ToStringWithDeclaration();
-                        }
-                        else if (request.StartsWith("/newtitle"))
-                        {
-                            xml = new NewBooksCatalog().GetCatalog(request.Substring(9), false, acceptFB2, threshold).ToStringWithDeclaration();
-                        }
-                        else if (request.StartsWith("/authorsindex"))
-                        {
-                            int numChars = request.StartsWith("/authorsindex/") ? 14 : 13;
-                            xml = new AuthorsCatalog().GetCatalog(request.Substring(numChars), false, threshold).ToStringWithDeclaration();
-                        }
-                        else if (request.StartsWith("/author/"))
-                        {
-                            xml = new BooksCatalog().GetCatalogByAuthor(request.Substring(8), acceptFB2, threshold).ToStringWithDeclaration();
-                        }
-                        else if (request.StartsWith("/sequencesindex"))
-                        {
-                            int numChars = request.StartsWith("/sequencesindex/") ? 16 : 15;
-                            xml = new SequencesCatalog().GetCatalog(request.Substring(numChars), threshold).ToStringWithDeclaration();
-                        }
-                        else if (request.Contains("/sequence/"))
-                        {
-                            xml = new BooksCatalog().GetCatalogBySequence(request.Substring(10), acceptFB2, threshold).ToStringWithDeclaration();
-                        }
-                        else if (request.StartsWith("/genres"))
-                        {
-                            int numChars = request.Contains("/genres/") ? 8 : 7;
-                            xml = new GenresCatalog().GetCatalog(request.Substring(numChars)).ToStringWithDeclaration();
-                        }
-                        else if (request.StartsWith("/genre/"))
-                        {
-                            xml = new BooksCatalog().GetCatalogByGenre(request.Substring(7), acceptFB2, threshold).ToStringWithDeclaration();
-                        }
-                        else if (request.StartsWith("/search"))
-                        {
-                            if (http_params.Length > 1 && http_params[1].Equals("searchTerm"))
-                            {
-                                xml = new OpenSearch().Search(http_params[2], "", acceptFB2).ToStringWithDeclaration();
-                            }
-                            else if (http_params[1].Equals("searchType"))
-                            {
-                                int pageNumber = 0;
-                                if (http_params.Length > 6 && http_params[5].Equals("pageNumber"))
-                                {
-                                    int.TryParse(http_params[6], out pageNumber);
-                                }
-                                xml = new OpenSearch().Search(http_params[4], http_params[2], acceptFB2, pageNumber).ToStringWithDeclaration();
-                            }
-                        }
-
-                        if (string.IsNullOrEmpty(xml))
-                        {
-                            processor.WriteFailure();
-                            return;
-                        }
-
-                        // Fix for the root namespace
-                        // TODO: fix with standard way (how?)
-                        xml = xml.Insert(xml.IndexOf("<feed ")+5, " xmlns=\"http://www.w3.org/2005/Atom\"");
-
-                        if (Properties.Settings.Default.UseAbsoluteUri)
-                        {
-                            try
-                            {
-                                string host = processor.HttpHeaders["Host"].ToString();
-                                xml = xml.Replace("href=\"", "href=\"http://" + (isWWWRequest ? host.UrlCombine(TinyOPDS.Properties.Settings.Default.HttpPrefix) : host.UrlCombine(TinyOPDS.Properties.Settings.Default.RootPrefix)));
-                            }
-                            catch { }
-                        }
-                        else
-                        {
-                            string prefix = isWWWRequest ? TinyOPDS.Properties.Settings.Default.HttpPrefix : TinyOPDS.Properties.Settings.Default.RootPrefix;
-                            if (!string.IsNullOrEmpty(prefix)) prefix = "/" + prefix;
-                            xml = xml.Replace("href=\"", "href=\"" + prefix);
-                            // Fix open search link
-                            xml = xml.Replace(prefix + "/opds-opensearch.xml", "/opds-opensearch.xml");
-                        }
-
-                        // Apply xsl transform
-                        if (isWWWRequest)
-                        {
-                            string html = string.Empty;
-
-                            MemoryStream htmlStream = new MemoryStream();
-                            using (StringReader stream = new StringReader(xml))
-                            {
-                                XPathDocument myXPathDoc = new XPathDocument(stream);
-
-// for easy debug of xsl transform, we'll reload external file in DEBUG build
-#if DEBUG 
-                                string xslFileName = Path.Combine(Utils.ServiceFilesLocation, "xml2html.xsl");
-                                _xslTransform = new XslCompiledTransform();
-                                if (File.Exists(xslFileName))
-                                {
-                                    _xslTransform.Load(xslFileName);
-                                }
-                                else 
-                                {
-                                    using (Stream resStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(Assembly.GetExecutingAssembly().GetName().Name + ".xml2html.xsl"))
-                                    {
-                                        using (XmlReader reader = XmlReader.Create(resStream)) 
-                                            _xslTransform.Load(reader);
-                                    }
-                                }
-#endif
-                                XmlTextWriter myWriter = new XmlTextWriter(htmlStream, null);
-                                _xslTransform.Transform(myXPathDoc, null, myWriter);
-                                htmlStream.Position = 0;
-                                using (StreamReader sr = new StreamReader(htmlStream)) html = sr.ReadToEnd();
-                            }
-
-                            processor.WriteSuccess("text/html");
-                            processor.OutputStream.Write(html);
-                        }
-                        else
-                        {
-                            processor.WriteSuccess("application/atom+xml;charset=utf-8");
-                            processor.OutputStream.Write(xml);
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        Log.WriteLine(LogLevel.Error, "OPDS catalog exception {0}", e.Message);
-                    }
-                    return;
+                    HandleOPDSRequest(processor, request, isWWWRequest, acceptFB2, threshold);
                 }
                 else if (request.Contains("opds-opensearch.xml"))
                 {
-                    xml = new OpenSearch().OpenSearchDescription().ToStringWithDeclaration();
-                    xml = xml.Insert(xml.IndexOf("<OpenSearchDescription")+22, " xmlns=\"http://a9.com/-/spec/opensearch/1.1/\"");
+                    HandleOpenSearchRequest(processor);
+                }
+                else if ((request.Contains(".fb2.zip") && ext.Equals(".zip")) || ext.Equals(".epub"))
+                {
+                    HandleBookDownloadRequest(processor, request, ext, acceptFB2);
+                }
+                else if (ext.Equals(".jpeg"))
+                {
+                    HandleImageRequest(processor, request);
+                }
+                else if (ext.Equals(".ico"))
+                {
+                    HandleIconRequest(processor, request);
+                }
+                else
+                {
+                    processor.WriteFailure();
+                }
+            }
+            catch (Exception e)
+            {
+                Log.WriteLine(LogLevel.Error, "HandleGETRequest() exception: {0}", e.Message);
+                processor.WriteFailure();
+            }
+        }
 
-                    if (TinyOPDS.Properties.Settings.Default.UseAbsoluteUri)
+        #region Request Processing Helpers
+
+        private string GetClientIP(HttpProcessor processor)
+        {
+            try
+            {
+                return ((IPEndPoint)processor.Socket.Client.RemoteEndPoint).Address.ToString();
+            }
+            catch
+            {
+                return "unknown";
+            }
+        }
+
+        private string NormalizeRequest(string httpUrl)
+        {
+            string request = httpUrl;
+
+            // Remove prefix if any
+            if (!request.Contains("opds-opensearch.xml") && !string.IsNullOrEmpty(Properties.Settings.Default.RootPrefix))
+            {
+                request = request.Replace("/" + Properties.Settings.Default.RootPrefix, "");
+            }
+            if (!string.IsNullOrEmpty(Properties.Settings.Default.HttpPrefix))
+            {
+                request = request.Replace("/" + Properties.Settings.Default.HttpPrefix, "");
+            }
+
+            // Clean up double slashes
+            while (request.Contains("//"))
+                request = request.Replace("//", "/");
+
+            // Ensure starts with /
+            if (!request.StartsWith("/"))
+                request = "/" + request;
+
+            // Remove query parameters except TinyOPDS params
+            int paramPos = request.IndexOf('?');
+            if (paramPos >= 0)
+            {
+                if (request.Contains("pageNumber") || request.Contains("searchTerm"))
+                {
+                    int endParam = request.IndexOf('&', paramPos + 1);
+                    if (endParam > 0 && !request.Substring(endParam).Contains("pageNumber") && !request.Substring(endParam).Contains("searchTerm"))
                     {
-                        try
-                        {
-                            string host = processor.HttpHeaders["Host"].ToString();
-                            xml = xml.Replace("href=\"", "href=\"http://" + host.UrlCombine(TinyOPDS.Properties.Settings.Default.RootPrefix));
-                        }
-                        catch { }
+                        request = request.Substring(0, endParam);
                     }
+                }
+                else
+                {
+                    request = request.Substring(0, paramPos);
+                }
+            }
 
-                    processor.WriteSuccess("application/atom+xml;charset=utf-8");
-                    processor.OutputStream.Write(xml);
+            return request;
+        }
+
+        private string GetFileExtension(string request)
+        {
+            string ext = Path.GetExtension(request).ToLower();
+            return _extensions.Contains(ext) ? ext : string.Empty;
+        }
+
+        private bool IsValidRequest(string request, string ext)
+        {
+            return !string.IsNullOrEmpty(request) && request.Length <= 2048;
+        }
+
+        private bool IsWebRequest(string httpUrl)
+        {
+            return httpUrl.StartsWith("/" + Properties.Settings.Default.HttpPrefix) &&
+                   !httpUrl.StartsWith("/" + Properties.Settings.Default.RootPrefix);
+        }
+
+        private bool DetectFB2Support(string userAgent)
+        {
+            return Utils.DetectFB2Reader(userAgent);
+        }
+
+        #endregion
+
+        #region OPDS Request Handlers
+
+        private void HandleOPDSRequest(HttpProcessor processor, string request, bool isWWWRequest, bool acceptFB2, int threshold)
+        {
+            try
+            {
+                string xml = GenerateOPDSResponse(request, acceptFB2, threshold);
+
+                if (string.IsNullOrEmpty(xml))
+                {
+                    processor.WriteFailure();
                     return;
                 }
 
-                // fb2.zip book request
-                else if ((request.Contains(".fb2.zip") && ext.Equals(".zip")) || ext.Equals(".epub"))
+                // Apply namespace fix
+                xml = FixNamespace(xml);
+
+                // Apply URI prefixes
+                xml = ApplyUriPrefixes(xml, processor, isWWWRequest);
+
+                // Transform to HTML if needed
+                if (isWWWRequest)
                 {
-                    string bookID = request.Substring(1, request.IndexOf('/', 1) - 1).Replace("%7B", "{").Replace("%7D", "}");
-                    Book book = Library.GetBook(bookID);
-
-                    if (book != null)
+                    string html = TransformToHtml(xml);
+                    if (!string.IsNullOrEmpty(html))
                     {
-                        MemoryStream memStream = null;
-                        memStream = new MemoryStream();
-
-                        if (request.Contains(".fb2.zip"))
-                        {
-                            try
-                            {
-                                if (book.FilePath.ToLower().Contains(".zip@"))
-                                {
-                                    string[] pathParts = book.FilePath.Split('@');
-                                    using (ZipFile zipFile = new ZipFile(pathParts[0]))
-                                    {
-                                        ZipEntry entry = zipFile.Entries.First(e => e.FileName.Contains(pathParts[1]));
-                                        if (entry != null) entry.Extract(memStream);
-                                    }
-                                }
-                                else
-                                {
-                                    using (FileStream stream = new FileStream(book.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
-                                        stream.CopyTo(memStream);
-                                }
-                                memStream.Position = 0;
-
-                                // Compress fb2 document to zip
-                                using (ZipFile zip = new ZipFile())
-                                {
-                                    zip.AddEntry(Transliteration.Front(string.Format("{0}_{1}.fb2", book.Authors.First(), book.Title)), memStream);
-                                    using (MemoryStream outputStream = new MemoryStream())
-                                    {
-                                        zip.Save(outputStream);
-                                        outputStream.Position = 0;
-                                        processor.WriteSuccess("application/fb2+zip");
-                                        outputStream.CopyTo(processor.OutputStream.BaseStream);
-                                    }
-                                }
-                                ServerStatistics.BooksSent++;
-                            }
-                            catch (Exception e)
-                            {
-                                Log.WriteLine(LogLevel.Error, "FB2 file exception {0}", e.Message);
-                            }
-                        }
-                        else if (ext.Equals(".epub"))
-                        {
-                            try
-                            {
-                                if (book.FilePath.ToLower().Contains(".zip@"))
-                                {
-                                    string[] pathParts = book.FilePath.Split('@');
-                                    using (ZipFile zipFile = new ZipFile(pathParts[0]))
-                                    {
-                                        ZipEntry entry = zipFile.Entries.First(e => e.FileName.Contains(pathParts[1]));
-                                        if (entry != null) entry.Extract(memStream);
-                                        entry = null;
-                                    }
-                                }
-                                else
-                                {
-                                    using (FileStream stream = new FileStream(book.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
-                                        stream.CopyTo(memStream);
-                                }
-                                memStream.Position = 0;
-                                // At this moment, memStream has a copy of requested book
-                                // For fb2, we need convert book to epub
-                                if (book.BookType == BookType.FB2)
-                                {
-                                    // No convertor found, return an error
-                                    if (string.IsNullOrEmpty(TinyOPDS.Properties.Settings.Default.ConvertorPath))
-                                    {
-                                        Log.WriteLine(LogLevel.Error, "No FB2 to EPUB convertor found, file request can not be completed!");
-                                        processor.WriteFailure();
-                                        return;
-                                    }
-
-                                    // Save fb2 book to the temp folder
-                                    string inFileName = Path.Combine(Path.GetTempPath(), book.ID + ".fb2");
-                                    using (FileStream stream = new FileStream(inFileName, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite))
-                                        memStream.CopyTo(stream);
-
-                                    // Run converter 
-                                    string outFileName = Path.Combine(Path.GetTempPath(), book.ID + ".epub");
-                                    string command = Path.Combine(TinyOPDS.Properties.Settings.Default.ConvertorPath, Utils.IsLinux ? "fb2toepub" : "Fb2ePub.exe");
-                                    string arguments = string.Format(Utils.IsLinux ? "{0} {1}" : "\"{0}\" \"{1}\"", inFileName, outFileName);
-
-                                    using (ProcessHelper converter = new ProcessHelper(command, arguments))
-                                    {
-                                        converter.Run();
-
-                                        if (File.Exists(outFileName))
-                                        {
-                                            memStream = new MemoryStream();
-                                            using (FileStream fileStream = new FileStream(outFileName, FileMode.Open, FileAccess.Read, FileShare.Read))
-                                                fileStream.CopyTo(memStream);
-
-                                            // Cleanup temp folder
-                                            try { File.Delete(inFileName); }
-                                            catch { }
-                                            try { File.Delete(outFileName); }
-                                            catch { }
-                                        }
-                                        else
-                                        {
-                                            string converterError = string.Empty;
-                                            foreach (string s in converter.ProcessOutput) converterError += s + " ";
-                                            Log.WriteLine(LogLevel.Error, "EPUB conversion error on file {0}. Error description: {1}", inFileName, converterError);
-                                            processor.WriteFailure();
-                                            return;
-                                        }
-                                    }
-                                }
-
-                                // At this moment, memStream has a copy of epub
-                                processor.WriteSuccess("application/epub+zip");
-                                memStream.Position = 0;
-                                memStream.CopyTo(processor.OutputStream.BaseStream);
-                                ServerStatistics.BooksSent++;
-                            }
-
-                            catch (Exception e)
-                            {
-                                Log.WriteLine(LogLevel.Error, "EPUB file exception {0}", e.Message);
-                            }
-                        }
-
-                        processor.OutputStream.BaseStream.Flush();
-                        if (memStream != null) memStream.Dispose();
+                        processor.WriteSuccess("text/html");
+                        processor.OutputStream.Write(html);
                     }
                     else
                     {
-                        Log.WriteLine(LogLevel.Error, "Book {0} not found in library.", bookID);
+                        processor.WriteFailure();
                     }
                 }
-                // Cover image or thumbnail request
-                else if (ext.Contains(".jpeg"))
+                else
                 {
-                    bool getCover = true;
-                    string bookID = string.Empty;
-                    if (request.Contains("/cover/"))
+                    processor.WriteSuccess("application/atom+xml;charset=utf-8");
+                    processor.OutputStream.Write(xml);
+                }
+            }
+            catch (Exception e)
+            {
+                Log.WriteLine(LogLevel.Error, "OPDS catalog exception: {0}", e.Message);
+                processor.WriteFailure();
+            }
+        }
+
+        private string GenerateOPDSResponse(string request, bool acceptFB2, int threshold)
+        {
+            string[] pathParts = request.Split(new char[] { '?', '=', '&' }, StringSplitOptions.RemoveEmptyEntries);
+
+            // Root catalog
+            if (request.Equals("/"))
+            {
+                return new RootCatalog().GetCatalog().ToStringWithDeclaration();
+            }
+            // New books by date
+            else if (request.StartsWith("/newdate"))
+            {
+                return new NewBooksCatalog().GetCatalog(request.Substring(8), true, acceptFB2, threshold).ToStringWithDeclaration();
+            }
+            // New books by title
+            else if (request.StartsWith("/newtitle"))
+            {
+                return new NewBooksCatalog().GetCatalog(request.Substring(9), false, acceptFB2, threshold).ToStringWithDeclaration();
+            }
+            // Authors index
+            else if (request.StartsWith("/authorsindex"))
+            {
+                int numChars = request.StartsWith("/authorsindex/") ? 14 : 13;
+                return new AuthorsCatalog().GetCatalog(request.Substring(numChars), false, threshold).ToStringWithDeclaration();
+            }
+            // Books by author
+            else if (request.StartsWith("/author/"))
+            {
+                return new BooksCatalog().GetCatalogByAuthor(request.Substring(8), acceptFB2, threshold).ToStringWithDeclaration();
+            }
+            // Sequences index
+            else if (request.StartsWith("/sequencesindex"))
+            {
+                int numChars = request.StartsWith("/sequencesindex/") ? 16 : 15;
+                return new SequencesCatalog().GetCatalog(request.Substring(numChars), threshold).ToStringWithDeclaration();
+            }
+            // Books by sequence
+            else if (request.Contains("/sequence/"))
+            {
+                return new BooksCatalog().GetCatalogBySequence(request.Substring(10), acceptFB2, threshold).ToStringWithDeclaration();
+            }
+            // Genres catalog
+            else if (request.StartsWith("/genres"))
+            {
+                int numChars = request.Contains("/genres/") ? 8 : 7;
+                return new GenresCatalog().GetCatalog(request.Substring(numChars)).ToStringWithDeclaration();
+            }
+            // Books by genre
+            else if (request.StartsWith("/genre/"))
+            {
+                return new BooksCatalog().GetCatalogByGenre(request.Substring(7), acceptFB2, threshold).ToStringWithDeclaration();
+            }
+            // Search
+            else if (request.StartsWith("/search"))
+            {
+                return HandleSearchRequest(pathParts, acceptFB2);
+            }
+
+            return null;
+        }
+
+        private string HandleSearchRequest(string[] pathParts, bool acceptFB2)
+        {
+            if (pathParts.Length > 1)
+            {
+                if (pathParts[1].Equals("searchTerm") && pathParts.Length > 2)
+                {
+                    return new OpenSearch().Search(pathParts[2], "", acceptFB2).ToStringWithDeclaration();
+                }
+                else if (pathParts[1].Equals("searchType") && pathParts.Length > 4)
+                {
+                    int pageNumber = 0;
+                    if (pathParts.Length > 6 && pathParts[5].Equals("pageNumber"))
                     {
-                        bookID = Path.GetFileNameWithoutExtension(request.Substring(request.IndexOf("/cover/") + 7));
+                        int.TryParse(pathParts[6], out pageNumber);
                     }
-                    else if (request.Contains("/thumbnail/"))
+                    return new OpenSearch().Search(pathParts[4], pathParts[2], acceptFB2, pageNumber).ToStringWithDeclaration();
+                }
+            }
+            return null;
+        }
+
+        private string FixNamespace(string xml)
+        {
+            if (xml.Contains("<feed ") && !xml.Contains("xmlns=\"http://www.w3.org/2005/Atom\""))
+            {
+                int feedPos = xml.IndexOf("<feed ");
+                if (feedPos >= 0)
+                {
+                    xml = xml.Insert(feedPos + 5, " xmlns=\"http://www.w3.org/2005/Atom\"");
+                }
+            }
+            return xml;
+        }
+
+        private string ApplyUriPrefixes(string xml, HttpProcessor processor, bool isWWWRequest)
+        {
+            try
+            {
+                if (Properties.Settings.Default.UseAbsoluteUri)
+                {
+                    string host = processor.HttpHeaders["Host"]?.ToString();
+                    if (!string.IsNullOrEmpty(host))
                     {
-                        bookID = Path.GetFileNameWithoutExtension(request.Substring(request.IndexOf("/thumbnail/") + 11));
-                        getCover = false;
+                        string prefix = isWWWRequest ?
+                            Properties.Settings.Default.HttpPrefix :
+                            Properties.Settings.Default.RootPrefix;
+                        xml = xml.Replace("href=\"", $"href=\"http://{host.UrlCombine(prefix)}");
                     }
-
-                    bookID = bookID.Replace("%7B", "{").Replace("%7D", "}");
-
-                    if (!string.IsNullOrEmpty(bookID))
+                }
+                else
+                {
+                    string prefix = isWWWRequest ?
+                        Properties.Settings.Default.HttpPrefix :
+                        Properties.Settings.Default.RootPrefix;
+                    if (!string.IsNullOrEmpty(prefix))
                     {
-                        CoverImage image = null;
-                        Book book = Library.GetBook(bookID);
+                        prefix = "/" + prefix;
+                        xml = xml.Replace("href=\"", "href=\"" + prefix);
+                        // Fix open search link
+                        xml = xml.Replace(prefix + "/opds-opensearch.xml", "/opds-opensearch.xml");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Warning, "Error applying URI prefixes: {0}", ex.Message);
+            }
+            return xml;
+        }
 
-                        if (book != null)
+        private string TransformToHtml(string xml)
+        {
+            try
+            {
+                lock (_xslLock)
+                {
+#if DEBUG
+                    // Reload XSL in debug mode for easier development
+                    InitializeXslTransform();
+#endif
+                    using (var htmlStream = new MemoryStream())
+                    using (var stringReader = new StringReader(xml))
+                    {
+                        var xPathDoc = new XPathDocument(stringReader);
+                        var writer = new XmlTextWriter(htmlStream, null);
+
+                        _xslTransform.Transform(xPathDoc, null, writer);
+                        htmlStream.Position = 0;
+
+                        using (var streamReader = new StreamReader(htmlStream))
                         {
-                            if (ImagesCache.HasImage(bookID)) image = ImagesCache.GetImage(bookID);
-                            else
-                            {
-                                image = new CoverImage(book);
-                                if (image != null && image.HasImages) ImagesCache.Add(image);
-                            }
+                            return streamReader.ReadToEnd();
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "XSL transformation error: {0}", ex.Message);
+                return null;
+            }
+        }
 
-                            if (image != null && image.HasImages)
+        #endregion
+
+        #region Other Request Handlers
+
+        private void HandleOpenSearchRequest(HttpProcessor processor)
+        {
+            try
+            {
+                string xml = new OpenSearch().OpenSearchDescription().ToStringWithDeclaration();
+                xml = xml.Insert(xml.IndexOf("<OpenSearchDescription") + 22,
+                    " xmlns=\"http://a9.com/-/spec/opensearch/1.1/\"");
+
+                xml = ApplyUriPrefixes(xml, processor, false);
+
+                processor.WriteSuccess("application/atom+xml;charset=utf-8");
+                processor.OutputStream.Write(xml);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "OpenSearch request error: {0}", ex.Message);
+                processor.WriteFailure();
+            }
+        }
+
+        private void HandleBookDownloadRequest(HttpProcessor processor, string request, string ext, bool acceptFB2)
+        {
+            try
+            {
+                string bookID = ExtractBookIdFromRequest(request);
+                if (string.IsNullOrEmpty(bookID))
+                {
+                    Log.WriteLine(LogLevel.Warning, "Invalid book ID in download request: {0}", request);
+                    processor.WriteBadRequest();
+                    return;
+                }
+
+                Book book = Library.GetBook(bookID);
+                if (book == null)
+                {
+                    Log.WriteLine(LogLevel.Warning, "Book {0} not found in library", bookID);
+                    processor.WriteFailure();
+                    return;
+                }
+
+                if (request.Contains(".fb2.zip"))
+                {
+                    HandleFB2Download(processor, book);
+                }
+                else if (ext.Equals(".epub"))
+                {
+                    HandleEpubDownload(processor, book, acceptFB2);
+                }
+
+                ServerStatistics.IncrementBooksSent();
+            }
+            catch (Exception e)
+            {
+                Log.WriteLine(LogLevel.Error, "Book download error: {0}", e.Message);
+                processor.WriteFailure();
+            }
+        }
+
+        private string ExtractBookIdFromRequest(string request)
+        {
+            try
+            {
+                int startPos = request.IndexOf('/', 1) + 1;
+                int endPos = request.IndexOf('/', startPos);
+                if (endPos > startPos)
+                {
+                    return request.Substring(startPos, endPos - startPos)
+                        .Replace("%7B", "{").Replace("%7D", "}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Warning, "Error extracting book ID: {0}", ex.Message);
+            }
+            return null;
+        }
+
+        private void HandleFB2Download(HttpProcessor processor, Book book)
+        {
+            using (var memStream = new MemoryStream())
+            {
+                // Extract book content
+                if (!ExtractBookContent(book, memStream))
+                {
+                    processor.WriteFailure();
+                    return;
+                }
+
+                // Compress to ZIP
+                using (var zip = new ZipFile())
+                {
+                    string fileName = Transliteration.Front(
+                        $"{book.Authors.FirstOrDefault() ?? "Unknown"}_{book.Title}.fb2");
+                    zip.AddEntry(fileName, memStream);
+
+                    using (var outputStream = new MemoryStream())
+                    {
+                        zip.Save(outputStream);
+                        outputStream.Position = 0;
+
+                        processor.WriteSuccess("application/fb2+zip");
+                        outputStream.CopyTo(processor.OutputStream.BaseStream);
+                        processor.OutputStream.BaseStream.Flush();
+                    }
+                }
+            }
+        }
+
+        private void HandleEpubDownload(HttpProcessor processor, Book book, bool acceptFB2)
+        {
+            using (var memStream = new MemoryStream())
+            {
+                // Extract book content
+                if (!ExtractBookContent(book, memStream))
+                {
+                    processor.WriteFailure();
+                    return;
+                }
+
+                // Convert FB2 to EPUB if needed
+                if (book.BookType == BookType.FB2 && !acceptFB2)
+                {
+                    if (!ConvertFB2ToEpub(book, memStream))
+                    {
+                        processor.WriteFailure();
+                        return;
+                    }
+                }
+
+                processor.WriteSuccess("application/epub+zip");
+                memStream.Position = 0;
+                memStream.CopyTo(processor.OutputStream.BaseStream);
+                processor.OutputStream.BaseStream.Flush();
+            }
+        }
+
+        private bool ExtractBookContent(Book book, MemoryStream memStream)
+        {
+            try
+            {
+                if (book.FilePath.ToLower().Contains(".zip@"))
+                {
+                    string[] pathParts = book.FilePath.Split('@');
+                    using (var zipFile = new ZipFile(pathParts[0]))
+                    {
+                        var entry = zipFile.Entries.FirstOrDefault(e => e.FileName.Contains(pathParts[1]));
+                        if (entry != null)
+                        {
+                            entry.Extract(memStream);
+                            return true;
+                        }
+                    }
+                }
+                else
+                {
+                    using (var stream = new FileStream(book.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    {
+                        stream.CopyTo(memStream);
+                        return true;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error extracting book content: {0}", ex.Message);
+            }
+            return false;
+        }
+
+        private bool ConvertFB2ToEpub(Book book, MemoryStream memStream)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(Properties.Settings.Default.ConvertorPath))
+                {
+                    Log.WriteLine(LogLevel.Error, "No FB2 to EPUB converter configured");
+                    return false;
+                }
+
+                string tempDir = Path.GetTempPath();
+                string inFileName = Path.Combine(tempDir, book.ID + ".fb2");
+                string outFileName = Path.Combine(tempDir, book.ID + ".epub");
+
+                try
+                {
+                    // Save FB2 to temp file
+                    using (var fileStream = new FileStream(inFileName, FileMode.Create, FileAccess.Write))
+                    {
+                        memStream.Position = 0;
+                        memStream.CopyTo(fileStream);
+                    }
+
+                    // Run converter
+                    string command = Path.Combine(Properties.Settings.Default.ConvertorPath,
+                        Utils.IsLinux ? "fb2toepub" : "Fb2ePub.exe");
+                    string arguments = Utils.IsLinux ?
+                        $"{inFileName} {outFileName}" :
+                        $"\"{inFileName}\" \"{outFileName}\"";
+
+                    using (var converter = new ProcessHelper(command, arguments))
+                    {
+                        converter.Run();
+
+                        if (File.Exists(outFileName))
+                        {
+                            memStream.SetLength(0);
+                            using (var fileStream = new FileStream(outFileName, FileMode.Open, FileAccess.Read))
                             {
-                                processor.WriteSuccess("image/jpeg");
-                                (getCover ? image.CoverImageStream : image.ThumbnailImageStream).CopyTo(processor.OutputStream.BaseStream);
+                                fileStream.CopyTo(memStream);
+                            }
+                            return true;
+                        }
+                        else
+                        {
+                            string error = string.Join(" ", converter.ProcessOutput);
+                            Log.WriteLine(LogLevel.Error, "EPUB conversion failed: {0}", error);
+                        }
+                    }
+                }
+                finally
+                {
+                    // Cleanup
+                    try { File.Delete(inFileName); } catch { }
+                    try { File.Delete(outFileName); } catch { }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "FB2 to EPUB conversion error: {0}", ex.Message);
+            }
+            return false;
+        }
+
+        private void HandleImageRequest(HttpProcessor processor, string request)
+        {
+            try
+            {
+                bool getCover = request.Contains("/cover/");
+                string bookID = ExtractBookIdFromImageRequest(request, getCover);
+
+                if (string.IsNullOrEmpty(bookID))
+                {
+                    Log.WriteLine(LogLevel.Warning, "Invalid book ID in image request: {0}", request);
+                    processor.WriteBadRequest();
+                    return;
+                }
+
+                Book book = Library.GetBook(bookID);
+                if (book == null)
+                {
+                    Log.WriteLine(LogLevel.Warning, "Book {0} not found for image request", bookID);
+                    processor.WriteFailure();
+                    return;
+                }
+
+                CoverImage image = GetOrCreateCoverImage(bookID, book);
+                if (image != null && image.HasImages)
+                {
+                    try
+                    {
+                        processor.WriteSuccess("image/jpeg");
+                        using (Stream imageStream = getCover ? image.CoverImageStream : image.ThumbnailImageStream)
+                        {
+                            if (imageStream != null)
+                            {
+                                imageStream.CopyTo(processor.OutputStream.BaseStream);
                                 processor.OutputStream.BaseStream.Flush();
-                                ServerStatistics.ImagesSent++;
+                                ServerStatistics.IncrementImagesSent();
                                 return;
                             }
                         }
                     }
+                    catch (Exception imgEx)
+                    {
+                        Log.WriteLine(LogLevel.Error, "Error sending image for book {0}: {1}", bookID, imgEx.Message);
+                    }
                 }
-                // favicon.ico request
-                else if (ext.Contains(".ico"))
+
+                Log.WriteLine(LogLevel.Warning, "No image available for book {0}", bookID);
+                processor.WriteFailure();
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Image request error: {0}", ex.Message);
+                processor.WriteFailure();
+            }
+        }
+
+        private string ExtractBookIdFromImageRequest(string request, bool isCover)
+        {
+            try
+            {
+                string prefix = isCover ? "/cover/" : "/thumbnail/";
+                int startPos = request.IndexOf(prefix) + prefix.Length;
+                int endPos = request.LastIndexOf(".jpeg");
+
+                if (startPos > 0 && endPos > startPos)
                 {
-                    string icon = Path.GetFileName(request);
-                    Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(Assembly.GetExecutingAssembly().GetName().Name + ".Icons." + icon);
+                    return request.Substring(startPos, endPos - startPos)
+                        .Replace("%7B", "{").Replace("%7D", "}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Warning, "Error extracting book ID from image request: {0}", ex.Message);
+            }
+            return null;
+        }
+
+        private CoverImage GetOrCreateCoverImage(string bookID, Book book)
+        {
+            try
+            {
+                // Check cache first
+                if (ImagesCache.HasImage(bookID))
+                {
+                    return ImagesCache.GetImage(bookID);
+                }
+
+                // Create new image (will generate default if original not found)
+                var image = new CoverImage(book);
+
+                // Add to cache if successful
+                if (image != null && image.HasImages)
+                {
+                    ImagesCache.Add(image);
+                }
+
+                return image;
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error creating cover image for book {0}: {1}", bookID, ex.Message);
+                return null;
+            }
+        }
+
+        private void HandleIconRequest(HttpProcessor processor, string request)
+        {
+            try
+            {
+                string iconName = Path.GetFileName(request);
+                string resourceName = Assembly.GetExecutingAssembly().GetName().Name + ".Icons." + iconName;
+
+                using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
+                {
                     if (stream != null && stream.Length > 0)
                     {
                         processor.WriteSuccess("image/x-icon");
@@ -463,13 +792,17 @@ namespace TinyOPDS.Server
                         return;
                     }
                 }
+
+                Log.WriteLine(LogLevel.Warning, "Icon not found: {0}", iconName);
                 processor.WriteFailure();
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                Log.WriteLine(LogLevel.Error, ".HandleGETRequest() exception {0}", e.Message);
+                Log.WriteLine(LogLevel.Error, "Icon request error: {0}", ex.Message);
                 processor.WriteFailure();
             }
         }
+
+        #endregion
     }
 }

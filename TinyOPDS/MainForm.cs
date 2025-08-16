@@ -812,7 +812,7 @@ namespace TinyOPDS
         private void MainForm_FormClosed(object sender, FormClosedEventArgs e)
         {
             SaveSettings();
-            if (_server != null && _server._isActive)
+            if (_server != null && _server.IsActive)
             {
                 _server.StopServer();
                 _serverThread = null;

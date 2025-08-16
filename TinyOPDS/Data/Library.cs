@@ -27,10 +27,11 @@ namespace TinyOPDS.Data
         private static DatabaseManager _database;
         private static BookRepository _bookRepository;
         private static string _databaseFullPath;
-        private static readonly List<Genre> _genres;
-        private static readonly Dictionary<string, string> _soundexedGenres;
-        private static readonly TimeSpan[] _periods = new TimeSpan[7];
-        private static readonly Dictionary<string, string> _aliases = new Dictionary<string, string>();
+        private static List<Genre> _genres;
+        private static Dictionary<string, string> _soundexedGenres;
+        private static bool _converted = false;
+        private static TimeSpan[] _periods = new TimeSpan[7];
+        private static Dictionary<string, string> _aliases = new Dictionary<string, string>();
 
         // Cache for frequently accessed data
         private static DateTime _lastStatsUpdate = DateTime.MinValue;
@@ -111,7 +112,7 @@ namespace TinyOPDS.Data
 
             try
             {
-                _database?.Dispose();
+                if (_database != null) _database.Dispose();
                 _database = new DatabaseManager(_databaseFullPath);
                 _bookRepository = new BookRepository(_database);
 
@@ -129,7 +130,7 @@ namespace TinyOPDS.Data
         /// </summary>
         public static void Close()
         {
-            _database?.Dispose();
+            if (_database != null) _database.Dispose();
             _database = null;
             _bookRepository = null;
         }
@@ -315,7 +316,7 @@ namespace TinyOPDS.Data
             Log.WriteLine("Library loaded from SQLite database in {0} ms",
                 (DateTime.Now - start).TotalMilliseconds);
 
-            LibraryLoaded?.Invoke(null, EventArgs.Empty);
+            if (LibraryLoaded != null) LibraryLoaded(null, EventArgs.Empty);
         }
 
         /// <summary>
@@ -477,14 +478,38 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Get book by ID
+        /// Get book by ID with enhanced logging for debugging
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
         public static Book GetBook(string id)
         {
-            if (_bookRepository == null) return null;
-            return _bookRepository.GetBookById(id);
+            if (_bookRepository == null)
+            {
+                Log.WriteLine(LogLevel.Error, "BookRepository is null when getting book {0}", id);
+                return null;
+            }
+
+            Log.WriteLine(LogLevel.Info, "Searching for book with ID: {0}", id);
+            var book = _bookRepository.GetBookById(id);
+
+            if (book == null)
+            {
+                Log.WriteLine(LogLevel.Warning, "Book not found by ID: {0}", id);
+            }
+            else
+            {
+                Log.WriteLine(LogLevel.Info, "Found book: {0}, HasCover: {1}, FilePath: {2}",
+                    book.Title, book.HasCover, book.FilePath);
+
+                // Verify file exists
+                if (!File.Exists(book.FilePath))
+                {
+                    Log.WriteLine(LogLevel.Warning, "Book file does not exist: {0}", book.FilePath);
+                }
+            }
+
+            return book;
         }
 
         /// <summary>

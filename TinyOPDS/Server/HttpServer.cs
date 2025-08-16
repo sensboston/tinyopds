@@ -61,7 +61,7 @@ namespace TinyOPDS.Server
 
         private volatile bool _disposed = false;
         private readonly object _disposeLock = new object();
-        private CancellationTokenSource _cancellationTokenSource;
+        private readonly CancellationTokenSource _cancellationTokenSource;
 
         public HttpProcessor(TcpClient socket, HttpServer server)
         {
@@ -250,7 +250,7 @@ namespace TinyOPDS.Server
             }
         }
 
-        public void Process(object param)
+        public void Process(object _)
         {
             if (_disposed) return;
 

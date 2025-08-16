@@ -24,14 +24,14 @@ namespace TinyOPDS.Data
     public static class ImagesCache
     {
         private static readonly object _lockObject = new object();
-        private static Dictionary<string, CoverImage> _memoryCache;
-        private static ConcurrentQueue<SaveTask> _saveQueue;
-        private static Timer _saveTimer;
+        private static readonly Dictionary<string, CoverImage> _memoryCache;
+        private static readonly ConcurrentQueue<SaveTask> _saveQueue;
+        private static readonly Timer _saveTimer;
         private static volatile bool _isProcessing;
 
-        private static string _cacheBasePath;
-        private static string _coversPath;
-        private static string _thumbsPath;
+        private static readonly string _cacheBasePath;
+        private static readonly string _coversPath;
+        private static readonly string _thumbsPath;
 
         static ImagesCache()
         {
@@ -376,10 +376,7 @@ namespace TinyOPDS.Data
         {
             // Use reflection to set the private _cover field
             var field = typeof(CoverImage).GetField("_cover", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            if (field != null)
-            {
-                field.SetValue(this, loadedImage);
-            }
+            field?.SetValue(this, loadedImage);
         }
     }
 }

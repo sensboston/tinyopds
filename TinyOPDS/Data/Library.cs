@@ -27,11 +27,10 @@ namespace TinyOPDS.Data
         private static DatabaseManager _database;
         private static BookRepository _bookRepository;
         private static string _databaseFullPath;
-        private static List<Genre> _genres;
-        private static Dictionary<string, string> _soundexedGenres;
-        private static bool _converted = false;
-        private static TimeSpan[] _periods = new TimeSpan[7];
-        private static Dictionary<string, string> _aliases = new Dictionary<string, string>();
+        private static readonly List<Genre> _genres;
+        private static readonly Dictionary<string, string> _soundexedGenres;
+        private static readonly TimeSpan[] _periods = new TimeSpan[7];
+        private static readonly Dictionary<string, string> _aliases = new Dictionary<string, string>();
 
         // Cache for frequently accessed data
         private static DateTime _lastStatsUpdate = DateTime.MinValue;
@@ -112,7 +111,7 @@ namespace TinyOPDS.Data
 
             try
             {
-                if (_database != null) _database.Dispose();
+                _database?.Dispose();
                 _database = new DatabaseManager(_databaseFullPath);
                 _bookRepository = new BookRepository(_database);
 
@@ -130,7 +129,7 @@ namespace TinyOPDS.Data
         /// </summary>
         public static void Close()
         {
-            if (_database != null) _database.Dispose();
+            _database?.Dispose();
             _database = null;
             _bookRepository = null;
         }
@@ -306,7 +305,7 @@ namespace TinyOPDS.Data
             Log.WriteLine("Library loaded from SQLite database in {0} ms",
                 (DateTime.Now - start).TotalMilliseconds);
 
-            if (LibraryLoaded != null) LibraryLoaded(null, EventArgs.Empty);
+            LibraryLoaded?.Invoke(null, EventArgs.Empty);
         }
 
         /// <summary>

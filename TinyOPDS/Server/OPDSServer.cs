@@ -14,6 +14,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Sockets;
 using System.Xml;
 using System.Xml.Xsl;
 using System.Xml.XPath;
@@ -696,33 +697,123 @@ namespace TinyOPDS.Server
                 CoverImage image = GetOrCreateCoverImage(bookID, book);
                 if (image != null && image.HasImages)
                 {
+                    Stream imageStream = null;
                     try
                     {
-                        processor.WriteSuccess("image/jpeg");
-                        using (Stream imageStream = getCover ? image.CoverImageStream : image.ThumbnailImageStream)
+                        // Get the image stream first, before writing headers
+                        imageStream = getCover ? image.CoverImageStream : image.ThumbnailImageStream;
+
+                        if (imageStream != null && imageStream.Length > 0)
                         {
-                            if (imageStream != null)
+                            // Check if client is still connected before proceeding
+                            if (!processor.OutputStream.BaseStream.CanWrite)
                             {
-                                imageStream.CopyTo(processor.OutputStream.BaseStream);
-                                processor.OutputStream.BaseStream.Flush();
-                                ServerStatistics.IncrementImagesSent();
+                                Log.WriteLine(LogLevel.Info, "Client disconnected before sending image for book {0}", bookID);
                                 return;
                             }
+
+                            processor.WriteSuccess("image/jpeg");
+
+                            // Use buffered copying to handle network interruptions better
+                            const int bufferSize = 8192;
+                            byte[] buffer = new byte[bufferSize];
+                            int bytesRead;
+                            long totalBytesSent = 0;
+
+                            imageStream.Position = 0;
+
+                            while ((bytesRead = imageStream.Read(buffer, 0, bufferSize)) > 0)
+                            {
+                                try
+                                {
+                                    // Check if we can still write before each chunk
+                                    if (!processor.OutputStream.BaseStream.CanWrite)
+                                    {
+                                        Log.WriteLine(LogLevel.Info, "Client disconnected during image transfer for book {0} after {1} bytes", bookID, totalBytesSent);
+                                        break;
+                                    }
+
+                                    processor.OutputStream.BaseStream.Write(buffer, 0, bytesRead);
+                                    totalBytesSent += bytesRead;
+                                }
+                                catch (IOException ioEx) when (ioEx.InnerException is SocketException)
+                                {
+                                    // Client disconnected - this is normal behavior, not an error
+                                    Log.WriteLine(LogLevel.Info, "Client disconnected during image transfer for book {0} after {1} bytes", bookID, totalBytesSent);
+                                    break;
+                                }
+                                catch (ObjectDisposedException)
+                                {
+                                    // Stream was disposed - client disconnected
+                                    Log.WriteLine(LogLevel.Info, "Stream disposed during image transfer for book {0} after {1} bytes", bookID, totalBytesSent);
+                                    break;
+                                }
+                            }
+
+                            // Only flush if we're still connected and transferred complete image
+                            if (processor.OutputStream.BaseStream.CanWrite && totalBytesSent == imageStream.Length)
+                            {
+                                processor.OutputStream.BaseStream.Flush();
+                                ServerStatistics.IncrementImagesSent();
+                                Log.WriteLine(LogLevel.Info, "Successfully sent {0} image for book {1} ({2} bytes)",
+                                    getCover ? "cover" : "thumbnail", bookID, totalBytesSent);
+                            }
                         }
+                        else
+                        {
+                            Log.WriteLine(LogLevel.Warning, "Empty or null image stream for book {0}", bookID);
+                            processor.WriteFailure();
+                        }
+                    }
+                    catch (IOException ioEx) when (ioEx.InnerException is SocketException)
+                    {
+                        // Normal client disconnect - don't log as error
+                        Log.WriteLine(LogLevel.Info, "Client disconnected while preparing image for book {0}: {1}", bookID, ioEx.Message);
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        // Stream disposed - normal when client disconnects
+                        Log.WriteLine(LogLevel.Info, "Stream disposed while preparing image for book {0}", bookID);
                     }
                     catch (Exception imgEx)
                     {
-                        Log.WriteLine(LogLevel.Error, "Error sending image for book {0}: {1}", bookID, imgEx.Message);
+                        Log.WriteLine(LogLevel.Error, "Unexpected error sending image for book {0}: {1}", bookID, imgEx.Message);
+
+                        try
+                        {
+                            if (processor.OutputStream.BaseStream.CanWrite)
+                            {
+                                processor.WriteFailure();
+                            }
+                        }
+                        catch
+                        {
+                            // Ignore errors when trying to write failure response
+                        }
+                    }
+                    finally
+                    {
+                        // Always dispose the image stream
+                        imageStream?.Dispose();
                     }
                 }
-
-                Log.WriteLine(LogLevel.Warning, "No image available for book {0}", bookID);
-                processor.WriteFailure();
+                else
+                {
+                    Log.WriteLine(LogLevel.Warning, "No image available for book {0}", bookID);
+                    processor.WriteFailure();
+                }
             }
             catch (Exception ex)
             {
                 Log.WriteLine(LogLevel.Error, "Image request error: {0}", ex.Message);
-                processor.WriteFailure();
+                try
+                {
+                    processor.WriteFailure();
+                }
+                catch
+                {
+                    // Ignore errors when trying to write failure response
+                }
             }
         }
 

@@ -12,7 +12,6 @@
 
 using System;
 using System.IO;
-using System.Collections.Generic;
 using System.Linq;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -179,22 +178,22 @@ namespace TinyOPDS.Data
                     g.TextRenderingHint = TextRenderingHint.AntiAlias;
                     g.CompositingQuality = CompositingQuality.HighQuality;
 
-                    // Define colors
-                    Color goldColor = Color.FromArgb(212, 175, 55); // #D4AF37
-                    Color shadowColor = Color.FromArgb(100, 0, 0, 0); // Semi-transparent black
+                    // Define colors - "golden" ones
+                    Color goldColor = Color.FromArgb(236, 216, 145);
+                    Color shadowColor = Color.FromArgb(100, 80, 60, 40);
 
                     // Create fonts
-                    Font authorFont = GetBestFont("Times New Roman", 24, FontStyle.Bold | FontStyle.Italic);
-                    Font titleFont = GetBestFont("Times New Roman", 28, FontStyle.Bold);
+                    Font authorFont = GetBestFont("Times New Roman", 32, FontStyle.Bold | FontStyle.Italic);
+                    Font titleFont = GetBestFont("Times New Roman", 40, FontStyle.Bold);
 
-                    // Calculate text areas
-                    Rectangle authorArea = new Rectangle(40, 60, CoverSize.Width - 80, 120);
-                    Rectangle titleArea = new Rectangle(40, CoverSize.Height - 200, CoverSize.Width - 80, 140);
+                    // Calculate text areas - измененные позиции
+                    Rectangle authorArea = new Rectangle(40, 120, CoverSize.Width - 80, 160);
+                    Rectangle titleArea = new Rectangle(40, CoverSize.Height - 400, CoverSize.Width - 80, 260);
 
-                    // Draw author text (top)
+                    // Draw author text (top, moved down)
                     DrawTextWithShadow(g, author, authorFont, goldColor, shadowColor, authorArea, true);
 
-                    // Draw title text (bottom)
+                    // Draw title text (bottom, moved up)
                     DrawTextWithShadow(g, title, titleFont, goldColor, shadowColor, titleArea, false);
 
                     // Clean up fonts

@@ -39,7 +39,6 @@ namespace TinyOPDS.Data
                 FileName = FileName.Substring(Library.LibraryPath.Length+1);
             }
             Title = Sequence = Annotation = Language = string.Empty;
-            HasCover = false;
             BookDate = DocumentDate = DateTime.MinValue;
             NumberInSequence = 0;
             Authors = new List<string>();
@@ -70,7 +69,6 @@ namespace TinyOPDS.Data
         }
         public string Title { get; set; }
         public string Language { get; set; }
-        public bool HasCover { get; set; }
         public DateTime BookDate { get; set; }
         public DateTime DocumentDate { get; set; }
         public string Sequence { get; set; }

@@ -39,7 +39,7 @@ namespace TinyOPDS.OPDS
                     new XElement("title", string.Format(Localizer.Text("New books sorted by {0}"), (sortByDate ? Localizer.Text("date") : Localizer.Text("titles")))),
                     new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                     new XElement("icon", "/icons/books.ico"),
-                // Add links
+                    // Add links
                     Links.opensearch, Links.search, Links.start)
                 );
 
@@ -131,17 +131,14 @@ namespace TinyOPDS.OPDS
                     new XElement(Namespaces.dc + "format", book.BookType == BookType.FB2 ? "fb2+zip" : "epub+zip"),
                     new XElement("content", new XAttribute("type", "text/html"), bookInfo));
 
-                if (book.HasCover)
-                {
-                    entry.Add(
-                        // Adding cover page and thumbnail links
-                        new XElement("link", new XAttribute("href", "/cover/" + book.ID + ".jpeg"), new XAttribute("rel", "http://opds-spec.org/image"), new XAttribute("type", "image/jpeg")),
-                        new XElement("link", new XAttribute("href", "/cover/" + book.ID + ".jpeg"), new XAttribute("rel", "x-stanza-cover-image"), new XAttribute("type", "image/jpeg")),
-                        new XElement("link", new XAttribute("href", "/thumbnail/" + book.ID + ".jpeg"), new XAttribute("rel", "http://opds-spec.org/thumbnail"), new XAttribute("type", "image/jpeg")),
-                        new XElement("link", new XAttribute("href", "/thumbnail/" + book.ID + ".jpeg"), new XAttribute("rel", "x-stanza-cover-image-thumbnail"), new XAttribute("type", "image/jpeg"))
-                        // Adding download links
-                    );
-                }
+                entry.Add(
+                    // Adding cover page and thumbnail links
+                    new XElement("link", new XAttribute("href", "/cover/" + book.ID + ".jpeg"), new XAttribute("rel", "http://opds-spec.org/image"), new XAttribute("type", "image/jpeg")),
+                    new XElement("link", new XAttribute("href", "/cover/" + book.ID + ".jpeg"), new XAttribute("rel", "x-stanza-cover-image"), new XAttribute("type", "image/jpeg")),
+                    new XElement("link", new XAttribute("href", "/thumbnail/" + book.ID + ".jpeg"), new XAttribute("rel", "http://opds-spec.org/thumbnail"), new XAttribute("type", "image/jpeg")),
+                    new XElement("link", new XAttribute("href", "/thumbnail/" + book.ID + ".jpeg"), new XAttribute("rel", "x-stanza-cover-image-thumbnail"), new XAttribute("type", "image/jpeg"))
+                // Adding download links
+                );
 
                 string fileName = Uri.EscapeDataString(Transliteration.Front(string.Format("{0}_{1}", book.Authors.First(), book.Title)).SanitizeFileName());
                 string url = "/" + string.Format("{0}/{1}", book.ID, fileName);

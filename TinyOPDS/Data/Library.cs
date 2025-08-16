@@ -489,8 +489,7 @@ namespace TinyOPDS.Data
             }
             else
             {
-                Log.WriteLine(LogLevel.Info, "Found book: {0}, HasCover: {1}, FilePath: {2}",
-                    book.Title, book.HasCover, book.FilePath);
+                Log.WriteLine(LogLevel.Info, "Found book: {0}, FilePath: {1}", book.Title, book.FilePath);
             }
 
             return book;
@@ -734,7 +733,6 @@ namespace TinyOPDS.Data
                                 book.Version = reader.ReadSingle();
                                 book.Title = reader.ReadString();
                                 book.Language = reader.ReadString();
-                                book.HasCover = reader.ReadBoolean();
                                 book.BookDate = DateTime.FromBinary(reader.ReadInt64());
                                 book.DocumentDate = DateTime.FromBinary(reader.ReadInt64());
                                 book.Sequence = reader.ReadString();

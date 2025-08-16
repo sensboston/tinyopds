@@ -169,7 +169,7 @@ namespace TinyOPDS.OPDS
 
             }
 
-            bool useCyrillic = TinyOPDS.Properties.Settings.Default.SortOrder > 0;
+            bool useCyrillic = Properties.Settings.Default.SortOrder > 0;
 
             List<Genre> genres = Library.Genres;
 
@@ -200,7 +200,7 @@ namespace TinyOPDS.OPDS
                     if (genre != null)
                         entry.Add(new XElement("category", new XAttribute("term", (useCyrillic ? genre.Translation : genre.Name)), new XAttribute("label", (useCyrillic ? genre.Translation : genre.Name))));
                 }
-                
+
                 // Build a content entry (translator(s), year, size, annotation etc.)
                 string bookInfo = string.Empty;
 
@@ -228,32 +228,29 @@ namespace TinyOPDS.OPDS
                     new XElement(Namespaces.dc + "language", book.Language),
                     new XElement(Namespaces.dc + "format", book.BookType == BookType.FB2 ? "fb2+zip" : "epub+zip"),
                     new XElement("content", new XAttribute("type", "text/html"), XElement.Parse("<div>" + bookInfo + "<br/></div>")),
-                    new XElement( "format", book.BookType == BookType.EPUB ? "epub" : "fb2"),
-                    new XElement( "size", string.Format("{0} Kb", (int)book.DocumentSize / 1024)));
+                    new XElement("format", book.BookType == BookType.EPUB ? "epub" : "fb2"),
+                    new XElement("size", string.Format("{0} Kb", (int)book.DocumentSize / 1024)));
 
 
-                if (book.HasCover)
-                {
-                    entry.Add(
-                        // Adding cover page and thumbnail links
-                        new XElement("link", new XAttribute("href", "/cover/" + book.ID + ".jpeg"), new XAttribute("rel", "http://opds-spec.org/image"), new XAttribute("type", "image/jpeg")),
-                        new XElement("link", new XAttribute("href", "/cover/" + book.ID + ".jpeg"), new XAttribute("rel", "x-stanza-cover-image"), new XAttribute("type", "image/jpeg")),
-                        new XElement("link", new XAttribute("href", "/thumbnail/" + book.ID + ".jpeg"), new XAttribute("rel", "http://opds-spec.org/thumbnail"), new XAttribute("type", "image/jpeg")),
-                        new XElement("link", new XAttribute("href", "/thumbnail/" + book.ID + ".jpeg"), new XAttribute("rel", "x-stanza-cover-image-thumbnail"), new XAttribute("type", "image/jpeg"))
-                        // Adding download links
-                    );
-                }
+                entry.Add(
+                    // Adding cover page and thumbnail links
+                    new XElement("link", new XAttribute("href", "/cover/" + book.ID + ".jpeg"), new XAttribute("rel", "http://opds-spec.org/image"), new XAttribute("type", "image/jpeg")),
+                    new XElement("link", new XAttribute("href", "/cover/" + book.ID + ".jpeg"), new XAttribute("rel", "x-stanza-cover-image"), new XAttribute("type", "image/jpeg")),
+                    new XElement("link", new XAttribute("href", "/thumbnail/" + book.ID + ".jpeg"), new XAttribute("rel", "http://opds-spec.org/thumbnail"), new XAttribute("type", "image/jpeg")),
+                    new XElement("link", new XAttribute("href", "/thumbnail/" + book.ID + ".jpeg"), new XAttribute("rel", "x-stanza-cover-image-thumbnail"), new XAttribute("type", "image/jpeg"))
+                // Adding download links
+                );
 
                 string fileName = Uri.EscapeDataString(Transliteration.Front(string.Format("{0}_{1}", book.Authors.First(), book.Title)).SanitizeFileName());
                 string url = "/" + string.Format("{0}/{1}", book.ID, fileName);
                 if (book.BookType == BookType.EPUB || (book.BookType == BookType.FB2 && !acceptFB2 && !string.IsNullOrEmpty(TinyOPDS.Properties.Settings.Default.ConvertorPath)))
                 {
-                    entry.Add(new XElement("link", new XAttribute("href",  url+".epub"), new XAttribute("rel", "http://opds-spec.org/acquisition/open-access"), new XAttribute("type", "application/epub+zip")));
+                    entry.Add(new XElement("link", new XAttribute("href", url + ".epub"), new XAttribute("rel", "http://opds-spec.org/acquisition/open-access"), new XAttribute("type", "application/epub+zip")));
                 }
 
                 if (book.BookType == BookType.FB2)
                 {
-                    entry.Add(new XElement("link", new XAttribute("href",  url+".fb2.zip"), new XAttribute("rel", "http://opds-spec.org/acquisition/open-access"), new XAttribute("type", "application/fb2+zip")));
+                    entry.Add(new XElement("link", new XAttribute("href", url + ".fb2.zip"), new XAttribute("rel", "http://opds-spec.org/acquisition/open-access"), new XAttribute("type", "application/fb2+zip")));
                 }
 
                 // For search requests, lets add navigation links for author and series (if any)
@@ -263,7 +260,7 @@ namespace TinyOPDS.OPDS
                     {
                         entry.Add(new XElement("link",
                                         new XAttribute("href", "/author/" + Uri.EscapeDataString(author)),
-                                        new XAttribute("rel", "related"), 
+                                        new XAttribute("rel", "related"),
                                         new XAttribute("type", "application/atom+xml;profile=opds-catalog"),
                                         new XAttribute("title", string.Format(Localizer.Text("All books by author {0}"), author))));
                     }
@@ -271,13 +268,13 @@ namespace TinyOPDS.OPDS
 
                 if (searchFor != SearchFor.Sequence && !string.IsNullOrEmpty(book.Sequence))
                 {
-                   entry.Add(new XElement("link",
-                                new XAttribute("href", "/sequence/" + Uri.EscapeDataString(book.Sequence)),
-                                new XAttribute("rel", "related"),
-                                new XAttribute("type", "application/atom+xml;profile=opds-catalog"),
-                                new XAttribute("title", string.Format(Localizer.Text("All books by series {0}"), book.Sequence))));
+                    entry.Add(new XElement("link",
+                                 new XAttribute("href", "/sequence/" + Uri.EscapeDataString(book.Sequence)),
+                                 new XAttribute("rel", "related"),
+                                 new XAttribute("type", "application/atom+xml;profile=opds-catalog"),
+                                 new XAttribute("title", string.Format(Localizer.Text("All books by series {0}"), book.Sequence))));
                 }
-                
+
                 doc.Root.Add(entry);
             }
             return doc;

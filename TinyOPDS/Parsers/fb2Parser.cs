@@ -139,7 +139,6 @@ namespace TinyOPDS.Parsers
 
                 if (fb2.TitleInfo != null)
                 {
-                    if (fb2.TitleInfo.Cover != null && fb2.TitleInfo.Cover.HasImages()) book.HasCover = true;
                     if (fb2.TitleInfo.BookTitle != null) book.Title = fb2.TitleInfo.BookTitle.Text;
                     if (fb2.TitleInfo.Annotation != null) book.Annotation = fb2.TitleInfo.Annotation.ToString();
                     if (fb2.TitleInfo.Sequences != null && fb2.TitleInfo.Sequences.Count > 0)

@@ -55,23 +55,6 @@ namespace TinyOPDS.Parsers
                 book.Genres = LookupGenres(epub.Subject);
                 if (epub.Description != null && epub.Description.Count > 0) book.Annotation = epub.Description.First();
                 if (epub.Language != null && epub.Language.Count > 0) book.Language = epub.Language.First();
-
-                // Lookup cover
-                if (epub.ExtendedData != null)
-                {
-                    foreach (ExtendedData value in epub.ExtendedData.Values)
-                    {
-                        string s = value.FileName.ToLower();
-                        if (s.Contains(".jpeg") || s.Contains(".jpg") || s.Contains(".png"))
-                        {
-                            if (value.ID.ToLower().Contains("cover") || s.Contains("cover"))
-                            {
-                                book.HasCover = true;
-                                break;
-                            }
-                        }
-                    }
-                }
             }
             catch (Exception e)
             {

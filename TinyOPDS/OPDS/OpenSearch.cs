@@ -6,7 +6,7 @@
  * This code is licensed under the Microsoft Public License, 
  * see http://tinyopds.codeplex.com/license for the details.
  *
- * This module contains OPDS OpenSearch implementation with SQLite support
+ * This module contains OPDS OpenSearch implementation
  * 
  * TODO: implement SOUNDEX search
  * 
@@ -14,7 +14,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using System.Xml.Linq;
+using System.Web;
 
 using TinyOPDS.Data;
 
@@ -51,57 +54,58 @@ namespace TinyOPDS.OPDS
             XDocument doc = new XDocument(
                 // Add root element and namespaces
                 new XElement("feed", new XAttribute(XNamespace.Xmlns + "dc", Namespaces.dc), new XAttribute(XNamespace.Xmlns + "os", Namespaces.os), new XAttribute(XNamespace.Xmlns + "opds", Namespaces.opds),
-                    new XElement("id", "tag:search"),
+                    new XElement("id", "tag:search:"+searchPattern),
                     new XElement("title", Localizer.Text("Search results")),
                     new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                    new XElement("icon", "/search.ico"),
+                    new XElement("icon", "/series.ico"),
                     // Add links
-                    Links.opensearch, Links.search, Links.start)
+                    Links.opensearch, Links.search, Links.start, Links.self)
                 );
 
-            if (string.IsNullOrEmpty(searchPattern) || searchPattern.Length < 1)
+            List<string> authors = new List<string>();
+            List<Book> titles = new List<Book>();
+
+            if (string.IsNullOrEmpty(searchType))
             {
-                doc.Root.Add(
-                new XElement("entry",
-                    new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                    new XElement("id", "tag:search:notice"),
-                    new XElement("title", Localizer.Text("Search")),
-                    new XElement("content", Localizer.Text("Please specify search keywords"), new XAttribute("type", "text")))
-                );
+                string transSearchPattern = Transliteration.Back(searchPattern, TransliterationType.GOST);
+                authors = Library.GetAuthorsByName(searchPattern, true);
+                if (authors.Count == 0 && !string.IsNullOrEmpty(transSearchPattern))
+                {
+                    authors = Library.GetAuthorsByName(transSearchPattern, true);
+                }
+                titles = Library.GetBooksByTitle(searchPattern);
+                if (titles.Count == 0 && !string.IsNullOrEmpty(transSearchPattern))
+                {
+                    titles = Library.GetBooksByTitle(transSearchPattern);
+                }
             }
-            else
-            {
-                // Use SQLite version for searching
-                List<string> authors = Library.GetAuthorsByName(searchPattern, true);
-                List<Book> titles = Library.GetBooksByTitle(searchPattern);
 
-                if (string.IsNullOrEmpty(searchType) && authors.Count > 0 && titles.Count > 0)
-                {
-                    // ambiguous request - let user choose the search type
-                    doc.Root.Add(
-                     new XElement("entry",
-                            new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                            new XElement("id", "tag:search:author"),
-                            new XElement("title", Localizer.Text("Search authors")),
-                            new XElement("content", Localizer.Text("Search authors by name"), new XAttribute("type", "text")),
-                            new XElement("link", new XAttribute("href", "/search?searchType=authors&searchTerm=" + Uri.EscapeDataString(searchPattern)), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))),
-                        new XElement("entry",
-                            new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                            new XElement("id", "tag:search:title"),
-                            new XElement("title", Localizer.Text("Search books")),
-                            new XElement("content", Localizer.Text("Search books by title"), new XAttribute("type", "text")),
-                            new XElement("link", new XAttribute("href", "/search?searchType=books&searchTerm=" + Uri.EscapeDataString(searchPattern)), new XAttribute("type", "application/atom+xml;profile=opds-catalog")))
-                        );
-                }
-                else if (searchType.Equals("authors") || (authors.Count > 0 && titles.Count == 0))
-                {
-                    return new AuthorsCatalog().GetCatalog(searchPattern, true);
-                }
-                else if (searchType.Equals("books") || (titles.Count > 0 && authors.Count == 0))
-                {
-                    if (pageNumber > 0) searchPattern += "/" + pageNumber;
-                    return new BooksCatalog().GetCatalogByTitle(searchPattern, fb2Only, 0, 1000);
-                }
+            if (string.IsNullOrEmpty(searchType) && authors.Count > 0 && titles.Count > 0)
+            {
+                // Add two navigation entries: search by authors name and book title
+                doc.Root.Add(
+                    new XElement("entry",
+                        new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
+                        new XElement("id", "tag:search:author"),
+                        new XElement("title", Localizer.Text("Search authors")),
+                        new XElement("content", Localizer.Text("Search authors by name"), new XAttribute("type", "text")),
+                        new XElement("link", new XAttribute("href", "/search?searchType=authors&searchTerm=" + Uri.EscapeDataString(searchPattern)), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))),
+                    new XElement("entry",
+                        new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
+                        new XElement("id", "tag:search:title"),
+                        new XElement("title", Localizer.Text("Search books")),
+                        new XElement("content", Localizer.Text("Search books by title"), new XAttribute("type", "text")),
+                        new XElement("link", new XAttribute("href", "/search?searchType=books&searchTerm=" + Uri.EscapeDataString(searchPattern)), new XAttribute("type", "application/atom+xml;profile=opds-catalog")))
+                    );
+            }
+            else if (searchType.Equals("authors") || (authors.Count > 0 && titles.Count == 0))
+            {
+                return new AuthorsCatalog().GetCatalog(searchPattern, true);
+            }
+            else if (searchType.Equals("books") || (titles.Count > 0 && authors.Count == 0))
+            {
+                if (pageNumber > 0) searchPattern += "/" + pageNumber;
+                return new BooksCatalog().GetCatalogByTitle(searchPattern, fb2Only, 0, 1000);
             }
             return doc;
         }

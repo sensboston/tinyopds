@@ -6,14 +6,16 @@
  * This code is licensed under the Microsoft Public License, 
  * see http://tinyopds.codeplex.com/license for the details.
  *
- * This module defines the OPDS GenresCatalog class with SQLite support
+ * This module defines the OPDS GenresCatalog class
  * 
  ************************************************************/
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Xml.Linq;
+using System.Web;
 
 using TinyOPDS.Data;
 
@@ -42,7 +44,6 @@ namespace TinyOPDS.OPDS
             bool topLevel = true;
             bool useCyrillic = TinyOPDS.Properties.Settings.Default.SortOrder > 0;
 
-            // Use SQLite version for genres
             List<Genre> libGenres = Library.Genres;
             List<Genre> genres = null;
 
@@ -54,33 +55,30 @@ namespace TinyOPDS.OPDS
             // Is it a second level (subgenres)?
             else
             {
-                topLevel = false;
-                var parent = Library.FB2Genres.Where(g => g.Name.ToLower().Equals(searchPattern.ToLower()) || g.Translation.ToLower().Equals(searchPattern.ToLower())).FirstOrDefault();
-                if (parent != null) genres = parent.Subgenres.Where(sg => libGenres.Contains(sg)).ToList();
+                Genre genre = Library.FB2Genres.Where(g => g.Name.Equals(searchPattern) || g.Translation.Equals(searchPattern)).FirstOrDefault();
+                if (genre != null)
+                {
+                    genres = (from g in libGenres where genre.Subgenres.Contains(g) select g).Distinct().ToList();
+                    topLevel = false;
+                }
             }
 
             if (genres != null)
             {
-                var comparer = new OPDSComparer(useCyrillic);
-                genres = genres.OrderBy(g => useCyrillic ? g.Translation : g.Name, comparer).ToList();
+                genres.Sort(new OPDSComparer(useCyrillic));
 
+                // Add catalog entries
                 foreach (Genre genre in genres)
                 {
-                    // Use SQLite version to count books in genre
-                    var genreCount = Library.GetBooksByGenre(genre.Tag).Count;
-
-                    if (genreCount > 0)
-                    {
-                        doc.Root.Add(
-                            new XElement("entry",
-                                new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                                new XElement("id", "tag:genres:" + genre.Tag),
-                                new XElement("title", useCyrillic ? genre.Translation : genre.Name),
-                                new XElement("content", string.Format(Localizer.Text("Books: {0}"), genreCount), new XAttribute("type", "text")),
-                                new XElement("link", new XAttribute("href", topLevel ? "/genres/" + Uri.EscapeDataString(useCyrillic ? genre.Translation : genre.Name) : "/genre/" + Uri.EscapeDataString(genre.Tag)), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
-                            )
-                        );
-                    }
+                    doc.Root.Add(
+                        new XElement("entry",
+                            new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
+                            new XElement("id", "tag:root:genre:" + (useCyrillic ? genre.Translation : genre.Name)),
+                            new XElement("title", (useCyrillic ? genre.Translation : genre.Name)),
+                            new XElement("content", string.Format(Localizer.Text("Books in genre «{0}»"), (useCyrillic ? genre.Translation : genre.Name)), new XAttribute("type", "text")),
+                            new XElement("link", new XAttribute("href", "/" + (topLevel ? "genres/" : "genre/") + (topLevel ? Uri.EscapeDataString((useCyrillic ? genre.Translation : genre.Name)) : genre.Tag)), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
+                        )
+                    );
                 }
             }
 

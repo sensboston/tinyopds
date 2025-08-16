@@ -60,20 +60,20 @@ namespace TinyOPDS.Data
             try
             {
                 var doc = XDocument.Load(Assembly.GetExecutingAssembly().GetManifestResourceStream(
-                    Assembly.GetExecutingAssembly().GetName().Name + ".Genres.xml"));
+                    Assembly.GetExecutingAssembly().GetName().Name + ".genres.xml"));
 
                 _genres = (from g in doc.Descendants("genre")
                            select new Genre
                            {
-                               Tag = g.Attribute("tag").Value,
+                               Tag = "",
                                Name = g.Attribute("name").Value,
-                               Translation = g.Attribute("translation").Value,
+                               Translation = g.Attribute("ru").Value,
                                Subgenres = (from sg in g.Descendants("subgenre")
                                             select new Genre
                                             {
                                                 Tag = sg.Attribute("tag").Value,
-                                                Name = sg.Attribute("name").Value,
-                                                Translation = sg.Attribute("translation").Value
+                                                Name = sg.Value,
+                                                Translation = sg.Attribute("ru").Value
                                             }).ToList()
                            }).ToList();
 
@@ -250,20 +250,10 @@ namespace TinyOPDS.Data
         {
             get
             {
-                if (_bookRepository == null) return new List<Genre>();
-
-                var libGenreTags = _bookRepository.GetAllGenreTags();
-                var comparer = new OPDSComparer(TinyOPDS.Properties.Settings.Default.SortOrder > 0);
-                var sortedTags = libGenreTags.Where(g => g.Length > 1)
-                    .Select(g => g.ToLower().Trim())
-                    .OrderBy(g => g, comparer)
-                    .ToList();
-
-                return _genres.SelectMany(g => g.Subgenres)
-                    .Where(sg => sortedTags.Contains(sg.Tag) ||
-                                sortedTags.Contains(sg.Name.ToLower()) ||
-                                sortedTags.Contains(sg.Translation.ToLower()))
-                    .ToList();
+                // Simply return all subgenres from the loaded XML genres
+                var useCyrillic = TinyOPDS.Properties.Settings.Default.SortOrder > 0;
+                var comparer = new OPDSComparer(useCyrillic);
+                return _genres.SelectMany(g => g.Subgenres).OrderBy(g => useCyrillic ? g.Translation : g.Name, comparer).ToList();
             }
         }
 

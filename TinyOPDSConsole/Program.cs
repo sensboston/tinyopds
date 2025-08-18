@@ -23,6 +23,7 @@ using TinyOPDS.Server;
 using TinyOPDS.Properties;
 using UPnP;
 using Bluegrams.Application;
+using System.Net;
 
 namespace TinyOPDSConsole
 {
@@ -328,11 +329,11 @@ namespace TinyOPDSConsole
         private static void StartServer()
         {
             // Init log file settings
-            Log.SaveToFile = TinyOPDS.Properties.Settings.Default.SaveLogToDisk;
+            Log.SaveToFile = Settings.Default.SaveLogToDisk;
             
             // Init localization service
             Localizer.Init();
-            Localizer.Language = TinyOPDS.Properties.Settings.Default.Language;
+            Localizer.Language = Settings.Default.Language;
 
             // Create timer for periodical refresh UPnP forwarding
             _upnpRefreshTimer = new Timer(UpdateUPnPForwarding, null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
@@ -360,20 +361,20 @@ namespace TinyOPDSConsole
             _watcher.IsEnabled = false;
 
             _upnpController.DiscoverCompleted += _upnpController_DiscoverCompleted;
-            _upnpController.DiscoverAsync(TinyOPDS.Properties.Settings.Default.UseUPnP);
+            _upnpController.DiscoverAsync(Settings.Default.UseUPnP);
 
-            Library.LibraryPath = TinyOPDS.Properties.Settings.Default.LibraryPath.SanitizePathName();
+            Library.LibraryPath = Settings.Default.LibraryPath.SanitizePathName();
             Library.LibraryLoaded += (_, __) =>
             {
                 _watcher.DirectoryToWatch = Library.LibraryPath;
-                _watcher.IsEnabled = TinyOPDS.Properties.Settings.Default.WatchLibrary;
+                _watcher.IsEnabled = Settings.Default.WatchLibrary;
             };
 
             // Load saved credentials
             try
             {
                 HttpProcessor.Credentials.Clear();
-                string[] pairs = Crypt.DecryptStringAES(TinyOPDS.Properties.Settings.Default.Credentials, _urlTemplate).Split(';');
+                string[] pairs = Crypt.DecryptStringAES(Settings.Default.Credentials, _urlTemplate).Split(';');
                 foreach (string pair in pairs)
                 {
                     string[] cred = pair.Split(':');
@@ -385,7 +386,7 @@ namespace TinyOPDSConsole
             // Create and start HTTP server
             HttpProcessor.AuthorizedClients.Clear();
             HttpProcessor.BannedClients.Clear();
-            _server = new OPDSServer(_upnpController.LocalIP, int.Parse(TinyOPDS.Properties.Settings.Default.ServerPort));
+            _server = new OPDSServer(IPAddress.Any, int.Parse(Settings.Default.ServerPort));
 
             _serverThread = new Thread(new ThreadStart(_server.Listen));
             _serverThread.Priority = ThreadPriority.BelowNormal;
@@ -397,7 +398,7 @@ namespace TinyOPDSConsole
                 {
                     if (_server.ServerException is System.Net.Sockets.SocketException)
                     {
-                        string msg = string.Format("Probably, port {0} is already in use. Please try the different port.", TinyOPDS.Properties.Settings.Default.ServerPort);
+                        string msg = string.Format("Probably, port {0} is already in use. Please try the different port.", Settings.Default.ServerPort);
                         Console.WriteLine(msg);
                         Log.WriteLine(msg);
                     }
@@ -413,7 +414,7 @@ namespace TinyOPDSConsole
             else
             {
                 Log.WriteLine("HTTP server started");
-                if (Utils.IsLinux || System.Environment.UserInteractive)
+                if (Utils.IsLinux || Environment.UserInteractive)
                 {
                     Console.WriteLine("Server is running... Press <Ctrl+c> to shutdown server.");
                     while (_server != null && _server.IsActive) Thread.Sleep(500);
@@ -449,7 +450,7 @@ namespace TinyOPDSConsole
             {
                 if (_upnpController.UPnPReady)
                 {
-                    int port = int.Parse(TinyOPDS.Properties.Settings.Default.ServerPort);
+                    int port = int.Parse(Settings.Default.ServerPort);
                     _upnpController.DeleteForwardingRule(port, System.Net.Sockets.ProtocolType.Tcp);
                     Log.WriteLine("Port {0} closed", port);
                 }
@@ -462,9 +463,9 @@ namespace TinyOPDSConsole
         {
             if (_upnpController != null && _upnpController.UPnPReady)
             {
-                if (TinyOPDS.Properties.Settings.Default.OpenNATPort)
+                if (Settings.Default.OpenNATPort)
                 {
-                    int port = int.Parse(TinyOPDS.Properties.Settings.Default.ServerPort);
+                    int port = int.Parse(Settings.Default.ServerPort);
                     _upnpController.ForwardPort(port, System.Net.Sockets.ProtocolType.Tcp, "TinyOPDS server");
                     Log.WriteLine("Port {0} forwarded by UPnP", port);
                 }
@@ -473,7 +474,7 @@ namespace TinyOPDSConsole
 
         private static void UpdateUPnPForwarding(Object state)
         {
-            if (TinyOPDS.Properties.Settings.Default.UseUPnP)
+            if (Settings.Default.UseUPnP)
             {
                 if (_server != null &&  _server.IsActive && _server.IsIdle && _upnpController != null && _upnpController.UPnPReady)
                 {
@@ -481,9 +482,9 @@ namespace TinyOPDSConsole
                     {
                         _upnpController.DiscoverAsync(true);
                     }
-                    else if (TinyOPDS.Properties.Settings.Default.OpenNATPort && _upnpController.UPnPReady)
+                    else if (Settings.Default.OpenNATPort && _upnpController.UPnPReady)
                     {
-                        int port = int.Parse(TinyOPDS.Properties.Settings.Default.ServerPort);
+                        int port = int.Parse(Settings.Default.ServerPort);
                         _upnpController.ForwardPort(port, System.Net.Sockets.ProtocolType.Tcp, "TinyOPDS server");
                     }
                 }

@@ -561,7 +561,8 @@ namespace TinyOPDS
             // Create and start HTTP server
             HttpProcessor.AuthorizedClients.Clear();
             HttpProcessor.BannedClients.Clear();
-            _server = new OPDSServer(_upnpController.LocalIP, int.Parse(Properties.Settings.Default.ServerPort));
+            _server = new OPDSServer(IPAddress.Any, int.Parse(Properties.Settings.Default.ServerPort));
+
 
             _serverThread = new Thread(new ThreadStart(_server.Listen));
             _serverThread.Priority = ThreadPriority.BelowNormal;

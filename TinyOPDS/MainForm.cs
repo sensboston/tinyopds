@@ -347,14 +347,32 @@ namespace TinyOPDS
             try
             {
                 HttpProcessor.Credentials.Clear();
-                string[] pairs = Crypt.DecryptStringAES(Properties.Settings.Default.Credentials, urlTemplate).Split(';');
-                foreach (string pair in pairs)
+                if (!string.IsNullOrEmpty(Properties.Settings.Default.Credentials))
                 {
-                    string[] cred = pair.Split(':');
-                    if (cred.Length == 2) HttpProcessor.Credentials.Add(new Credential(cred[0], cred[1]));
+                    string decryptedCredentials = Crypt.DecryptStringAES(Properties.Settings.Default.Credentials, urlTemplate);
+                    if (!string.IsNullOrEmpty(decryptedCredentials))
+                    {
+                        string[] pairs = decryptedCredentials.Split(';');
+                        foreach (string pair in pairs)
+                        {
+                            if (!string.IsNullOrEmpty(pair))
+                            {
+                                string[] cred = pair.Split(':');
+                                if (cred.Length == 2 && !string.IsNullOrEmpty(cred[0]))
+                                {
+                                    HttpProcessor.Credentials.Add(new Credential(cred[0], cred[1]));
+                                }
+                            }
+                        }
+                    }
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Warning, "Error loading credentials: {0}", ex.Message);
+                Properties.Settings.Default.Credentials = string.Empty;
+                Properties.Settings.Default.Save();
+            }
         }
 
         private void SaveSettings()

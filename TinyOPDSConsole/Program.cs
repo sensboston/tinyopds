@@ -11,24 +11,18 @@
  ************************************************************/
 
 using System;
-using System.IO;
-using System.IO.Compression;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Net;
 using System.ServiceProcess;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Reflection;
 using System.Diagnostics;
 
 using TinyOPDS;
 using TinyOPDS.Data;
 using TinyOPDS.Scanner;
-using TinyOPDS.OPDS;
 using TinyOPDS.Server;
+using TinyOPDS.Properties;
 using UPnP;
+using Bluegrams.Application;
 
 namespace TinyOPDSConsole
 {
@@ -53,31 +47,6 @@ namespace TinyOPDSConsole
         #endregion
 
         #region Startup, command line processing and service overrides
-
-        /// <summary>
-        /// Extra assembly loader
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="args"></param>
-        /// <returns></returns>
-        static Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
-        {
-            Assembly asm = Assembly.GetExecutingAssembly();
-            String resourceName = asm.GetName().Name + ".Libs." + new AssemblyName(args.Name).Name + ".dll.gz";
-            using (var stream = asm.GetManifestResourceStream(resourceName))
-            {
-                if (stream != null)
-                {
-                    using (MemoryStream memStream = new MemoryStream())
-                    {
-                        GZipStream decompress = new GZipStream(stream, CompressionMode.Decompress);
-                        decompress.CopyTo(memStream);
-                        return Assembly.Load(memStream.GetBuffer());
-                    }
-                }
-                else return null;
-            }
-        }
 
         /// <summary>
         /// Process unhandled exceptions
@@ -106,11 +75,13 @@ namespace TinyOPDSConsole
 
         static int Main(string[] args)
         {
-            AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
-            AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
-            Log.SaveToFile = TinyOPDS.Properties.Settings.Default.SaveLogToDisk;
+            PortableSettingsProvider.SettingsFileName = "TinyOPDS.config";
+            PortableSettingsProvider.ApplyProvider(Settings.Default);
 
-            if (Utils.IsLinux || System.Environment.UserInteractive)
+            AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+            Log.SaveToFile = Settings.Default.SaveLogToDisk;
+
+            if (Utils.IsLinux || Environment.UserInteractive)
             {
                 // Add Ctrl+c handler
                 Console.CancelKeyPress += (sender, eventArgs) =>
@@ -522,7 +493,7 @@ namespace TinyOPDSConsole
         private static void ScanFolder()
         {
             // Init log file settings
-            Log.SaveToFile = TinyOPDS.Properties.Settings.Default.SaveLogToDisk;
+            Log.SaveToFile = Settings.Default.SaveLogToDisk;
 
             _scanner = new FileScanner();
             _scanner.OnBookFound += scanner_OnBookFound;

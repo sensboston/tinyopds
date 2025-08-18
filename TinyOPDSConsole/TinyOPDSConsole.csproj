@@ -1,5 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\TinyOPDS\packages\Costura.Fody.6.0.0\build\Costura.Fody.props" Condition="Exists('..\TinyOPDS\packages\Costura.Fody.6.0.0\build\Costura.Fody.props')" />
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -57,6 +58,9 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Costura, Version=6.0.0.0, Culture=neutral, PublicKeyToken=9919ef960d84173d, processorArchitecture=MSIL">
+      <HintPath>..\TinyOPDS\packages\Costura.Fody.6.0.0\lib\netstandard2.0\Costura.dll</HintPath>
+    </Reference>
     <Reference Include="eBdb.EpubReader, Version=1.0.0.6, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\TinyOPDS\Libs\eBdb.EpubReader.dll</HintPath>
@@ -174,6 +178,12 @@
     <Compile Include="..\TinyOPDS\Parsers\fb2Parser.cs">
       <Link>Parsers\fb2Parser.cs</Link>
     </Compile>
+    <Compile Include="..\TinyOPDS\PortableSettingsProvider.cs">
+      <Link>PortableSettingsProvider.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\PortableSettingsProviderBase.cs">
+      <Link>PortableSettingsProviderBase.cs</Link>
+    </Compile>
     <Compile Include="..\TinyOPDS\Scanner\FileScanner.cs">
       <Link>Scanner\FileScanner.cs</Link>
     </Compile>
@@ -234,6 +244,12 @@
     <EmbeddedResource Include="..\TinyOPDS\genres.xml">
       <Link>genres.xml</Link>
     </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\costura-win-x86\SQLite.Interop.dll">
+      <Link>costura-win-x86\SQLite.Interop.dll</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\costura-win-x64\SQLite.Interop.dll">
+      <Link>costura-win-x64\SQLite.Interop.dll</Link>
+    </EmbeddedResource>
     <Content Include="..\TinyOPDS\Libs\eBdb.EpubReader.dll">
       <Link>Libs\eBdb.EpubReader.dll</Link>
     </Content>
@@ -273,7 +289,12 @@
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('..\TinyOPDS\packages\Stub.System.Data.SQLite.Core.NetFramework.1.0.119.0\build\net46\Stub.System.Data.SQLite.Core.NetFramework.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\TinyOPDS\packages\Stub.System.Data.SQLite.Core.NetFramework.1.0.119.0\build\net46\Stub.System.Data.SQLite.Core.NetFramework.targets'))" />
+    <Error Condition="!Exists('..\TinyOPDS\packages\Costura.Fody.6.0.0\build\Costura.Fody.props')" Text="$([System.String]::Format('$(ErrorText)', '..\TinyOPDS\packages\Costura.Fody.6.0.0\build\Costura.Fody.props'))" />
+    <Error Condition="!Exists('..\TinyOPDS\packages\Costura.Fody.6.0.0\build\Costura.Fody.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\TinyOPDS\packages\Costura.Fody.6.0.0\build\Costura.Fody.targets'))" />
+    <Error Condition="!Exists('..\TinyOPDS\packages\Fody.6.9.2\build\Fody.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\TinyOPDS\packages\Fody.6.9.2\build\Fody.targets'))" />
   </Target>
+  <Import Project="..\TinyOPDS\packages\Costura.Fody.6.0.0\build\Costura.Fody.targets" Condition="Exists('..\TinyOPDS\packages\Costura.Fody.6.0.0\build\Costura.Fody.targets')" />
+  <Import Project="..\TinyOPDS\packages\Fody.6.9.2\build\Fody.targets" Condition="Exists('..\TinyOPDS\packages\Fody.6.9.2\build\Fody.targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

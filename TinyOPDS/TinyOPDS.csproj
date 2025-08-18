@@ -1,5 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\packages\Costura.Fody.6.0.0\build\Costura.Fody.props" Condition="Exists('..\packages\Costura.Fody.6.0.0\build\Costura.Fody.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
@@ -146,10 +147,11 @@
     <Compile Include="Data\Genre.cs" />
     <Compile Include="Data\ImagesCache.cs" />
     <Compile Include="Data\Library.cs" />
+    <Compile Include="PortableSettingsProvider.cs" />
+    <Compile Include="PortableSettingsProviderBase.cs" />
     <Compile Include="SgmlReader\SgmlParser.cs" />
     <Compile Include="SgmlReader\SgmlReader.cs" />
     <EmbeddedResource Include="a_aliases.txt.gz" />
-    <None Include="Libs\gzip.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -212,11 +214,6 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
   </ItemGroup>
-  <ItemGroup Condition=" '$(Configuration)' == 'Release' ">
-    <EmbeddedResource Include="Libs\eBdb.EpubReader.dll.gz" />
-    <EmbeddedResource Include="Libs\FB2Library.dll.gz" />
-    <EmbeddedResource Include="Libs\Ionic.Zip.Reduced.dll.gz" />
-  </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
       <Visible>False</Visible>
@@ -252,15 +249,19 @@
     <None Include="donate.png" />
     <None Include="Icons\folder.png" />
     <EmbeddedResource Include="Icons\book_cover.jpg" />
+    <None Include="FodyWeavers.xml" />
     <Content Include="Icons\lib.png" />
     <Content Include="Icons\TinyOPDS.ico" />
     <Content Include="Libs\eBdb.EpubReader.dll" />
     <Content Include="Libs\FB2Library.dll" />
     <Content Include="Libs\Ionic.Zip.Reduced.dll" />
+    <Content Include="Libs\x64\SQLite.Interop.dll" />
+    <Content Include="Libs\x86\SQLite.Interop.dll" />
     <Content Include="License.txt" />
     <None Include="Resources\trayIcon.ico" />
     <Content Include="TinyOPDS.ico" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>if exist $(ProjectDir)\Sign\\ copy $(TargetPath) $(ProjectDir)\Sign</PostBuildEvent>
@@ -275,5 +276,10 @@
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('..\packages\Stub.System.Data.SQLite.Core.NetFramework.1.0.119.0\build\net46\Stub.System.Data.SQLite.Core.NetFramework.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Stub.System.Data.SQLite.Core.NetFramework.1.0.119.0\build\net46\Stub.System.Data.SQLite.Core.NetFramework.targets'))" />
+    <Error Condition="!Exists('..\packages\Costura.Fody.6.0.0\build\Costura.Fody.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Costura.Fody.6.0.0\build\Costura.Fody.props'))" />
+    <Error Condition="!Exists('..\packages\Costura.Fody.6.0.0\build\Costura.Fody.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Costura.Fody.6.0.0\build\Costura.Fody.targets'))" />
+    <Error Condition="!Exists('..\packages\Fody.6.9.2\build\Fody.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Fody.6.9.2\build\Fody.targets'))" />
   </Target>
+  <Import Project="..\packages\Costura.Fody.6.0.0\build\Costura.Fody.targets" Condition="Exists('..\packages\Costura.Fody.6.0.0\build\Costura.Fody.targets')" />
+  <Import Project="..\packages\Fody.6.9.2\build\Fody.targets" Condition="Exists('..\packages\Fody.6.9.2\build\Fody.targets')" />
 </Project>

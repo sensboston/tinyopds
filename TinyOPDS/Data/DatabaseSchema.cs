@@ -23,7 +23,6 @@ namespace TinyOPDS.Data
                 FileName TEXT NOT NULL UNIQUE,
                 Title TEXT NOT NULL,
                 Language TEXT,
-                HasCover INTEGER NOT NULL DEFAULT 0,
                 BookDate INTEGER, -- DateTime as ticks
                 DocumentDate INTEGER, -- DateTime as ticks  
                 Sequence TEXT,
@@ -102,10 +101,10 @@ namespace TinyOPDS.Data
 
         public const string InsertBook = @"
             INSERT OR REPLACE INTO Books 
-            (ID, Version, FileName, Title, Language, HasCover, BookDate, DocumentDate, 
+            (ID, Version, FileName, Title, Language, BookDate, DocumentDate, 
              Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate)
             VALUES 
-            (@ID, @Version, @FileName, @Title, @Language, @HasCover, @BookDate, @DocumentDate,
+            (@ID, @Version, @FileName, @Title, @Language, @BookDate, @DocumentDate,
              @Sequence, @NumberInSequence, @Annotation, @DocumentSize, @AddedDate)";
 
         public const string InsertAuthor = @"
@@ -139,22 +138,22 @@ namespace TinyOPDS.Data
         #region Select Queries
 
         public const string SelectAllBooks = @"
-            SELECT ID, Version, FileName, Title, Language, HasCover, BookDate, DocumentDate,
+            SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
                    Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate
             FROM Books";
 
         public const string SelectBookById = @"
-            SELECT ID, Version, FileName, Title, Language, HasCover, BookDate, DocumentDate,
+            SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
                    Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate
             FROM Books WHERE ID = @ID";
 
         public const string SelectBookByFileName = @"
-            SELECT ID, Version, FileName, Title, Language, HasCover, BookDate, DocumentDate,
+            SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
                    Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate
             FROM Books WHERE FileName = @FileName";
 
         public const string SelectBooksByAuthor = @"
-            SELECT b.ID, b.Version, b.FileName, b.Title, b.Language, b.HasCover, b.BookDate, b.DocumentDate,
+            SELECT b.ID, b.Version, b.FileName, b.Title, b.Language, b.BookDate, b.DocumentDate,
                    b.Sequence, b.NumberInSequence, b.Annotation, b.DocumentSize, b.AddedDate
             FROM Books b
             INNER JOIN BookAuthors ba ON b.ID = ba.BookID
@@ -162,27 +161,27 @@ namespace TinyOPDS.Data
             WHERE a.Name = @AuthorName";
 
         public const string SelectBooksBySequence = @"
-            SELECT ID, Version, FileName, Title, Language, HasCover, BookDate, DocumentDate,
+            SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
                    Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate
             FROM Books 
             WHERE Sequence LIKE '%' || @Sequence || '%'
             ORDER BY NumberInSequence";
 
         public const string SelectBooksByGenre = @"
-            SELECT b.ID, b.Version, b.FileName, b.Title, b.Language, b.HasCover, b.BookDate, b.DocumentDate,
+            SELECT b.ID, b.Version, b.FileName, b.Title, b.Language, b.BookDate, b.DocumentDate,
                    b.Sequence, b.NumberInSequence, b.Annotation, b.DocumentSize, b.AddedDate
             FROM Books b
             INNER JOIN BookGenres bg ON b.ID = bg.BookID
             WHERE bg.GenreTag = @GenreTag";
 
         public const string SelectBooksByTitle = @"
-            SELECT ID, Version, FileName, Title, Language, HasCover, BookDate, DocumentDate,
+            SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
                    Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate
             FROM Books 
             WHERE Title LIKE '%' || @Title || '%' OR Sequence LIKE '%' || @Title || '%'";
 
         public const string SelectNewBooks = @"
-            SELECT ID, Version, FileName, Title, Language, HasCover, BookDate, DocumentDate,
+            SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
                    Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate
             FROM Books 
             WHERE AddedDate >= @FromDate";

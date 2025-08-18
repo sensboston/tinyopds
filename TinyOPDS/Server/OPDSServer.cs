@@ -501,12 +501,14 @@ namespace TinyOPDS.Server
         {
             try
             {
-                int startPos = request.IndexOf('/', 1) + 1;
+                int startPos = request.IndexOf('/') + 1;
                 int endPos = request.IndexOf('/', startPos);
+                if (endPos == -1) endPos = request.Length;
+
                 if (endPos > startPos)
                 {
-                    return request.Substring(startPos, endPos - startPos)
-                        .Replace("%7B", "{").Replace("%7D", "}");
+                    string guid = request.Substring(startPos, endPos - startPos);
+                    return guid.Replace("%7B", "{").Replace("%7D", "}");
                 }
             }
             catch (Exception ex)
@@ -515,7 +517,6 @@ namespace TinyOPDS.Server
             }
             return null;
         }
-
         private void HandleFB2Download(HttpProcessor processor, Book book)
         {
             using (var memStream = new MemoryStream())

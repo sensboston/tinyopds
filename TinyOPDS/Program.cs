@@ -11,20 +11,17 @@
  ************************************************************/
 
 using System;
-using System.IO;
-using System.IO.Compression;
-using System.Collections.Generic;
-using System.Linq;
 using System.Windows.Forms;
-using System.Reflection;
 using System.Threading;
 using System.Diagnostics;
+using Bluegrams.Application;
+using TinyOPDS.Properties;
 
 namespace TinyOPDS
 {
     static class Program
     {
-        static Mutex mutex = new Mutex(false, "tiny_opds_mutex");
+        static readonly Mutex mutex = new Mutex(false, "tiny_opds_mutex");
 
         /// <summary>
         /// The main entry point for the application.
@@ -32,7 +29,9 @@ namespace TinyOPDS
         [STAThread]
         static void Main()
         {
-            AppDomain.CurrentDomain.AssemblyResolve += new ResolveEventHandler(CurrentDomain_AssemblyResolve);
+            PortableSettingsProvider.SettingsFileName = "TinyOPDS.config";
+            PortableSettingsProvider.ApplyProvider(Settings.Default);
+
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
@@ -50,8 +49,8 @@ namespace TinyOPDS
             {
                 using (MainForm mainForm = new MainForm())
                 {
-                    mainForm.WindowState = (TinyOPDS.Properties.Settings.Default.StartMinimized) ? FormWindowState.Minimized : FormWindowState.Normal;
-                    mainForm.ShowInTaskbar = (TinyOPDS.Properties.Settings.Default.StartMinimized && TinyOPDS.Properties.Settings.Default.CloseToTray) ? false : true;
+                    mainForm.WindowState = Settings.Default.StartMinimized ? FormWindowState.Minimized : FormWindowState.Normal;
+                    mainForm.ShowInTaskbar = !Settings.Default.StartMinimized || !Settings.Default.CloseToTray;
                     Application.Run(mainForm);
                 }
             }
@@ -87,24 +86,5 @@ namespace TinyOPDS
             //we don't find the current process, but if there is already another one running, return true! 
             return (processFound == 1);
         } 
-
-        static Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
-        {
-            Assembly asm = Assembly.GetExecutingAssembly();
-            String resourceName = asm.GetName().Name + ".Libs." + new AssemblyName(args.Name).Name + ".dll.gz";
-            using (var stream = asm.GetManifestResourceStream(resourceName))
-            {
-                if (stream != null)
-                {
-                    using (MemoryStream memStream = new MemoryStream())
-                    {
-                        GZipStream decompress = new GZipStream(stream, CompressionMode.Decompress);
-                        decompress.CopyTo(memStream);
-                        return Assembly.Load(memStream.GetBuffer());
-                    }
-                }
-                else return null;
-            }
-        }
     }
 }

@@ -260,7 +260,7 @@ namespace TinyOPDS.Data
         public List<Book> GetBooksByFileNamePrefix(string fileNamePrefix)
         {
             var books = _db.ExecuteQuery(@"
-                SELECT ID, Version, FileName, Title, Language, HasCover, BookDate, DocumentDate,
+                SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
                        Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate
                 FROM Books 
                 WHERE FileName LIKE @FileNamePrefix || '%'",

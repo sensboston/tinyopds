@@ -12,19 +12,14 @@
 
 using System;
 using System.IO;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Drawing;
 using System.Linq;
-using System.Text;
 using System.Windows.Forms;
-using System.Xml.Linq;
 using System.Threading;
 using System.Net;
 
 using TinyOPDS.Data;
 using TinyOPDS.Scanner;
-using TinyOPDS.OPDS;
 using TinyOPDS.Server;
 using UPnP;
 
@@ -53,7 +48,7 @@ namespace TinyOPDS
 
         public MainForm()
         {
-            Log.SaveToFile = TinyOPDS.Properties.Settings.Default.SaveLogToDisk;
+            Log.SaveToFile = Properties.Settings.Default.SaveLogToDisk;
 
             AppDomain currentDomain = AppDomain.CurrentDomain;
             currentDomain.UnhandledException += currentDomain_UnhandledException;
@@ -73,7 +68,7 @@ namespace TinyOPDS
 
             // Manually assign icons from resources (fix for Mono)
             this.Icon = Properties.Resources.trayIcon;
-            _notifyIcon.ContextMenuStrip = this.contextMenuStrip;
+            _notifyIcon.ContextMenuStrip = contextMenuStrip;
             _notifyIcon.Icon = Properties.Resources.trayIcon;
             _notifyIcon.MouseClick += notifyIcon1_MouseClick;
             _notifyIcon.BalloonTipClicked += _notifyIcon_BalloonTipClicked;
@@ -99,7 +94,7 @@ namespace TinyOPDS
             bs.CurrentItemChanged += bs_CurrentItemChanged;
             foreach (DataGridViewColumn col in dataGridView1.Columns) col.Width = 180;
 
-            Library.LibraryPath = TinyOPDS.Properties.Settings.Default.LibraryPath.SanitizePathName();
+            Library.LibraryPath = Properties.Settings.Default.LibraryPath.SanitizePathName();
 
             // Initialize SQLite database with automatic migration
             InitializeSQLiteDatabase();
@@ -108,7 +103,7 @@ namespace TinyOPDS
             {
                 UpdateInfo();
                 _watcher.DirectoryToWatch = Library.LibraryPath;
-                _watcher.IsEnabled = TinyOPDS.Properties.Settings.Default.WatchLibrary;
+                _watcher.IsEnabled = Properties.Settings.Default.WatchLibrary;
             };
 
             // Create file watcher
@@ -137,8 +132,8 @@ namespace TinyOPDS
             };
             _watcher.IsEnabled = false;
 
-            intLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), TinyOPDS.Properties.Settings.Default.ServerPort, rootPrefix.Text);
-            intWebLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), TinyOPDS.Properties.Settings.Default.ServerPort, webPrefix.Text);
+            intLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, rootPrefix.Text);
+            intWebLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, webPrefix.Text);
 
             // Start OPDS server
             StartHttpServer();
@@ -159,7 +154,7 @@ namespace TinyOPDS
             };
 
             _scanStartTime = DateTime.Now;
-            _notifyIcon.Visible = TinyOPDS.Properties.Settings.Default.CloseToTray;
+            _notifyIcon.Visible = Properties.Settings.Default.CloseToTray;
         }
 
         /// <summary>
@@ -170,7 +165,7 @@ namespace TinyOPDS
         private void MainForm_Load(object sender, EventArgs e)
         {
             _upnpController.DiscoverCompleted += _upnpController_DiscoverCompleted;
-            _upnpController.DiscoverAsync(TinyOPDS.Properties.Settings.Default.UseUPnP);
+            _upnpController.DiscoverAsync(Properties.Settings.Default.UseUPnP);
 
             // Update UI after form is fully loaded
             UpdateInfo(); // Show correct book counts
@@ -208,12 +203,12 @@ namespace TinyOPDS
             {
                 this.BeginInvoke((MethodInvoker)delegate
                 {
-                    extLink.Text = string.Format(urlTemplate, _upnpController.ExternalIP.ToString(), TinyOPDS.Properties.Settings.Default.ServerPort, TinyOPDS.Properties.Settings.Default.RootPrefix);
-                    extWebLink.Text = string.Format(urlTemplate, _upnpController.ExternalIP.ToString(), TinyOPDS.Properties.Settings.Default.ServerPort, TinyOPDS.Properties.Settings.Default.HttpPrefix);
+                    extLink.Text = string.Format(urlTemplate, _upnpController.ExternalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
+                    extWebLink.Text = string.Format(urlTemplate, _upnpController.ExternalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.HttpPrefix);
                     if (_upnpController.UPnPReady)
                     {
                         openPort.Enabled = true;
-                        if (TinyOPDS.Properties.Settings.Default.OpenNATPort) openPort_CheckedChanged(this, null);
+                        if (Properties.Settings.Default.OpenNATPort) openPort_CheckedChanged(this, null);
                     }
                 });
             }
@@ -221,17 +216,17 @@ namespace TinyOPDS
 
         #endregion
 
-        #region SQLite Migration
+        #region SQLite initialization
 
         /// <summary>
-        /// Initialize SQLite database with automatic migration
+        /// Initialize SQLite database
         /// </summary>
         private void InitializeSQLiteDatabase()
         {
             try
             {
                 // Determine database paths
-                string libraryPath = TinyOPDS.Properties.Settings.Default.LibraryPath.SanitizePathName();
+                string libraryPath = Properties.Settings.Default.LibraryPath.SanitizePathName();
                 string binaryDbPath = GetBinaryDatabasePath(libraryPath);
                 string sqliteDbPath = GetSQLiteDatabasePath();
 
@@ -270,34 +265,6 @@ namespace TinyOPDS
         private string GetSQLiteDatabasePath()
         {
             return Path.Combine(Utils.ServiceFilesLocation, "books.sqlite");
-        }
-
-        /// <summary>
-        /// Check if migration is needed
-        /// </summary>
-        /// <param name="binaryDbPath"></param>
-        /// <param name="sqliteDbPath"></param>
-        /// <returns></returns>
-        private bool NeedsMigration(string binaryDbPath, string sqliteDbPath)
-        {
-            // Migration needed if binary DB exists but SQLite is empty or doesn't exist
-            if (!File.Exists(binaryDbPath))
-            {
-                Log.WriteLine("No binary database found, no migration needed");
-                return false;
-            }
-
-            if (!File.Exists(sqliteDbPath))
-            {
-                Log.WriteLine("SQLite database doesn't exist, migration needed");
-                return true;
-            }
-
-            // Check if SQLite database is empty
-            int sqliteCount = Library.Count;
-            Log.WriteLine("SQLite database has {0} books", sqliteCount);
-
-            return sqliteCount == 0;
         }
 
         /// <summary>
@@ -341,46 +308,46 @@ namespace TinyOPDS
             linkLabel6.Links.Add(0, linkLabel6.Text.Length, "http://www.fb2library.net/projects/fb2fix");
 
             // Setup settings controls
-            libraryPath.Text = TinyOPDS.Properties.Settings.Default.LibraryPath;
-            if (!string.IsNullOrEmpty(TinyOPDS.Properties.Settings.Default.LibraryPath))
+            libraryPath.Text = Properties.Settings.Default.LibraryPath;
+            if (!string.IsNullOrEmpty(Properties.Settings.Default.LibraryPath))
             {
                 databaseFileName.Text = "books.sqlite";
             }
 
             if (Utils.IsLinux) startWithWindows.Enabled = false;
-            if (string.IsNullOrEmpty(TinyOPDS.Properties.Settings.Default.ConvertorPath))
+            if (string.IsNullOrEmpty(Properties.Settings.Default.ConvertorPath))
             {
                 if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ProgramFiles")))
                 {
                     if (File.Exists(Path.Combine(Environment.GetEnvironmentVariable("ProgramFiles"), "FB2ePub\\Fb2ePub.exe")))
                     {
-                        convertorPath.Text = TinyOPDS.Properties.Settings.Default.ConvertorPath = Path.Combine(Environment.GetEnvironmentVariable("ProgramFiles"), "FB2ePub");
+                        convertorPath.Text = Properties.Settings.Default.ConvertorPath = Path.Combine(Environment.GetEnvironmentVariable("ProgramFiles"), "FB2ePub");
                     }
                 }
             }
-            else convertorPath.Text = TinyOPDS.Properties.Settings.Default.ConvertorPath;
+            else convertorPath.Text = Properties.Settings.Default.ConvertorPath;
             converterLinkLabel.Visible = string.IsNullOrEmpty(convertorPath.Text);
 
             // We should update all invisible controls
-            interfaceCombo.SelectedIndex = Math.Min(UPnPController.LocalInterfaces.Count - 1, TinyOPDS.Properties.Settings.Default.LocalInterfaceIndex);
-            logVerbosity.SelectedIndex = Math.Min(2, TinyOPDS.Properties.Settings.Default.LogLevel);
-            updateCombo.SelectedIndex = Math.Min(2, TinyOPDS.Properties.Settings.Default.UpdatesCheck);
-            langCombo.SelectedValue = TinyOPDS.Properties.Settings.Default.Language;
-            sortOrderCombo.SelectedIndex = TinyOPDS.Properties.Settings.Default.SortOrder;
-            newBooksPeriodCombo.SelectedIndex = TinyOPDS.Properties.Settings.Default.NewBooksPeriod;
+            interfaceCombo.SelectedIndex = Math.Min(UPnPController.LocalInterfaces.Count - 1, Properties.Settings.Default.LocalInterfaceIndex);
+            logVerbosity.SelectedIndex = Math.Min(2, Properties.Settings.Default.LogLevel);
+            updateCombo.SelectedIndex = Math.Min(2, Properties.Settings.Default.UpdatesCheck);
+            langCombo.SelectedValue = Properties.Settings.Default.Language;
+            sortOrderCombo.SelectedIndex = Properties.Settings.Default.SortOrder;
+            newBooksPeriodCombo.SelectedIndex = Properties.Settings.Default.NewBooksPeriod;
 
-            openPort.Checked = TinyOPDS.Properties.Settings.Default.UseUPnP ? TinyOPDS.Properties.Settings.Default.OpenNATPort : false;
-            banClients.Enabled = rememberClients.Enabled = dataGridView1.Enabled = TinyOPDS.Properties.Settings.Default.UseHTTPAuth;
+            openPort.Checked = Properties.Settings.Default.UseUPnP ? Properties.Settings.Default.OpenNATPort : false;
+            banClients.Enabled = rememberClients.Enabled = dataGridView1.Enabled = Properties.Settings.Default.UseHTTPAuth;
             wrongAttemptsCount.Enabled = banClients.Checked && useHTTPAuth.Checked;
 
-            _notifyIcon.Visible = TinyOPDS.Properties.Settings.Default.CloseToTray;
+            _notifyIcon.Visible = Properties.Settings.Default.CloseToTray;
             _updateChecker.Start();
 
             // Load saved credentials
             try
             {
                 HttpProcessor.Credentials.Clear();
-                string[] pairs = Crypt.DecryptStringAES(TinyOPDS.Properties.Settings.Default.Credentials, urlTemplate).Split(';');
+                string[] pairs = Crypt.DecryptStringAES(Properties.Settings.Default.Credentials, urlTemplate).Split(';');
                 foreach (string pair in pairs)
                 {
                     string[] cred = pair.Split(':');
@@ -392,9 +359,9 @@ namespace TinyOPDS
 
         private void SaveSettings()
         {
-            TinyOPDS.Properties.Settings.Default.LibraryPath = libraryPath.Text.SanitizePathName();
-            TinyOPDS.Properties.Settings.Default.Language = langCombo.SelectedValue as string;
-            TinyOPDS.Properties.Settings.Default.Save();
+            Properties.Settings.Default.LibraryPath = libraryPath.Text.SanitizePathName();
+            Properties.Settings.Default.Language = langCombo.SelectedValue as string;
+            Properties.Settings.Default.Save();
         }
 
         #endregion
@@ -421,11 +388,11 @@ namespace TinyOPDS
             foreach (Credential cred in HttpProcessor.Credentials) s += cred.User + ":" + cred.Password + ";";
             try
             {
-                TinyOPDS.Properties.Settings.Default.Credentials = string.IsNullOrEmpty(s) ? string.Empty : Crypt.EncryptStringAES(s, urlTemplate);
+                Properties.Settings.Default.Credentials = string.IsNullOrEmpty(s) ? string.Empty : Crypt.EncryptStringAES(s, urlTemplate);
             }
             finally
             {
-                TinyOPDS.Properties.Settings.Default.Save();
+                Properties.Settings.Default.Save();
             }
         }
 
@@ -444,7 +411,7 @@ namespace TinyOPDS
                 Directory.Exists(libraryPath.Text.SanitizePathName()))
             {
                 if (Library.IsChanged) Library.Save();
-                Library.LibraryPath = TinyOPDS.Properties.Settings.Default.LibraryPath = libraryPath.Text.SanitizePathName();
+                Library.LibraryPath = Properties.Settings.Default.LibraryPath = libraryPath.Text.SanitizePathName();
 
                 var stats = GetLibraryStats();
                 booksInDB.Text = string.Format("{0}       fb2: {1}      epub: {2}", 0, 0, 0);
@@ -458,7 +425,7 @@ namespace TinyOPDS
             }
             else
             {
-                if (!string.IsNullOrEmpty(TinyOPDS.Properties.Settings.Default.LibraryPath)) libraryPath.Text = TinyOPDS.Properties.Settings.Default.LibraryPath.SanitizePathName();
+                if (!string.IsNullOrEmpty(Properties.Settings.Default.LibraryPath)) libraryPath.Text = Properties.Settings.Default.LibraryPath.SanitizePathName();
                 else libraryPath.Undo();
             }
         }
@@ -576,7 +543,7 @@ namespace TinyOPDS
             // Create and start HTTP server
             HttpProcessor.AuthorizedClients.Clear();
             HttpProcessor.BannedClients.Clear();
-            _server = new OPDSServer(_upnpController.LocalIP, int.Parse(TinyOPDS.Properties.Settings.Default.ServerPort));
+            _server = new OPDSServer(_upnpController.LocalIP, int.Parse(Properties.Settings.Default.ServerPort));
 
             _serverThread = new Thread(new ThreadStart(_server.Listen));
             _serverThread.Priority = ThreadPriority.BelowNormal;
@@ -588,7 +555,7 @@ namespace TinyOPDS
                 {
                     if (_server.ServerException is System.Net.Sockets.SocketException)
                     {
-                        MessageBox.Show(string.Format(Localizer.Text("Probably, port {0} is already in use. Please try different port value."), TinyOPDS.Properties.Settings.Default.ServerPort), Localizer.Text("Warning"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        MessageBox.Show(string.Format(Localizer.Text("Probably, port {0} is already in use. Please try different port value."), Properties.Settings.Default.ServerPort), Localizer.Text("Warning"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     }
                     else
                     {
@@ -641,7 +608,7 @@ namespace TinyOPDS
         {
             if (_upnpController != null && _upnpController.UPnPReady)
             {
-                int port = int.Parse(TinyOPDS.Properties.Settings.Default.ServerPort);
+                int port = int.Parse(Properties.Settings.Default.ServerPort);
                 if (openPort.Checked)
                 {
                     _upnpController.ForwardPort(port, System.Net.Sockets.ProtocolType.Tcp, "TinyOPDS server");
@@ -662,12 +629,12 @@ namespace TinyOPDS
             if (_upnpController != null && _upnpController.InterfaceIndex != interfaceCombo.SelectedIndex)
             {
                 _upnpController.InterfaceIndex = interfaceCombo.SelectedIndex;
-                intLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), TinyOPDS.Properties.Settings.Default.ServerPort, rootPrefix.Text);
-                intWebLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), TinyOPDS.Properties.Settings.Default.ServerPort, webPrefix.Text);
+                intLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, rootPrefix.Text);
+                intWebLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, webPrefix.Text);
 
-                if (TinyOPDS.Properties.Settings.Default.UseUPnP && openPort.Checked)
+                if (Properties.Settings.Default.UseUPnP && openPort.Checked)
                 {
-                    int port = int.Parse(TinyOPDS.Properties.Settings.Default.ServerPort);
+                    int port = int.Parse(Properties.Settings.Default.ServerPort);
                     _upnpController.DeleteForwardingRule(port, System.Net.Sockets.ProtocolType.Tcp);
                     _upnpController.ForwardPort(port, System.Net.Sockets.ProtocolType.Tcp, "TinyOPDS server");
                 }
@@ -681,7 +648,7 @@ namespace TinyOPDS
 
         private void MainForm_Resize(object sender, EventArgs e)
         {
-            if (TinyOPDS.Properties.Settings.Default.CloseToTray)
+            if (Properties.Settings.Default.CloseToTray)
             {
                 Visible = (WindowState == FormWindowState.Normal);
                 windowMenuItem.Text = Localizer.Text("Show window");
@@ -703,7 +670,7 @@ namespace TinyOPDS
         private bool realExit = false;
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
-            if (TinyOPDS.Properties.Settings.Default.CloseToTray && !realExit)
+            if (Properties.Settings.Default.CloseToTray && !realExit)
             {
                 e.Cancel = true;
                 Visible = false;
@@ -723,9 +690,9 @@ namespace TinyOPDS
 
                 if (_upnpController != null)
                 {
-                    if (TinyOPDS.Properties.Settings.Default.UseUPnP)
+                    if (Properties.Settings.Default.UseUPnP)
                     {
-                        int port = int.Parse(TinyOPDS.Properties.Settings.Default.ServerPort);
+                        int port = int.Parse(Properties.Settings.Default.ServerPort);
                         _upnpController.DeleteForwardingRule(port, System.Net.Sockets.ProtocolType.Tcp);
                     }
                     _upnpController.DiscoverCompleted -= _upnpController_DiscoverCompleted;
@@ -757,11 +724,11 @@ namespace TinyOPDS
         {
             if (!string.IsNullOrEmpty(convertorPath.Text) && Directory.Exists(convertorPath.Text) && File.Exists(Path.Combine(convertorPath.Text, Utils.IsLinux ? "fb2toepub" : "Fb2ePub.exe")))
             {
-                TinyOPDS.Properties.Settings.Default.ConvertorPath = convertorPath.Text;
+                Properties.Settings.Default.ConvertorPath = convertorPath.Text;
             }
             else
             {
-                convertorPath.Text = TinyOPDS.Properties.Settings.Default.ConvertorPath;
+                convertorPath.Text = Properties.Settings.Default.ConvertorPath;
             }
         }
 
@@ -797,13 +764,13 @@ namespace TinyOPDS
             {
                 if (_upnpController.LocalIP != null)
                 {
-                    intLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), TinyOPDS.Properties.Settings.Default.ServerPort, rootPrefix.Text);
-                    intWebLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), TinyOPDS.Properties.Settings.Default.ServerPort, webPrefix.Text);
+                    intLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, rootPrefix.Text);
+                    intWebLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, webPrefix.Text);
                 }
                 if (_upnpController.ExternalIP != null)
                 {
-                    extLink.Text = string.Format(urlTemplate, _upnpController.ExternalIP.ToString(), TinyOPDS.Properties.Settings.Default.ServerPort, rootPrefix.Text);
-                    extWebLink.Text = string.Format(urlTemplate, _upnpController.ExternalIP.ToString(), TinyOPDS.Properties.Settings.Default.ServerPort, webPrefix.Text);
+                    extLink.Text = string.Format(urlTemplate, _upnpController.ExternalIP.ToString(), Properties.Settings.Default.ServerPort, rootPrefix.Text);
+                    extWebLink.Text = string.Format(urlTemplate, _upnpController.ExternalIP.ToString(), Properties.Settings.Default.ServerPort, webPrefix.Text);
                 }
             }
         }
@@ -842,10 +809,10 @@ namespace TinyOPDS
                 if (_upnpController != null && _upnpController.UPnPReady && openPort.Checked)
                 {
                     openPort.Checked = false;
-                    TinyOPDS.Properties.Settings.Default.ServerPort = port.ToString();
+                    Properties.Settings.Default.ServerPort = port.ToString();
                     openPort.Checked = true;
                 }
-                else TinyOPDS.Properties.Settings.Default.ServerPort = port.ToString();
+                else Properties.Settings.Default.ServerPort = port.ToString();
                 if (_server != null && _server.IsActive)
                 {
                     RestartHttpServer();
@@ -854,7 +821,7 @@ namespace TinyOPDS
             else
             {
                 MessageBox.Show(Localizer.Text("Invalid port value: value must be numeric and in range from 1 to 65535"), Localizer.Text("Warning"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                serverPort.Text = TinyOPDS.Properties.Settings.Default.ServerPort.ToString();
+                serverPort.Text = Properties.Settings.Default.ServerPort.ToString();
             }
             // Update link labels
             UpdateServerLinks();
@@ -944,7 +911,7 @@ namespace TinyOPDS
 
         private void updateCombo_SelectedIndexChanged(object sender, EventArgs e)
         {
-            TinyOPDS.Properties.Settings.Default.UpdatesCheck = updateCombo.SelectedIndex;
+            Properties.Settings.Default.UpdatesCheck = updateCombo.SelectedIndex;
         }
 
         private void viewLogFile_Click(object sender, EventArgs e)
@@ -954,12 +921,12 @@ namespace TinyOPDS
 
         private void sortOrderCombo_SelectedIndexChanged(object sender, EventArgs e)
         {
-            TinyOPDS.Properties.Settings.Default.SortOrder = sortOrderCombo.SelectedIndex;
+            Properties.Settings.Default.SortOrder = sortOrderCombo.SelectedIndex;
         }
 
         private void newBooksPeriodCombo_SelectedIndexChanged(object sender, EventArgs e)
         {
-            TinyOPDS.Properties.Settings.Default.NewBooksPeriod = newBooksPeriodCombo.SelectedIndex;
+            Properties.Settings.Default.NewBooksPeriod = newBooksPeriodCombo.SelectedIndex;
         }
 
         #endregion
@@ -975,11 +942,11 @@ namespace TinyOPDS
         static int _timerCallsCount = 0;
         void _updateChecker_Tick(object sender, EventArgs e)
         {
-            if (TinyOPDS.Properties.Settings.Default.UpdatesCheck > 0)
+            if (Properties.Settings.Default.UpdatesCheck > 0)
             {
                 _updateUrl = string.Empty;
-                int minutesFromLastCheck = (int)Math.Round(DateTime.Now.Subtract(TinyOPDS.Properties.Settings.Default.LastCheck).TotalMinutes);
-                if (minutesFromLastCheck >= checkIntervals[TinyOPDS.Properties.Settings.Default.UpdatesCheck])
+                int minutesFromLastCheck = (int)Math.Round(DateTime.Now.Subtract(Properties.Settings.Default.LastCheck).TotalMinutes);
+                if (minutesFromLastCheck >= checkIntervals[Properties.Settings.Default.UpdatesCheck])
                 {
                     Log.WriteLine(LogLevel.Info, "Checking software update. Minutes from the last check: {0}", minutesFromLastCheck);
                     WebClient wc = new WebClient();
@@ -988,7 +955,7 @@ namespace TinyOPDS
                 }
             }
 
-            if (TinyOPDS.Properties.Settings.Default.UseUPnP && _timerCallsCount++ > 5)
+            if (Properties.Settings.Default.UseUPnP && _timerCallsCount++ > 5)
             {
                 _timerCallsCount = 0;
                 if (_server != null && _server.IsActive && _server.IsIdle && _upnpController != null && _upnpController.UPnPReady)
@@ -999,7 +966,7 @@ namespace TinyOPDS
                     }
                     else if (openPort.Checked)
                     {
-                        int port = int.Parse(TinyOPDS.Properties.Settings.Default.ServerPort);
+                        int port = int.Parse(Properties.Settings.Default.ServerPort);
                         _upnpController.ForwardPort(port, System.Net.Sockets.ProtocolType.Tcp, "TinyOPDS server");
                     }
                 }
@@ -1010,8 +977,8 @@ namespace TinyOPDS
         {
             if (e.Error == null)
             {
-                TinyOPDS.Properties.Settings.Default.LastCheck = DateTime.Now;
-                TinyOPDS.Properties.Settings.Default.Save();
+                Properties.Settings.Default.LastCheck = DateTime.Now;
+                Properties.Settings.Default.Save();
 
                 string[] s = e.Result.Split('\n');
                 if (s.Length == 2)
@@ -1053,8 +1020,8 @@ namespace TinyOPDS
         /// <param name="e"></param>
         private void checkBox_CheckedChanged(object sender, EventArgs e)
         {
-            if (((sender as CheckBox).Name.Equals("checkBox1") && (sender as CheckBox).Checked != TinyOPDS.Properties.Settings.Default.LowMemoryProfile) ||
-                 ((sender as CheckBox).Name.Equals("checkBox2") && (sender as CheckBox).Checked != TinyOPDS.Properties.Settings.Default.UseAuthorsAliases))
+            if (((sender as CheckBox).Name.Equals("checkBox1") && (sender as CheckBox).Checked != Properties.Settings.Default.LowMemoryProfile) ||
+                 ((sender as CheckBox).Name.Equals("checkBox2") && (sender as CheckBox).Checked != Properties.Settings.Default.UseAuthorsAliases))
             {
                 // Reload library
                 _watcher.IsEnabled = false;

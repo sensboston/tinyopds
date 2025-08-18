@@ -250,6 +250,8 @@
     <None Include="Icons\folder.png" />
     <EmbeddedResource Include="Icons\book_cover.jpg" />
     <None Include="FodyWeavers.xml" />
+    <EmbeddedResource Include="costura-win-x86\SQLite.Interop.dll" />
+    <EmbeddedResource Include="costura-win-x64\SQLite.Interop.dll" />
     <Content Include="Icons\lib.png" />
     <Content Include="Icons\TinyOPDS.ico" />
     <Content Include="Libs\eBdb.EpubReader.dll" />

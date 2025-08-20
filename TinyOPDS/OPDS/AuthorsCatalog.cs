@@ -68,10 +68,10 @@ namespace TinyOPDS.OPDS
                 do
                 {
                     catalogGroups = (from a in Authors
-                           group a by (a.Length > searchPattern.Length ? a.Substring(0, searchPattern.Length + 1).Capitalize(true)
-                                                                       : a.Capitalize(true)) into g
-                           where g.Count() > 1
-                           select new { Name = g, Count = g.Count() }).ToDictionary(x => x.Name.Key, y => y.Count);
+                                     group a by (a.Length > searchPattern.Length ? a.Substring(0, searchPattern.Length + 1).Capitalize(true)
+                                                                                 : a.Capitalize(true)) into g
+                                     where g.Count() > 1
+                                     select new { Name = g, Count = g.Count() }).ToDictionary(x => x.Name.Key, y => y.Count);
 
                     if (catalogGroups.Count == 1) searchPattern = catalogGroups.First().Key;
                     else break;
@@ -113,7 +113,8 @@ namespace TinyOPDS.OPDS
                         new XElement("id", "tag:authors:" + author),
                         new XElement("title", author),
                         new XElement("content", string.Format(Localizer.Text("Books: {0}"), booksCount), new XAttribute("type", "text")),
-                        new XElement("link", new XAttribute("href", "/author/" + Uri.EscapeDataString(author)), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
+                        // Changed: now link to author details instead of direct books list
+                        new XElement("link", new XAttribute("href", "/author-details/" + Uri.EscapeDataString(author)), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                     )
                 );
             }

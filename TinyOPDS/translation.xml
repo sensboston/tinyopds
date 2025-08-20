@@ -1,538 +1,1176 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
-  <languages>
-    <language id="en">English</language>
-    <language id="ru">Русский</language>
-  </languages>
-  <properties>
-    <property form="MainForm" ctrl="label15">
-      <text lang="en">Path to books folder:</text>
-      <text lang="ru">Путь к книжному каталогу:</text>
-    </property>
-    <property form="MainForm" ctrl="useWatcher">
-      <text lang="en">Monitor library changes</text>
-      <text lang="ru">Следить за каталогом</text>
-    </property>
-    <property form="MainForm" ctrl="label16">
-      <text lang="en">Duplicates:</text>
-      <text lang="ru">Дубликаты:</text>
-    </property>
-    <property form="MainForm" ctrl="status">
-      <text lang="en">STOPPED</text>
-      <text lang="ru">ОСТАНОВЛЕН</text>
-    </property>
-    <property form="MainForm" ctrl="label14">
-      <text lang="en">Status:</text>
-      <text lang="ru">Статус</text>
-    </property>
-    <property form="MainForm" ctrl="rate">
-      <text lang="en">0 books/min</text>
-      <text lang="ru">0 книг/мин</text>
-    </property>
-    <property>
-      <text lang="en">{0} books/min</text>
-      <text lang="ru">{0} книг/мин</text>
-    </property>
-    <property form="MainForm" ctrl="label12">
-      <text lang="en">Rate:</text>
-      <text lang="ru">Скорость:</text>
-    </property>
-    <property form="MainForm" ctrl="label10">
-      <text lang="en">Elapsed time:</text>
-	    <text lang="ru">Прошло времени:</text>
-    </property>
-    <property form="MainForm" ctrl="label6">
-      <text lang="en">Start time:</text>
-	    <text lang="ru">Стартовал в:</text>
-    </property>
-    <property form="MainForm" ctrl="label2">
-      <text lang="en">Books in database: </text>
-      <text lang="ru">Всего книг в базе:</text>
-    </property>
-    <property form="MainForm" ctrl="label1">
-      <text lang="en">Books found:</text>
-      <text lang="ru">Найдено книг:</text>
-    </property>
-    <property form="MainForm" ctrl="label5">
-      <text lang="en">Books processed:</text>
-	    <text lang="ru">Обработано книг:</text>
-    </property>
-    <property form="MainForm" ctrl="label9">
-      <text lang="en">Invalid books:</text>
-	    <text lang="ru">Ошибочных книг:</text>
-    </property>
-    <property form="MainForm" ctrl="label7">
-      <text lang="en">Skipped books:</text>
-	    <text lang="ru">Пропущено книг:</text>
-    </property>
-    <property form="MainForm" ctrl="scannerButton">
-      <text lang="en">Start scanning</text>
-      <text lang="ru">Начать сканирование</text>
-    </property>
-    <property form="MainForm" ctrl="label4">
-      <text lang="en">Server name:</text>
-      <text lang="ru">Название сервера:</text>
-    </property>
-    <property form="MainForm" ctrl="label3">
-      <text lang="en">Port:</text>
-      <text lang="ru">Порт:</text>
-    </property>
-    <property form="MainForm" ctrl="serverButton">
-      <text lang="en">Start server</text>
-      <text lang="ru">Стартовать сервер</text>
-    </property>
-    <property>
-      <text lang="en">SCANNING</text>
-      <text lang="ru">СКАНИРУЮ</text>
-    </property>
-    <property>
-      <text lang="en">FINISHED</text>
-      <text lang="ru">ЗАКОНЧИЛ</text>
-    </property>
-    <property>
-      <text lang="en">Stop scanning</text>
-      <text lang="ru">Остановить сканирование</text>
-    </property>
-    <property>
-      <text lang="en">Stop server</text>
-      <text lang="ru">Остановить сервер</text>
-    </property>
-    <property form="MainForm" ctrl="label8">
-      <text lang="en">Path to the ePub converter:</text>
-      <text lang="ru">Путь к ePub конвертору:</text>
-    </property>
-    <property form="MainForm" ctrl="label11">
-      <text lang="en">GUI and OPDS language:</text>
-      <text lang="ru">Язык программы и OPDS:</text>
-    </property>
-    <property form="MainForm" ctrl="closeToTray">
-      <text lang="en">Close or minimize to tray</text>
-      <text lang="ru">Скрывать в трей</text>
-    </property>
-    <property form="MainForm" ctrl="startMinimized">
-      <text lang="en">Start minimized</text>
-      <text lang="ru">Стартовать минимизированным</text>
-    </property>
-    <property form="MainForm" ctrl="startWithWindows">
-      <text lang="en">Start with Windows</text>
-      <text lang="ru">Стартовать вместе с Windows</text>
-    </property>
-    <property form="MainForm" ctrl="saveLog">
-      <text lang="en">Save log to file</text>
-      <text lang="ru">Сохранять лог в файл</text>
-    </property>
-    <property form="MainForm" ctrl="useUPnP">
-      <text lang="en">Use UPnP</text>
-      <text lang="ru">Использовать UPnP</text>
-    </property>
-    <property form="MainForm" ctrl="tabPage1">
-      <text lang="en">Scanner</text>
-      <text lang="ru">Сканер</text>
-    </property>
-    <property form="MainForm" ctrl="tabPage2">
-      <text lang="en">Server</text>
-      <text lang="ru">Сервер</text>
-    </property>
-    <property form="MainForm" ctrl="tabPage6">
-      <text lang="en">OPDS catalog</text>
-      <text lang="ru">OPDS каталог</text>
-    </property>
-    <property form="MainForm" ctrl="tabPage3">
-      <text lang="en">Miscellaneous</text>
-      <text lang="ru">Разное</text>
-    </property>
-    <property form="MainForm" ctrl="tabPage4">
-      <text lang="en">About program</text>
-      <text lang="ru">О программе</text>
-    </property>
-    <property form="MainForm" ctrl="tabPage5">
-      <text lang="en">Authentication</text>
-      <text lang="ru">Авторизация</text>
-    </property>
-    <property form="MainForm" ctrl="exitMenuItem">
-      <text lang="en">Exit</text>
-      <text lang="ru">Выход</text>
-    </property>
-    <property form="MainForm" ctrl="openPort">
-      <text lang="en">Forward port on router</text>
-      <text lang="ru">Форвардить порт на роутере</text>
-    </property>
-    <property form="MainForm" ctrl="useAbsoluteUri">
-      <text lang="en">Absolute links</text>
-      <text lang="ru">Абсолютные ссылки</text>
-    </property>
-    <property form="MainForm" ctrl="label13">
-      <text lang="en">OPDS root:</text>
-      <text lang="ru">Префикс OPDS:</text>
-    </property>
-    <property form="MainForm" ctrl="label33">
-      <text lang="en">Web root:</text>
-      <text lang="ru">Префикс web:</text>
-    </property>
-    <property form="MainForm" ctrl="intIPlabel">
-      <text lang="en">Local OPDS URL:</text>
-      <text lang="ru">Локальная ссылка OPDS:</text>
-    </property>
-    <property form="MainForm" ctrl="extIPlabel">
-      <text lang="en">External OPDS URL:</text>
-      <text lang="ru">Внешняя ссылка OPDS:</text>
-    </property>
-    <property form="MainForm" ctrl="label35">
-      <text lang="en">Local web URL:</text>
-      <text lang="ru">Локальная ссылка:</text>
-    </property>
-    <property form="MainForm" ctrl="label34">
-      <text lang="en">External web URL:</text>
-      <text lang="ru">Внешняя ссылка:</text>
-    </property>
-    <property form="MainForm" ctrl="converterLinkLabel">
-      <text lang="en">Click here to download latest version of ePub converter</text>
-      <text lang="ru">Кликните для закачки последней версии конвертера ePub</text>
-    </property>
-    <property form="MainForm" ctrl="appName">
-      <text lang="en">TinyOPDS server</text>
-      <text lang="ru">TinyOPDS сервер</text>
-    </property>
-    <property form="MainForm" ctrl="label17">
-      <text lang="en">Project home page:</text>
-      <text lang="ru">Домашняя страница:</text>
-    </property>
-    <property form="MainForm" ctrl="label18">
-      <text lang="en">Project license:</text>
-      <text lang="ru">Лицензия проекта:</text>
-    </property>
-    <property form="MainForm" ctrl="label20">
-      <text lang="en">Special thanks:</text>
-      <text lang="ru">Отдельное спасибо:</text>
-    </property>
-    <property form="MainForm" ctrl="label21">
-      <text lang="en">Database file name:</text>
-      <text lang="ru">Файл базы данных:</text>
-    </property>
-    <property>
-      <text lang="en">Books by authors</text>
-      <text lang="ru">Книги по авторам</text>      
-    </property>
-    <property>
-      <text lang="en">Total authors on {0}: {1}</text>
-      <text lang="ru">Всего авторов на {0}: {1}</text>
-    </property>
-    <property>
-      <text lang="en">Books: {0}</text>
-      <text lang="ru">Книг: {0}</text>
-    </property>
-    <property>
-      <text lang="en">Books by author </text>
-      <text lang="ru">Книги автора </text>
-    </property>
-    <property>
-      <text lang="en">By authors</text>
-      <text lang="ru">По авторам</text>
-    </property>
-    <property>
-      <text lang="en">{0} books by {1} authors</text>
-      <text lang="ru">{0} книг от {1} авторов</text>
-    </property>
-    <property>
-      <text lang="en">By series</text>
-      <text lang="ru">По сериям</text>
-    </property>
-    <property>
-      <text lang="en">{0} books by {1} series</text>
-      <text lang="ru">{0} книг в {1} сериях</text>
-    </property>
-    <property>
-      <text lang="en">By genres</text>
-      <text lang="ru">По жанрам</text>
-    </property>
-    <property>
-      <text lang="en">Books grouped by genres</text>
-      <text lang="ru">Книги, сгруппированные по жанрам</text>
-    </property>
-    <property>
-      <text lang="en">Book series</text>
-      <text lang="ru">Книжные серии</text>
-    </property>
-    <property>
-      <text lang="en">Total series on {0}: {1}</text>
-      <text lang="ru">Всего серий на {0}: {1}</text>
-    </property>
-    <property>
-      <text lang="en">{0} books in {1}</text>
-      <text lang="ru">{0} книг в {1}</text>
-    </property>
-    <property>
-      <text lang="en">Books in genre «{0}»</text>
-      <text lang="ru">Книги в жанре «{0}»</text>
-    </property>
-    <property>
-      <text lang="en">Hide window</text>
-      <text lang="ru">Скрыть окно</text>
-    </property>
-    <property>
-      <text lang="en">Show window</text>
-      <text lang="ru">Показать окно</text>
-    </property>
-    <property>
-      <text lang="en">Minimize window</text>
-      <text lang="ru">Свернуть окно</text>
-    </property>
-    <property>
-      <text lang="en">Restore window</text>
-      <text lang="ru">Показать окно</text>
-    </property>
-    <property>
-      <text lang="en">Can't find UPnP router, forwarding is not available</text>
-      <text lang="ru">Не могу найти UPnP роутер, форвардинг не доступен</text>
-    </property>
-    <property>
-      <text lang="en">Invalid port value: value must be numeric and in range from 1 to 65535</text>
-      <text lang="ru">Неверный номер порта: значение должно быть в интервале от 1 до 65535</text>
-    </property>
-    <property>
-      <text lang="en">Invalid port value. Default value 8080 will be used</text>
-      <text lang="ru">Неверный номер порта. Будет использован номер 8080</text>
-    </property>
-    <property>
-      <text lang="en">version {0}.{1} {2}</text>
-      <text lang="ru">версия {0}.{1} {2}</text>
-    </property>
-    <property>
-      <text lang="en">Search authors</text>
-      <text lang="ru">Поиск авторов</text>
-    </property>
-    <property>
-      <text lang="en">Search authors by name</text>
-      <text lang="ru">Поиск авторов по имени</text>
-    </property>
-    <property>
-      <text lang="en">Search books</text>
-      <text lang="ru">Поиск книг</text>
-    </property>
-    <property>
-      <text lang="en">Search books by title</text>
-      <text lang="ru">Поиск книг по названию</text>
-    </property>
-    <property>
-      <text lang="en">Translation:</text>
-      <text lang="ru">Перевод:</text>
-    </property>
-    <property>
-      <text lang="en">Year of publication:</text>
-      <text lang="ru">Год публикации:</text>
-    </property>
-    <property>
-      <text lang="en">Format:</text>
-      <text lang="ru">Формат:</text>
-    </property>
-    <property>
-      <text lang="en">Size:</text>
-      <text lang="ru">Размер:</text>
-    </property>
-    <property>
-      <text lang="en">Series:</text>
-      <text lang="ru">Серия:</text>
-    </property>
-    <property>
-      <text lang="en">All books by author {0}</text>
-      <text lang="ru">Все книги автора {0}</text>
-    </property>
-    <property>
-      <text lang="en">All books by series {0}</text>
-      <text lang="ru">Все книги серии {0}</text>
-    </property>
-    <property form="MainForm" ctrl="useHTTPAuth">
-      <text lang="en">Use HTTP basic authentication</text>
-      <text lang="ru">Использовать базовую авторизацию HTTP</text>
-    </property>
-    <property form="MainForm" ctrl="rememberClients">
-      <text lang="en">Remember authorized clients</text>
-      <text lang="ru">Помнить авторизованных клиентов</text>
-    </property>
-    <property>
-      <text lang="en">Probably, port {0} is already in use. Please try different port value.</text>
-      <text lang="ru">Вероятно, порт {0} уже используется. Попробуйте другое значение.</text>
-    </property>
-    <property form="MainForm" ctrl="label22">
-      <text lang="en">Log verbosity level</text>
-      <text lang="ru">Детализация лог-файла</text>
-    </property>
-    <property>
-      <text lang="en">Info, warnings and errors</text>
-      <text lang="ru">Информация, предупреждения и ошибки</text>
-    </property>
-    <property>
-      <text lang="en">Warnings and errors</text>
-      <text lang="ru">Предупреждения и ошибки</text>
-    </property>
-    <property>
-      <text lang="en">Errors only</text>
-      <text lang="ru">Только ошибки</text>
-    </property>
-    <property form="MainForm" ctrl="label23">
-      <text lang="en">Total requests:</text>
-      <text lang="ru">Всего запросов:</text>
-    </property>
-    <property form="MainForm" ctrl="label25">
-      <text lang="en">Books sent:</text>
-      <text lang="ru">Отдано книг:</text>
-    </property>
-    <property form="MainForm" ctrl="label27">
-      <text lang="en">Images sent:</text>
-      <text lang="ru">Отдано картинок:</text>
-    </property>
-    <property form="MainForm" ctrl="label26">
-      <text lang="en">Unique clients:</text>
-      <text lang="ru">Уникальных клиентов:</text>
-    </property>
-    <property form="MainForm" ctrl="label28">
-      <text lang="en">Successful logins:</text>
-      <text lang="ru">Успешных входов:</text>
-    </property>
-    <property form="MainForm" ctrl="label30">
-      <text lang="en">Failed logins:</text>
-      <text lang="ru">Неверных входов:</text>
-    </property>
-    <property form="MainForm" ctrl="label31">
-      <text lang="en">Banned clients:</text>
-      <text lang="ru">Заблокировано:</text>
-    </property>
-    <property form="MainForm" ctrl="banClients">
-      <text lang="en">Ban clients after</text>
-      <text lang="ru">Блокировать клиентов после</text>
-    </property>
-    <property form="MainForm" ctrl="label24">
-      <text lang="en">failed attempts</text>
-      <text lang="ru">неверных попыток</text>
-    </property>
-    <property form="MainForm" ctrl="label32">
-      <text lang="en">Check for update:</text>
-      <text lang="ru">Проверять обновление:</text>
-    </property>
-    <property>
-      <text lang="en">Never</text>
-      <text lang="ru">Никогда</text>
-    </property>
-    <property>
-      <text lang="en">Once a week</text>
-      <text lang="ru">Раз в неделю</text>
-    </property>
-    <property>
-      <text lang="en">Once a month</text>
-      <text lang="ru">Раз в месяц</text>
-    </property>
-    <property form="MainForm" ctrl="viewLogFile">
-      <text lang="en">View log file</text>
-      <text lang="ru">Открыть лог-файл</text>
-    </property>
-    <property>
-      <text lang="en">TinyOPDS: update found</text>
-      <text lang="ru">TinyOPDS: обнаружено обновление</text>
-    </property>
-    <property>
-      <text lang="en">Click here to download update v {0}</text>
-      <text lang="ru">Кликните для загрузки обновления v {0}</text>
-    </property>
-    <property>
-      <text lang="en">New version {0} is available!\nWould you like to download now?</text>
-      <text lang="ru">Новая версия [OK} доступна для загрузки.\nЖелаете загрузить сейчас?</text>
-    </property>
-    <property>
-      <text lang="en">OPDS and web root prefixes can not be the same.</text>
-      <text lang="ru">Префиксы OPDS и web не могут быть одинаковыми.</text>
-    </property>
-    <property>
-      <text lang="en">Error</text>
-      <text lang="ru">Ошибка</text>
-    </property>
-    <property>
-      <text lang="en">Warning</text>
-      <text lang="ru">Предупреждение</text>
-    </property>
-    <property form="MainForm" ctrl="label36">
-      <text lang="en">Items per OPDS page:</text>
-      <text lang="ru">Число элементов на странице OPDS:</text>
-    </property>
-    <property form="MainForm" ctrl="label37">
-      <text lang="en">Items per web page:</text>
-      <text lang="ru">Число элементов на web-странице:</text>
-    </property>
-    <property form="MainForm" ctrl="label38">
-      <text lang="en">Items sort order:</text>
-      <text lang="ru">Порядок сортировки:</text>
-    </property>
-    <property>
-      <text lang="en">Latin first</text>
-      <text lang="ru">Сначала латинские</text>
-    </property>
-    <property>
-      <text lang="en">Cyrillic first</text>
-      <text lang="ru">Сначала русские</text>
-    </property>
-    <property form="MainForm" ctrl="label39">
-      <text lang="en">"New books" check period:</text>
-      <text lang="ru">Период для "новых книг":</text>
-    </property>
-    <property>
-      <text lang="en">one week</text>
-      <text lang="ru">неделя</text>
-    </property>
-    <property>
-      <text lang="en">two weeks</text>
-      <text lang="ru">две недели</text>
-    </property>
-    <property>
-      <text lang="en">three weeks</text>
-      <text lang="ru">три недели</text>
-    </property>
-    <property>
-      <text lang="en">month</text>
-      <text lang="ru">месяц</text>
-    </property>
-    <property>
-      <text lang="en">month and half</text>
-      <text lang="ru">полтора месяца</text>
-    </property>
-    <property>
-      <text lang="en">two month</text>
-      <text lang="ru">два месяца</text>
-    </property>
-    <property>
-      <text lang="en">three month</text>
-      <text lang="ru">три месяца</text>
-    </property>
-    <property form="MainForm" ctrl="checkBox1">
-      <text lang="en">"Low memory" model (do not load book descriptions)</text>
-      <text lang="ru">Режим "экономии памяти" (не загружать сразу описания книг)</text>
-    </property>
-    <property>
-      <text lang="en">New books (by date added)</text>
-      <text lang="ru">Новые книги (по дате добавления)</text>
-    </property>
-    <property>
-      <text lang="en">{0} new books ordered by date</text>
-      <text lang="ru">{0} новых книг, упорядоченных по дате</text>
-    </property>
-    <property>
-      <text lang="en">New books (alphabetically)</text>
-      <text lang="ru">Новые книги (в алфавитном порядке)</text>
-    </property>
-    <property>
-      <text lang="en">{0} new books ordered alphabetically</text>
-      <text lang="ru">{0} новых книг, упорядоченных по алфавиту</text>
-    </property>
-    <property form="MainForm" ctrl="checkBox2">
-      <text lang="en">Use authors aliases</text>
-      <text lang="ru">Использовать алиасы для авторов</text>
-    </property>
-    <property>
-      <text lang="en"></text>
-      <text lang="ru"></text>
-    </property>
-    <property>
-      <text lang="en"></text>
-      <text lang="ru"></text>
-    </property>
+	<languages>
+		<language id="en">English</language>
+		<language id="ru">Русский</language>
+		<language id="uk">Українська</language>
+		<language id="de">Deutsch</language>
+		<language id="es">Español</language>
+		<language id="fr">Français</language>
+	</languages>
+	<properties>
+		<property form="MainForm" ctrl="label15">
+			<text lang="en">Path to books folder:</text>
+			<text lang="ru">Путь к книжному каталогу:</text>
+			<text lang="uk">Шлях до каталогу книг:</text>
+			<text lang="de">Pfad zum Bücher-Ordner:</text>
+			<text lang="es">Ruta a la carpeta de libros:</text>
+			<text lang="fr">Chemin vers le dossier de livres:</text>
+		</property>
+		<property form="MainForm" ctrl="useWatcher">
+			<text lang="en">Monitor library changes</text>
+			<text lang="ru">Следить за каталогом</text>
+			<text lang="uk">Стежити за каталогом</text>
+			<text lang="de">Bibliotheksänderungen überwachen</text>
+			<text lang="es">Monitorear cambios en la biblioteca</text>
+			<text lang="fr">Surveiller les changements de bibliothèque</text>
+		</property>
+		<property form="MainForm" ctrl="label16">
+			<text lang="en">Duplicates:</text>
+			<text lang="ru">Дубликаты:</text>
+			<text lang="uk">Дублікати:</text>
+			<text lang="de">Duplikate:</text>
+			<text lang="es">Duplicados:</text>
+			<text lang="fr">Doublons:</text>
+		</property>
+		<property form="MainForm" ctrl="status">
+			<text lang="en">STOPPED</text>
+			<text lang="ru">ОСТАНОВЛЕН</text>
+			<text lang="uk">ЗУПИНЕНО</text>
+			<text lang="de">GESTOPPT</text>
+			<text lang="es">DETENIDO</text>
+			<text lang="fr">ARRÊTÉ</text>
+		</property>
+		<property form="MainForm" ctrl="label14">
+			<text lang="en">Status:</text>
+			<text lang="ru">Статус:</text>
+			<text lang="uk">Статус:</text>
+			<text lang="de">Status:</text>
+			<text lang="es">Estado:</text>
+			<text lang="fr">Statut:</text>
+		</property>
+		<property form="MainForm" ctrl="rate">
+			<text lang="en">0 books/min</text>
+			<text lang="ru">0 книг/мин</text>
+			<text lang="uk">0 книг/хв</text>
+			<text lang="de">0 Bücher/Min</text>
+			<text lang="es">0 libros/min</text>
+			<text lang="fr">0 livres/min</text>
+		</property>
+		<property>
+			<text lang="en">{0} books/min</text>
+			<text lang="ru">{0} книг/мин</text>
+			<text lang="uk">{0} книг/хв</text>
+			<text lang="de">{0} Bücher/Min</text>
+			<text lang="es">{0} libros/min</text>
+			<text lang="fr">{0} livres/min</text>
+		</property>
+		<property form="MainForm" ctrl="label12">
+			<text lang="en">Rate:</text>
+			<text lang="ru">Скорость:</text>
+			<text lang="uk">Швидкість:</text>
+			<text lang="de">Rate:</text>
+			<text lang="es">Velocidad:</text>
+			<text lang="fr">Vitesse:</text>
+		</property>
+		<property form="MainForm" ctrl="label10">
+			<text lang="en">Elapsed time:</text>
+			<text lang="ru">Прошло времени:</text>
+			<text lang="uk">Минуло часу:</text>
+			<text lang="de">Verstrichene Zeit:</text>
+			<text lang="es">Tiempo transcurrido:</text>
+			<text lang="fr">Temps écoulé:</text>
+		</property>
+		<property form="MainForm" ctrl="label6">
+			<text lang="en">Start time:</text>
+			<text lang="ru">Стартовал в:</text>
+			<text lang="uk">Початок о:</text>
+			<text lang="de">Startzeit:</text>
+			<text lang="es">Hora de inicio:</text>
+			<text lang="fr">Heure de début:</text>
+		</property>
+		<property form="MainForm" ctrl="label2">
+			<text lang="en">Books in database:</text>
+			<text lang="ru">Всего книг в базе:</text>
+			<text lang="uk">Всього книг в базі:</text>
+			<text lang="de">Bücher in Datenbank:</text>
+			<text lang="es">Libros en base de datos:</text>
+			<text lang="fr">Livres en base de données:</text>
+		</property>
+		<property form="MainForm" ctrl="label1">
+			<text lang="en">Books found:</text>
+			<text lang="ru">Найдено книг:</text>
+			<text lang="uk">Знайдено книг:</text>
+			<text lang="de">Bücher gefunden:</text>
+			<text lang="es">Libros encontrados:</text>
+			<text lang="fr">Livres trouvés:</text>
+		</property>
+		<property form="MainForm" ctrl="label5">
+			<text lang="en">Books processed:</text>
+			<text lang="ru">Обработано книг:</text>
+			<text lang="uk">Оброблено книг:</text>
+			<text lang="de">Bücher verarbeitet:</text>
+			<text lang="es">Libros procesados:</text>
+			<text lang="fr">Livres traités:</text>
+		</property>
+		<property form="MainForm" ctrl="label9">
+			<text lang="en">Invalid books:</text>
+			<text lang="ru">Ошибочных книг:</text>
+			<text lang="uk">Помилкових книг:</text>
+			<text lang="de">Ungültige Bücher:</text>
+			<text lang="es">Libros inválidos:</text>
+			<text lang="fr">Livres invalides:</text>
+		</property>
+		<property form="MainForm" ctrl="label7">
+			<text lang="en">Skipped books:</text>
+			<text lang="ru">Пропущено книг:</text>
+			<text lang="uk">Пропущено книг:</text>
+			<text lang="de">Übersprungene Bücher:</text>
+			<text lang="es">Libros omitidos:</text>
+			<text lang="fr">Livres ignorés:</text>
+		</property>
+		<property form="MainForm" ctrl="scannerButton">
+			<text lang="en">Start scanning</text>
+			<text lang="ru">Начать сканирование</text>
+			<text lang="uk">Почати сканування</text>
+			<text lang="de">Scannen starten</text>
+			<text lang="es">Iniciar escaneo</text>
+			<text lang="fr">Commencer l'analyse</text>
+		</property>
+		<property form="MainForm" ctrl="label4">
+			<text lang="en">Server name:</text>
+			<text lang="ru">Название сервера:</text>
+			<text lang="uk">Назва сервера:</text>
+			<text lang="de">Servername:</text>
+			<text lang="es">Nombre del servidor:</text>
+			<text lang="fr">Nom du serveur:</text>
+		</property>
+		<property form="MainForm" ctrl="label3">
+			<text lang="en">Port:</text>
+			<text lang="ru">Порт:</text>
+			<text lang="uk">Порт:</text>
+			<text lang="de">Port:</text>
+			<text lang="es">Puerto:</text>
+			<text lang="fr">Port:</text>
+		</property>
+		<property form="MainForm" ctrl="serverButton">
+			<text lang="en">Start server</text>
+			<text lang="ru">Стартовать сервер</text>
+			<text lang="uk">Запустити сервер</text>
+			<text lang="de">Server starten</text>
+			<text lang="es">Iniciar servidor</text>
+			<text lang="fr">Démarrer le serveur</text>
+		</property>
+		<property>
+			<text lang="en">SCANNING</text>
+			<text lang="ru">СКАНИРУЮ</text>
+			<text lang="uk">СКАНУЮ</text>
+			<text lang="de">SCANNEN</text>
+			<text lang="es">ESCANEANDO</text>
+			<text lang="fr">ANALYSE</text>
+		</property>
+		<property>
+			<text lang="en">FINISHED</text>
+			<text lang="ru">ЗАКОНЧИЛ</text>
+			<text lang="uk">ЗАВЕРШЕНО</text>
+			<text lang="de">BEENDET</text>
+			<text lang="es">FINALIZADO</text>
+			<text lang="fr">TERMINÉ</text>
+		</property>
+		<property>
+			<text lang="en">Stop scanning</text>
+			<text lang="ru">Остановить сканирование</text>
+			<text lang="uk">Зупинити сканування</text>
+			<text lang="de">Scannen stoppen</text>
+			<text lang="es">Detener escaneo</text>
+			<text lang="fr">Arrêter l'analyse</text>
+		</property>
+		<property>
+			<text lang="en">Stop server</text>
+			<text lang="ru">Остановить сервер</text>
+			<text lang="uk">Зупинити сервер</text>
+			<text lang="de">Server stoppen</text>
+			<text lang="es">Detener servidor</text>
+			<text lang="fr">Arrêter le serveur</text>
+		</property>
+		<property form="MainForm" ctrl="label8">
+			<text lang="en">Path to the ePub converter:</text>
+			<text lang="ru">Путь к ePub конвертору:</text>
+			<text lang="uk">Шлях до ePub конвертера:</text>
+			<text lang="de">Pfad zum ePub-Konverter:</text>
+			<text lang="es">Ruta al convertidor ePub:</text>
+			<text lang="fr">Chemin vers le convertisseur ePub:</text>
+		</property>
+		<property form="MainForm" ctrl="label11">
+			<text lang="en">GUI and OPDS language:</text>
+			<text lang="ru">Язык программы и OPDS:</text>
+			<text lang="uk">Мова програми та OPDS:</text>
+			<text lang="de">GUI- und OPDS-Sprache:</text>
+			<text lang="es">Idioma de GUI y OPDS:</text>
+			<text lang="fr">Langue de l'interface et OPDS:</text>
+		</property>
+		<property form="MainForm" ctrl="closeToTray">
+			<text lang="en">Close or minimize to tray</text>
+			<text lang="ru">Скрывать в трей</text>
+			<text lang="uk">Приховувати в трей</text>
+			<text lang="de">In Systemleiste minimieren</text>
+			<text lang="es">Cerrar o minimizar a la bandeja</text>
+			<text lang="fr">Fermer ou réduire dans la barre</text>
+		</property>
+		<property form="MainForm" ctrl="startMinimized">
+			<text lang="en">Start minimized</text>
+			<text lang="ru">Стартовать минимизированным</text>
+			<text lang="uk">Запускати мінімізованим</text>
+			<text lang="de">Minimiert starten</text>
+			<text lang="es">Iniciar minimizado</text>
+			<text lang="fr">Démarrer réduit</text>
+		</property>
+		<property form="MainForm" ctrl="startWithWindows">
+			<text lang="en">Start with Windows</text>
+			<text lang="ru">Стартовать вместе с Windows</text>
+			<text lang="uk">Запускати разом з Windows</text>
+			<text lang="de">Mit Windows starten</text>
+			<text lang="es">Iniciar con Windows</text>
+			<text lang="fr">Démarrer avec Windows</text>
+		</property>
+		<property form="MainForm" ctrl="saveLog">
+			<text lang="en">Save log to file</text>
+			<text lang="ru">Сохранять лог в файл</text>
+			<text lang="uk">Зберігати лог у файл</text>
+			<text lang="de">Log in Datei speichern</text>
+			<text lang="es">Guardar log en archivo</text>
+			<text lang="fr">Sauvegarder le log dans un fichier</text>
+		</property>
+		<property form="MainForm" ctrl="useUPnP">
+			<text lang="en">Use UPnP</text>
+			<text lang="ru">Использовать UPnP</text>
+			<text lang="uk">Використовувати UPnP</text>
+			<text lang="de">UPnP verwenden</text>
+			<text lang="es">Usar UPnP</text>
+			<text lang="fr">Utiliser UPnP</text>
+		</property>
+		<property form="MainForm" ctrl="tabPage1">
+			<text lang="en">Scanner</text>
+			<text lang="ru">Сканер</text>
+			<text lang="uk">Сканер</text>
+			<text lang="de">Scanner</text>
+			<text lang="es">Escáner</text>
+			<text lang="fr">Scanner</text>
+		</property>
+		<property form="MainForm" ctrl="tabPage2">
+			<text lang="en">Server</text>
+			<text lang="ru">Сервер</text>
+			<text lang="uk">Сервер</text>
+			<text lang="de">Server</text>
+			<text lang="es">Servidor</text>
+			<text lang="fr">Serveur</text>
+		</property>
+		<property form="MainForm" ctrl="tabPage6">
+			<text lang="en">OPDS catalog</text>
+			<text lang="ru">OPDS каталог</text>
+			<text lang="uk">OPDS каталог</text>
+			<text lang="de">OPDS-Katalog</text>
+			<text lang="es">Catálogo OPDS</text>
+			<text lang="fr">Catalogue OPDS</text>
+		</property>
+		<property form="MainForm" ctrl="tabPage3">
+			<text lang="en">Miscellaneous</text>
+			<text lang="ru">Разное</text>
+			<text lang="uk">Різне</text>
+			<text lang="de">Verschiedenes</text>
+			<text lang="es">Varios</text>
+			<text lang="fr">Divers</text>
+		</property>
+		<property form="MainForm" ctrl="tabPage4">
+			<text lang="en">About program</text>
+			<text lang="ru">О программе</text>
+			<text lang="uk">Про програму</text>
+			<text lang="de">Über das Programm</text>
+			<text lang="es">Acerca del programa</text>
+			<text lang="fr">À propos du programme</text>
+		</property>
+		<property form="MainForm" ctrl="tabPage5">
+			<text lang="en">Authentication</text>
+			<text lang="ru">Авторизация</text>
+			<text lang="uk">Авторизація</text>
+			<text lang="de">Authentifizierung</text>
+			<text lang="es">Autenticación</text>
+			<text lang="fr">Authentification</text>
+		</property>
+		<property form="MainForm" ctrl="exitMenuItem">
+			<text lang="en">Exit</text>
+			<text lang="ru">Выход</text>
+			<text lang="uk">Вихід</text>
+			<text lang="de">Beenden</text>
+			<text lang="es">Salir</text>
+			<text lang="fr">Quitter</text>
+		</property>
+		<property form="MainForm" ctrl="openPort">
+			<text lang="en">Forward port on router</text>
+			<text lang="ru">Форвардить порт на роутере</text>
+			<text lang="uk">Перенаправити порт на роутері</text>
+			<text lang="de">Port am Router weiterleiten</text>
+			<text lang="es">Reenviar puerto en router</text>
+			<text lang="fr">Rediriger le port sur le routeur</text>
+		</property>
+		<property form="MainForm" ctrl="useAbsoluteUri">
+			<text lang="en">Absolute links</text>
+			<text lang="ru">Абсолютные ссылки</text>
+			<text lang="uk">Абсолютні посилання</text>
+			<text lang="de">Absolute Links</text>
+			<text lang="es">Enlaces absolutos</text>
+			<text lang="fr">Liens absolus</text>
+		</property>
+		<property form="MainForm" ctrl="label13">
+			<text lang="en">OPDS root:</text>
+			<text lang="ru">Префикс OPDS:</text>
+			<text lang="uk">Префікс OPDS:</text>
+			<text lang="de">OPDS-Root:</text>
+			<text lang="es">Raíz OPDS:</text>
+			<text lang="fr">Racine OPDS:</text>
+		</property>
+		<property form="MainForm" ctrl="label33">
+			<text lang="en">Web root:</text>
+			<text lang="ru">Префикс web:</text>
+			<text lang="uk">Префікс web:</text>
+			<text lang="de">Web-Root:</text>
+			<text lang="es">Raíz web:</text>
+			<text lang="fr">Racine web:</text>
+		</property>
+		<property form="MainForm" ctrl="intIPlabel">
+			<text lang="en">Local OPDS URL:</text>
+			<text lang="ru">Локальная ссылка OPDS:</text>
+			<text lang="uk">Локальне посилання OPDS:</text>
+			<text lang="de">Lokale OPDS-URL:</text>
+			<text lang="es">URL OPDS local:</text>
+			<text lang="fr">URL OPDS locale:</text>
+		</property>
+		<property form="MainForm" ctrl="extIPlabel">
+			<text lang="en">External OPDS URL:</text>
+			<text lang="ru">Внешняя ссылка OPDS:</text>
+			<text lang="uk">Зовнішнє посилання OPDS:</text>
+			<text lang="de">Externe OPDS-URL:</text>
+			<text lang="es">URL OPDS externa:</text>
+			<text lang="fr">URL OPDS externe:</text>
+		</property>
+		<property form="MainForm" ctrl="label35">
+			<text lang="en">Local web URL:</text>
+			<text lang="ru">Локальная ссылка:</text>
+			<text lang="uk">Локальне посилання:</text>
+			<text lang="de">Lokale Web-URL:</text>
+			<text lang="es">URL web local:</text>
+			<text lang="fr">URL web locale:</text>
+		</property>
+		<property form="MainForm" ctrl="label34">
+			<text lang="en">External web URL:</text>
+			<text lang="ru">Внешняя ссылка:</text>
+			<text lang="uk">Зовнішнє посилання:</text>
+			<text lang="de">Externe Web-URL:</text>
+			<text lang="es">URL web externa:</text>
+			<text lang="fr">URL web externe:</text>
+		</property>
+		<property form="MainForm" ctrl="converterLinkLabel">
+			<text lang="en">Click here to download latest version of ePub converter</text>
+			<text lang="ru">Кликните для закачки последней версии конвертера ePub</text>
+			<text lang="uk">Натисніть тут для завантаження останньої версії конвертера ePub</text>
+			<text lang="de">Hier klicken, um die neueste Version des ePub-Konverters herunterzuladen</text>
+			<text lang="es">Haga clic aquí para descargar la última versión del convertidor ePub</text>
+			<text lang="fr">Cliquez ici pour télécharger la dernière version du convertisseur ePub</text>
+		</property>
+		<property form="MainForm" ctrl="appName">
+			<text lang="en">TinyOPDS server</text>
+			<text lang="ru">TinyOPDS сервер</text>
+			<text lang="uk">TinyOPDS сервер</text>
+			<text lang="de">TinyOPDS-Server</text>
+			<text lang="es">Servidor TinyOPDS</text>
+			<text lang="fr">Serveur TinyOPDS</text>
+		</property>
+		<property form="MainForm" ctrl="label17">
+			<text lang="en">Project home page:</text>
+			<text lang="ru">Домашняя страница:</text>
+			<text lang="uk">Домашня сторінка:</text>
+			<text lang="de">Projekt-Homepage:</text>
+			<text lang="es">Página principal del proyecto:</text>
+			<text lang="fr">Page d'accueil du projet:</text>
+		</property>
+		<property form="MainForm" ctrl="label18">
+			<text lang="en">Project license:</text>
+			<text lang="ru">Лицензия проекта:</text>
+			<text lang="uk">Ліцензія проекту:</text>
+			<text lang="de">Projekt-Lizenz:</text>
+			<text lang="es">Licencia del proyecto:</text>
+			<text lang="fr">Licence du projet:</text>
+		</property>
+		<property form="MainForm" ctrl="label20">
+			<text lang="en">Special thanks:</text>
+			<text lang="ru">Отдельное спасибо:</text>
+			<text lang="uk">Особлива подяка:</text>
+			<text lang="de">Besonderen Dank an:</text>
+			<text lang="es">Agradecimientos especiales:</text>
+			<text lang="fr">Remerciements spéciaux:</text>
+		</property>
+		<property form="MainForm" ctrl="label21">
+			<text lang="en">Database file name:</text>
+			<text lang="ru">Файл базы данных:</text>
+			<text lang="uk">Файл бази даних:</text>
+			<text lang="de">Datenbank-Dateiname:</text>
+			<text lang="es">Nombre del archivo de base de datos:</text>
+			<text lang="fr">Nom du fichier de base de données:</text>
+		</property>
+		<property>
+			<text lang="en">Books by authors</text>
+			<text lang="ru">Книги по авторам</text>
+			<text lang="uk">Книги за авторами</text>
+			<text lang="de">Bücher nach Autoren</text>
+			<text lang="es">Libros por autores</text>
+			<text lang="fr">Livres par auteurs</text>
+		</property>
+		<property>
+			<text lang="en">Total authors on {0}: {1}</text>
+			<text lang="ru">Всего авторов на {0}: {1}</text>
+			<text lang="uk">Всього авторів на {0}: {1}</text>
+			<text lang="de">Autoren gesamt auf {0}: {1}</text>
+			<text lang="es">Total de autores en {0}: {1}</text>
+			<text lang="fr">Total d'auteurs sur {0}: {1}</text>
+		</property>
+		<property>
+			<text lang="en">Books: {0}</text>
+			<text lang="ru">Книг: {0}</text>
+			<text lang="uk">Книг: {0}</text>
+			<text lang="de">Bücher: {0}</text>
+			<text lang="es">Libros: {0}</text>
+			<text lang="fr">Livres: {0}</text>
+		</property>
+		<property>
+			<text lang="en">Books by author </text>
+			<text lang="ru">Книги автора </text>
+			<text lang="uk">Книги автора </text>
+			<text lang="de">Bücher von Autor </text>
+			<text lang="es">Libros del autor </text>
+			<text lang="fr">Livres de l'auteur </text>
+		</property>
+		<property>
+			<text lang="en">By authors</text>
+			<text lang="ru">По авторам</text>
+			<text lang="uk">За авторами</text>
+			<text lang="de">Nach Autoren</text>
+			<text lang="es">Por autores</text>
+			<text lang="fr">Par auteurs</text>
+		</property>
+		<property>
+			<text lang="en">{0} books by {1} authors</text>
+			<text lang="ru">{0} книг от {1} авторов</text>
+			<text lang="uk">{0} книг від {1} авторів</text>
+			<text lang="de">{0} Bücher von {1} Autoren</text>
+			<text lang="es">{0} libros de {1} autores</text>
+			<text lang="fr">{0} livres de {1} auteurs</text>
+		</property>
+		<property>
+			<text lang="en">By series</text>
+			<text lang="ru">По сериям</text>
+			<text lang="uk">За серіями</text>
+			<text lang="de">Nach Serien</text>
+			<text lang="es">Por series</text>
+			<text lang="fr">Par séries</text>
+		</property>
+		<property>
+			<text lang="en">{0} books by {1} series</text>
+			<text lang="ru">{0} книг в {1} сериях</text>
+			<text lang="uk">{0} книг у {1} серіях</text>
+			<text lang="de">{0} Bücher in {1} Serien</text>
+			<text lang="es">{0} libros en {1} series</text>
+			<text lang="fr">{0} livres en {1} séries</text>
+		</property>
+		<property>
+			<text lang="en">By genres</text>
+			<text lang="ru">По жанрам</text>
+			<text lang="uk">За жанрами</text>
+			<text lang="de">Nach Genres</text>
+			<text lang="es">Por géneros</text>
+			<text lang="fr">Par genres</text>
+		</property>
+		<property>
+			<text lang="en">Books grouped by genres</text>
+			<text lang="ru">Книги, сгруппированные по жанрам</text>
+			<text lang="uk">Книги, згруповані за жанрами</text>
+			<text lang="de">Nach Genres gruppierte Bücher</text>
+			<text lang="es">Libros agrupados por géneros</text>
+			<text lang="fr">Livres groupés par genres</text>
+		</property>
+		<property>
+			<text lang="en">Book series</text>
+			<text lang="ru">Книжные серии</text>
+			<text lang="uk">Книжкові серії</text>
+			<text lang="de">Buchserien</text>
+			<text lang="es">Series de libros</text>
+			<text lang="fr">Séries de livres</text>
+		</property>
+		<property>
+			<text lang="en">Total series on {0}: {1}</text>
+			<text lang="ru">Всего серий на {0}: {1}</text>
+			<text lang="uk">Всього серій на {0}: {1}</text>
+			<text lang="de">Serien gesamt auf {0}: {1}</text>
+			<text lang="es">Total de series en {0}: {1}</text>
+			<text lang="fr">Total de séries sur {0}: {1}</text>
+		</property>
+		<property>
+			<text lang="en">{0} books in {1}</text>
+			<text lang="ru">{0} книг в {1}</text>
+			<text lang="uk">{0} книг у {1}</text>
+			<text lang="de">{0} Bücher in {1}</text>
+			<text lang="es">{0} libros en {1}</text>
+			<text lang="fr">{0} livres dans {1}</text>
+		</property>
+		<property>
+			<text lang="en">Books in genre «{0}»</text>
+			<text lang="ru">Книги в жанре «{0}»</text>
+			<text lang="uk">Книги в жанрі «{0}»</text>
+			<text lang="de">Bücher im Genre «{0}»</text>
+			<text lang="es">Libros del género «{0}»</text>
+			<text lang="fr">Livres du genre «{0}»</text>
+		</property>
+		<property>
+			<text lang="en">Hide window</text>
+			<text lang="ru">Скрыть окно</text>
+			<text lang="uk">Приховати вікно</text>
+			<text lang="de">Fenster ausblenden</text>
+			<text lang="es">Ocultar ventana</text>
+			<text lang="fr">Masquer la fenêtre</text>
+		</property>
+		<property>
+			<text lang="en">Show window</text>
+			<text lang="ru">Показать окно</text>
+			<text lang="uk">Показати вікно</text>
+			<text lang="de">Fenster anzeigen</text>
+			<text lang="es">Mostrar ventana</text>
+			<text lang="fr">Afficher la fenêtre</text>
+		</property>
+		<property>
+			<text lang="en">Minimize window</text>
+			<text lang="ru">Свернуть окно</text>
+			<text lang="uk">Згорнути вікно</text>
+			<text lang="de">Fenster minimieren</text>
+			<text lang="es">Minimizar ventana</text>
+			<text lang="fr">Réduire la fenêtre</text>
+		</property>
+		<property>
+			<text lang="en">Restore window</text>
+			<text lang="ru">Показать окно</text>
+			<text lang="uk">Відновити вікно</text>
+			<text lang="de">Fenster wiederherstellen</text>
+			<text lang="es">Restaurar ventana</text>
+			<text lang="fr">Restaurer la fenêtre</text>
+		</property>
+		<property>
+			<text lang="en">Can't find UPnP router, forwarding is not available</text>
+			<text lang="ru">Не могу найти UPnP роутер, форвардинг не доступен</text>
+			<text lang="uk">Не можу знайти UPnP роутер, переадресація недоступна</text>
+			<text lang="de">UPnP-Router nicht gefunden, Weiterleitung nicht verfügbar</text>
+			<text lang="es">No se puede encontrar el router UPnP, reenvío no disponible</text>
+			<text lang="fr">Impossible de trouver le routeur UPnP, redirection non disponible</text>
+		</property>
+		<property>
+			<text lang="en">Invalid port value: value must be numeric and in range from 1 to 65535</text>
+			<text lang="ru">Неверный номер порта: значение должно быть в интервале от 1 до 65535</text>
+			<text lang="uk">Невірний номер порту: значення має бути в інтервалі від 1 до 65535</text>
+			<text lang="de">Ungültiger Port-Wert: Wert muss numerisch und im Bereich von 1 bis 65535 sein</text>
+			<text lang="es">Valor de puerto inválido: el valor debe ser numérico y estar entre 1 y 65535</text>
+			<text lang="fr">Valeur de port invalide: la valeur doit être numérique et comprise entre 1 et 65535</text>
+		</property>
+		<property>
+			<text lang="en">Invalid port value. Default value 8080 will be used</text>
+			<text lang="ru">Неверный номер порта. Будет использован номер 8080</text>
+			<text lang="uk">Невірний номер порту. Буде використано номер 8080</text>
+			<text lang="de">Ungültiger Port-Wert. Standardwert 8080 wird verwendet</text>
+			<text lang="es">Valor de puerto inválido. Se usará el valor predeterminado 8080</text>
+			<text lang="fr">Valeur de port invalide. La valeur par défaut 8080 sera utilisée</text>
+		</property>
+		<property>
+			<text lang="en">version {0}.{1} {2}</text>
+			<text lang="ru">версия {0}.{1} {2}</text>
+			<text lang="uk">версія {0}.{1} {2}</text>
+			<text lang="de">Version {0}.{1} {2}</text>
+			<text lang="es">versión {0}.{1} {2}</text>
+			<text lang="fr">version {0}.{1} {2}</text>
+		</property>
+		<property>
+			<text lang="en">Search authors</text>
+			<text lang="ru">Поиск авторов</text>
+			<text lang="uk">Пошук авторів</text>
+			<text lang="de">Autoren suchen</text>
+			<text lang="es">Buscar autores</text>
+			<text lang="fr">Rechercher des auteurs</text>
+		</property>
+		<property>
+			<text lang="en">Search authors by name</text>
+			<text lang="ru">Поиск авторов по имени</text>
+			<text lang="uk">Пошук авторів за іменем</text>
+			<text lang="de">Autoren nach Namen suchen</text>
+			<text lang="es">Buscar autores por nombre</text>
+			<text lang="fr">Rechercher des auteurs par nom</text>
+		</property>
+		<property>
+			<text lang="en">Search books</text>
+			<text lang="ru">Поиск книг</text>
+			<text lang="uk">Пошук книг</text>
+			<text lang="de">Bücher suchen</text>
+			<text lang="es">Buscar libros</text>
+			<text lang="fr">Rechercher des livres</text>
+		</property>
+		<property>
+			<text lang="en">Search books by title</text>
+			<text lang="ru">Поиск книг по названию</text>
+			<text lang="uk">Пошук книг за назвою</text>
+			<text lang="de">Bücher nach Titel suchen</text>
+			<text lang="es">Buscar libros por título</text>
+			<text lang="fr">Rechercher des livres par titre</text>
+		</property>
+		<property>
+			<text lang="en">Translation:</text>
+			<text lang="ru">Перевод:</text>
+			<text lang="uk">Переклад:</text>
+			<text lang="de">Übersetzung:</text>
+			<text lang="es">Traducción:</text>
+			<text lang="fr">Traduction:</text>
+		</property>
+		<property>
+			<text lang="en">Year of publication:</text>
+			<text lang="ru">Год публикации:</text>
+			<text lang="uk">Рік публікації:</text>
+			<text lang="de">Erscheinungsjahr:</text>
+			<text lang="es">Año de publicación:</text>
+			<text lang="fr">Année de publication:</text>
+		</property>
+		<property>
+			<text lang="en">Format:</text>
+			<text lang="ru">Формат:</text>
+			<text lang="uk">Формат:</text>
+			<text lang="de">Format:</text>
+			<text lang="es">Formato:</text>
+			<text lang="fr">Format:</text>
+		</property>
+		<property>
+			<text lang="en">Size:</text>
+			<text lang="ru">Размер:</text>
+			<text lang="uk">Розмір:</text>
+			<text lang="de">Größe:</text>
+			<text lang="es">Tamaño:</text>
+			<text lang="fr">Taille:</text>
+		</property>
+		<property>
+			<text lang="en">Series:</text>
+			<text lang="ru">Серия:</text>
+			<text lang="uk">Серія:</text>
+			<text lang="de">Serie:</text>
+			<text lang="es">Serie:</text>
+			<text lang="fr">Série:</text>
+		</property>
+		<property>
+			<text lang="en">All books by author {0}</text>
+			<text lang="ru">Все книги автора {0}</text>
+			<text lang="uk">Всі книги автора {0}</text>
+			<text lang="de">Alle Bücher von Autor {0}</text>
+			<text lang="es">Todos los libros del autor {0}</text>
+			<text lang="fr">Tous les livres de l'auteur {0}</text>
+		</property>
+		<property>
+			<text lang="en">All books by series {0}</text>
+			<text lang="ru">Все книги серии {0}</text>
+			<text lang="uk">Всі книги серії {0}</text>
+			<text lang="de">Alle Bücher der Serie {0}</text>
+			<text lang="es">Todos los libros de la serie {0}</text>
+			<text lang="fr">Tous les livres de la série {0}</text>
+		</property>
+		<property form="MainForm" ctrl="useHTTPAuth">
+			<text lang="en">Use HTTP basic authentication</text>
+			<text lang="ru">Использовать базовую авторизацию HTTP</text>
+			<text lang="uk">Використовувати базову авторизацію HTTP</text>
+			<text lang="de">HTTP-Basisauthentifizierung verwenden</text>
+			<text lang="es">Usar autenticación básica HTTP</text>
+			<text lang="fr">Utiliser l'authentification HTTP de base</text>
+		</property>
+		<property form="MainForm" ctrl="rememberClients">
+			<text lang="en">Remember authorized clients</text>
+			<text lang="ru">Помнить авторизованных клиентов</text>
+			<text lang="uk">Запам'ятовувати авторизованих клієнтів</text>
+			<text lang="de">Autorisierte Clients merken</text>
+			<text lang="es">Recordar clientes autorizados</text>
+			<text lang="fr">Se souvenir des clients autorisés</text>
+		</property>
+		<property>
+			<text lang="en">Probably, port {0} is already in use. Please try different port value.</text>
+			<text lang="ru">Вероятно, порт {0} уже используется. Попробуйте другое значение.</text>
+			<text lang="uk">Ймовірно, порт {0} вже використовується. Спробуйте інше значення.</text>
+			<text lang="de">Port {0} wird wahrscheinlich bereits verwendet. Bitte versuchen Sie einen anderen Port-Wert.</text>
+			<text lang="es">Probablemente el puerto {0} ya esté en uso. Intente con un valor de puerto diferente.</text>
+			<text lang="fr">Le port {0} est probablement déjà utilisé. Veuillez essayer une valeur de port différente.</text>
+		</property>
+		<property form="MainForm" ctrl="label22">
+			<text lang="en">Log verbosity level</text>
+			<text lang="ru">Детализация лог-файла</text>
+			<text lang="uk">Деталізація лог-файлу</text>
+			<text lang="de">Log-Detailgrad</text>
+			<text lang="es">Nivel de detalle del log</text>
+			<text lang="fr">Niveau de détail du log</text>
+		</property>
+		<property>
+			<text lang="en">Info, warnings and errors</text>
+			<text lang="ru">Информация, предупреждения и ошибки</text>
+			<text lang="uk">Інформація, попередження та помилки</text>
+			<text lang="de">Info, Warnungen und Fehler</text>
+			<text lang="es">Información, advertencias y errores</text>
+			<text lang="fr">Informations, avertissements et erreurs</text>
+		</property>
+		<property>
+			<text lang="en">Warnings and errors</text>
+			<text lang="ru">Предупреждения и ошибки</text>
+			<text lang="uk">Попередження та помилки</text>
+			<text lang="de">Warnungen und Fehler</text>
+			<text lang="es">Advertencias y errores</text>
+			<text lang="fr">Avertissements et erreurs</text>
+		</property>
+		<property>
+			<text lang="en">Errors only</text>
+			<text lang="ru">Только ошибки</text>
+			<text lang="uk">Тільки помилки</text>
+			<text lang="de">Nur Fehler</text>
+			<text lang="es">Solo errores</text>
+			<text lang="fr">Erreurs seulement</text>
+		</property>
+		<property form="MainForm" ctrl="label23">
+			<text lang="en">Total requests:</text>
+			<text lang="ru">Всего запросов:</text>
+			<text lang="uk">Всього запитів:</text>
+			<text lang="de">Anfragen gesamt:</text>
+			<text lang="es">Total de solicitudes:</text>
+			<text lang="fr">Total des requêtes:</text>
+		</property>
+		<property form="MainForm" ctrl="label25">
+			<text lang="en">Books sent:</text>
+			<text lang="ru">Отдано книг:</text>
+			<text lang="uk">Віддано книг:</text>
+			<text lang="de">Bücher gesendet:</text>
+			<text lang="es">Libros enviados:</text>
+			<text lang="fr">Livres envoyés:</text>
+		</property>
+		<property form="MainForm" ctrl="label27">
+			<text lang="en">Images sent:</text>
+			<text lang="ru">Отдано картинок:</text>
+			<text lang="uk">Віддано зображень:</text>
+			<text lang="de">Bilder gesendet:</text>
+			<text lang="es">Imágenes enviadas:</text>
+			<text lang="fr">Images envoyées:</text>
+		</property>
+		<property form="MainForm" ctrl="label26">
+			<text lang="en">Unique clients:</text>
+			<text lang="ru">Уникальных клиентов:</text>
+			<text lang="uk">Унікальних клієнтів:</text>
+			<text lang="de">Eindeutige Clients:</text>
+			<text lang="es">Clientes únicos:</text>
+			<text lang="fr">Clients uniques:</text>
+		</property>
+		<property form="MainForm" ctrl="label28">
+			<text lang="en">Successful logins:</text>
+			<text lang="ru">Успешных входов:</text>
+			<text lang="uk">Успішних входів:</text>
+			<text lang="de">Erfolgreiche Anmeldungen:</text>
+			<text lang="es">Inicios de sesión exitosos:</text>
+			<text lang="fr">Connexions réussies:</text>
+		</property>
+		<property form="MainForm" ctrl="label30">
+			<text lang="en">Failed logins:</text>
+			<text lang="ru">Неверных входов:</text>
+			<text lang="uk">Невірних входів:</text>
+			<text lang="de">Fehlgeschlagene Anmeldungen:</text>
+			<text lang="es">Inicios de sesión fallidos:</text>
+			<text lang="fr">Connexions échouées:</text>
+		</property>
+		<property form="MainForm" ctrl="label31">
+			<text lang="en">Banned clients:</text>
+			<text lang="ru">Заблокировано:</text>
+			<text lang="uk">Заблоковано:</text>
+			<text lang="de">Gesperrte Clients:</text>
+			<text lang="es">Clientes bloqueados:</text>
+			<text lang="fr">Clients bloqués:</text>
+		</property>
+		<property form="MainForm" ctrl="banClients">
+			<text lang="en">Ban clients after</text>
+			<text lang="ru">Блокировать клиентов после</text>
+			<text lang="uk">Блокувати клієнтів після</text>
+			<text lang="de">Clients sperren nach</text>
+			<text lang="es">Bloquear clientes después de</text>
+			<text lang="fr">Bloquer les clients après</text>
+		</property>
+		<property form="MainForm" ctrl="label24">
+			<text lang="en">failed attempts</text>
+			<text lang="ru">неверных попыток</text>
+			<text lang="uk">невірних спроб</text>
+			<text lang="de">fehlgeschlagenen Versuchen</text>
+			<text lang="es">intentos fallidos</text>
+			<text lang="fr">tentatives échouées</text>
+		</property>
+		<property form="MainForm" ctrl="label32">
+			<text lang="en">Check for update:</text>
+			<text lang="ru">Проверять обновление:</text>
+			<text lang="uk">Перевіряти оновлення:</text>
+			<text lang="de">Nach Updates suchen:</text>
+			<text lang="es">Buscar actualizaciones:</text>
+			<text lang="fr">Vérifier les mises à jour:</text>
+		</property>
+		<property>
+			<text lang="en">Never</text>
+			<text lang="ru">Никогда</text>
+			<text lang="uk">Ніколи</text>
+			<text lang="de">Niemals</text>
+			<text lang="es">Nunca</text>
+			<text lang="fr">Jamais</text>
+		</property>
+		<property>
+			<text lang="en">Once a week</text>
+			<text lang="ru">Раз в неделю</text>
+			<text lang="uk">Раз на тиждень</text>
+			<text lang="de">Einmal pro Woche</text>
+			<text lang="es">Una vez por semana</text>
+			<text lang="fr">Une fois par semaine</text>
+		</property>
+		<property>
+			<text lang="en">Once a month</text>
+			<text lang="ru">Раз в месяц</text>
+			<text lang="uk">Раз на місяць</text>
+			<text lang="de">Einmal pro Monat</text>
+			<text lang="es">Una vez al mes</text>
+			<text lang="fr">Une fois par mois</text>
+		</property>
+		<property form="MainForm" ctrl="viewLogFile">
+			<text lang="en">View log file</text>
+			<text lang="ru">Открыть лог-файл</text>
+			<text lang="uk">Відкрити лог-файл</text>
+			<text lang="de">Log-Datei anzeigen</text>
+			<text lang="es">Ver archivo de log</text>
+			<text lang="fr">Voir le fichier de log</text>
+		</property>
+		<property>
+			<text lang="en">TinyOPDS: update found</text>
+			<text lang="ru">TinyOPDS: обнаружено обновление</text>
+			<text lang="uk">TinyOPDS: знайдено оновлення</text>
+			<text lang="de">TinyOPDS: Update gefunden</text>
+			<text lang="es">TinyOPDS: actualización encontrada</text>
+			<text lang="fr">TinyOPDS: mise à jour trouvée</text>
+		</property>
+		<property>
+			<text lang="en">Click here to download update v {0}</text>
+			<text lang="ru">Кликните для загрузки обновления v {0}</text>
+			<text lang="uk">Натисніть тут для завантаження оновлення v {0}</text>
+			<text lang="de">Hier klicken, um Update v {0} herunterzuladen</text>
+			<text lang="es">Haga clic aquí para descargar la actualización v {0}</text>
+			<text lang="fr">Cliquez ici pour télécharger la mise à jour v {0}</text>
+		</property>
+		<property>
+			<text lang="en">New version {0} is available!\nWould you like to download now?</text>
+			<text lang="ru">Новая версия {0} доступна для загрузки.\nЖелаете загрузить сейчас?</text>
+			<text lang="uk">Нова версія {0} доступна для завантаження.\nБажаєте завантажити зараз?</text>
+			<text lang="de">Neue Version {0} ist verfügbar!\nMöchten Sie sie jetzt herunterladen?</text>
+			<text lang="es">¡La nueva versión {0} está disponible!\n¿Le gustaría descargarla ahora?</text>
+			<text lang="fr">La nouvelle version {0} est disponible!\nSouhaitez-vous la télécharger maintenant?</text>
+		</property>
+		<property>
+			<text lang="en">OPDS and web root prefixes can not be the same.</text>
+			<text lang="ru">Префиксы OPDS и web не могут быть одинаковыми.</text>
+			<text lang="uk">Префікси OPDS і web не можуть бути однаковими.</text>
+			<text lang="de">OPDS- und Web-Root-Präfixe können nicht identisch sein.</text>
+			<text lang="es">Los prefijos raíz de OPDS y web no pueden ser iguales.</text>
+			<text lang="fr">Les préfixes racine OPDS et web ne peuvent pas être identiques.</text>
+		</property>
+		<property>
+			<text lang="en">Error</text>
+			<text lang="ru">Ошибка</text>
+			<text lang="uk">Помилка</text>
+			<text lang="de">Fehler</text>
+			<text lang="es">Error</text>
+			<text lang="fr">Erreur</text>
+		</property>
+		<property>
+			<text lang="en">Warning</text>
+			<text lang="ru">Предупреждение</text>
+			<text lang="uk">Попередження</text>
+			<text lang="de">Warnung</text>
+			<text lang="es">Advertencia</text>
+			<text lang="fr">Avertissement</text>
+		</property>
+		<property form="MainForm" ctrl="label36">
+			<text lang="en">Items per OPDS page:</text>
+			<text lang="ru">Число элементов на странице OPDS:</text>
+			<text lang="uk">Кількість елементів на сторінці OPDS:</text>
+			<text lang="de">Elemente pro OPDS-Seite:</text>
+			<text lang="es">Elementos por página OPDS:</text>
+			<text lang="fr">Éléments par page OPDS:</text>
+		</property>
+		<property form="MainForm" ctrl="label37">
+			<text lang="en">Items per web page:</text>
+			<text lang="ru">Число элементов на web-странице:</text>
+			<text lang="uk">Кількість елементів на web-сторінці:</text>
+			<text lang="de">Elemente pro Web-Seite:</text>
+			<text lang="es">Elementos por página web:</text>
+			<text lang="fr">Éléments par page web:</text>
+		</property>
+		<property form="MainForm" ctrl="label38">
+			<text lang="en">Items sort order:</text>
+			<text lang="ru">Порядок сортировки:</text>
+			<text lang="uk">Порядок сортування:</text>
+			<text lang="de">Sortierreihenfolge:</text>
+			<text lang="es">Orden de clasificación:</text>
+			<text lang="fr">Ordre de tri:</text>
+		</property>
+		<property>
+			<text lang="en">Latin first</text>
+			<text lang="ru">Сначала латинские</text>
+			<text lang="uk">Спочатку латинські</text>
+			<text lang="de">Lateinisch zuerst</text>
+			<text lang="es">Latino primero</text>
+			<text lang="fr">Latin en premier</text>
+		</property>
+		<property>
+			<text lang="en">Cyrillic first</text>
+			<text lang="ru">Сначала русские</text>
+			<text lang="uk">Спочатку кириличні</text>
+			<text lang="de">Kyrillisch zuerst</text>
+			<text lang="es">Cirílico primero</text>
+			<text lang="fr">Cyrillique en premier</text>
+		</property>
+		<property form="MainForm" ctrl="label39">
+			<text lang="en">"New books" check period:</text>
+			<text lang="ru">Период для "новых книг":</text>
+			<text lang="uk">Період для "нових книг":</text>
+			<text lang="de">Zeitraum für "neue Bücher":</text>
+			<text lang="es">Período de verificación de "libros nuevos":</text>
+			<text lang="fr">Période de vérification des "nouveaux livres":</text>
+		</property>
+		<property>
+			<text lang="en">one week</text>
+			<text lang="ru">неделя</text>
+			<text lang="uk">тиждень</text>
+			<text lang="de">eine Woche</text>
+			<text lang="es">una semana</text>
+			<text lang="fr">une semaine</text>
+		</property>
+		<property>
+			<text lang="en">two weeks</text>
+			<text lang="ru">две недели</text>
+			<text lang="uk">два тижні</text>
+			<text lang="de">zwei Wochen</text>
+			<text lang="es">dos semanas</text>
+			<text lang="fr">deux semaines</text>
+		</property>
+		<property>
+			<text lang="en">three weeks</text>
+			<text lang="ru">три недели</text>
+			<text lang="uk">три тижні</text>
+			<text lang="de">drei Wochen</text>
+			<text lang="es">tres semanas</text>
+			<text lang="fr">trois semaines</text>
+		</property>
+		<property>
+			<text lang="en">month</text>
+			<text lang="ru">месяц</text>
+			<text lang="uk">місяць</text>
+			<text lang="de">Monat</text>
+			<text lang="es">mes</text>
+			<text lang="fr">mois</text>
+		</property>
+		<property>
+			<text lang="en">month and half</text>
+			<text lang="ru">полтора месяца</text>
+			<text lang="uk">півтора місяця</text>
+			<text lang="de">anderthalb Monate</text>
+			<text lang="es">mes y medio</text>
+			<text lang="fr">un mois et demi</text>
+		</property>
+		<property>
+			<text lang="en">two month</text>
+			<text lang="ru">два месяца</text>
+			<text lang="uk">два місяці</text>
+			<text lang="de">zwei Monate</text>
+			<text lang="es">dos meses</text>
+			<text lang="fr">deux mois</text>
+		</property>
+		<property>
+			<text lang="en">three month</text>
+			<text lang="ru">три месяца</text>
+			<text lang="uk">три місяці</text>
+			<text lang="de">drei Monate</text>
+			<text lang="es">tres meses</text>
+			<text lang="fr">trois mois</text>
+		</property>
+		<property form="MainForm" ctrl="checkBox1">
+			<text lang="en">"Low memory" model (do not load book descriptions)</text>
+			<text lang="ru">Режим "экономии памяти" (не загружать сразу описания книг)</text>
+			<text lang="uk">Режим "економії пам'яті" (не завантажувати одразу описи книг)</text>
+			<text lang="de">"Wenig Speicher"-Modus (Buchbeschreibungen nicht laden)</text>
+			<text lang="es">Modelo de "poca memoria" (no cargar descripciones de libros)</text>
+			<text lang="fr">Modèle "mémoire réduite" (ne pas charger les descriptions de livres)</text>
+		</property>
+		<property>
+			<text lang="en">New books (by date added)</text>
+			<text lang="ru">Новые книги (по дате добавления)</text>
+			<text lang="uk">Нові книги (за датою додавання)</text>
+			<text lang="de">Neue Bücher (nach Hinzufügungsdatum)</text>
+			<text lang="es">Libros nuevos (por fecha agregada)</text>
+			<text lang="fr">Nouveaux livres (par date d'ajout)</text>
+		</property>
+		<property>
+			<text lang="en">{0} new books ordered by date</text>
+			<text lang="ru">{0} новых книг, упорядоченных по дате</text>
+			<text lang="uk">{0} нових книг, упорядкованих за датою</text>
+			<text lang="de">{0} neue Bücher, nach Datum sortiert</text>
+			<text lang="es">{0} libros nuevos ordenados por fecha</text>
+			<text lang="fr">{0} nouveaux livres triés par date</text>
+		</property>
+		<property>
+			<text lang="en">New books (alphabetically)</text>
+			<text lang="ru">Новые книги (в алфавитном порядке)</text>
+			<text lang="uk">Нові книги (в алфавітному порядку)</text>
+			<text lang="de">Neue Bücher (alphabetisch)</text>
+			<text lang="es">Libros nuevos (alfabéticamente)</text>
+			<text lang="fr">Nouveaux livres (par ordre alphabétique)</text>
+		</property>
+		<property>
+			<text lang="en">{0} new books ordered alphabetically</text>
+			<text lang="ru">{0} новых книг, упорядоченных по алфавиту</text>
+			<text lang="uk">{0} нових книг, упорядкованих за алфавітом</text>
+			<text lang="de">{0} neue Bücher, alphabetisch sortiert</text>
+			<text lang="es">{0} libros nuevos ordenados alfabéticamente</text>
+			<text lang="fr">{0} nouveaux livres triés par ordre alphabétique</text>
+		</property>
+		<property form="MainForm" ctrl="checkBox2">
+			<text lang="en">Use authors aliases</text>
+			<text lang="ru">Использовать алиасы для авторов</text>
+			<text lang="uk">Використовувати псевдоніми для авторів</text>
+			<text lang="de">Autoren-Aliasse verwenden</text>
+			<text lang="es">Usar alias de autores</text>
+			<text lang="fr">Utiliser les alias d'auteurs</text>
+		</property>
 
-  </properties>
+		<!-- NEW TRANSLATIONS FOR INTERMEDIATE AUTHOR CATALOG -->
+		<property>
+			<text lang="en">Books by author {0}</text>
+			<text lang="ru">Книги автора {0}</text>
+			<text lang="uk">Книги автора {0}</text>
+			<text lang="de">Bücher von Autor {0}</text>
+			<text lang="es">Libros del autor {0}</text>
+			<text lang="fr">Livres de l'auteur {0}</text>
+		</property>
+		<property>
+			<text lang="en">Books by series</text>
+			<text lang="ru">Книги по сериям</text>
+			<text lang="uk">Книги за серіями</text>
+			<text lang="de">Bücher nach Serien</text>
+			<text lang="es">Libros por series</text>
+			<text lang="fr">Livres par séries</text>
+		</property>
+		<property>
+			<text lang="en">Books without series</text>
+			<text lang="ru">Книги вне серий</text>
+			<text lang="uk">Книги поза серіями</text>
+			<text lang="de">Bücher ohne Serien</text>
+			<text lang="es">Libros sin series</text>
+			<text lang="fr">Livres sans séries</text>
+		</property>
+		<property>
+			<text lang="en">Books alphabetically</text>
+			<text lang="ru">Книги по алфавиту</text>
+			<text lang="uk">Книги за алфавітом</text>
+			<text lang="de">Bücher alphabetisch</text>
+			<text lang="es">Libros alfabéticamente</text>
+			<text lang="fr">Livres par ordre alphabétique</text>
+		</property>
+		<property>
+			<text lang="en">Books by creation date</text>
+			<text lang="ru">Книги по дате создания</text>
+			<text lang="uk">Книги за датою створення</text>
+			<text lang="de">Bücher nach Erstellungsdatum</text>
+			<text lang="es">Libros por fecha de creación</text>
+			<text lang="fr">Livres par date de création</text>
+		</property>
+		<property>
+			<text lang="en">{0} books in {1} series</text>
+			<text lang="ru">{0} книг в {1} сериях</text>
+			<text lang="uk">{0} книг у {1} серіях</text>
+			<text lang="de">{0} Bücher in {1} Serien</text>
+			<text lang="es">{0} libros en {1} series</text>
+			<text lang="fr">{0} livres en {1} séries</text>
+		</property>
+		<property>
+			<text lang="en">{0} books without series</text>
+			<text lang="ru">{0} книг вне серий</text>
+			<text lang="uk">{0} книг поза серіями</text>
+			<text lang="de">{0} Bücher ohne Serien</text>
+			<text lang="es">{0} libros sin series</text>
+			<text lang="fr">{0} livres sans séries</text>
+		</property>
+		<property>
+			<text lang="en">{0} books sorted alphabetically</text>
+			<text lang="ru">{0} книг в алфавитном порядке</text>
+			<text lang="uk">{0} книг в алфавітному порядку</text>
+			<text lang="de">{0} Bücher alphabetisch sortiert</text>
+			<text lang="es">{0} libros ordenados alfabéticamente</text>
+			<text lang="fr">{0} livres triés par ordre alphabétique</text>
+		</property>
+		<property>
+			<text lang="en">{0} books sorted by creation date</text>
+			<text lang="ru">{0} книг по дате создания</text>
+			<text lang="uk">{0} книг за датою створення</text>
+			<text lang="de">{0} Bücher nach Erstellungsdatum sortiert</text>
+			<text lang="es">{0} libros ordenados por fecha de creación</text>
+			<text lang="fr">{0} livres triés par date de création</text>
+		</property>
+		<property>
+			<text lang="en">{0} books in series</text>
+			<text lang="ru">{0} книг в серии</text>
+			<text lang="uk">{0} книг у серії</text>
+			<text lang="de">{0} Bücher in Serie</text>
+			<text lang="es">{0} libros en serie</text>
+			<text lang="fr">{0} livres en série</text>
+		</property>
+		<property>
+			<text lang="en">Books by series - {0}</text>
+			<text lang="ru">Книги по сериям - {0}</text>
+			<text lang="uk">Книги за серіями - {0}</text>
+			<text lang="de">Bücher nach Serien - {0}</text>
+			<text lang="es">Libros por series - {0}</text>
+			<text lang="fr">Livres par séries - {0}</text>
+		</property>
+		<property>
+			<text lang="en">date</text>
+			<text lang="ru">дате</text>
+			<text lang="uk">даті</text>
+			<text lang="de">Datum</text>
+			<text lang="es">fecha</text>
+			<text lang="fr">date</text>
+		</property>
+		<property>
+			<text lang="en">titles</text>
+			<text lang="ru">названиям</text>
+			<text lang="uk">назвам</text>
+			<text lang="de">Titeln</text>
+			<text lang="es">títulos</text>
+			<text lang="fr">titres</text>
+		</property>
+		<property>
+			<text lang="en">New books sorted by {0}</text>
+			<text lang="ru">Новые книги, отсортированные по {0}</text>
+			<text lang="uk">Нові книги, відсортовані за {0}</text>
+			<text lang="de">Neue Bücher sortiert nach {0}</text>
+			<text lang="es">Libros nuevos ordenados por {0}</text>
+			<text lang="fr">Nouveaux livres triés par {0}</text>
+		</property>
+		<property>
+			<text lang="en">Search results</text>
+			<text lang="ru">Результаты поиска</text>
+			<text lang="uk">Результати пошуку</text>
+			<text lang="de">Suchergebnisse</text>
+			<text lang="es">Resultados de búsqueda</text>
+			<text lang="fr">Résultats de recherche</text>
+		</property>
+
+	</properties>
 </root>

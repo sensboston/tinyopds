@@ -1039,8 +1039,7 @@ namespace TinyOPDS
         /// <param name="e"></param>
         private void checkBox_CheckedChanged(object sender, EventArgs e)
         {
-            if (((sender as CheckBox).Name.Equals("checkBox1") && (sender as CheckBox).Checked != Properties.Settings.Default.LowMemoryProfile) ||
-                 ((sender as CheckBox).Name.Equals("checkBox2") && (sender as CheckBox).Checked != Properties.Settings.Default.UseAuthorsAliases))
+            if ((sender as CheckBox).Name.Equals("checkBox2") && (sender as CheckBox).Checked != Properties.Settings.Default.UseAuthorsAliases)
             {
                 // Reload library
                 _watcher.IsEnabled = false;

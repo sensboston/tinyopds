@@ -1001,14 +1001,6 @@
 			<text lang="es">tres meses</text>
 			<text lang="fr">trois mois</text>
 		</property>
-		<property form="MainForm" ctrl="checkBox1">
-			<text lang="en">"Low memory" model (do not load book descriptions)</text>
-			<text lang="ru">Режим "экономии памяти" (не загружать сразу описания книг)</text>
-			<text lang="uk">Режим "економії пам'яті" (не завантажувати одразу описи книг)</text>
-			<text lang="de">"Wenig Speicher"-Modus (Buchbeschreibungen nicht laden)</text>
-			<text lang="es">Modelo de "poca memoria" (no cargar descripciones de libros)</text>
-			<text lang="fr">Modèle "mémoire réduite" (ne pas charger les descriptions de livres)</text>
-		</property>
 		<property>
 			<text lang="en">New books (by date added)</text>
 			<text lang="ru">Новые книги (по дате добавления)</text>

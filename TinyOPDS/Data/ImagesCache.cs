@@ -88,19 +88,16 @@ namespace TinyOPDS.Data
             lock (_lockObject)
             {
                 // Always add to memory cache if not in low memory mode
-                if (!Properties.Settings.Default.LowMemoryProfile)
+                if (!_memoryCache.ContainsKey(image.ID))
                 {
-                    if (!_memoryCache.ContainsKey(image.ID))
+                    // Remove oldest entry if cache is full
+                    if (_memoryCache.Count >= 1000)
                     {
-                        // Remove oldest entry if cache is full
-                        if (_memoryCache.Count >= 1000)
-                        {
-                            var firstKey = GetOldestCacheKey();
-                            if (firstKey != null)
-                                _memoryCache.Remove(firstKey);
-                        }
-                        _memoryCache[image.ID] = image;
+                        var firstKey = GetOldestCacheKey();
+                        if (firstKey != null)
+                            _memoryCache.Remove(firstKey);
                     }
+                    _memoryCache[image.ID] = image;
                 }
 
                 // Queue for lazy disk save if files don't exist
@@ -177,22 +174,20 @@ namespace TinyOPDS.Data
                 var coverImage = new CoverImageFromDisk(dummyBook, tempImage);
 
                 // Add back to memory cache if not in low memory mode
-                if (!Properties.Settings.Default.LowMemoryProfile)
+                lock (_lockObject)
                 {
-                    lock (_lockObject)
+                    if (!_memoryCache.ContainsKey(id))
                     {
-                        if (!_memoryCache.ContainsKey(id))
+                        if (_memoryCache.Count >= 1000)
                         {
-                            if (_memoryCache.Count >= 1000)
-                            {
-                                var firstKey = GetOldestCacheKey();
-                                if (firstKey != null)
-                                    _memoryCache.Remove(firstKey);
-                            }
-                            _memoryCache[id] = coverImage;
+                            var firstKey = GetOldestCacheKey();
+                            if (firstKey != null)
+                                _memoryCache.Remove(firstKey);
                         }
+                        _memoryCache[id] = coverImage;
                     }
                 }
+
 
                 return coverImage;
             }

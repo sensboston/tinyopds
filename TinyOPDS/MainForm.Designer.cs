@@ -933,20 +933,6 @@
             this.checkBox2.UseVisualStyleBackColor = true;
             this.checkBox2.CheckedChanged += new System.EventHandler(this.checkBox_CheckedChanged);
             // 
-            // checkBox1
-            // 
-            this.checkBox1.AutoSize = true;
-            this.checkBox1.Checked = global::TinyOPDS.Properties.Settings.Default.LowMemoryProfile;
-            this.checkBox1.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "LowMemoryProfile", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.checkBox1.Location = new System.Drawing.Point(67, 482);
-            this.checkBox1.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.checkBox1.Name = "checkBox1";
-            this.checkBox1.Size = new System.Drawing.Size(712, 36);
-            this.checkBox1.TabIndex = 8;
-            this.checkBox1.Text = "\"Low memory\" model (do not load book descriptions)";
-            this.checkBox1.UseVisualStyleBackColor = true;
-            this.checkBox1.CheckedChanged += new System.EventHandler(this.checkBox_CheckedChanged);
-            // 
             // newBooksPeriodCombo
             // 
             this.newBooksPeriodCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;

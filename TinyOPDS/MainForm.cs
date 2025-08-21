@@ -1056,12 +1056,11 @@ namespace TinyOPDS
             }
         }
 
-
-        #region OPDS structure 
+        #region OPDS routes structure 
 
         private void InitializeOPDSStructure()
         {
-            // Default OPDS structure - all enabled
+            // Default OPDS routes - all enabled
             _opdsStructure = new Dictionary<string, bool>
             {
                 {"newdate", true},
@@ -1081,7 +1080,6 @@ namespace TinyOPDS
         {
             try
             {
-                // Load from Settings (placeholder - replace with actual Settings access)
                 string settingsString = GetOPDSStructureFromSettings();
 
                 if (!string.IsNullOrEmpty(settingsString))
@@ -1091,23 +1089,21 @@ namespace TinyOPDS
             }
             catch (Exception ex)
             {
-                // Log error and use defaults
-                MessageBox.Show($"Error loading OPDS settings: {ex.Message}", "Warning",
+                MessageBox.Show($"Error loading OPDS routes: {ex.Message}", "Warning",
                                MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
 
         private string GetOPDSStructureFromSettings()
         {
-            // Placeholder - replace with actual Settings.Default.OPDSStructure
-            return "newdate:1;newtitle:1;authorsindex:1;author-details:1;author-series:1;author-no-series:1;author-alphabetic:1;author-by-date:1;sequencesindex:1;genres:1";
+            return Properties.Settings.Default.OPDSStructure ??
+                   "newdate:1;newtitle:1;authorsindex:1;author-details:1;author-series:1;author-no-series:1;author-alphabetic:1;author-by-date:1;sequencesindex:1;genres:1";
         }
 
         private void SaveOPDSStructureToSettings(string structure)
         {
-            // Placeholder - replace with actual Settings.Default.OPDSStructure = structure; Settings.Default.Save();
-            // For now, just show what would be saved
-            System.Diagnostics.Debug.WriteLine($"Would save to Settings: {structure}");
+            Properties.Settings.Default.OPDSStructure = structure;
+            Properties.Settings.Default.Save();
         }
 
         private void ParseOPDSStructure(string structure)
@@ -1139,7 +1135,7 @@ namespace TinyOPDS
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error saving OPDS settings: {ex.Message}", "Error",
+                MessageBox.Show($"Error saving OPDS routes: {ex.Message}", "Error",
                                MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -1150,14 +1146,14 @@ namespace TinyOPDS
             treeViewOPDS.Nodes.Clear();
 
             // Root node
-            TreeNode rootNode = new TreeNode("OPDS Catalog Structure")
+            TreeNode rootNode = new TreeNode("Root")
             {
                 Tag = "root",
                 Checked = true
             };
 
             // New Books section
-            TreeNode newBooksNode = CreateTreeNode("New Books", "section", true);
+            TreeNode newBooksNode = CreateTreeNode("New Books", "newbooks-section", true);
             newBooksNode.Nodes.Add(CreateTreeNode("New Books (by date)", "newdate", _opdsStructure["newdate"]));
             newBooksNode.Nodes.Add(CreateTreeNode("New Books (alphabetically)", "newtitle", _opdsStructure["newtitle"]));
             rootNode.Nodes.Add(newBooksNode);
@@ -1165,7 +1161,7 @@ namespace TinyOPDS
             // Authors section
             TreeNode authorsNode = CreateTreeNode("By Authors", "authorsindex", _opdsStructure["authorsindex"]);
 
-            TreeNode authorDetailsNode = CreateTreeNode("Author Details Page", "author-details", _opdsStructure["author-details"]);
+            TreeNode authorDetailsNode = CreateTreeNode("Author's books", "author-details", _opdsStructure["author-details"]);
             authorDetailsNode.Nodes.Add(CreateTreeNode("Books by Series", "author-series", _opdsStructure["author-series"]));
             authorDetailsNode.Nodes.Add(CreateTreeNode("Books without Series", "author-no-series", _opdsStructure["author-no-series"]));
             authorDetailsNode.Nodes.Add(CreateTreeNode("Books Alphabetically", "author-alphabetic", _opdsStructure["author-alphabetic"]));
@@ -1207,9 +1203,9 @@ namespace TinyOPDS
 
         private void UpdateNodeStyle(TreeNode node)
         {
-            if (node.Tag?.ToString() == "root" || node.Tag?.ToString() == "section")
+            if (node.Tag?.ToString() == "root" || node.Tag?.ToString().EndsWith("-section") == true)
             {
-                // Section nodes are always bold
+                // Root and section nodes are always bold
                 node.NodeFont = new Font(treeViewOPDS.Font, FontStyle.Bold);
                 node.ForeColor = Color.Black;
             }
@@ -1245,7 +1241,7 @@ namespace TinyOPDS
             string tag = node.Tag?.ToString();
 
             // Skip root and section nodes
-            if (tag == "root" || tag == "section")
+            if (tag == "root" || tag?.EndsWith("-section") == true)
             {
                 return;
             }
@@ -1268,6 +1264,14 @@ namespace TinyOPDS
 
         private void HandleNodeDependencies(string tag, bool isChecked)
         {
+            // If New Books section routes are unchecked, handle children
+            if ((tag == "newdate" || tag == "newtitle") && !isChecked)
+            {
+                // If both New Books routes are disabled, this is handled by visual only
+                bool anyNewBooksEnabled = _opdsStructure["newdate"] || _opdsStructure["newtitle"];
+                // Visual feedback is handled by UpdateTreeNodeStyles
+            }
+
             // If authorsindex is disabled, disable all author sub-options
             if (tag == "authorsindex" && !isChecked)
             {
@@ -1285,19 +1289,46 @@ namespace TinyOPDS
                 UpdateTreeNodeCheckedState("author-by-date", false);
             }
 
-            // If author-details is disabled, disable all its sub-options
+            // If author-details is disabled, disable all its sub-options except alphabetic
             if (tag == "author-details" && !isChecked)
             {
                 _opdsStructure["author-series"] = false;
                 _opdsStructure["author-no-series"] = false;
-                _opdsStructure["author-alphabetic"] = false;
                 _opdsStructure["author-by-date"] = false;
+                // Keep author-alphabetic enabled as fallback
 
                 // Update tree nodes
                 UpdateTreeNodeCheckedState("author-series", false);
                 UpdateTreeNodeCheckedState("author-no-series", false);
-                UpdateTreeNodeCheckedState("author-alphabetic", false);
                 UpdateTreeNodeCheckedState("author-by-date", false);
+                // Don't disable author-alphabetic
+            }
+
+            // Special handling for New Books section
+            HandleNewBooksSectionLogic();
+        }
+
+        private void HandleNewBooksSectionLogic()
+        {
+            // Update New Books section visual state based on children
+            TreeNode newBooksSection = FindNodeByTag(treeViewOPDS.Nodes[0], "newbooks-section");
+            if (newBooksSection != null)
+            {
+                bool anyChildEnabled = _opdsStructure["newdate"] || _opdsStructure["newtitle"];
+
+                // Update section visual appearance
+                _isLoading = true;
+                newBooksSection.Checked = anyChildEnabled;
+                _isLoading = false;
+
+                // If section is unchecked, disable all children
+                if (!anyChildEnabled)
+                {
+                    UpdateTreeNodeCheckedState("newdate", false);
+                    UpdateTreeNodeCheckedState("newtitle", false);
+                    _opdsStructure["newdate"] = false;
+                    _opdsStructure["newtitle"] = false;
+                }
             }
         }
 
@@ -1326,25 +1357,6 @@ namespace TinyOPDS
 
             return null;
         }
-
-        private void btnResetToDefault_Click(object sender, EventArgs e)
-        {
-            if (MessageBox.Show("Reset OPDS structure to default settings?", "Confirm Reset",
-                               MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
-            {
-                InitializeOPDSStructure();
-                BuildOPDSTree();
-                SaveOPDSSettings();
-            }
-        }
-
-        private void btnShowCurrentStructure_Click(object sender, EventArgs e)
-        {
-            string structure = SerializeOPDSStructure();
-            MessageBox.Show($"Current OPDS structure:\n\n{structure}", "Current Settings",
-                           MessageBoxButtons.OK, MessageBoxIcon.Information);
-        }
-
 
         #endregion
     }

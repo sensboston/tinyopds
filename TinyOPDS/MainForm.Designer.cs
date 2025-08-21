@@ -1066,7 +1066,7 @@
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.treeViewOPDS.CheckBoxes = true;
-            this.treeViewOPDS.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.treeViewOPDS.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(254)));
             this.treeViewOPDS.Location = new System.Drawing.Point(24, 24);
             this.treeViewOPDS.Name = "treeViewOPDS";
             this.treeViewOPDS.Size = new System.Drawing.Size(1319, 698);
@@ -1829,31 +1829,6 @@
         private System.Windows.Forms.LinkLabel linkLabel6;
         private System.Windows.Forms.CheckBox checkBox2;
         private System.Windows.Forms.TabPage tabPage7;
-
-        private System.Windows.Forms.GroupBox groupBoxCatalogStructure;
-        private System.Windows.Forms.TreeView catalogStructureTree;
-        private System.Windows.Forms.Button btnMoveUp;
-        private System.Windows.Forms.Button btnMoveDown;
-        private System.Windows.Forms.Button btnEditCategory;
-        private System.Windows.Forms.Button btnRemoveCategory;
-        private System.Windows.Forms.Button btnAddCategory;
-        private System.Windows.Forms.GroupBox groupBoxCategorySettings;
-        private System.Windows.Forms.CheckBox chkEnabled;
-        private System.Windows.Forms.Label lblCategoryName;
-        private System.Windows.Forms.TextBox txtCategoryName;
-        private System.Windows.Forms.Label lblCategoryType;
-        private System.Windows.Forms.ComboBox comboCategoryType;
-        private System.Windows.Forms.Label lblSortBy;
-        private System.Windows.Forms.ComboBox comboSortBy;
-        private System.Windows.Forms.CheckBox chkGroupByFirstLetter;
-        private System.Windows.Forms.Label lblMaxItems;
-        private System.Windows.Forms.NumericUpDown numMaxItems;
-        private System.Windows.Forms.Label lblGenreFilter;
-        private System.Windows.Forms.TextBox txtGenreFilter;
-        private System.Windows.Forms.Label lblLanguageFilter;
-        private System.Windows.Forms.TextBox txtLanguageFilter;
-        private System.Windows.Forms.Button btnSaveChanges;
-        private System.Windows.Forms.Button btnResetDefaults;
         private System.Windows.Forms.TreeView treeViewOPDS;
     }
 }

@@ -102,6 +102,8 @@
             this.label37 = new System.Windows.Forms.Label();
             this.itemsPerOPDS = new System.Windows.Forms.NumericUpDown();
             this.label36 = new System.Windows.Forms.Label();
+            this.tabPage7 = new System.Windows.Forms.TabPage();
+            this.treeViewOPDS = new System.Windows.Forms.TreeView();
             this.tabPage5 = new System.Windows.Forms.TabPage();
             this.statBannedClients = new System.Windows.Forms.Label();
             this.label31 = new System.Windows.Forms.Label();
@@ -151,13 +153,13 @@
             this.serverMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripSeparator();
             this.exitMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.tabPage7 = new System.Windows.Forms.TabPage();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.tabPage2.SuspendLayout();
             this.tabPage6.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.itemsPerWeb)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.itemsPerOPDS)).BeginInit();
+            this.tabPage7.SuspendLayout();
             this.tabPage5.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.wrongAttemptsCount)).BeginInit();
@@ -221,7 +223,7 @@
             this.tabPage1.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.tabPage1.Name = "tabPage1";
             this.tabPage1.Padding = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.tabPage1.Size = new System.Drawing.Size(1263, 775);
+            this.tabPage1.Size = new System.Drawing.Size(1367, 774);
             this.tabPage1.TabIndex = 0;
             this.tabPage1.Text = "Scanner";
             // 
@@ -574,7 +576,7 @@
             this.tabPage2.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.tabPage2.Name = "tabPage2";
             this.tabPage2.Padding = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.tabPage2.Size = new System.Drawing.Size(1263, 775);
+            this.tabPage2.Size = new System.Drawing.Size(1367, 774);
             this.tabPage2.TabIndex = 1;
             this.tabPage2.Text = "Server";
             // 
@@ -915,7 +917,7 @@
             this.tabPage6.Location = new System.Drawing.Point(10, 40);
             this.tabPage6.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.tabPage6.Name = "tabPage6";
-            this.tabPage6.Size = new System.Drawing.Size(1263, 775);
+            this.tabPage6.Size = new System.Drawing.Size(1367, 774);
             this.tabPage6.TabIndex = 5;
             this.tabPage6.Text = "OPDS catalog";
             // 
@@ -1047,6 +1049,29 @@
             this.label36.TabIndex = 0;
             this.label36.Text = "Items per OPDS page:";
             // 
+            // tabPage7
+            // 
+            this.tabPage7.Controls.Add(this.treeViewOPDS);
+            this.tabPage7.Location = new System.Drawing.Point(10, 40);
+            this.tabPage7.Name = "tabPage7";
+            this.tabPage7.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage7.Size = new System.Drawing.Size(1367, 774);
+            this.tabPage7.TabIndex = 6;
+            this.tabPage7.Text = "OPDS structure";
+            this.tabPage7.UseVisualStyleBackColor = true;
+            // 
+            // treeViewOPDS
+            // 
+            this.treeViewOPDS.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.treeViewOPDS.CheckBoxes = true;
+            this.treeViewOPDS.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.treeViewOPDS.Location = new System.Drawing.Point(24, 24);
+            this.treeViewOPDS.Name = "treeViewOPDS";
+            this.treeViewOPDS.Size = new System.Drawing.Size(1319, 698);
+            this.treeViewOPDS.TabIndex = 2;
+            // 
             // tabPage5
             // 
             this.tabPage5.BackColor = System.Drawing.SystemColors.Control;
@@ -1066,7 +1091,7 @@
             this.tabPage5.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.tabPage5.Name = "tabPage5";
             this.tabPage5.Padding = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.tabPage5.Size = new System.Drawing.Size(1263, 775);
+            this.tabPage5.Size = new System.Drawing.Size(1367, 774);
             this.tabPage5.TabIndex = 4;
             this.tabPage5.Text = "Authentication";
             // 
@@ -1232,7 +1257,7 @@
             this.tabPage3.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.tabPage3.Name = "tabPage3";
             this.tabPage3.Padding = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.tabPage3.Size = new System.Drawing.Size(1263, 775);
+            this.tabPage3.Size = new System.Drawing.Size(1367, 774);
             this.tabPage3.TabIndex = 2;
             this.tabPage3.Text = "Miscellaneous";
             // 
@@ -1442,7 +1467,7 @@
             this.tabPage4.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.tabPage4.Name = "tabPage4";
             this.tabPage4.Padding = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.tabPage4.Size = new System.Drawing.Size(1263, 775);
+            this.tabPage4.Size = new System.Drawing.Size(1367, 774);
             this.tabPage4.TabIndex = 3;
             this.tabPage4.Text = "About program";
             // 
@@ -1640,20 +1665,6 @@
             this.exitMenuItem.Text = "Exit";
             this.exitMenuItem.Click += new System.EventHandler(this.exitMenuItem_Click);
             // 
-            // tabPage7
-            // 
-            this.tabPage7.Location = new System.Drawing.Point(10, 40);
-            this.tabPage7.Name = "tabPage7";
-            this.tabPage7.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage7.Size = new System.Drawing.Size(1367, 774);
-            this.tabPage7.TabIndex = 6;
-            this.tabPage7.Text = "OPDS structure";
-            this.tabPage7.UseVisualStyleBackColor = true;
-
-
-
-
-            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(16F, 31F);
@@ -1681,6 +1692,7 @@
             this.tabPage6.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.itemsPerWeb)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.itemsPerOPDS)).EndInit();
+            this.tabPage7.ResumeLayout(false);
             this.tabPage5.ResumeLayout(false);
             this.tabPage5.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).EndInit();
@@ -1842,6 +1854,7 @@
         private System.Windows.Forms.TextBox txtLanguageFilter;
         private System.Windows.Forms.Button btnSaveChanges;
         private System.Windows.Forms.Button btnResetDefaults;
+        private System.Windows.Forms.TreeView treeViewOPDS;
     }
 }
 

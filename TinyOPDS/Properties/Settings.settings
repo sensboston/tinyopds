@@ -93,7 +93,7 @@
       <Value Profile="(Default)">True</Value>
     </Setting>
     <Setting Name="OPDSStructure" Type="System.String" Scope="User">
-      <Value Profile="(Default)" />
+      <Value Profile="(Default)">newdate:1;newtitle:1;authorsindex:1;author-details:1;author-series:1;author-no-series:1;author-alphabetic:1;author-by-date:1;sequencesindex:1;genres:1</Value>
     </Setting>
   </Settings>
 </SettingsFile>

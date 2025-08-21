@@ -19,10 +19,12 @@ using System.Xml;
 using System.Xml.Xsl;
 using System.Xml.XPath;
 using System.Reflection;
+using System.Collections.Generic;
 
 using Ionic.Zip;
 using TinyOPDS.OPDS;
 using TinyOPDS.Data;
+using System.Xml.Linq;
 
 namespace TinyOPDS.Server
 {
@@ -31,17 +33,78 @@ namespace TinyOPDS.Server
         private readonly string[] _extensions = { ".zip", ".epub", ".jpeg", ".ico", ".xml" };
         private XslCompiledTransform _xslTransform = new XslCompiledTransform();
         private readonly object _xslLock = new object();
+        private Dictionary<string, bool> _opdsStructure;
 
         public OPDSServer(IPAddress interfaceIP, int port, int timeout = 5000) : base(interfaceIP, port, timeout)
         {
             InitializeXslTransform();
+            LoadOPDSStructure();
+        }
+
+        private void LoadOPDSStructure()
+        {
+            try
+            {
+                string structureString = Properties.Settings.Default.OPDSStructure;
+                _opdsStructure = new Dictionary<string, bool>();
+
+                if (string.IsNullOrEmpty(structureString))
+                {
+                    InitializeDefaultOPDSStructure();
+                }
+                else
+                {
+                    ParseOPDSStructure(structureString);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Warning, "Error loading OPDS structure: {0}", ex.Message);
+                InitializeDefaultOPDSStructure();
+            }
+        }
+
+        private void InitializeDefaultOPDSStructure()
+        {
+            _opdsStructure = new Dictionary<string, bool>
+            {
+                {"newdate", true},
+                {"newtitle", true},
+                {"authorsindex", true},
+                {"author-details", true},
+                {"author-series", true},
+                {"author-no-series", true},
+                {"author-alphabetic", true},
+                {"author-by-date", true},
+                {"sequencesindex", true},
+                {"genres", true}
+            };
+        }
+
+        private void ParseOPDSStructure(string structure)
+        {
+            InitializeDefaultOPDSStructure();
+
+            string[] parts = structure.Split(';');
+            foreach (string part in parts)
+            {
+                string[] keyValue = part.Split(':');
+                if (keyValue.Length == 2 && _opdsStructure.ContainsKey(keyValue[0]))
+                {
+                    _opdsStructure[keyValue[0]] = keyValue[1] == "1";
+                }
+            }
+        }
+
+        private bool IsRouteEnabled(string route)
+        {
+            return _opdsStructure.ContainsKey(route) && _opdsStructure[route];
         }
 
         private void InitializeXslTransform()
         {
             try
             {
-                // Check external template (will be used instead of built-in)
                 string xslFileName = Path.Combine(Utils.ServiceFilesLocation, "xml2html.xsl");
 
                 if (File.Exists(xslFileName))
@@ -73,9 +136,6 @@ namespace TinyOPDS.Server
             }
         }
 
-        /// <summary>
-        /// Dummy for POST requests
-        /// </summary>
         public override void HandlePOSTRequest(HttpProcessor processor, StreamReader inputData)
         {
             Log.WriteLine(LogLevel.Warning, "HTTP POST request from {0}: {1} : NOT IMPLEMENTED",
@@ -83,9 +143,6 @@ namespace TinyOPDS.Server
             processor.WriteMethodNotAllowed();
         }
 
-        /// <summary>
-        /// Main GET requests handler
-        /// </summary>
         public override void HandleGETRequest(HttpProcessor processor)
         {
             string clientIP = GetClientIP(processor);
@@ -96,21 +153,18 @@ namespace TinyOPDS.Server
                 string request = NormalizeRequest(processor.HttpUrl);
                 string ext = GetFileExtension(request);
 
-                // Check if this is a valid request
                 if (!IsValidRequest(request, ext))
                 {
                     processor.WriteBadRequest();
                     return;
                 }
 
-                // Parse request parameters
                 bool isWWWRequest = IsWebRequest(processor.HttpUrl);
                 bool acceptFB2 = DetectFB2Support(processor.HttpHeaders["User-Agent"] as string) || isWWWRequest;
                 int threshold = (int)(isWWWRequest ?
                     Properties.Settings.Default.ItemsPerWebPage :
                     Properties.Settings.Default.ItemsPerOPDSPage);
 
-                // Route request to appropriate handler
                 if (string.IsNullOrEmpty(ext))
                 {
                     HandleOPDSRequest(processor, request, isWWWRequest, acceptFB2, threshold);
@@ -161,7 +215,6 @@ namespace TinyOPDS.Server
         {
             string request = httpUrl;
 
-            // Remove prefix if any
             if (!request.Contains("opds-opensearch.xml") && !string.IsNullOrEmpty(Properties.Settings.Default.RootPrefix))
             {
                 request = request.Replace("/" + Properties.Settings.Default.RootPrefix, "");
@@ -171,15 +224,12 @@ namespace TinyOPDS.Server
                 request = request.Replace("/" + Properties.Settings.Default.HttpPrefix, "");
             }
 
-            // Clean up double slashes
             while (request.Contains("//"))
                 request = request.Replace("//", "/");
 
-            // Ensure starts with /
             if (!request.StartsWith("/"))
                 request = "/" + request;
 
-            // Remove query parameters except TinyOPDS params
             int paramPos = request.IndexOf('?');
             if (paramPos >= 0)
             {
@@ -230,6 +280,8 @@ namespace TinyOPDS.Server
         {
             try
             {
+                LoadOPDSStructure();
+
                 string xml = GenerateOPDSResponse(request, acceptFB2, threshold);
 
                 if (string.IsNullOrEmpty(xml))
@@ -238,13 +290,9 @@ namespace TinyOPDS.Server
                     return;
                 }
 
-                // Apply namespace fix
                 xml = FixNamespace(xml);
-
-                // Apply URI prefixes
                 xml = ApplyUriPrefixes(xml, processor, isWWWRequest);
 
-                // Transform to HTML if needed
                 if (isWWWRequest)
                 {
                     string html = TransformToHtml(xml);
@@ -275,80 +323,74 @@ namespace TinyOPDS.Server
         {
             string[] pathParts = request.Split(new char[] { '?', '=', '&' }, StringSplitOptions.RemoveEmptyEntries);
 
-            // Root catalog
             if (request.Equals("/"))
             {
-                return new RootCatalog().GetCatalog().ToStringWithDeclaration();
+                return new RootCatalogWithStructure(_opdsStructure).GetCatalog().ToStringWithDeclaration();
             }
-            // New books by date
-            else if (request.StartsWith("/newdate"))
+            else if (request.StartsWith("/newdate") && IsRouteEnabled("newdate"))
             {
                 return new NewBooksCatalog().GetCatalog(request.Substring(8), true, acceptFB2, threshold).ToStringWithDeclaration();
             }
-            // New books by title
-            else if (request.StartsWith("/newtitle"))
+            else if (request.StartsWith("/newtitle") && IsRouteEnabled("newtitle"))
             {
                 return new NewBooksCatalog().GetCatalog(request.Substring(9), false, acceptFB2, threshold).ToStringWithDeclaration();
             }
-            // Authors index
-            else if (request.StartsWith("/authorsindex"))
+            else if (request.StartsWith("/authorsindex") && IsRouteEnabled("authorsindex"))
             {
                 int numChars = request.StartsWith("/authorsindex/") ? 14 : 13;
-                return new AuthorsCatalog().GetCatalog(request.Substring(numChars), false, threshold).ToStringWithDeclaration();
+                string searchPattern = request.Substring(numChars);
+                return new AuthorsCatalogWithStructure(_opdsStructure).GetCatalog(searchPattern, false, threshold).ToStringWithDeclaration();
             }
-            // Author details (intermediate catalog)
-            else if (request.StartsWith("/author-details/"))
+            else if (request.StartsWith("/author-details/") && IsRouteEnabled("author-details"))
             {
-                return new AuthorDetailsCatalog().GetCatalog(request.Substring(16)).ToStringWithDeclaration();
+                return new AuthorDetailsCatalogWithStructure(_opdsStructure).GetCatalog(request.Substring(16)).ToStringWithDeclaration();
             }
-            // Author books by series (list of series)
-            else if (request.StartsWith("/author-series/"))
+            else if (request.StartsWith("/author-series/") && IsRouteEnabled("author-series"))
             {
                 return new AuthorBooksCatalog().GetSeriesCatalog(request.Substring(15), acceptFB2, threshold).ToStringWithDeclaration();
             }
-            // Author books without series
-            else if (request.StartsWith("/author-no-series/"))
+            else if (request.StartsWith("/author-no-series/") && IsRouteEnabled("author-no-series"))
             {
                 return new AuthorBooksCatalog().GetBooksCatalog(request.Substring(18), AuthorBooksCatalog.ViewType.NoSeries, acceptFB2, threshold).ToStringWithDeclaration();
             }
-            // Author books alphabetically
-            else if (request.StartsWith("/author-alphabetic/"))
+            else if (request.StartsWith("/author-alphabetic/") && IsRouteEnabled("author-alphabetic"))
             {
                 return new AuthorBooksCatalog().GetBooksCatalog(request.Substring(19), AuthorBooksCatalog.ViewType.Alphabetic, acceptFB2, threshold).ToStringWithDeclaration();
             }
-            // Author books by creation date
-            else if (request.StartsWith("/author-by-date/"))
+            else if (request.StartsWith("/author-by-date/") && IsRouteEnabled("author-by-date"))
             {
                 return new AuthorBooksCatalog().GetBooksCatalog(request.Substring(16), AuthorBooksCatalog.ViewType.ByDate, acceptFB2, threshold).ToStringWithDeclaration();
             }
-            // Books by author (redirect to author details for compatibility)
             else if (request.StartsWith("/author/"))
             {
-                return new AuthorDetailsCatalog().GetCatalog(request.Substring(8)).ToStringWithDeclaration();
+                string authorName = request.Substring(8);
+                if (IsRouteEnabled("author-details"))
+                {
+                    return new AuthorDetailsCatalogWithStructure(_opdsStructure).GetCatalog(authorName).ToStringWithDeclaration();
+                }
+                else
+                {
+                    return new AuthorBooksCatalog().GetBooksCatalog(authorName, AuthorBooksCatalog.ViewType.Alphabetic, acceptFB2, threshold).ToStringWithDeclaration();
+                }
             }
-            // Sequences index
-            else if (request.StartsWith("/sequencesindex"))
+            else if (request.StartsWith("/sequencesindex") && IsRouteEnabled("sequencesindex"))
             {
                 int numChars = request.StartsWith("/sequencesindex/") ? 16 : 15;
                 return new SequencesCatalog().GetCatalog(request.Substring(numChars), threshold).ToStringWithDeclaration();
             }
-            // Books by sequence
             else if (request.Contains("/sequence/"))
             {
                 return new BooksCatalog().GetCatalogBySequence(request.Substring(10), acceptFB2, threshold).ToStringWithDeclaration();
             }
-            // Genres catalog
-            else if (request.StartsWith("/genres"))
+            else if (request.StartsWith("/genres") && IsRouteEnabled("genres"))
             {
                 int numChars = request.Contains("/genres/") ? 8 : 7;
                 return new GenresCatalog().GetCatalog(request.Substring(numChars)).ToStringWithDeclaration();
             }
-            // Books by genre
             else if (request.StartsWith("/genre/"))
             {
                 return new BooksCatalog().GetCatalogByGenre(request.Substring(7), acceptFB2, threshold).ToStringWithDeclaration();
             }
-            // Search
             else if (request.StartsWith("/search"))
             {
                 return HandleSearchRequest(pathParts, acceptFB2);
@@ -415,7 +457,6 @@ namespace TinyOPDS.Server
                     {
                         prefix = "/" + prefix;
                         xml = xml.Replace("href=\"", "href=\"" + prefix);
-                        // Fix open search link
                         xml = xml.Replace(prefix + "/opds-opensearch.xml", "/opds-opensearch.xml");
                     }
                 }
@@ -434,7 +475,6 @@ namespace TinyOPDS.Server
                 lock (_xslLock)
                 {
 #if DEBUG
-                    // Reload XSL in debug mode for easier development
                     InitializeXslTransform();
 #endif
                     using (var htmlStream = new MemoryStream())
@@ -546,14 +586,12 @@ namespace TinyOPDS.Server
         {
             using (var memStream = new MemoryStream())
             {
-                // Extract book content
                 if (!ExtractBookContent(book, memStream))
                 {
                     processor.WriteFailure();
                     return;
                 }
 
-                // Compress to ZIP
                 using (var zip = new ZipFile())
                 {
                     string fileName = Transliteration.Front(
@@ -577,14 +615,12 @@ namespace TinyOPDS.Server
         {
             using (var memStream = new MemoryStream())
             {
-                // Extract book content
                 if (!ExtractBookContent(book, memStream))
                 {
                     processor.WriteFailure();
                     return;
                 }
 
-                // Convert FB2 to EPUB if needed
                 if (book.BookType == BookType.FB2 && !acceptFB2)
                 {
                     if (!ConvertFB2ToEpub(book, memStream))
@@ -650,14 +686,12 @@ namespace TinyOPDS.Server
 
                 try
                 {
-                    // Save FB2 to temp file
                     using (var fileStream = new FileStream(inFileName, FileMode.Create, FileAccess.Write))
                     {
                         memStream.Position = 0;
                         memStream.CopyTo(fileStream);
                     }
 
-                    // Run converter
                     string command = Path.Combine(Properties.Settings.Default.ConvertorPath,
                         Utils.IsLinux ? "fb2toepub" : "Fb2ePub.exe");
                     string arguments = Utils.IsLinux ?
@@ -686,7 +720,6 @@ namespace TinyOPDS.Server
                 }
                 finally
                 {
-                    // Cleanup
                     try { File.Delete(inFileName); } catch { }
                     try { File.Delete(outFileName); } catch { }
                 }
@@ -726,12 +759,10 @@ namespace TinyOPDS.Server
                     Stream imageStream = null;
                     try
                     {
-                        // Get the image stream first, before writing headers
                         imageStream = getCover ? image.CoverImageStream : image.ThumbnailImageStream;
 
                         if (imageStream != null && imageStream.Length > 0)
                         {
-                            // Check if client is still connected before proceeding
                             if (!processor.OutputStream.BaseStream.CanWrite)
                             {
                                 Log.WriteLine(LogLevel.Info, "Client disconnected before sending image for book {0}", bookID);
@@ -740,7 +771,6 @@ namespace TinyOPDS.Server
 
                             processor.WriteSuccess("image/jpeg");
 
-                            // Use buffered copying to handle network interruptions better
                             const int bufferSize = 8192;
                             byte[] buffer = new byte[bufferSize];
                             int bytesRead;
@@ -752,7 +782,6 @@ namespace TinyOPDS.Server
                             {
                                 try
                                 {
-                                    // Check if we can still write before each chunk
                                     if (!processor.OutputStream.BaseStream.CanWrite)
                                     {
                                         Log.WriteLine(LogLevel.Info, "Client disconnected during image transfer for book {0} after {1} bytes", bookID, totalBytesSent);
@@ -764,19 +793,16 @@ namespace TinyOPDS.Server
                                 }
                                 catch (IOException ioEx) when (ioEx.InnerException is SocketException)
                                 {
-                                    // Client disconnected - this is normal behavior, not an error
                                     Log.WriteLine(LogLevel.Info, "Client disconnected during image transfer for book {0} after {1} bytes", bookID, totalBytesSent);
                                     break;
                                 }
                                 catch (ObjectDisposedException)
                                 {
-                                    // Stream was disposed - client disconnected
                                     Log.WriteLine(LogLevel.Info, "Stream disposed during image transfer for book {0} after {1} bytes", bookID, totalBytesSent);
                                     break;
                                 }
                             }
 
-                            // Only flush if we're still connected and transferred complete image
                             if (processor.OutputStream.BaseStream.CanWrite && totalBytesSent == imageStream.Length)
                             {
                                 processor.OutputStream.BaseStream.Flush();
@@ -793,12 +819,10 @@ namespace TinyOPDS.Server
                     }
                     catch (IOException ioEx) when (ioEx.InnerException is SocketException)
                     {
-                        // Normal client disconnect - don't log as error
                         Log.WriteLine(LogLevel.Info, "Client disconnected while preparing image for book {0}: {1}", bookID, ioEx.Message);
                     }
                     catch (ObjectDisposedException)
                     {
-                        // Stream disposed - normal when client disconnects
                         Log.WriteLine(LogLevel.Info, "Stream disposed while preparing image for book {0}", bookID);
                     }
                     catch (Exception imgEx)
@@ -814,12 +838,10 @@ namespace TinyOPDS.Server
                         }
                         catch
                         {
-                            // Ignore errors when trying to write failure response
                         }
                     }
                     finally
                     {
-                        // Always dispose the image stream
                         imageStream?.Dispose();
                     }
                 }
@@ -838,7 +860,6 @@ namespace TinyOPDS.Server
                 }
                 catch
                 {
-                    // Ignore errors when trying to write failure response
                 }
             }
         }
@@ -868,16 +889,13 @@ namespace TinyOPDS.Server
         {
             try
             {
-                // Check cache first
                 if (ImagesCache.HasImage(bookID))
                 {
                     return ImagesCache.GetImage(bookID);
                 }
 
-                // Create new image (will generate default if original not found)
                 var image = new CoverImage(book);
 
-                // Add to cache if successful
                 if (image != null && image.HasImages)
                 {
                     ImagesCache.Add(image);
@@ -921,5 +939,139 @@ namespace TinyOPDS.Server
         }
 
         #endregion
+    }
+
+    // Helper classes for structure-aware catalogs
+    internal class RootCatalogWithStructure
+    {
+        private Dictionary<string, bool> _opdsStructure;
+
+        public RootCatalogWithStructure(Dictionary<string, bool> opdsStructure)
+        {
+            _opdsStructure = opdsStructure;
+        }
+
+        public XDocument GetCatalog()
+        {
+            var rootCatalog = new RootCatalog().GetCatalog();
+
+            // Remove disabled entries from root catalog
+            var entries = rootCatalog.Root.Elements("entry").ToList();
+            foreach (var entry in entries)
+            {
+                var link = entry.Element("link");
+                if (link != null)
+                {
+                    string href = link.Attribute("href")?.Value;
+                    if (!string.IsNullOrEmpty(href))
+                    {
+                        bool shouldRemove = false;
+
+                        if (href.Contains("/newdate") && !IsEnabled("newdate")) shouldRemove = true;
+                        else if (href.Contains("/newtitle") && !IsEnabled("newtitle")) shouldRemove = true;
+                        else if (href.Contains("/authorsindex") && !IsEnabled("authorsindex")) shouldRemove = true;
+                        else if (href.Contains("/sequencesindex") && !IsEnabled("sequencesindex")) shouldRemove = true;
+                        else if (href.Contains("/genres") && !IsEnabled("genres")) shouldRemove = true;
+
+                        if (shouldRemove)
+                        {
+                            entry.Remove();
+                        }
+                    }
+                }
+            }
+
+            return rootCatalog;
+        }
+
+        private bool IsEnabled(string route)
+        {
+            return _opdsStructure.ContainsKey(route) && _opdsStructure[route];
+        }
+    }
+
+    internal class AuthorsCatalogWithStructure
+    {
+        private Dictionary<string, bool> _opdsStructure;
+
+        public AuthorsCatalogWithStructure(Dictionary<string, bool> opdsStructure)
+        {
+            _opdsStructure = opdsStructure;
+        }
+
+        public XDocument GetCatalog(string searchPattern, bool isOpenSearch, int threshold)
+        {
+            var authorsCatalog = new AuthorsCatalog().GetCatalog(searchPattern, isOpenSearch, threshold);
+
+            // If author-details is disabled, modify links to go directly to alphabetic books
+            if (!IsEnabled("author-details"))
+            {
+                var entries = authorsCatalog.Root.Elements("entry").ToList();
+                foreach (var entry in entries)
+                {
+                    var link = entry.Element("link");
+                    if (link != null && link.Attribute("href")?.Value?.Contains("/author-details/") == true)
+                    {
+                        string href = link.Attribute("href").Value;
+                        string author = href.Replace("/author-details/", "");
+                        link.SetAttributeValue("href", "/author-alphabetic/" + author);
+                    }
+                }
+            }
+
+            return authorsCatalog;
+        }
+
+        private bool IsEnabled(string route)
+        {
+            return _opdsStructure.ContainsKey(route) && _opdsStructure[route];
+        }
+    }
+
+    internal class AuthorDetailsCatalogWithStructure
+    {
+        private Dictionary<string, bool> _opdsStructure;
+
+        public AuthorDetailsCatalogWithStructure(Dictionary<string, bool> opdsStructure)
+        {
+            _opdsStructure = opdsStructure;
+        }
+
+        public XDocument GetCatalog(string author)
+        {
+            var authorDetails = new AuthorDetailsCatalog().GetCatalog(author);
+
+            // Remove disabled entries
+            var entries = authorDetails.Root.Elements("entry").ToList();
+            foreach (var entry in entries)
+            {
+                var link = entry.Element("link");
+                if (link != null)
+                {
+                    string href = link.Attribute("href")?.Value;
+                    if (!string.IsNullOrEmpty(href))
+                    {
+                        bool shouldRemove = false;
+
+                        if (href.Contains("/author-series/") && !IsEnabled("author-series")) shouldRemove = true;
+                        else if (href.Contains("/author-no-series/") && !IsEnabled("author-no-series")) shouldRemove = true;
+                        else if (href.Contains("/author-alphabetic/") && !IsEnabled("author-alphabetic")) shouldRemove = true;
+                        else if (href.Contains("/author-by-date/") && !IsEnabled("author-by-date")) shouldRemove = true;
+
+                        if (shouldRemove)
+                        {
+                            entry.Remove();
+                        }
+                    }
+                }
+            }
+
+            return authorDetails;
+        }
+
+        private bool IsEnabled(string route)
+        {
+            return _opdsStructure.ContainsKey(route) && _opdsStructure[route];
+        }
     }
 }

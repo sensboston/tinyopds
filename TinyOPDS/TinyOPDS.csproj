@@ -147,15 +147,8 @@
     <Compile Include="Data\Genre.cs" />
     <Compile Include="Data\ImagesCache.cs" />
     <Compile Include="Data\Library.cs" />
-    <Compile Include="Form1.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Form1.Designer.cs">
-      <DependentUpon>Form1.cs</DependentUpon>
-    </Compile>
     <Compile Include="OPDS\AuthorBooksCatalog.cs" />
     <Compile Include="OPDS\AuthorDetailsCatalog.cs" />
-    <Compile Include="OPDS\OPDSCategory.cs" />
     <Compile Include="PortableSettingsProvider.cs" />
     <Compile Include="PortableSettingsProviderBase.cs" />
     <Compile Include="SgmlReader\SgmlParser.cs" />
@@ -197,9 +190,6 @@
     <Compile Include="Server\HttpServer.cs" />
     <Compile Include="Server\OPDSServer.cs" />
     <Compile Include="Misc\Utils.cs" />
-    <EmbeddedResource Include="Form1.resx">
-      <DependentUpon>Form1.cs</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
     </EmbeddedResource>

@@ -22,6 +22,8 @@ using TinyOPDS.Data;
 using TinyOPDS.Scanner;
 using TinyOPDS.Server;
 using UPnP;
+using System.Collections.Generic;
+using System.Drawing;
 
 namespace TinyOPDS
 {
@@ -41,6 +43,9 @@ namespace TinyOPDS
         #region Statistical information
         int _fb2Count, _epubCount, _skippedFiles, _invalidFiles, _duplicates;
         #endregion
+
+        private Dictionary<string, bool> _opdsStructure;
+        private bool _isLoading = false;
 
         private const string urlTemplate = "http://{0}:{1}/{2}";
 
@@ -155,6 +160,10 @@ namespace TinyOPDS
 
             _scanStartTime = DateTime.Now;
             _notifyIcon.Visible = Properties.Settings.Default.CloseToTray;
+
+            InitializeOPDSStructure();
+            LoadOPDSSettings();
+            BuildOPDSTree();
         }
 
         /// <summary>
@@ -1047,5 +1056,296 @@ namespace TinyOPDS
             }
         }
 
+
+        #region OPDS structure 
+
+        private void InitializeOPDSStructure()
+        {
+            // Default OPDS structure - all enabled
+            _opdsStructure = new Dictionary<string, bool>
+            {
+                {"newdate", true},
+                {"newtitle", true},
+                {"authorsindex", true},
+                {"author-details", true},
+                {"author-series", true},
+                {"author-no-series", true},
+                {"author-alphabetic", true},
+                {"author-by-date", true},
+                {"sequencesindex", true},
+                {"genres", true}
+            };
+        }
+
+        private void LoadOPDSSettings()
+        {
+            try
+            {
+                // Load from Settings (placeholder - replace with actual Settings access)
+                string settingsString = GetOPDSStructureFromSettings();
+
+                if (!string.IsNullOrEmpty(settingsString))
+                {
+                    ParseOPDSStructure(settingsString);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log error and use defaults
+                MessageBox.Show($"Error loading OPDS settings: {ex.Message}", "Warning",
+                               MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        private string GetOPDSStructureFromSettings()
+        {
+            // Placeholder - replace with actual Settings.Default.OPDSStructure
+            return "newdate:1;newtitle:1;authorsindex:1;author-details:1;author-series:1;author-no-series:1;author-alphabetic:1;author-by-date:1;sequencesindex:1;genres:1";
+        }
+
+        private void SaveOPDSStructureToSettings(string structure)
+        {
+            // Placeholder - replace with actual Settings.Default.OPDSStructure = structure; Settings.Default.Save();
+            // For now, just show what would be saved
+            System.Diagnostics.Debug.WriteLine($"Would save to Settings: {structure}");
+        }
+
+        private void ParseOPDSStructure(string structure)
+        {
+            if (string.IsNullOrEmpty(structure)) return;
+
+            string[] parts = structure.Split(';');
+            foreach (string part in parts)
+            {
+                string[] keyValue = part.Split(':');
+                if (keyValue.Length == 2 && _opdsStructure.ContainsKey(keyValue[0]))
+                {
+                    _opdsStructure[keyValue[0]] = keyValue[1] == "1";
+                }
+            }
+        }
+
+        private string SerializeOPDSStructure()
+        {
+            return string.Join(";", _opdsStructure.Select(kvp => $"{kvp.Key}:{(kvp.Value ? "1" : "0")}"));
+        }
+
+        private void SaveOPDSSettings()
+        {
+            try
+            {
+                string structure = SerializeOPDSStructure();
+                SaveOPDSStructureToSettings(structure);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error saving OPDS settings: {ex.Message}", "Error",
+                               MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void BuildOPDSTree()
+        {
+            _isLoading = true;
+            treeViewOPDS.Nodes.Clear();
+
+            // Root node
+            TreeNode rootNode = new TreeNode("OPDS Catalog Structure")
+            {
+                Tag = "root",
+                Checked = true
+            };
+
+            // New Books section
+            TreeNode newBooksNode = CreateTreeNode("New Books", "section", true);
+            newBooksNode.Nodes.Add(CreateTreeNode("New Books (by date)", "newdate", _opdsStructure["newdate"]));
+            newBooksNode.Nodes.Add(CreateTreeNode("New Books (alphabetically)", "newtitle", _opdsStructure["newtitle"]));
+            rootNode.Nodes.Add(newBooksNode);
+
+            // Authors section
+            TreeNode authorsNode = CreateTreeNode("By Authors", "authorsindex", _opdsStructure["authorsindex"]);
+
+            TreeNode authorDetailsNode = CreateTreeNode("Author Details Page", "author-details", _opdsStructure["author-details"]);
+            authorDetailsNode.Nodes.Add(CreateTreeNode("Books by Series", "author-series", _opdsStructure["author-series"]));
+            authorDetailsNode.Nodes.Add(CreateTreeNode("Books without Series", "author-no-series", _opdsStructure["author-no-series"]));
+            authorDetailsNode.Nodes.Add(CreateTreeNode("Books Alphabetically", "author-alphabetic", _opdsStructure["author-alphabetic"]));
+            authorDetailsNode.Nodes.Add(CreateTreeNode("Books by Date", "author-by-date", _opdsStructure["author-by-date"]));
+
+            authorsNode.Nodes.Add(authorDetailsNode);
+            rootNode.Nodes.Add(authorsNode);
+
+            // Series section
+            rootNode.Nodes.Add(CreateTreeNode("By Series", "sequencesindex", _opdsStructure["sequencesindex"]));
+
+            // Genres section
+            rootNode.Nodes.Add(CreateTreeNode("By Genres", "genres", _opdsStructure["genres"]));
+
+            treeViewOPDS.Nodes.Add(rootNode);
+            treeViewOPDS.ExpandAll();
+
+            UpdateTreeNodeStyles();
+            _isLoading = false;
+        }
+
+        private TreeNode CreateTreeNode(string text, string tag, bool isChecked)
+        {
+            TreeNode node = new TreeNode(text)
+            {
+                Tag = tag,
+                Checked = isChecked
+            };
+            return node;
+        }
+
+        private void UpdateTreeNodeStyles()
+        {
+            foreach (TreeNode node in treeViewOPDS.Nodes)
+            {
+                UpdateNodeStyle(node);
+            }
+        }
+
+        private void UpdateNodeStyle(TreeNode node)
+        {
+            if (node.Tag?.ToString() == "root" || node.Tag?.ToString() == "section")
+            {
+                // Section nodes are always bold
+                node.NodeFont = new Font(treeViewOPDS.Font, FontStyle.Bold);
+                node.ForeColor = Color.Black;
+            }
+            else
+            {
+                // Regular nodes - update based on enabled state
+                bool isEnabled = node.Checked;
+
+                if (isEnabled)
+                {
+                    node.NodeFont = new Font(treeViewOPDS.Font, FontStyle.Regular);
+                    node.ForeColor = Color.Black;
+                }
+                else
+                {
+                    node.NodeFont = new Font(treeViewOPDS.Font, FontStyle.Regular);
+                    node.ForeColor = Color.Gray;
+                }
+            }
+
+            // Recursively update child nodes
+            foreach (TreeNode childNode in node.Nodes)
+            {
+                UpdateNodeStyle(childNode);
+            }
+        }
+
+        private void treeViewOPDS_AfterCheck(object sender, TreeViewEventArgs e)
+        {
+            if (_isLoading) return;
+
+            TreeNode node = e.Node;
+            string tag = node.Tag?.ToString();
+
+            // Skip root and section nodes
+            if (tag == "root" || tag == "section")
+            {
+                return;
+            }
+
+            // Update the structure
+            if (_opdsStructure.ContainsKey(tag))
+            {
+                _opdsStructure[tag] = node.Checked;
+
+                // Handle special dependencies
+                HandleNodeDependencies(tag, node.Checked);
+
+                // Update visual styles
+                UpdateTreeNodeStyles();
+
+                // Save immediately
+                SaveOPDSSettings();
+            }
+        }
+
+        private void HandleNodeDependencies(string tag, bool isChecked)
+        {
+            // If authorsindex is disabled, disable all author sub-options
+            if (tag == "authorsindex" && !isChecked)
+            {
+                _opdsStructure["author-details"] = false;
+                _opdsStructure["author-series"] = false;
+                _opdsStructure["author-no-series"] = false;
+                _opdsStructure["author-alphabetic"] = false;
+                _opdsStructure["author-by-date"] = false;
+
+                // Update tree nodes
+                UpdateTreeNodeCheckedState("author-details", false);
+                UpdateTreeNodeCheckedState("author-series", false);
+                UpdateTreeNodeCheckedState("author-no-series", false);
+                UpdateTreeNodeCheckedState("author-alphabetic", false);
+                UpdateTreeNodeCheckedState("author-by-date", false);
+            }
+
+            // If author-details is disabled, disable all its sub-options
+            if (tag == "author-details" && !isChecked)
+            {
+                _opdsStructure["author-series"] = false;
+                _opdsStructure["author-no-series"] = false;
+                _opdsStructure["author-alphabetic"] = false;
+                _opdsStructure["author-by-date"] = false;
+
+                // Update tree nodes
+                UpdateTreeNodeCheckedState("author-series", false);
+                UpdateTreeNodeCheckedState("author-no-series", false);
+                UpdateTreeNodeCheckedState("author-alphabetic", false);
+                UpdateTreeNodeCheckedState("author-by-date", false);
+            }
+        }
+
+        private void UpdateTreeNodeCheckedState(string tag, bool isChecked)
+        {
+            TreeNode foundNode = FindNodeByTag(treeViewOPDS.Nodes[0], tag);
+            if (foundNode != null)
+            {
+                _isLoading = true;
+                foundNode.Checked = isChecked;
+                _isLoading = false;
+            }
+        }
+
+        private TreeNode FindNodeByTag(TreeNode parentNode, string tag)
+        {
+            if (parentNode.Tag?.ToString() == tag)
+                return parentNode;
+
+            foreach (TreeNode childNode in parentNode.Nodes)
+            {
+                TreeNode result = FindNodeByTag(childNode, tag);
+                if (result != null)
+                    return result;
+            }
+
+            return null;
+        }
+
+        private void btnResetToDefault_Click(object sender, EventArgs e)
+        {
+            if (MessageBox.Show("Reset OPDS structure to default settings?", "Confirm Reset",
+                               MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+            {
+                InitializeOPDSStructure();
+                BuildOPDSTree();
+                SaveOPDSSettings();
+            }
+        }
+
+        private void btnShowCurrentStructure_Click(object sender, EventArgs e)
+        {
+            string structure = SerializeOPDSStructure();
+            MessageBox.Show($"Current OPDS structure:\n\n{structure}", "Current Settings",
+                           MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+
+        #endregion
     }
 }

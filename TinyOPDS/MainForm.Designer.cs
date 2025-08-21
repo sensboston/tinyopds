@@ -151,6 +151,7 @@
             this.serverMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripSeparator();
             this.exitMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.tabPage7 = new System.Windows.Forms.TabPage();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.tabPage2.SuspendLayout();
@@ -174,6 +175,7 @@
             this.tabControl1.Controls.Add(this.tabPage1);
             this.tabControl1.Controls.Add(this.tabPage2);
             this.tabControl1.Controls.Add(this.tabPage6);
+            this.tabControl1.Controls.Add(this.tabPage7);
             this.tabControl1.Controls.Add(this.tabPage5);
             this.tabControl1.Controls.Add(this.tabPage3);
             this.tabControl1.Controls.Add(this.tabPage4);
@@ -182,7 +184,7 @@
             this.tabControl1.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
-            this.tabControl1.Size = new System.Drawing.Size(1283, 825);
+            this.tabControl1.Size = new System.Drawing.Size(1387, 824);
             this.tabControl1.TabIndex = 8;
             // 
             // tabPage1
@@ -1638,11 +1640,25 @@
             this.exitMenuItem.Text = "Exit";
             this.exitMenuItem.Click += new System.EventHandler(this.exitMenuItem_Click);
             // 
+            // tabPage7
+            // 
+            this.tabPage7.Location = new System.Drawing.Point(10, 40);
+            this.tabPage7.Name = "tabPage7";
+            this.tabPage7.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage7.Size = new System.Drawing.Size(1367, 774);
+            this.tabPage7.TabIndex = 6;
+            this.tabPage7.Text = "OPDS structure";
+            this.tabPage7.UseVisualStyleBackColor = true;
+
+
+
+
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(16F, 31F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1264, 813);
+            this.ClientSize = new System.Drawing.Size(1368, 812);
             this.Controls.Add(this.tabControl1);
             this.DoubleBuffered = true;
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
@@ -1800,6 +1816,32 @@
         private System.Windows.Forms.Label label36;
         private System.Windows.Forms.LinkLabel linkLabel6;
         private System.Windows.Forms.CheckBox checkBox2;
+        private System.Windows.Forms.TabPage tabPage7;
+
+        private System.Windows.Forms.GroupBox groupBoxCatalogStructure;
+        private System.Windows.Forms.TreeView catalogStructureTree;
+        private System.Windows.Forms.Button btnMoveUp;
+        private System.Windows.Forms.Button btnMoveDown;
+        private System.Windows.Forms.Button btnEditCategory;
+        private System.Windows.Forms.Button btnRemoveCategory;
+        private System.Windows.Forms.Button btnAddCategory;
+        private System.Windows.Forms.GroupBox groupBoxCategorySettings;
+        private System.Windows.Forms.CheckBox chkEnabled;
+        private System.Windows.Forms.Label lblCategoryName;
+        private System.Windows.Forms.TextBox txtCategoryName;
+        private System.Windows.Forms.Label lblCategoryType;
+        private System.Windows.Forms.ComboBox comboCategoryType;
+        private System.Windows.Forms.Label lblSortBy;
+        private System.Windows.Forms.ComboBox comboSortBy;
+        private System.Windows.Forms.CheckBox chkGroupByFirstLetter;
+        private System.Windows.Forms.Label lblMaxItems;
+        private System.Windows.Forms.NumericUpDown numMaxItems;
+        private System.Windows.Forms.Label lblGenreFilter;
+        private System.Windows.Forms.TextBox txtGenreFilter;
+        private System.Windows.Forms.Label lblLanguageFilter;
+        private System.Windows.Forms.TextBox txtLanguageFilter;
+        private System.Windows.Forms.Button btnSaveChanges;
+        private System.Windows.Forms.Button btnResetDefaults;
     }
 }
 

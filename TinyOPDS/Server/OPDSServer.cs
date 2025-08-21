@@ -296,35 +296,35 @@ namespace TinyOPDS.Server
                 int numChars = request.StartsWith("/authorsindex/") ? 14 : 13;
                 return new AuthorsCatalog().GetCatalog(request.Substring(numChars), false, threshold).ToStringWithDeclaration();
             }
-            // Author details (intermediate catalog) - NEW
+            // Author details (intermediate catalog)
             else if (request.StartsWith("/author-details/"))
             {
                 return new AuthorDetailsCatalog().GetCatalog(request.Substring(16)).ToStringWithDeclaration();
             }
-            // Author books by series (list of series) - NEW
+            // Author books by series (list of series)
             else if (request.StartsWith("/author-series/"))
             {
                 return new AuthorBooksCatalog().GetSeriesCatalog(request.Substring(15), acceptFB2, threshold).ToStringWithDeclaration();
             }
-            // Author books without series - NEW
+            // Author books without series
             else if (request.StartsWith("/author-no-series/"))
             {
                 return new AuthorBooksCatalog().GetBooksCatalog(request.Substring(18), AuthorBooksCatalog.ViewType.NoSeries, acceptFB2, threshold).ToStringWithDeclaration();
             }
-            // Author books alphabetically - NEW
+            // Author books alphabetically
             else if (request.StartsWith("/author-alphabetic/"))
             {
                 return new AuthorBooksCatalog().GetBooksCatalog(request.Substring(19), AuthorBooksCatalog.ViewType.Alphabetic, acceptFB2, threshold).ToStringWithDeclaration();
             }
-            // Author books by creation date - NEW
+            // Author books by creation date
             else if (request.StartsWith("/author-by-date/"))
             {
                 return new AuthorBooksCatalog().GetBooksCatalog(request.Substring(16), AuthorBooksCatalog.ViewType.ByDate, acceptFB2, threshold).ToStringWithDeclaration();
             }
-            // Books by author (old route for compatibility)
+            // Books by author (redirect to author details for compatibility)
             else if (request.StartsWith("/author/"))
             {
-                return new BooksCatalog().GetCatalogByAuthor(request.Substring(8), acceptFB2, threshold).ToStringWithDeclaration();
+                return new AuthorDetailsCatalog().GetCatalog(request.Substring(8)).ToStringWithDeclaration();
             }
             // Sequences index
             else if (request.StartsWith("/sequencesindex"))

@@ -149,6 +149,7 @@
     <Compile Include="Data\Library.cs" />
     <Compile Include="OPDS\AuthorBooksCatalog.cs" />
     <Compile Include="OPDS\AuthorDetailsCatalog.cs" />
+    <Compile Include="OPDS\OPDSCategory.cs" />
     <Compile Include="PortableSettingsProvider.cs" />
     <Compile Include="PortableSettingsProviderBase.cs" />
     <Compile Include="SgmlReader\SgmlParser.cs" />

@@ -382,5 +382,17 @@ namespace TinyOPDS.Properties {
                 this["UseAuthorsAliases"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string OPDSStructure {
+            get {
+                return ((string)(this["OPDSStructure"]));
+            }
+            set {
+                this["OPDSStructure"] = value;
+            }
+        }
     }
 }

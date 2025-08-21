@@ -24,20 +24,9 @@ namespace TinyOPDS.OPDS
     {
         private enum SearchFor
         {
-            Author = 0,
             Sequence,
             Genre,
             Title,
-        }
-
-        /// <summary>
-        /// Returns books catalog by selected author
-        /// </summary>
-        /// <param name="author"></param>
-        /// <returns></returns>
-        public XDocument GetCatalogByAuthor(string author, bool fb2Only, int threshold = 100)
-        {
-            return GetCatalog(author, SearchFor.Author, fb2Only, threshold);
         }
 
         /// <summary>
@@ -102,15 +91,11 @@ namespace TinyOPDS.OPDS
                 searchPattern = searchPattern.Substring(0, j);
             }
 
-            // Get author's books
+            // Get books
             string catalogType = string.Empty;
             List<Book> books = new List<Book>();
             switch (searchFor)
             {
-                case SearchFor.Author:
-                    books = Library.GetBooksByAuthor(searchPattern);
-                    catalogType = "/author/" + Uri.EscapeDataString(searchPattern);
-                    break;
                 case SearchFor.Sequence:
                     books = Library.GetBooksBySequence(searchPattern);
                     catalogType = "/sequence/" + Uri.EscapeDataString(searchPattern);
@@ -121,7 +106,7 @@ namespace TinyOPDS.OPDS
                     break;
                 case SearchFor.Title:
                     books = Library.GetBooksByTitle(searchPattern);
-                    // For search, also return books by 
+                    // For search, also return books by transliterated titles
                     if (threshold > 50)
                     {
                         string translit = Transliteration.Back(searchPattern, TransliterationType.GOST);
@@ -190,7 +175,7 @@ namespace TinyOPDS.OPDS
                     entry.Add(
                         new XElement("author",
                             new XElement("name", author),
-                            new XElement("uri", "/author/" + Uri.EscapeDataString(author)
+                            new XElement("uri", "/author-details/" + Uri.EscapeDataString(author)
                     )));
                 }
 
@@ -253,17 +238,14 @@ namespace TinyOPDS.OPDS
                     entry.Add(new XElement("link", new XAttribute("href", url + ".fb2.zip"), new XAttribute("rel", "http://opds-spec.org/acquisition/open-access"), new XAttribute("type", "application/fb2+zip")));
                 }
 
-                // For search requests, lets add navigation links for author and series (if any)
-                if (searchFor != SearchFor.Author)
+                // Add navigation links for author and series (if any)
+                foreach (string author in book.Authors)
                 {
-                    foreach (string author in book.Authors)
-                    {
-                        entry.Add(new XElement("link",
-                                        new XAttribute("href", "/author/" + Uri.EscapeDataString(author)),
-                                        new XAttribute("rel", "related"),
-                                        new XAttribute("type", "application/atom+xml;profile=opds-catalog"),
-                                        new XAttribute("title", string.Format(Localizer.Text("All books by author {0}"), author))));
-                    }
+                    entry.Add(new XElement("link",
+                                    new XAttribute("href", "/author-details/" + Uri.EscapeDataString(author)),
+                                    new XAttribute("rel", "related"),
+                                    new XAttribute("type", "application/atom+xml;profile=opds-catalog"),
+                                    new XAttribute("title", string.Format(Localizer.Text("All books by author {0}"), author))));
                 }
 
                 if (searchFor != SearchFor.Sequence && !string.IsNullOrEmpty(book.Sequence))

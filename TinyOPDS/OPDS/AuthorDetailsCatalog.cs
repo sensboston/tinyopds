@@ -56,7 +56,7 @@ namespace TinyOPDS.OPDS
             var booksWithoutSeries = allBooks.Where(b => string.IsNullOrEmpty(b.Sequence)).ToList();
             var seriesCount = booksWithSeries.GroupBy(b => b.Sequence).Count();
 
-            // Add "Books by series" entry
+            // Add "Books by series" entry only if author has books with series
             if (booksWithSeries.Count > 0)
             {
                 doc.Root.Add(

@@ -17,13 +17,14 @@ using System.Linq;
 using System.Windows.Forms;
 using System.Threading;
 using System.Net;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Collections.Concurrent;
 
 using TinyOPDS.Data;
 using TinyOPDS.Scanner;
 using TinyOPDS.Server;
 using UPnP;
-using System.Collections.Generic;
-using System.Drawing;
 
 namespace TinyOPDS
 {
@@ -568,7 +569,7 @@ namespace TinyOPDS
         private void StartHttpServer()
         {
             // Create and start HTTP server
-            HttpProcessor.AuthorizedClients.Clear();
+            HttpProcessor.AuthorizedClients = new ConcurrentBag<string>();
             HttpProcessor.BannedClients.Clear();
             _server = new OPDSServer(IPAddress.Any, int.Parse(Properties.Settings.Default.ServerPort));
 

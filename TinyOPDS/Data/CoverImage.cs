@@ -218,7 +218,7 @@ namespace TinyOPDS.Data
         {
             try
             {
-                string resourceName = Assembly.GetExecutingAssembly().GetName().Name + ".Icons.book_cover.jpg";
+                string resourceName = Assembly.GetExecutingAssembly().GetName().Name + ".Resources.book_cover.jpg";
                 using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
                 {
                     if (stream != null && stream.Length > 0)

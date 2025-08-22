@@ -252,7 +252,7 @@
     <EmbeddedResource Include="genres.xml" />
     <None Include="donate.png" />
     <None Include="Icons\folder.png" />
-    <EmbeddedResource Include="Icons\book_cover.jpg" />
+    <EmbeddedResource Include="Resources\book_cover.jpg" />
     <None Include="FodyWeavers.xml" />
     <EmbeddedResource Include="costura-win-x86\SQLite.Interop.dll" />
     <EmbeddedResource Include="costura-win-x64\SQLite.Interop.dll" />

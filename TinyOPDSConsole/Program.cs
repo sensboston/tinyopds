@@ -15,6 +15,7 @@ using System.ServiceProcess;
 using System.Threading;
 using System.Reflection;
 using System.Diagnostics;
+using System.IO;
 
 using TinyOPDS;
 using TinyOPDS.Data;
@@ -325,16 +326,58 @@ namespace TinyOPDSConsole
         #region OPDS server routines
 
         /// <summary>
+        /// Initialize SQLite database (same as in MainForm)
+        /// </summary>
+        private static void InitializeSQLiteDatabase()
+        {
+            try
+            {
+                string libraryPath = Settings.Default.LibraryPath.SanitizePathName();
+                string sqliteDbPath = GetSQLiteDatabasePath();
+
+                Log.WriteLine("Initializing SQLite database...");
+                Log.WriteLine("Library path: {0}", libraryPath);
+                Log.WriteLine("SQLite database: {0}", sqliteDbPath);
+
+                // Initialize SQLite
+                Library.LibraryPath = libraryPath;
+                Library.Initialize(sqliteDbPath);
+
+                Log.WriteLine("✓ SQLite database successfully initialized");
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "✗ Error initializing SQLite: {0}", ex.Message);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Get SQLite database path
+        /// </summary>
+        /// <returns></returns>
+        private static string GetSQLiteDatabasePath()
+        {
+            return Path.Combine(Utils.ServiceFilesLocation, "books.sqlite");
+        }
+
+        /// <summary>
         /// 
         /// </summary>
         private static void StartServer()
         {
             // Init log file settings
             Log.SaveToFile = Settings.Default.SaveLogToDisk;
-            
+
             // Init localization service
             Localizer.Init();
             Localizer.Language = Settings.Default.Language;
+
+            // Initialize SQLite database before starting server
+            InitializeSQLiteDatabase();
+
+            // Load library
+            Library.Load();
 
             // Create timer for periodical refresh UPnP forwarding
             _upnpRefreshTimer = new Timer(UpdateUPnPForwarding, null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
@@ -359,30 +402,39 @@ namespace TinyOPDSConsole
             {
                 Log.WriteLine(LogLevel.Info, "Deleted: \"{0}\"", e.BookPath);
             };
-            _watcher.IsEnabled = false;
+            _watcher.IsEnabled = Settings.Default.WatchLibrary;
 
             _upnpController.DiscoverCompleted += _upnpController_DiscoverCompleted;
             _upnpController.DiscoverAsync(Settings.Default.UseUPnP);
-
-            Library.LibraryPath = Settings.Default.LibraryPath.SanitizePathName();
-            Library.LibraryLoaded += (_, __) =>
-            {
-                _watcher.DirectoryToWatch = Library.LibraryPath;
-                _watcher.IsEnabled = Settings.Default.WatchLibrary;
-            };
 
             // Load saved credentials
             try
             {
                 HttpProcessor.Credentials.Clear();
-                string[] pairs = Crypt.DecryptStringAES(Settings.Default.Credentials, _urlTemplate).Split(';');
-                foreach (string pair in pairs)
+                if (!string.IsNullOrEmpty(Settings.Default.Credentials))
                 {
-                    string[] cred = pair.Split(':');
-                    if (cred.Length == 2) HttpProcessor.Credentials.Add(new Credential(cred[0], cred[1]));
+                    string decryptedCredentials = Crypt.DecryptStringAES(Settings.Default.Credentials, _urlTemplate);
+                    if (!string.IsNullOrEmpty(decryptedCredentials))
+                    {
+                        string[] pairs = decryptedCredentials.Split(';');
+                        foreach (string pair in pairs)
+                        {
+                            if (!string.IsNullOrEmpty(pair))
+                            {
+                                string[] cred = pair.Split(':');
+                                if (cred.Length == 2 && !string.IsNullOrEmpty(cred[0]))
+                                {
+                                    HttpProcessor.Credentials.Add(new Credential(cred[0], cred[1]));
+                                }
+                            }
+                        }
+                    }
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Warning, "Error loading credentials: {0}", ex.Message);
+            }
 
             // Create and start HTTP server
             HttpProcessor.AuthorizedClients = new ConcurrentBag<string>();
@@ -477,7 +529,7 @@ namespace TinyOPDSConsole
         {
             if (Settings.Default.UseUPnP)
             {
-                if (_server != null &&  _server.IsActive && _server.IsIdle && _upnpController != null && _upnpController.UPnPReady)
+                if (_server != null && _server.IsActive && _server.IsIdle && _upnpController != null && _upnpController.UPnPReady)
                 {
                     if (!_upnpController.Discovered)
                     {
@@ -497,6 +549,16 @@ namespace TinyOPDSConsole
             // Init log file settings
             Log.SaveToFile = Settings.Default.SaveLogToDisk;
 
+            // ДОБАВЛЕНО: Init localization service (как в GUI)
+            Localizer.Init();
+            Localizer.Language = Settings.Default.Language;
+
+            // ДОБАВЛЕНО: Initialize SQLite database before scanning
+            InitializeSQLiteDatabase();
+
+            // ДОБАВЛЕНО: Load existing library
+            Library.Load();
+
             _scanner = new FileScanner();
             _scanner.OnBookFound += scanner_OnBookFound;
             _scanner.OnInvalidBook += (_, __) => { _invalidFiles++; };
@@ -509,6 +571,8 @@ namespace TinyOPDSConsole
             {
                 UpdateInfo(true);
                 Log.WriteLine("Directory scanner completed");
+                Console.WriteLine("\nScan completed. Press any key to exit...");
+                Console.ReadKey();
             };
             _fb2Count = _epubCount = _skippedFiles = _invalidFiles = _duplicates = 0;
             _scanStartTime = DateTime.Now;

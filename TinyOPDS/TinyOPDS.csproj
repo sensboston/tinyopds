@@ -179,7 +179,7 @@
     <Compile Include="OPDS\SequencesCatalog.cs" />
     <Compile Include="Parsers\BookParser.cs" />
     <Compile Include="Parsers\ePubParser.cs" />
-    <Compile Include="Parsers\fb2Parser.cs" />
+    <Compile Include="Parsers\FB2Parser.cs" />
     <Compile Include="Misc\ProcessHelper.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

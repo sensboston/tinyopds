@@ -24,6 +24,7 @@ using TinyOPDS.Properties;
 using UPnP;
 using Bluegrams.Application;
 using System.Net;
+using System.Collections.Concurrent;
 
 namespace TinyOPDSConsole
 {
@@ -384,7 +385,7 @@ namespace TinyOPDSConsole
             catch { }
 
             // Create and start HTTP server
-            HttpProcessor.AuthorizedClients.Clear();
+            HttpProcessor.AuthorizedClients = new ConcurrentBag<string>();
             HttpProcessor.BannedClients.Clear();
             _server = new OPDSServer(IPAddress.Any, int.Parse(Settings.Default.ServerPort));
 

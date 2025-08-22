@@ -52,14 +52,13 @@ namespace TinyOPDS.Scanner
         }
 
         /// <summary>
-        /// Scan zip file
+        /// Scan zip file using stream-based approach to reduce memory usage
         /// </summary>
         public void Scan()
         {
             Status = FileScannerStatus.SCANNING;
             ZipFile zipFile = null;
             string entryFileName = string.Empty;
-            MemoryStream memStream = null;
 
             try
             {
@@ -77,46 +76,43 @@ namespace TinyOPDS.Scanner
                         try
                         {
                             Book book = null;
-                            memStream = new MemoryStream();
-
                             string ext = Path.GetExtension(entry.FileName).ToLower();
 
-                            if (Library.Contains(ZipFileName.Substring(Library.LibraryPath.Length+1) + "@" + entryFileName))
+                            if (Library.Contains(ZipFileName.Substring(Library.LibraryPath.Length + 1) + "@" + entryFileName))
                             {
                                 SkippedFiles++;
                                 if (OnFileSkipped != null) OnFileSkipped(this, new FileSkippedEventArgs(SkippedFiles));
                             }
                             else if (ext.Contains(".epub"))
                             {
-                                entry.Extract(memStream);
-                                book = new ePubParser().Parse(memStream, ZipFileName + "@" + entryFileName);
+                                // Stream-based parsing for EPUB
+                                using (var entryStream = entry.OpenReader())
+                                {
+                                    book = new ePubParser().Parse(entryStream, ZipFileName + "@" + entryFileName);
+                                }
                             }
                             else if (ext.Contains(".fb2"))
                             {
-                                entry.Extract(memStream);
-                                book = new FB2Parser().Parse(memStream, ZipFileName + "@" + entryFileName);
+                                // Stream-based parsing for FB2
+                                using (var entryStream = entry.OpenReader())
+                                {
+                                    book = new FB2Parser().Parse(entryStream, ZipFileName + "@" + entryFileName);
+                                }
                             }
 
                             if (book != null)
                             {
                                 if (book.IsValid && OnBookFound != null) { OnBookFound(this, new BookFoundEventArgs(book)); }
                                 else if (!book.IsValid && OnInvalidBook != null) OnInvalidBook(this, new InvalidBookEventArgs(ZipFileName + "@" + entryFileName));
-                             }
-                            
+                            }
+
                         }
                         catch (Exception e)
                         {
                             Log.WriteLine(LogLevel.Error, ".ScanDirectory: exception {0} on file: {1}", e.Message, ZipFileName + "@" + entryFileName);
                             if (OnInvalidBook != null) OnInvalidBook(this, new InvalidBookEventArgs(ZipFileName + "@" + entryFileName));
                         }
-                        finally
-                        {
-                            if (memStream != null)
-                            {
-                                memStream.Dispose();
-                                memStream = null;
-                            }
-                        }
+                        // Stream automatically disposed by using statement - no manual cleanup needed
                     }
                 }
             }

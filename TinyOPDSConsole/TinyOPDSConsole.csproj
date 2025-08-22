@@ -142,6 +142,12 @@
     <Compile Include="..\TinyOPDS\Misc\Utils.cs">
       <Link>Misc\Utils.cs</Link>
     </Compile>
+    <Compile Include="..\TinyOPDS\OPDS\AuthorBooksCatalog.cs">
+      <Link>OPDS\AuthorBooksCatalog.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\OPDS\AuthorDetailsCatalog.cs">
+      <Link>OPDS\AuthorDetailsCatalog.cs</Link>
+    </Compile>
     <Compile Include="..\TinyOPDS\OPDS\AuthorsCatalog.cs">
       <Link>OPDS\AuthorsCatalog.cs</Link>
     </Compile>
@@ -175,8 +181,8 @@
     <Compile Include="..\TinyOPDS\Parsers\ePubParser.cs">
       <Link>Parsers\ePubParser.cs</Link>
     </Compile>
-    <Compile Include="..\TinyOPDS\Parsers\fb2Parser.cs">
-      <Link>Parsers\fb2Parser.cs</Link>
+    <Compile Include="..\TinyOPDS\Parsers\FB2Parser.cs">
+      <Link>Parsers\FB2Parser.cs</Link>
     </Compile>
     <Compile Include="..\TinyOPDS\PortableSettingsProvider.cs">
       <Link>PortableSettingsProvider.cs</Link>

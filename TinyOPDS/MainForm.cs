@@ -1090,8 +1090,7 @@ namespace TinyOPDS
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error loading OPDS routes: {ex.Message}", "Warning",
-                               MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                Log.WriteLine(LogLevel.Error, "Error loading OPDS routes: {0}", ex.Message);
             }
         }
 
@@ -1103,8 +1102,16 @@ namespace TinyOPDS
 
         private void SaveOPDSStructureToSettings(string structure)
         {
-            Properties.Settings.Default.OPDSStructure = structure;
-            Properties.Settings.Default.Save();
+            try
+            {
+                Properties.Settings.Default.OPDSStructure = structure;
+                Properties.Settings.Default.Save();
+                Log.WriteLine(LogLevel.Info, "OPDS routes saved: {0}", structure);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error saving OPDS routes: {0}", ex.Message);
+            }
         }
 
         private void ParseOPDSStructure(string structure)
@@ -1136,8 +1143,7 @@ namespace TinyOPDS
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error saving OPDS routes: {ex.Message}", "Error",
-                               MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Log.WriteLine(LogLevel.Error, "Error saving OPDS routes: {0}", ex.Message);
             }
         }
 
@@ -1146,15 +1152,16 @@ namespace TinyOPDS
             _isLoading = true;
             treeViewOPDS.Nodes.Clear();
 
-            // Root node
+            // Root node (not bold)
             TreeNode rootNode = new TreeNode("Root")
             {
                 Tag = "root",
                 Checked = true
             };
 
-            // New Books section
-            TreeNode newBooksNode = CreateTreeNode("New Books", "newbooks-section", true);
+            // New Books section (not bold, but acts as section for children)
+            TreeNode newBooksNode = CreateTreeNode("New Books", "newbooks-section",
+                _opdsStructure["newdate"] || _opdsStructure["newtitle"]);
             newBooksNode.Nodes.Add(CreateTreeNode("New Books (by date)", "newdate", _opdsStructure["newdate"]));
             newBooksNode.Nodes.Add(CreateTreeNode("New Books (alphabetically)", "newtitle", _opdsStructure["newtitle"]));
             rootNode.Nodes.Add(newBooksNode);
@@ -1204,27 +1211,18 @@ namespace TinyOPDS
 
         private void UpdateNodeStyle(TreeNode node)
         {
-            if (node.Tag?.ToString() == "root" || node.Tag?.ToString().EndsWith("-section") == true)
+            // No bold fonts - all nodes use regular font
+            bool isEnabled = node.Checked;
+
+            if (isEnabled)
             {
-                // Root and section nodes are always bold
-                node.NodeFont = new Font(treeViewOPDS.Font, FontStyle.Bold);
+                node.NodeFont = new Font(treeViewOPDS.Font, FontStyle.Regular);
                 node.ForeColor = Color.Black;
             }
             else
             {
-                // Regular nodes - update based on enabled state
-                bool isEnabled = node.Checked;
-
-                if (isEnabled)
-                {
-                    node.NodeFont = new Font(treeViewOPDS.Font, FontStyle.Regular);
-                    node.ForeColor = Color.Black;
-                }
-                else
-                {
-                    node.NodeFont = new Font(treeViewOPDS.Font, FontStyle.Regular);
-                    node.ForeColor = Color.Gray;
-                }
+                node.NodeFont = new Font(treeViewOPDS.Font, FontStyle.Regular);
+                node.ForeColor = Color.Gray;
             }
 
             // Recursively update child nodes
@@ -1241,13 +1239,23 @@ namespace TinyOPDS
             TreeNode node = e.Node;
             string tag = node.Tag?.ToString();
 
-            // Skip root and section nodes
-            if (tag == "root" || tag?.EndsWith("-section") == true)
+            Log.WriteLine(LogLevel.Info, "OPDS route changed: {0} = {1}", tag, node.Checked);
+
+            // Handle section nodes
+            if (tag == "newbooks-section")
+            {
+                HandleNewBooksSectionChange(node.Checked);
+                SaveAndReload();
+                return;
+            }
+
+            // Skip root node
+            if (tag == "root")
             {
                 return;
             }
 
-            // Update the structure
+            // Update the structure for regular nodes
             if (_opdsStructure.ContainsKey(tag))
             {
                 _opdsStructure[tag] = node.Checked;
@@ -1255,81 +1263,79 @@ namespace TinyOPDS
                 // Handle special dependencies
                 HandleNodeDependencies(tag, node.Checked);
 
-                // Update visual styles
-                UpdateTreeNodeStyles();
-
-                // Save immediately
-                SaveOPDSSettings();
+                // Save and reload immediately
+                SaveAndReload();
             }
+        }
+
+        private void HandleNewBooksSectionChange(bool isChecked)
+        {
+            _isLoading = true;
+
+            // Update both child routes
+            _opdsStructure["newdate"] = isChecked;
+            _opdsStructure["newtitle"] = isChecked;
+
+            // Update tree nodes visually
+            UpdateTreeNodeCheckedState("newdate", isChecked);
+            UpdateTreeNodeCheckedState("newtitle", isChecked);
+
+            _isLoading = false;
+
+            // Update visual styles
+            UpdateTreeNodeStyles();
         }
 
         private void HandleNodeDependencies(string tag, bool isChecked)
         {
-            // If New Books section routes are unchecked, handle children
-            if ((tag == "newdate" || tag == "newtitle") && !isChecked)
+            _isLoading = true;
+
+            try
             {
-                // If both New Books routes are disabled, this is handled by visual only
-                bool anyNewBooksEnabled = _opdsStructure["newdate"] || _opdsStructure["newtitle"];
-                // Visual feedback is handled by UpdateTreeNodeStyles
-            }
-
-            // If authorsindex is disabled, disable all author sub-options
-            if (tag == "authorsindex" && !isChecked)
-            {
-                _opdsStructure["author-details"] = false;
-                _opdsStructure["author-series"] = false;
-                _opdsStructure["author-no-series"] = false;
-                _opdsStructure["author-alphabetic"] = false;
-                _opdsStructure["author-by-date"] = false;
-
-                // Update tree nodes
-                UpdateTreeNodeCheckedState("author-details", false);
-                UpdateTreeNodeCheckedState("author-series", false);
-                UpdateTreeNodeCheckedState("author-no-series", false);
-                UpdateTreeNodeCheckedState("author-alphabetic", false);
-                UpdateTreeNodeCheckedState("author-by-date", false);
-            }
-
-            // If author-details is disabled, disable all its sub-options except alphabetic
-            if (tag == "author-details" && !isChecked)
-            {
-                _opdsStructure["author-series"] = false;
-                _opdsStructure["author-no-series"] = false;
-                _opdsStructure["author-by-date"] = false;
-                // Keep author-alphabetic enabled as fallback
-
-                // Update tree nodes
-                UpdateTreeNodeCheckedState("author-series", false);
-                UpdateTreeNodeCheckedState("author-no-series", false);
-                UpdateTreeNodeCheckedState("author-by-date", false);
-                // Don't disable author-alphabetic
-            }
-
-            // Special handling for New Books section
-            HandleNewBooksSectionLogic();
-        }
-
-        private void HandleNewBooksSectionLogic()
-        {
-            // Update New Books section visual state based on children
-            TreeNode newBooksSection = FindNodeByTag(treeViewOPDS.Nodes[0], "newbooks-section");
-            if (newBooksSection != null)
-            {
-                bool anyChildEnabled = _opdsStructure["newdate"] || _opdsStructure["newtitle"];
-
-                // Update section visual appearance
-                _isLoading = true;
-                newBooksSection.Checked = anyChildEnabled;
-                _isLoading = false;
-
-                // If section is unchecked, disable all children
-                if (!anyChildEnabled)
+                // If New Books routes are changed, update section
+                if (tag == "newdate" || tag == "newtitle")
                 {
-                    UpdateTreeNodeCheckedState("newdate", false);
-                    UpdateTreeNodeCheckedState("newtitle", false);
-                    _opdsStructure["newdate"] = false;
-                    _opdsStructure["newtitle"] = false;
+                    bool anyNewBooksEnabled = _opdsStructure["newdate"] || _opdsStructure["newtitle"];
+                    UpdateTreeNodeCheckedState("newbooks-section", anyNewBooksEnabled);
                 }
+
+                // If authorsindex is disabled, disable all author sub-options
+                if (tag == "authorsindex" && !isChecked)
+                {
+                    _opdsStructure["author-details"] = false;
+                    _opdsStructure["author-series"] = false;
+                    _opdsStructure["author-no-series"] = false;
+                    _opdsStructure["author-alphabetic"] = false;
+                    _opdsStructure["author-by-date"] = false;
+
+                    UpdateTreeNodeCheckedState("author-details", false);
+                    UpdateTreeNodeCheckedState("author-series", false);
+                    UpdateTreeNodeCheckedState("author-no-series", false);
+                    UpdateTreeNodeCheckedState("author-alphabetic", false);
+                    UpdateTreeNodeCheckedState("author-by-date", false);
+                }
+
+                // If author-details is disabled, disable all its sub-options except alphabetic
+                if (tag == "author-details" && !isChecked)
+                {
+                    _opdsStructure["author-series"] = false;
+                    _opdsStructure["author-no-series"] = false;
+                    _opdsStructure["author-by-date"] = false;
+                    // Keep author-alphabetic enabled as fallback
+                    _opdsStructure["author-alphabetic"] = true;
+
+                    UpdateTreeNodeCheckedState("author-series", false);
+                    UpdateTreeNodeCheckedState("author-no-series", false);
+                    UpdateTreeNodeCheckedState("author-by-date", false);
+                    UpdateTreeNodeCheckedState("author-alphabetic", true);
+                }
+
+                // Update visual styles after all changes
+                UpdateTreeNodeStyles();
+            }
+            finally
+            {
+                _isLoading = false;
             }
         }
 
@@ -1338,9 +1344,13 @@ namespace TinyOPDS
             TreeNode foundNode = FindNodeByTag(treeViewOPDS.Nodes[0], tag);
             if (foundNode != null)
             {
-                _isLoading = true;
+                bool wasLoading = _isLoading;
+                _isLoading = true; // Prevent recursive calls
                 foundNode.Checked = isChecked;
-                _isLoading = false;
+                _isLoading = wasLoading;
+
+                // Force TreeView to refresh the node
+                treeViewOPDS.Invalidate();
             }
         }
 
@@ -1357,6 +1367,25 @@ namespace TinyOPDS
             }
 
             return null;
+        }
+
+        private void SaveAndReload()
+        {
+            try
+            {
+                // Save settings
+                SaveOPDSSettings();
+
+                // Force OPDS server to reload routes immediately
+                Log.WriteLine(LogLevel.Info, "OPDS routes configuration changed, reloading server structure");
+
+                // The server will reload structure on next request automatically
+                // due to LoadOPDSStructure() call in HandleOPDSRequest()
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error in SaveAndReload: {0}", ex.Message);
+            }
         }
 
         #endregion

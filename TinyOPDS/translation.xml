@@ -265,14 +265,6 @@
 			<text lang="es">Servidor</text>
 			<text lang="fr">Serveur</text>
 		</property>
-		<property form="MainForm" ctrl="tabPage6">
-			<text lang="en">OPDS catalog</text>
-			<text lang="ru">OPDS каталог</text>
-			<text lang="uk">OPDS каталог</text>
-			<text lang="de">OPDS-Katalog</text>
-			<text lang="es">Catálogo OPDS</text>
-			<text lang="fr">Catalogue OPDS</text>
-		</property>
 		<property form="MainForm" ctrl="tabPage3">
 			<text lang="en">Misc</text>
 			<text lang="ru">Разное</text>
@@ -282,20 +274,36 @@
 			<text lang="fr">Divers</text>
 		</property>
 		<property form="MainForm" ctrl="tabPage4">
-			<text lang="en">About program</text>
+			<text lang="en">About</text>
 			<text lang="ru">О программе</text>
 			<text lang="uk">Про програму</text>
-			<text lang="de">Über das Programm</text>
-			<text lang="es">Acerca del programa</text>
-			<text lang="fr">À propos du programme</text>
+			<text lang="de">Info</text>
+			<text lang="es">Acerca</text>
+			<text lang="fr">À propos</text>
 		</property>
 		<property form="MainForm" ctrl="tabPage5">
 			<text lang="en">Auth</text>
 			<text lang="ru">Авторизация</text>
 			<text lang="uk">Авторизація</text>
-			<text lang="de">Auth</text>
-			<text lang="es">Auth</text>
-			<text lang="fr">Auth</text>
+			<text lang="de">Zugang</text>
+			<text lang="es">Acceso</text>
+			<text lang="fr">Accès</text>
+		</property>
+		<property form="MainForm" ctrl="tabPage6">
+			<text lang="en">OPDS catalog</text>
+			<text lang="ru">OPDS каталог</text>
+			<text lang="uk">OPDS каталог</text>
+			<text lang="de">OPDS-Katalog</text>
+			<text lang="es">Catálogo OPDS</text>
+			<text lang="fr">Catalogue OPDS</text>
+		</property>
+		<property form="MainForm" ctrl="tabPage7">
+			<text lang="en">OPDS Routes</text>
+			<text lang="ru">OPDS маршруты</text>
+			<text lang="uk">OPDS маршрути</text>
+			<text lang="de">OPDS-Routen</text>
+			<text lang="es">Rutas OPDS</text>
+			<text lang="fr">Routes OPDS</text>
 		</property>
 		<property form="MainForm" ctrl="exitMenuItem">
 			<text lang="en">Exit</text>

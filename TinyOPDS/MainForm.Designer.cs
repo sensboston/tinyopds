@@ -36,7 +36,6 @@
             this.tabPage1 = new System.Windows.Forms.TabPage();
             this.databaseFileName = new System.Windows.Forms.TextBox();
             this.label21 = new System.Windows.Forms.Label();
-            this.useWatcher = new System.Windows.Forms.CheckBox();
             this.duplicates = new System.Windows.Forms.Label();
             this.label16 = new System.Windows.Forms.Label();
             this.label15 = new System.Windows.Forms.Label();
@@ -62,7 +61,6 @@
             this.scannerButton = new System.Windows.Forms.Button();
             this.libraryPath = new System.Windows.Forms.TextBox();
             this.tabPage2 = new System.Windows.Forms.TabPage();
-            this.useAbsoluteUri = new System.Windows.Forms.CheckBox();
             this.extWebLink = new System.Windows.Forms.LinkLabel();
             this.intWebLink = new System.Windows.Forms.LinkLabel();
             this.label34 = new System.Windows.Forms.Label();
@@ -86,21 +84,12 @@
             this.label4 = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
             this.serverButton = new System.Windows.Forms.Button();
-            this.webPrefix = new System.Windows.Forms.TextBox();
-            this.openPort = new System.Windows.Forms.CheckBox();
-            this.serverPort = new System.Windows.Forms.TextBox();
-            this.useUPnP = new System.Windows.Forms.CheckBox();
-            this.rootPrefix = new System.Windows.Forms.TextBox();
-            this.serverName = new System.Windows.Forms.TextBox();
             this.tabPage6 = new System.Windows.Forms.TabPage();
-            this.checkBox2 = new System.Windows.Forms.CheckBox();
             this.newBooksPeriodCombo = new System.Windows.Forms.ComboBox();
             this.label39 = new System.Windows.Forms.Label();
             this.sortOrderCombo = new System.Windows.Forms.ComboBox();
             this.label38 = new System.Windows.Forms.Label();
-            this.itemsPerWeb = new System.Windows.Forms.NumericUpDown();
             this.label37 = new System.Windows.Forms.Label();
-            this.itemsPerOPDS = new System.Windows.Forms.NumericUpDown();
             this.label36 = new System.Windows.Forms.Label();
             this.tabPage7 = new System.Windows.Forms.TabPage();
             this.treeViewOPDS = new System.Windows.Forms.TreeView();
@@ -113,10 +102,6 @@
             this.statGoodLogins = new System.Windows.Forms.Label();
             this.label28 = new System.Windows.Forms.Label();
             this.dataGridView1 = new System.Windows.Forms.DataGridView();
-            this.wrongAttemptsCount = new System.Windows.Forms.NumericUpDown();
-            this.banClients = new System.Windows.Forms.CheckBox();
-            this.rememberClients = new System.Windows.Forms.CheckBox();
-            this.useHTTPAuth = new System.Windows.Forms.CheckBox();
             this.tabPage3 = new System.Windows.Forms.TabPage();
             this.viewLogFile = new System.Windows.Forms.Button();
             this.label32 = new System.Windows.Forms.Label();
@@ -129,10 +114,6 @@
             this.label8 = new System.Windows.Forms.Label();
             this.convertorFolder = new System.Windows.Forms.Button();
             this.convertorPath = new System.Windows.Forms.TextBox();
-            this.saveLog = new System.Windows.Forms.CheckBox();
-            this.closeToTray = new System.Windows.Forms.CheckBox();
-            this.startMinimized = new System.Windows.Forms.CheckBox();
-            this.startWithWindows = new System.Windows.Forms.CheckBox();
             this.tabPage4 = new System.Windows.Forms.TabPage();
             this.linkLabel6 = new System.Windows.Forms.LinkLabel();
             this.linkLabel5 = new System.Windows.Forms.LinkLabel();
@@ -153,20 +134,39 @@
             this.serverMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripSeparator();
             this.exitMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.useWatcher = new System.Windows.Forms.CheckBox();
+            this.useAbsoluteUri = new System.Windows.Forms.CheckBox();
+            this.webPrefix = new System.Windows.Forms.TextBox();
+            this.openPort = new System.Windows.Forms.CheckBox();
+            this.serverPort = new System.Windows.Forms.TextBox();
+            this.useUPnP = new System.Windows.Forms.CheckBox();
+            this.rootPrefix = new System.Windows.Forms.TextBox();
+            this.serverName = new System.Windows.Forms.TextBox();
+            this.checkBox2 = new System.Windows.Forms.CheckBox();
+            this.itemsPerWeb = new System.Windows.Forms.NumericUpDown();
+            this.itemsPerOPDS = new System.Windows.Forms.NumericUpDown();
+            this.wrongAttemptsCount = new System.Windows.Forms.NumericUpDown();
+            this.banClients = new System.Windows.Forms.CheckBox();
+            this.rememberClients = new System.Windows.Forms.CheckBox();
+            this.useHTTPAuth = new System.Windows.Forms.CheckBox();
+            this.saveLog = new System.Windows.Forms.CheckBox();
+            this.closeToTray = new System.Windows.Forms.CheckBox();
+            this.startMinimized = new System.Windows.Forms.CheckBox();
+            this.startWithWindows = new System.Windows.Forms.CheckBox();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.tabPage2.SuspendLayout();
             this.tabPage6.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.itemsPerWeb)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.itemsPerOPDS)).BeginInit();
             this.tabPage7.SuspendLayout();
             this.tabPage5.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.wrongAttemptsCount)).BeginInit();
             this.tabPage3.SuspendLayout();
             this.tabPage4.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.contextMenuStrip.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.itemsPerWeb)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.itemsPerOPDS)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.wrongAttemptsCount)).BeginInit();
             this.SuspendLayout();
             // 
             // tabControl1
@@ -185,8 +185,9 @@
             this.tabControl1.Location = new System.Drawing.Point(-8, -2);
             this.tabControl1.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.tabControl1.Name = "tabControl1";
+            this.tabControl1.Padding = new System.Drawing.Point(16, 3);
             this.tabControl1.SelectedIndex = 0;
-            this.tabControl1.Size = new System.Drawing.Size(1296, 875);
+            this.tabControl1.Size = new System.Drawing.Size(1296, 823);
             this.tabControl1.TabIndex = 8;
             // 
             // tabPage1
@@ -223,15 +224,13 @@
             this.tabPage1.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.tabPage1.Name = "tabPage1";
             this.tabPage1.Padding = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.tabPage1.Size = new System.Drawing.Size(1276, 825);
+            this.tabPage1.Size = new System.Drawing.Size(1276, 773);
             this.tabPage1.TabIndex = 0;
             this.tabPage1.Text = "Scanner";
             // 
             // databaseFileName
             // 
-            this.databaseFileName.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.databaseFileName.Location = new System.Drawing.Point(333, 157);
+            this.databaseFileName.Location = new System.Drawing.Point(333, 154);
             this.databaseFileName.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.databaseFileName.Name = "databaseFileName";
             this.databaseFileName.ReadOnly = true;
@@ -241,31 +240,15 @@
             // label21
             // 
             this.label21.AutoSize = true;
-            this.label21.Location = new System.Drawing.Point(40, 167);
+            this.label21.Location = new System.Drawing.Point(40, 157);
             this.label21.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label21.Name = "label21";
             this.label21.Size = new System.Drawing.Size(274, 32);
             this.label21.TabIndex = 31;
             this.label21.Text = "Database file name: ";
             // 
-            // useWatcher
-            // 
-            this.useWatcher.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.useWatcher.AutoSize = true;
-            this.useWatcher.Checked = global::TinyOPDS.Properties.Settings.Default.WatchLibrary;
-            this.useWatcher.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "WatchLibrary", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.useWatcher.Location = new System.Drawing.Point(874, 81);
-            this.useWatcher.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.useWatcher.Name = "useWatcher";
-            this.useWatcher.Size = new System.Drawing.Size(347, 36);
-            this.useWatcher.TabIndex = 30;
-            this.useWatcher.Text = "Monitor library changes";
-            this.useWatcher.UseVisualStyleBackColor = true;
-            this.useWatcher.CheckedChanged += new System.EventHandler(this.useWatcher_CheckedChanged);
-            // 
             // duplicates
             // 
-            this.duplicates.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.duplicates.AutoSize = true;
             this.duplicates.Location = new System.Drawing.Point(325, 527);
             this.duplicates.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
@@ -277,7 +260,6 @@
             // 
             // label16
             // 
-            this.label16.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label16.AutoSize = true;
             this.label16.Location = new System.Drawing.Point(40, 527);
             this.label16.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
@@ -298,7 +280,6 @@
             // 
             // status
             // 
-            this.status.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.status.AutoSize = true;
             this.status.Location = new System.Drawing.Point(960, 527);
             this.status.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
@@ -310,7 +291,6 @@
             // 
             // label14
             // 
-            this.label14.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label14.AutoSize = true;
             this.label14.Location = new System.Drawing.Point(675, 527);
             this.label14.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
@@ -321,7 +301,6 @@
             // 
             // rate
             // 
-            this.rate.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.rate.AutoSize = true;
             this.rate.Location = new System.Drawing.Point(960, 465);
             this.rate.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
@@ -333,7 +312,6 @@
             // 
             // label12
             // 
-            this.label12.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label12.AutoSize = true;
             this.label12.Location = new System.Drawing.Point(675, 465);
             this.label12.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
@@ -344,7 +322,6 @@
             // 
             // elapsedTime
             // 
-            this.elapsedTime.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.elapsedTime.AutoSize = true;
             this.elapsedTime.Location = new System.Drawing.Point(960, 403);
             this.elapsedTime.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
@@ -356,7 +333,6 @@
             // 
             // label10
             // 
-            this.label10.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label10.AutoSize = true;
             this.label10.Location = new System.Drawing.Point(675, 403);
             this.label10.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
@@ -367,7 +343,6 @@
             // 
             // startTime
             // 
-            this.startTime.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.startTime.AutoSize = true;
             this.startTime.Location = new System.Drawing.Point(960, 341);
             this.startTime.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
@@ -379,7 +354,6 @@
             // 
             // label6
             // 
-            this.label6.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label6.AutoSize = true;
             this.label6.Location = new System.Drawing.Point(675, 341);
             this.label6.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
@@ -390,7 +364,6 @@
             // 
             // booksProcessed
             // 
-            this.booksProcessed.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.booksProcessed.AutoSize = true;
             this.booksProcessed.Location = new System.Drawing.Point(328, 589);
             this.booksProcessed.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
@@ -402,7 +375,6 @@
             // 
             // label5
             // 
-            this.label5.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label5.AutoSize = true;
             this.label5.Location = new System.Drawing.Point(40, 589);
             this.label5.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
@@ -413,7 +385,6 @@
             // 
             // invalidBooks
             // 
-            this.invalidBooks.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.invalidBooks.AutoSize = true;
             this.invalidBooks.Location = new System.Drawing.Point(328, 403);
             this.invalidBooks.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
@@ -425,7 +396,6 @@
             // 
             // label9
             // 
-            this.label9.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label9.AutoSize = true;
             this.label9.Location = new System.Drawing.Point(40, 403);
             this.label9.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
@@ -436,7 +406,6 @@
             // 
             // skippedBooks
             // 
-            this.skippedBooks.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.skippedBooks.AutoSize = true;
             this.skippedBooks.Location = new System.Drawing.Point(328, 465);
             this.skippedBooks.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
@@ -448,7 +417,6 @@
             // 
             // label7
             // 
-            this.label7.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label7.AutoSize = true;
             this.label7.Location = new System.Drawing.Point(40, 465);
             this.label7.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
@@ -459,7 +427,6 @@
             // 
             // booksFound
             // 
-            this.booksFound.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.booksFound.AutoSize = true;
             this.booksFound.Location = new System.Drawing.Point(328, 341);
             this.booksFound.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
@@ -471,9 +438,8 @@
             // 
             // booksInDB
             // 
-            this.booksInDB.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.booksInDB.AutoSize = true;
-            this.booksInDB.Location = new System.Drawing.Point(328, 253);
+            this.booksInDB.Location = new System.Drawing.Point(328, 243);
             this.booksInDB.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.booksInDB.MinimumSize = new System.Drawing.Size(133, 0);
             this.booksInDB.Name = "booksInDB";
@@ -483,9 +449,8 @@
             // 
             // folderButton
             // 
-            this.folderButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.folderButton.Image = global::TinyOPDS.Properties.Resources.folder;
-            this.folderButton.Location = new System.Drawing.Point(760, 72);
+            this.folderButton.Location = new System.Drawing.Point(760, 71);
             this.folderButton.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.folderButton.Name = "folderButton";
             this.folderButton.Size = new System.Drawing.Size(77, 55);
@@ -495,9 +460,8 @@
             // 
             // label2
             // 
-            this.label2.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(40, 253);
+            this.label2.Location = new System.Drawing.Point(40, 243);
             this.label2.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(263, 32);
@@ -506,7 +470,6 @@
             // 
             // label1
             // 
-            this.label1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label1.AutoSize = true;
             this.label1.Location = new System.Drawing.Point(40, 341);
             this.label1.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
@@ -518,10 +481,10 @@
             // scannerButton
             // 
             this.scannerButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.scannerButton.Location = new System.Drawing.Point(613, 620);
+            this.scannerButton.Location = new System.Drawing.Point(681, 635);
             this.scannerButton.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.scannerButton.Name = "scannerButton";
-            this.scannerButton.Size = new System.Drawing.Size(608, 95);
+            this.scannerButton.Size = new System.Drawing.Size(540, 95);
             this.scannerButton.TabIndex = 7;
             this.scannerButton.Text = "Start scanning";
             this.scannerButton.UseVisualStyleBackColor = true;
@@ -529,8 +492,6 @@
             // 
             // libraryPath
             // 
-            this.libraryPath.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
             this.libraryPath.Location = new System.Drawing.Point(45, 76);
             this.libraryPath.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.libraryPath.Name = "libraryPath";
@@ -576,22 +537,9 @@
             this.tabPage2.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.tabPage2.Name = "tabPage2";
             this.tabPage2.Padding = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.tabPage2.Size = new System.Drawing.Size(1276, 825);
+            this.tabPage2.Size = new System.Drawing.Size(1276, 773);
             this.tabPage2.TabIndex = 1;
             this.tabPage2.Text = "Server";
-            // 
-            // useAbsoluteUri
-            // 
-            this.useAbsoluteUri.AutoSize = true;
-            this.useAbsoluteUri.Checked = global::TinyOPDS.Properties.Settings.Default.UseAbsoluteUri;
-            this.useAbsoluteUri.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "UseAbsoluteUri", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.useAbsoluteUri.Location = new System.Drawing.Point(907, 174);
-            this.useAbsoluteUri.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.useAbsoluteUri.Name = "useAbsoluteUri";
-            this.useAbsoluteUri.Size = new System.Drawing.Size(229, 36);
-            this.useAbsoluteUri.TabIndex = 54;
-            this.useAbsoluteUri.Text = "Absolute links";
-            this.useAbsoluteUri.UseVisualStyleBackColor = true;
             // 
             // extWebLink
             // 
@@ -821,86 +769,13 @@
             // serverButton
             // 
             this.serverButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.serverButton.Location = new System.Drawing.Point(613, 620);
+            this.serverButton.Location = new System.Drawing.Point(680, 635);
             this.serverButton.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.serverButton.Name = "serverButton";
-            this.serverButton.Size = new System.Drawing.Size(608, 95);
+            this.serverButton.Size = new System.Drawing.Size(541, 95);
             this.serverButton.TabIndex = 8;
             this.serverButton.Text = "Start server";
             this.serverButton.Click += new System.EventHandler(this.serverButton_Click);
-            // 
-            // webPrefix
-            // 
-            this.webPrefix.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::TinyOPDS.Properties.Settings.Default, "HttpPrefix", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.webPrefix.Location = new System.Drawing.Point(907, 246);
-            this.webPrefix.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.webPrefix.Name = "webPrefix";
-            this.webPrefix.Size = new System.Drawing.Size(279, 38);
-            this.webPrefix.TabIndex = 49;
-            this.webPrefix.Text = global::TinyOPDS.Properties.Settings.Default.HttpPrefix;
-            this.webPrefix.TextChanged += new System.EventHandler(this.rootPrefix_TextChanged);
-            // 
-            // openPort
-            // 
-            this.openPort.AutoSize = true;
-            this.openPort.Checked = global::TinyOPDS.Properties.Settings.Default.OpenNATPort;
-            this.openPort.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "OpenNATPort", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.openPort.Enabled = false;
-            this.openPort.Location = new System.Drawing.Point(427, 174);
-            this.openPort.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.openPort.Name = "openPort";
-            this.openPort.Size = new System.Drawing.Size(331, 36);
-            this.openPort.TabIndex = 15;
-            this.openPort.Text = "Forward port on router";
-            this.openPort.UseVisualStyleBackColor = true;
-            this.openPort.CheckedChanged += new System.EventHandler(this.openPort_CheckedChanged);
-            // 
-            // serverPort
-            // 
-            this.serverPort.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::TinyOPDS.Properties.Settings.Default, "ServerPort", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.serverPort.Location = new System.Drawing.Point(1085, 86);
-            this.serverPort.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.serverPort.Name = "serverPort";
-            this.serverPort.Size = new System.Drawing.Size(100, 38);
-            this.serverPort.TabIndex = 10;
-            this.serverPort.Text = global::TinyOPDS.Properties.Settings.Default.ServerPort;
-            this.serverPort.Validated += new System.EventHandler(this.serverPort_Validated);
-            // 
-            // useUPnP
-            // 
-            this.useUPnP.AutoSize = true;
-            this.useUPnP.Checked = global::TinyOPDS.Properties.Settings.Default.UseUPnP;
-            this.useUPnP.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.useUPnP.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "UseUPnP", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.useUPnP.Location = new System.Drawing.Point(59, 174);
-            this.useUPnP.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.useUPnP.Name = "useUPnP";
-            this.useUPnP.Size = new System.Drawing.Size(183, 36);
-            this.useUPnP.TabIndex = 35;
-            this.useUPnP.Text = "Use UPnP";
-            this.useUPnP.UseVisualStyleBackColor = true;
-            this.useUPnP.CheckStateChanged += new System.EventHandler(this.useUPnP_CheckStateChanged);
-            // 
-            // rootPrefix
-            // 
-            this.rootPrefix.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::TinyOPDS.Properties.Settings.Default, "RootPrefix", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.rootPrefix.Location = new System.Drawing.Point(307, 246);
-            this.rootPrefix.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.rootPrefix.Name = "rootPrefix";
-            this.rootPrefix.Size = new System.Drawing.Size(308, 38);
-            this.rootPrefix.TabIndex = 19;
-            this.rootPrefix.Text = global::TinyOPDS.Properties.Settings.Default.RootPrefix;
-            this.rootPrefix.TextChanged += new System.EventHandler(this.rootPrefix_TextChanged);
-            // 
-            // serverName
-            // 
-            this.serverName.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::TinyOPDS.Properties.Settings.Default, "ServerName", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.serverName.Location = new System.Drawing.Point(59, 83);
-            this.serverName.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.serverName.Name = "serverName";
-            this.serverName.Size = new System.Drawing.Size(556, 38);
-            this.serverName.TabIndex = 12;
-            this.serverName.Text = global::TinyOPDS.Properties.Settings.Default.ServerName;
             // 
             // tabPage6
             // 
@@ -910,31 +785,16 @@
             this.tabPage6.Controls.Add(this.label39);
             this.tabPage6.Controls.Add(this.sortOrderCombo);
             this.tabPage6.Controls.Add(this.label38);
-            this.tabPage6.Controls.Add(this.itemsPerWeb);
             this.tabPage6.Controls.Add(this.label37);
-            this.tabPage6.Controls.Add(this.itemsPerOPDS);
             this.tabPage6.Controls.Add(this.label36);
+            this.tabPage6.Controls.Add(this.itemsPerWeb);
+            this.tabPage6.Controls.Add(this.itemsPerOPDS);
             this.tabPage6.Location = new System.Drawing.Point(10, 40);
             this.tabPage6.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.tabPage6.Name = "tabPage6";
-            this.tabPage6.Size = new System.Drawing.Size(1276, 825);
+            this.tabPage6.Size = new System.Drawing.Size(1276, 773);
             this.tabPage6.TabIndex = 5;
             this.tabPage6.Text = "OPDS catalog";
-            // 
-            // checkBox2
-            // 
-            this.checkBox2.AutoSize = true;
-            this.checkBox2.Checked = global::TinyOPDS.Properties.Settings.Default.UseAuthorsAliases;
-            this.checkBox2.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox2.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "UseAuthorsAliases", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.checkBox2.Location = new System.Drawing.Point(67, 386);
-            this.checkBox2.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.checkBox2.Name = "checkBox2";
-            this.checkBox2.Size = new System.Drawing.Size(301, 36);
-            this.checkBox2.TabIndex = 9;
-            this.checkBox2.Text = "Use authors aliases";
-            this.checkBox2.UseVisualStyleBackColor = true;
-            this.checkBox2.CheckedChanged += new System.EventHandler(this.checkBox_CheckedChanged);
             // 
             // newBooksPeriodCombo
             // 
@@ -989,26 +849,6 @@
             this.label38.TabIndex = 4;
             this.label38.Text = "Items sort order:";
             // 
-            // itemsPerWeb
-            // 
-            this.itemsPerWeb.DataBindings.Add(new System.Windows.Forms.Binding("Value", global::TinyOPDS.Properties.Settings.Default, "ItemsPerWebPage", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.itemsPerWeb.Location = new System.Drawing.Point(677, 114);
-            this.itemsPerWeb.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.itemsPerWeb.Maximum = new decimal(new int[] {
-            1000,
-            0,
-            0,
-            0});
-            this.itemsPerWeb.Minimum = new decimal(new int[] {
-            30,
-            0,
-            0,
-            0});
-            this.itemsPerWeb.Name = "itemsPerWeb";
-            this.itemsPerWeb.Size = new System.Drawing.Size(147, 38);
-            this.itemsPerWeb.TabIndex = 3;
-            this.itemsPerWeb.Value = global::TinyOPDS.Properties.Settings.Default.ItemsPerWebPage;
-            // 
             // label37
             // 
             this.label37.AutoSize = true;
@@ -1018,26 +858,6 @@
             this.label37.Size = new System.Drawing.Size(268, 32);
             this.label37.TabIndex = 2;
             this.label37.Text = "Items per web page:";
-            // 
-            // itemsPerOPDS
-            // 
-            this.itemsPerOPDS.DataBindings.Add(new System.Windows.Forms.Binding("Value", global::TinyOPDS.Properties.Settings.Default, "ItemsPerOPDSPage", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.itemsPerOPDS.Location = new System.Drawing.Point(67, 114);
-            this.itemsPerOPDS.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.itemsPerOPDS.Maximum = new decimal(new int[] {
-            1000,
-            0,
-            0,
-            0});
-            this.itemsPerOPDS.Minimum = new decimal(new int[] {
-            30,
-            0,
-            0,
-            0});
-            this.itemsPerOPDS.Name = "itemsPerOPDS";
-            this.itemsPerOPDS.Size = new System.Drawing.Size(147, 38);
-            this.itemsPerOPDS.TabIndex = 1;
-            this.itemsPerOPDS.Value = global::TinyOPDS.Properties.Settings.Default.ItemsPerOPDSPage;
             // 
             // label36
             // 
@@ -1056,7 +876,7 @@
             this.tabPage7.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.tabPage7.Name = "tabPage7";
             this.tabPage7.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.tabPage7.Size = new System.Drawing.Size(1276, 825);
+            this.tabPage7.Size = new System.Drawing.Size(1276, 773);
             this.tabPage7.TabIndex = 6;
             this.tabPage7.Text = "OPDS routes";
             this.tabPage7.UseVisualStyleBackColor = true;
@@ -1067,11 +887,11 @@
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.treeViewOPDS.CheckBoxes = true;
-            this.treeViewOPDS.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(254)));
+            this.treeViewOPDS.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(254)));
             this.treeViewOPDS.Location = new System.Drawing.Point(24, 24);
             this.treeViewOPDS.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.treeViewOPDS.Name = "treeViewOPDS";
-            this.treeViewOPDS.Size = new System.Drawing.Size(1215, 729);
+            this.treeViewOPDS.Size = new System.Drawing.Size(1215, 723);
             this.treeViewOPDS.TabIndex = 2;
             this.treeViewOPDS.AfterCheck += new System.Windows.Forms.TreeViewEventHandler(this.treeViewOPDS_AfterCheck);
             // 
@@ -1094,7 +914,7 @@
             this.tabPage5.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.tabPage5.Name = "tabPage5";
             this.tabPage5.Padding = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.tabPage5.Size = new System.Drawing.Size(1276, 825);
+            this.tabPage5.Size = new System.Drawing.Size(1276, 773);
             this.tabPage5.TabIndex = 4;
             this.tabPage5.Text = "Auth";
             // 
@@ -1182,62 +1002,6 @@
             this.dataGridView1.TabIndex = 1;
             this.dataGridView1.CellFormatting += new System.Windows.Forms.DataGridViewCellFormattingEventHandler(this.dataGridView1_CellFormatting);
             // 
-            // wrongAttemptsCount
-            // 
-            this.wrongAttemptsCount.DataBindings.Add(new System.Windows.Forms.Binding("Value", global::TinyOPDS.Properties.Settings.Default, "WrongAttemptsCount", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.wrongAttemptsCount.Location = new System.Drawing.Point(755, 110);
-            this.wrongAttemptsCount.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.wrongAttemptsCount.Minimum = new decimal(new int[] {
-            3,
-            0,
-            0,
-            0});
-            this.wrongAttemptsCount.Name = "wrongAttemptsCount";
-            this.wrongAttemptsCount.Size = new System.Drawing.Size(107, 38);
-            this.wrongAttemptsCount.TabIndex = 45;
-            this.wrongAttemptsCount.Value = global::TinyOPDS.Properties.Settings.Default.WrongAttemptsCount;
-            // 
-            // banClients
-            // 
-            this.banClients.AutoSize = true;
-            this.banClients.Checked = global::TinyOPDS.Properties.Settings.Default.BanClients;
-            this.banClients.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "BanClients", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.banClients.Location = new System.Drawing.Point(755, 55);
-            this.banClients.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.banClients.Name = "banClients";
-            this.banClients.Size = new System.Drawing.Size(256, 36);
-            this.banClients.TabIndex = 44;
-            this.banClients.Text = "Ban clients after";
-            this.banClients.UseVisualStyleBackColor = true;
-            this.banClients.CheckedChanged += new System.EventHandler(this.banClients_CheckedChanged);
-            // 
-            // rememberClients
-            // 
-            this.rememberClients.AutoSize = true;
-            this.rememberClients.Checked = global::TinyOPDS.Properties.Settings.Default.RememberClients;
-            this.rememberClients.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "RememberClients", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.rememberClients.Location = new System.Drawing.Point(69, 122);
-            this.rememberClients.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.rememberClients.Name = "rememberClients";
-            this.rememberClients.Size = new System.Drawing.Size(421, 36);
-            this.rememberClients.TabIndex = 2;
-            this.rememberClients.Text = "Remember authorized clients";
-            this.rememberClients.UseVisualStyleBackColor = true;
-            // 
-            // useHTTPAuth
-            // 
-            this.useHTTPAuth.AutoSize = true;
-            this.useHTTPAuth.Checked = global::TinyOPDS.Properties.Settings.Default.UseHTTPAuth;
-            this.useHTTPAuth.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "UseHTTPAuth", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.useHTTPAuth.Location = new System.Drawing.Point(69, 55);
-            this.useHTTPAuth.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.useHTTPAuth.Name = "useHTTPAuth";
-            this.useHTTPAuth.Size = new System.Drawing.Size(443, 36);
-            this.useHTTPAuth.TabIndex = 0;
-            this.useHTTPAuth.Text = "Use HTTP basic authentication";
-            this.useHTTPAuth.UseVisualStyleBackColor = true;
-            this.useHTTPAuth.CheckedChanged += new System.EventHandler(this.useHTTPAuth_CheckedChanged);
-            // 
             // tabPage3
             // 
             this.tabPage3.BackColor = System.Drawing.SystemColors.Control;
@@ -1260,7 +1024,7 @@
             this.tabPage3.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.tabPage3.Name = "tabPage3";
             this.tabPage3.Padding = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.tabPage3.Size = new System.Drawing.Size(1276, 825);
+            this.tabPage3.Size = new System.Drawing.Size(1276, 773);
             this.tabPage3.TabIndex = 2;
             this.tabPage3.Text = "Misc";
             // 
@@ -1394,61 +1158,6 @@
             this.convertorPath.TabIndex = 28;
             this.convertorPath.Validated += new System.EventHandler(this.convertorPath_Validated);
             // 
-            // saveLog
-            // 
-            this.saveLog.AutoSize = true;
-            this.saveLog.Checked = global::TinyOPDS.Properties.Settings.Default.SaveLogToDisk;
-            this.saveLog.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "SaveLogToDisk", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.saveLog.Location = new System.Drawing.Point(37, 396);
-            this.saveLog.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.saveLog.Name = "saveLog";
-            this.saveLog.Size = new System.Drawing.Size(239, 36);
-            this.saveLog.TabIndex = 33;
-            this.saveLog.Text = "Save log to file";
-            this.saveLog.UseVisualStyleBackColor = true;
-            this.saveLog.CheckedChanged += new System.EventHandler(this.saveLog_CheckedChanged);
-            // 
-            // closeToTray
-            // 
-            this.closeToTray.AutoSize = true;
-            this.closeToTray.Checked = global::TinyOPDS.Properties.Settings.Default.CloseToTray;
-            this.closeToTray.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "CloseToTray", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.closeToTray.Location = new System.Drawing.Point(37, 329);
-            this.closeToTray.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.closeToTray.Name = "closeToTray";
-            this.closeToTray.Size = new System.Drawing.Size(362, 36);
-            this.closeToTray.TabIndex = 2;
-            this.closeToTray.Text = "Close or minimize to tray";
-            this.closeToTray.UseVisualStyleBackColor = true;
-            this.closeToTray.CheckedChanged += new System.EventHandler(this.closeToTray_CheckedChanged);
-            // 
-            // startMinimized
-            // 
-            this.startMinimized.AutoSize = true;
-            this.startMinimized.Checked = global::TinyOPDS.Properties.Settings.Default.StartMinimized;
-            this.startMinimized.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "StartMinimized", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.startMinimized.Location = new System.Drawing.Point(37, 262);
-            this.startMinimized.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.startMinimized.Name = "startMinimized";
-            this.startMinimized.Size = new System.Drawing.Size(248, 36);
-            this.startMinimized.TabIndex = 1;
-            this.startMinimized.Text = "Start minimized";
-            this.startMinimized.UseVisualStyleBackColor = true;
-            // 
-            // startWithWindows
-            // 
-            this.startWithWindows.AutoSize = true;
-            this.startWithWindows.Checked = global::TinyOPDS.Properties.Settings.Default.StartWithWindows;
-            this.startWithWindows.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "StartWithWindows", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.startWithWindows.Location = new System.Drawing.Point(37, 196);
-            this.startWithWindows.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.startWithWindows.Name = "startWithWindows";
-            this.startWithWindows.Size = new System.Drawing.Size(292, 36);
-            this.startWithWindows.TabIndex = 0;
-            this.startWithWindows.Text = "Start with Windows";
-            this.startWithWindows.UseVisualStyleBackColor = true;
-            this.startWithWindows.CheckedChanged += new System.EventHandler(this.startWithWindows_CheckedChanged);
-            // 
             // tabPage4
             // 
             this.tabPage4.BackColor = System.Drawing.SystemColors.Control;
@@ -1470,7 +1179,7 @@
             this.tabPage4.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.tabPage4.Name = "tabPage4";
             this.tabPage4.Padding = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.tabPage4.Size = new System.Drawing.Size(1276, 825);
+            this.tabPage4.Size = new System.Drawing.Size(1276, 773);
             this.tabPage4.TabIndex = 3;
             this.tabPage4.Text = "About program";
             // 
@@ -1669,11 +1378,277 @@
             this.exitMenuItem.Text = "Exit";
             this.exitMenuItem.Click += new System.EventHandler(this.exitMenuItem_Click);
             // 
+            // useWatcher
+            // 
+            this.useWatcher.AutoSize = true;
+            this.useWatcher.Checked = global::TinyOPDS.Properties.Settings.Default.WatchLibrary;
+            this.useWatcher.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "WatchLibrary", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.useWatcher.Location = new System.Drawing.Point(874, 81);
+            this.useWatcher.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
+            this.useWatcher.Name = "useWatcher";
+            this.useWatcher.Size = new System.Drawing.Size(347, 36);
+            this.useWatcher.TabIndex = 30;
+            this.useWatcher.Text = "Monitor library changes";
+            this.useWatcher.UseVisualStyleBackColor = true;
+            this.useWatcher.CheckedChanged += new System.EventHandler(this.useWatcher_CheckedChanged);
+            // 
+            // useAbsoluteUri
+            // 
+            this.useAbsoluteUri.AutoSize = true;
+            this.useAbsoluteUri.Checked = global::TinyOPDS.Properties.Settings.Default.UseAbsoluteUri;
+            this.useAbsoluteUri.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "UseAbsoluteUri", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.useAbsoluteUri.Location = new System.Drawing.Point(907, 174);
+            this.useAbsoluteUri.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
+            this.useAbsoluteUri.Name = "useAbsoluteUri";
+            this.useAbsoluteUri.Size = new System.Drawing.Size(229, 36);
+            this.useAbsoluteUri.TabIndex = 54;
+            this.useAbsoluteUri.Text = "Absolute links";
+            this.useAbsoluteUri.UseVisualStyleBackColor = true;
+            // 
+            // webPrefix
+            // 
+            this.webPrefix.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::TinyOPDS.Properties.Settings.Default, "HttpPrefix", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.webPrefix.Location = new System.Drawing.Point(907, 246);
+            this.webPrefix.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
+            this.webPrefix.Name = "webPrefix";
+            this.webPrefix.Size = new System.Drawing.Size(279, 38);
+            this.webPrefix.TabIndex = 49;
+            this.webPrefix.Text = global::TinyOPDS.Properties.Settings.Default.HttpPrefix;
+            this.webPrefix.TextChanged += new System.EventHandler(this.rootPrefix_TextChanged);
+            // 
+            // openPort
+            // 
+            this.openPort.AutoSize = true;
+            this.openPort.Checked = global::TinyOPDS.Properties.Settings.Default.OpenNATPort;
+            this.openPort.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "OpenNATPort", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.openPort.Enabled = false;
+            this.openPort.Location = new System.Drawing.Point(427, 174);
+            this.openPort.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
+            this.openPort.Name = "openPort";
+            this.openPort.Size = new System.Drawing.Size(331, 36);
+            this.openPort.TabIndex = 15;
+            this.openPort.Text = "Forward port on router";
+            this.openPort.UseVisualStyleBackColor = true;
+            this.openPort.CheckedChanged += new System.EventHandler(this.openPort_CheckedChanged);
+            // 
+            // serverPort
+            // 
+            this.serverPort.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::TinyOPDS.Properties.Settings.Default, "ServerPort", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.serverPort.Location = new System.Drawing.Point(1085, 86);
+            this.serverPort.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
+            this.serverPort.Name = "serverPort";
+            this.serverPort.Size = new System.Drawing.Size(100, 38);
+            this.serverPort.TabIndex = 10;
+            this.serverPort.Text = global::TinyOPDS.Properties.Settings.Default.ServerPort;
+            this.serverPort.Validated += new System.EventHandler(this.serverPort_Validated);
+            // 
+            // useUPnP
+            // 
+            this.useUPnP.AutoSize = true;
+            this.useUPnP.Checked = global::TinyOPDS.Properties.Settings.Default.UseUPnP;
+            this.useUPnP.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.useUPnP.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "UseUPnP", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.useUPnP.Location = new System.Drawing.Point(59, 174);
+            this.useUPnP.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
+            this.useUPnP.Name = "useUPnP";
+            this.useUPnP.Size = new System.Drawing.Size(183, 36);
+            this.useUPnP.TabIndex = 35;
+            this.useUPnP.Text = "Use UPnP";
+            this.useUPnP.UseVisualStyleBackColor = true;
+            this.useUPnP.CheckStateChanged += new System.EventHandler(this.useUPnP_CheckStateChanged);
+            // 
+            // rootPrefix
+            // 
+            this.rootPrefix.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::TinyOPDS.Properties.Settings.Default, "RootPrefix", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.rootPrefix.Location = new System.Drawing.Point(307, 246);
+            this.rootPrefix.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
+            this.rootPrefix.Name = "rootPrefix";
+            this.rootPrefix.Size = new System.Drawing.Size(308, 38);
+            this.rootPrefix.TabIndex = 19;
+            this.rootPrefix.Text = global::TinyOPDS.Properties.Settings.Default.RootPrefix;
+            this.rootPrefix.TextChanged += new System.EventHandler(this.rootPrefix_TextChanged);
+            // 
+            // serverName
+            // 
+            this.serverName.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::TinyOPDS.Properties.Settings.Default, "ServerName", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.serverName.Location = new System.Drawing.Point(59, 83);
+            this.serverName.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
+            this.serverName.Name = "serverName";
+            this.serverName.Size = new System.Drawing.Size(556, 38);
+            this.serverName.TabIndex = 12;
+            this.serverName.Text = global::TinyOPDS.Properties.Settings.Default.ServerName;
+            // 
+            // checkBox2
+            // 
+            this.checkBox2.AutoSize = true;
+            this.checkBox2.Checked = global::TinyOPDS.Properties.Settings.Default.UseAuthorsAliases;
+            this.checkBox2.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.checkBox2.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "UseAuthorsAliases", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.checkBox2.Location = new System.Drawing.Point(67, 386);
+            this.checkBox2.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
+            this.checkBox2.Name = "checkBox2";
+            this.checkBox2.Size = new System.Drawing.Size(301, 36);
+            this.checkBox2.TabIndex = 9;
+            this.checkBox2.Text = "Use authors aliases";
+            this.checkBox2.UseVisualStyleBackColor = true;
+            this.checkBox2.CheckedChanged += new System.EventHandler(this.checkBox_CheckedChanged);
+            // 
+            // itemsPerWeb
+            // 
+            this.itemsPerWeb.DataBindings.Add(new System.Windows.Forms.Binding("Value", global::TinyOPDS.Properties.Settings.Default, "ItemsPerWebPage", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.itemsPerWeb.Location = new System.Drawing.Point(677, 114);
+            this.itemsPerWeb.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
+            this.itemsPerWeb.Maximum = new decimal(new int[] {
+            1000,
+            0,
+            0,
+            0});
+            this.itemsPerWeb.Minimum = new decimal(new int[] {
+            30,
+            0,
+            0,
+            0});
+            this.itemsPerWeb.Name = "itemsPerWeb";
+            this.itemsPerWeb.Size = new System.Drawing.Size(147, 38);
+            this.itemsPerWeb.TabIndex = 3;
+            this.itemsPerWeb.Value = global::TinyOPDS.Properties.Settings.Default.ItemsPerWebPage;
+            // 
+            // itemsPerOPDS
+            // 
+            this.itemsPerOPDS.DataBindings.Add(new System.Windows.Forms.Binding("Value", global::TinyOPDS.Properties.Settings.Default, "ItemsPerOPDSPage", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.itemsPerOPDS.Location = new System.Drawing.Point(67, 114);
+            this.itemsPerOPDS.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
+            this.itemsPerOPDS.Maximum = new decimal(new int[] {
+            1000,
+            0,
+            0,
+            0});
+            this.itemsPerOPDS.Minimum = new decimal(new int[] {
+            30,
+            0,
+            0,
+            0});
+            this.itemsPerOPDS.Name = "itemsPerOPDS";
+            this.itemsPerOPDS.Size = new System.Drawing.Size(147, 38);
+            this.itemsPerOPDS.TabIndex = 1;
+            this.itemsPerOPDS.Value = global::TinyOPDS.Properties.Settings.Default.ItemsPerOPDSPage;
+            // 
+            // wrongAttemptsCount
+            // 
+            this.wrongAttemptsCount.DataBindings.Add(new System.Windows.Forms.Binding("Value", global::TinyOPDS.Properties.Settings.Default, "WrongAttemptsCount", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.wrongAttemptsCount.Location = new System.Drawing.Point(755, 114);
+            this.wrongAttemptsCount.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
+            this.wrongAttemptsCount.Minimum = new decimal(new int[] {
+            3,
+            0,
+            0,
+            0});
+            this.wrongAttemptsCount.Name = "wrongAttemptsCount";
+            this.wrongAttemptsCount.Size = new System.Drawing.Size(107, 38);
+            this.wrongAttemptsCount.TabIndex = 45;
+            this.wrongAttemptsCount.Value = global::TinyOPDS.Properties.Settings.Default.WrongAttemptsCount;
+            // 
+            // banClients
+            // 
+            this.banClients.AutoSize = true;
+            this.banClients.Checked = global::TinyOPDS.Properties.Settings.Default.BanClients;
+            this.banClients.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "BanClients", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.banClients.Location = new System.Drawing.Point(755, 55);
+            this.banClients.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
+            this.banClients.Name = "banClients";
+            this.banClients.Size = new System.Drawing.Size(256, 36);
+            this.banClients.TabIndex = 44;
+            this.banClients.Text = "Ban clients after";
+            this.banClients.UseVisualStyleBackColor = true;
+            this.banClients.CheckedChanged += new System.EventHandler(this.banClients_CheckedChanged);
+            // 
+            // rememberClients
+            // 
+            this.rememberClients.AutoSize = true;
+            this.rememberClients.Checked = global::TinyOPDS.Properties.Settings.Default.RememberClients;
+            this.rememberClients.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "RememberClients", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.rememberClients.Location = new System.Drawing.Point(69, 122);
+            this.rememberClients.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
+            this.rememberClients.Name = "rememberClients";
+            this.rememberClients.Size = new System.Drawing.Size(421, 36);
+            this.rememberClients.TabIndex = 2;
+            this.rememberClients.Text = "Remember authorized clients";
+            this.rememberClients.UseVisualStyleBackColor = true;
+            // 
+            // useHTTPAuth
+            // 
+            this.useHTTPAuth.AutoSize = true;
+            this.useHTTPAuth.Checked = global::TinyOPDS.Properties.Settings.Default.UseHTTPAuth;
+            this.useHTTPAuth.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "UseHTTPAuth", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.useHTTPAuth.Location = new System.Drawing.Point(69, 55);
+            this.useHTTPAuth.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
+            this.useHTTPAuth.Name = "useHTTPAuth";
+            this.useHTTPAuth.Size = new System.Drawing.Size(443, 36);
+            this.useHTTPAuth.TabIndex = 0;
+            this.useHTTPAuth.Text = "Use HTTP basic authentication";
+            this.useHTTPAuth.UseVisualStyleBackColor = true;
+            this.useHTTPAuth.CheckedChanged += new System.EventHandler(this.useHTTPAuth_CheckedChanged);
+            // 
+            // saveLog
+            // 
+            this.saveLog.AutoSize = true;
+            this.saveLog.Checked = global::TinyOPDS.Properties.Settings.Default.SaveLogToDisk;
+            this.saveLog.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "SaveLogToDisk", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.saveLog.Location = new System.Drawing.Point(37, 396);
+            this.saveLog.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
+            this.saveLog.Name = "saveLog";
+            this.saveLog.Size = new System.Drawing.Size(239, 36);
+            this.saveLog.TabIndex = 33;
+            this.saveLog.Text = "Save log to file";
+            this.saveLog.UseVisualStyleBackColor = true;
+            this.saveLog.CheckedChanged += new System.EventHandler(this.saveLog_CheckedChanged);
+            // 
+            // closeToTray
+            // 
+            this.closeToTray.AutoSize = true;
+            this.closeToTray.Checked = global::TinyOPDS.Properties.Settings.Default.CloseToTray;
+            this.closeToTray.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "CloseToTray", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.closeToTray.Location = new System.Drawing.Point(37, 329);
+            this.closeToTray.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
+            this.closeToTray.Name = "closeToTray";
+            this.closeToTray.Size = new System.Drawing.Size(362, 36);
+            this.closeToTray.TabIndex = 2;
+            this.closeToTray.Text = "Close or minimize to tray";
+            this.closeToTray.UseVisualStyleBackColor = true;
+            this.closeToTray.CheckedChanged += new System.EventHandler(this.closeToTray_CheckedChanged);
+            // 
+            // startMinimized
+            // 
+            this.startMinimized.AutoSize = true;
+            this.startMinimized.Checked = global::TinyOPDS.Properties.Settings.Default.StartMinimized;
+            this.startMinimized.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "StartMinimized", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.startMinimized.Location = new System.Drawing.Point(37, 262);
+            this.startMinimized.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
+            this.startMinimized.Name = "startMinimized";
+            this.startMinimized.Size = new System.Drawing.Size(248, 36);
+            this.startMinimized.TabIndex = 1;
+            this.startMinimized.Text = "Start minimized";
+            this.startMinimized.UseVisualStyleBackColor = true;
+            // 
+            // startWithWindows
+            // 
+            this.startWithWindows.AutoSize = true;
+            this.startWithWindows.Checked = global::TinyOPDS.Properties.Settings.Default.StartWithWindows;
+            this.startWithWindows.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "StartWithWindows", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.startWithWindows.Location = new System.Drawing.Point(37, 196);
+            this.startWithWindows.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
+            this.startWithWindows.Name = "startWithWindows";
+            this.startWithWindows.Size = new System.Drawing.Size(292, 36);
+            this.startWithWindows.TabIndex = 0;
+            this.startWithWindows.Text = "Start with Windows";
+            this.startWithWindows.UseVisualStyleBackColor = true;
+            this.startWithWindows.CheckedChanged += new System.EventHandler(this.startWithWindows_CheckedChanged);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(16F, 31F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1277, 861);
+            this.ClientSize = new System.Drawing.Size(1277, 809);
             this.Controls.Add(this.tabControl1);
             this.DoubleBuffered = true;
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
@@ -1694,19 +1669,19 @@
             this.tabPage2.PerformLayout();
             this.tabPage6.ResumeLayout(false);
             this.tabPage6.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.itemsPerWeb)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.itemsPerOPDS)).EndInit();
             this.tabPage7.ResumeLayout(false);
             this.tabPage5.ResumeLayout(false);
             this.tabPage5.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.wrongAttemptsCount)).EndInit();
             this.tabPage3.ResumeLayout(false);
             this.tabPage3.PerformLayout();
             this.tabPage4.ResumeLayout(false);
             this.tabPage4.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             this.contextMenuStrip.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.itemsPerWeb)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.itemsPerOPDS)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.wrongAttemptsCount)).EndInit();
             this.ResumeLayout(false);
 
         }

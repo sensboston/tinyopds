@@ -29,6 +29,12 @@ namespace TinyOPDS
         [STAThread]
         static void Main()
         {
+            // DPI Awareness for .NET Framework 4.7 and later
+            if (Environment.OSVersion.Version.Major >= 6)
+            {
+                SetProcessDpiAwareness(PROCESS_DPI_AWARENESS.Process_Per_Monitor_DPI_Aware);
+            }
+
             PortableSettingsProvider.SettingsFileName = "TinyOPDS.config";
             PortableSettingsProvider.ApplyProvider(Settings.Default);
 
@@ -58,6 +64,17 @@ namespace TinyOPDS
             {
                 if (!Utils.IsLinux) mutex.ReleaseMutex();
             }
+        }
+
+        // DPI Awareness API declarations
+        [System.Runtime.InteropServices.DllImport("shcore.dll")]
+        private static extern int SetProcessDpiAwareness(PROCESS_DPI_AWARENESS value);
+
+        private enum PROCESS_DPI_AWARENESS
+        {
+            Process_DPI_Unaware = 0,
+            Process_System_DPI_Aware = 1,
+            Process_Per_Monitor_DPI_Aware = 2
         }
 
         static bool IsApplicationRunningOnMono(string processName)

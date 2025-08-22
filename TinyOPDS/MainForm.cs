@@ -68,6 +68,17 @@ namespace TinyOPDS
 
             InitializeComponent();
 
+            // Fix TabControl height for high DPI displays
+            using (Graphics g = CreateGraphics())
+            {
+                float dpiScale = g.DpiX / 96f;
+                if (dpiScale > 1.0f)
+                {
+                    tabControl1.SizeMode = TabSizeMode.Normal;
+                    tabControl1.ItemSize = new Size(Math.Max(120, (int)(120 * dpiScale)), Math.Max(28, (int)(28 * dpiScale)));
+                }
+            }
+
             // Assign combo data source to the list of all available interfaces
             interfaceCombo.DataSource = UPnPController.LocalInterfaces;
             interfaceCombo.DataBindings.Add(new Binding("SelectedIndex", Properties.Settings.Default, "LocalInterfaceIndex", false, DataSourceUpdateMode.OnPropertyChanged));

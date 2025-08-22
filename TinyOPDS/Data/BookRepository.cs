@@ -13,6 +13,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data.SQLite;
+using System.Linq;
 
 namespace TinyOPDS.Data
 {
@@ -107,6 +108,130 @@ namespace TinyOPDS.Data
                 _db.RollbackTransaction();
                 Log.WriteLine(LogLevel.Error, "Error adding book {0}: {1}", book.FileName, ex.Message);
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Add multiple books in batch - optimized for performance
+        /// </summary>
+        public int AddBooksBatch(List<Book> books)
+        {
+            if (books == null || books.Count == 0) return 0;
+
+            var addedCount = 0;
+            var duplicatesCount = 0;
+
+            try
+            {
+                // Optimize SQLite settings for bulk insert
+                _db.ExecuteNonQuery("PRAGMA synchronous = OFF");
+                _db.ExecuteNonQuery("PRAGMA journal_mode = MEMORY");
+                _db.ExecuteNonQuery("PRAGMA temp_store = MEMORY");
+                _db.ExecuteNonQuery("PRAGMA cache_size = 10000");
+
+                _db.BeginTransaction();
+
+                var authorCounts = new Dictionary<string, int>();
+
+                foreach (var book in books)
+                {
+                    try
+                    {
+                        // Check for duplicates
+                        if (BookExists(book.FileName))
+                        {
+                            duplicatesCount++;
+                            continue;
+                        }
+
+                        // Insert book
+                        var bookParams = new[]
+                        {
+                            DatabaseManager.CreateParameter("@ID", book.ID),
+                            DatabaseManager.CreateParameter("@Version", book.Version),
+                            DatabaseManager.CreateParameter("@FileName", book.FileName),
+                            DatabaseManager.CreateParameter("@Title", book.Title),
+                            DatabaseManager.CreateParameter("@Language", book.Language),
+                            DatabaseManager.CreateParameter("@BookDate", book.BookDate == DateTime.MinValue ? (DateTime?)null : book.BookDate),
+                            DatabaseManager.CreateParameter("@DocumentDate", book.DocumentDate == DateTime.MinValue ? (DateTime?)null : book.DocumentDate),
+                            DatabaseManager.CreateParameter("@Sequence", book.Sequence),
+                            DatabaseManager.CreateParameter("@NumberInSequence", (long)book.NumberInSequence),
+                            DatabaseManager.CreateParameter("@Annotation", book.Annotation),
+                            DatabaseManager.CreateParameter("@DocumentSize", (long)book.DocumentSize),
+                            DatabaseManager.CreateParameter("@AddedDate", book.AddedDate)
+                        };
+                        _db.ExecuteNonQuery(DatabaseSchema.InsertBook, bookParams);
+
+                        // Insert authors and relationships
+                        foreach (var authorName in book.Authors)
+                        {
+                            // Insert author if not exists
+                            _db.ExecuteNonQuery(DatabaseSchema.InsertAuthor,
+                                DatabaseManager.CreateParameter("@Name", authorName));
+
+                            // Insert book-author relationship
+                            _db.ExecuteNonQuery(DatabaseSchema.InsertBookAuthor,
+                                DatabaseManager.CreateParameter("@BookID", book.ID),
+                                DatabaseManager.CreateParameter("@AuthorName", authorName));
+
+                            // Track author counts for batch update
+                            if (!authorCounts.ContainsKey(authorName))
+                                authorCounts[authorName] = 0;
+                            authorCounts[authorName]++;
+                        }
+
+                        // Insert genres and relationships
+                        foreach (var genreTag in book.Genres)
+                        {
+                            _db.ExecuteNonQuery(DatabaseSchema.InsertBookGenre,
+                                DatabaseManager.CreateParameter("@BookID", book.ID),
+                                DatabaseManager.CreateParameter("@GenreTag", genreTag));
+                        }
+
+                        // Insert translators and relationships
+                        foreach (var translatorName in book.Translators)
+                        {
+                            _db.ExecuteNonQuery(DatabaseSchema.InsertTranslator,
+                                DatabaseManager.CreateParameter("@Name", translatorName));
+
+                            _db.ExecuteNonQuery(DatabaseSchema.InsertBookTranslator,
+                                DatabaseManager.CreateParameter("@BookID", book.ID),
+                                DatabaseManager.CreateParameter("@TranslatorName", translatorName));
+                        }
+
+                        addedCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.WriteLine(LogLevel.Error, "BookRepository.AddBooksBatch - Book {0}: {1}", book.FileName, ex.Message);
+                    }
+                }
+
+                // Update author book counts in batch
+                foreach (var authorCount in authorCounts)
+                {
+                    _db.ExecuteNonQuery(DatabaseSchema.UpdateAuthorBookCount,
+                        DatabaseManager.CreateParameter("@AuthorName", authorCount.Key));
+                }
+
+                _db.CommitTransaction();
+
+                Log.WriteLine("Batch insert completed: {0} added, {1} duplicates skipped", addedCount, duplicatesCount);
+                return addedCount;
+            }
+            catch (Exception ex)
+            {
+                _db.RollbackTransaction();
+                Log.WriteLine(LogLevel.Error, "BookRepository.AddBooksBatch: {0}", ex.Message);
+                return addedCount;
+            }
+            finally
+            {
+                // Restore normal SQLite settings
+                _db.ExecuteNonQuery("PRAGMA synchronous = NORMAL");
+                _db.ExecuteNonQuery("PRAGMA journal_mode = DELETE");
+                _db.ExecuteNonQuery("PRAGMA temp_store = DEFAULT");
+                _db.ExecuteNonQuery("PRAGMA cache_size = 2000");
             }
         }
 

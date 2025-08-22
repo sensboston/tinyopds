@@ -391,6 +391,84 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
+        /// Add multiple books in batch - optimized for performance
+        /// </summary>
+        /// <param name="books">List of books to add</param>
+        /// <returns>Number of books actually added</returns>
+        public static int AddBatch(List<Book> books)
+        {
+            if (_bookRepository == null || books == null || books.Count == 0) return 0;
+
+            try
+            {
+                var start = DateTime.Now;
+
+                // Process each book similar to individual Add method
+                var processedBooks = new List<Book>();
+                foreach (var book in books)
+                {
+                    // Check for duplicates and handle ID conflicts
+                    var existingBook = _bookRepository.GetBookById(book.ID);
+                    if (existingBook != null && !book.Title.Equals(existingBook.Title))
+                    {
+                        book.ID = Utils.CreateGuid(Utils.IsoOidNamespace, book.FileName).ToString();
+                    }
+
+                    existingBook = _bookRepository.GetBookById(book.ID);
+                    bool isDuplicate = existingBook != null;
+
+                    if (!isDuplicate || (isDuplicate && existingBook.Version < book.Version))
+                    {
+                        if (book.AddedDate == DateTime.MinValue)
+                            book.AddedDate = DateTime.Now;
+
+                        // Replace author aliases if enabled
+                        if (TinyOPDS.Properties.Settings.Default.UseAuthorsAliases)
+                        {
+                            for (int i = 0; i < book.Authors.Count; i++)
+                            {
+                                if (_aliases.ContainsKey(book.Authors[i]))
+                                {
+                                    book.Authors[i] = _aliases[book.Authors[i]];
+                                }
+                            }
+                        }
+
+                        processedBooks.Add(book);
+
+                        if (isDuplicate)
+                        {
+                            Log.WriteLine(LogLevel.Warning, "Will replace duplicate in batch. File name {0}, book version {1}",
+                                book.FileName, book.Version);
+                        }
+                    }
+                    else
+                    {
+                        Log.WriteLine(LogLevel.Warning, "Skipping duplicate in batch. File name {0}, book ID {1}",
+                            book.FileName, book.ID);
+                    }
+                }
+
+                var addedCount = _bookRepository.AddBooksBatch(processedBooks);
+
+                if (addedCount > 0)
+                {
+                    IsChanged = true;
+                    InvalidateStatsCache();
+                    Log.WriteLine("Added {0} books in batch ({1} ms)",
+                        addedCount, (DateTime.Now - start).TotalMilliseconds);
+                }
+
+                return addedCount;
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Library.AddBatch: {0}", ex.Message);
+                return 0;
+            }
+        }
+
+        /// <summary>
         /// Delete all books with specific file path from the library
         /// </summary>
         /// <param name="fileName"></param>
@@ -493,7 +571,6 @@ namespace TinyOPDS.Data
 
             return book;
         }
-
 
         /// <summary>
         /// Remove books that no longer exist on disk

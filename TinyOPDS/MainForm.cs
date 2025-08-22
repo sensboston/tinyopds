@@ -45,6 +45,11 @@ namespace TinyOPDS
         int _fb2Count, _epubCount, _skippedFiles, _invalidFiles, _duplicates;
         #endregion
 
+        #region Batch processing for performance
+        private List<Book> _pendingBooks = new List<Book>();
+        private readonly object _batchLock = new object();
+        #endregion
+
         private Dictionary<string, bool> _opdsStructure;
         private bool _isLoading = false;
 
@@ -277,13 +282,94 @@ namespace TinyOPDS
             return Path.Combine(Utils.ServiceFilesLocation, "books.sqlite");
         }
 
+        #endregion
+
+        #region Batch processing methods
+
         /// <summary>
-        /// Wrapper for Library.Add with SQLite support
+        /// Add book to pending batch - UI shows progress, actual writing is deferred
+        /// </summary>
+        /// <param name="book"></param>
+        /// <returns></returns>
+        private bool AddBookToBatch(Book book)
+        {
+            lock (_batchLock)
+            {
+                _pendingBooks.Add(book);
+
+                // Check if we need to flush the batch
+                int batchSize = Math.Max(1, Properties.Settings.Default.BatchSize);
+                if (_pendingBooks.Count >= batchSize)
+                {
+                    FlushPendingBooks();
+                }
+
+                return true; // For UI counting purposes
+            }
+        }
+
+        /// <summary>
+        /// Flush pending books to database using batch insert
+        /// </summary>
+        private void FlushPendingBooks()
+        {
+            List<Book> booksToProcess;
+
+            lock (_batchLock)
+            {
+                if (_pendingBooks.Count == 0) return;
+
+                booksToProcess = new List<Book>(_pendingBooks);
+                _pendingBooks.Clear();
+            }
+
+            try
+            {
+                var addedCount = Library.AddBatch(booksToProcess);
+                Log.WriteLine("Flushed {0} books to database ({1} actually added)", booksToProcess.Count, addedCount);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error flushing books batch: {0}", ex.Message);
+
+                // Fallback: try to add books individually
+                foreach (var book in booksToProcess)
+                {
+                    try
+                    {
+                        Library.Add(book);
+                    }
+                    catch (Exception ex2)
+                    {
+                        Log.WriteLine(LogLevel.Error, "Error adding book {0}: {1}", book.FileName, ex2.Message);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Flush any remaining pending books (call at scan completion)
+        /// </summary>
+        private void FlushRemainingBooks()
+        {
+            lock (_batchLock)
+            {
+                if (_pendingBooks.Count > 0)
+                {
+                    Log.WriteLine("Flushing {0} remaining books at scan completion", _pendingBooks.Count);
+                    FlushPendingBooks();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Wrapper for Library.Add with batch support - used by individual book operations
         /// </summary>
         /// <param name="book"></param>
         /// <returns></returns>
         private bool AddBook(Book book)
         {
+            // For individual book additions (not during scan), add directly
             return Library.Add(book);
         }
 
@@ -292,6 +378,10 @@ namespace TinyOPDS
         /// </summary>
         private void SaveLibrary()
         {
+            // First flush any pending books
+            FlushRemainingBooks();
+
+            // Then call the library save (no-op for SQLite, but maintains API compatibility)
             Library.Save();
         }
 
@@ -352,6 +442,13 @@ namespace TinyOPDS
 
             _notifyIcon.Visible = Properties.Settings.Default.CloseToTray;
             _updateChecker.Start();
+
+            // Ensure BatchSize has a reasonable default if not set
+            if (Properties.Settings.Default.BatchSize <= 0)
+            {
+                Properties.Settings.Default.BatchSize = 500;
+                Properties.Settings.Default.Save();
+            }
 
             // Load saved credentials
             try
@@ -492,6 +589,8 @@ namespace TinyOPDS
                 };
                 _scanner.OnScanCompleted += (_, __) =>
                 {
+                    // Flush any remaining books at scan completion
+                    FlushRemainingBooks();
                     SaveLibrary();
                     UpdateInfo(true);
 
@@ -503,11 +602,13 @@ namespace TinyOPDS
                 _scanner.Start(libraryPath.Text.SanitizePathName());
                 scannerButton.Text = Localizer.Text("Stop scanning");
 
-                Log.WriteLine("Directory scanner started");
+                Log.WriteLine("Directory scanner started with batch size: {0}", Properties.Settings.Default.BatchSize);
             }
             else
             {
                 _scanner.Stop();
+                // Flush any remaining books when stopping
+                FlushRemainingBooks();
                 SaveLibrary();
                 UpdateInfo(true);
                 scannerButton.Text = Localizer.Text("Start scanning");
@@ -518,16 +619,25 @@ namespace TinyOPDS
 
         void scanner_OnBookFound(object sender, BookFoundEventArgs e)
         {
-            if (AddBook(e.Book))
+            // Add book to batch instead of directly to library
+            if (AddBookToBatch(e.Book))
             {
                 if (e.Book.BookType == BookType.FB2) _fb2Count++; else _epubCount++;
             }
             else _duplicates++;
 
-            var stats = GetLibraryStats();
-            if (stats.Total % 500 == 0) SaveLibrary();
-            if (stats.Total % 20000 == 0) GC.Collect();
-            UpdateInfo();
+            // Update UI every 20 books for responsiveness
+            var totalProcessed = _fb2Count + _epubCount + _duplicates;
+            if (totalProcessed % 20 == 0)
+            {
+                UpdateInfo();
+            }
+
+            // Force GC every 20,000 books to manage memory
+            if (totalProcessed % 20000 == 0)
+            {
+                GC.Collect();
+            }
         }
 
         private void UpdateInfo(bool IsScanFinished = false)

@@ -274,7 +274,7 @@
 			<text lang="fr">Catalogue OPDS</text>
 		</property>
 		<property form="MainForm" ctrl="tabPage3">
-			<text lang="en">Miscellaneous</text>
+			<text lang="en">Misc</text>
 			<text lang="ru">Разное</text>
 			<text lang="uk">Різне</text>
 			<text lang="de">Verschiedenes</text>
@@ -290,12 +290,12 @@
 			<text lang="fr">À propos du programme</text>
 		</property>
 		<property form="MainForm" ctrl="tabPage5">
-			<text lang="en">Authentication</text>
+			<text lang="en">Auth</text>
 			<text lang="ru">Авторизация</text>
 			<text lang="uk">Авторизація</text>
-			<text lang="de">Authentifizierung</text>
-			<text lang="es">Autenticación</text>
-			<text lang="fr">Authentification</text>
+			<text lang="de">Auth</text>
+			<text lang="es">Auth</text>
+			<text lang="fr">Auth</text>
 		</property>
 		<property form="MainForm" ctrl="exitMenuItem">
 			<text lang="en">Exit</text>

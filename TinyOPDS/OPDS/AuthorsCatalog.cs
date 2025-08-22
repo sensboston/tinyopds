@@ -25,6 +25,89 @@ namespace TinyOPDS.OPDS
     public class AuthorsCatalog
     {
         /// <summary>
+        /// Determine the best route for author based on OPDS settings and author's books
+        /// </summary>
+        /// <param name="author">Author name</param>
+        /// <returns>Best route URL for the author</returns>
+        private string GetAuthorRoute(string author)
+        {
+            // Get OPDS structure settings
+            var opdsSettings = GetOPDSStructureSettings();
+            
+            // If author-details is not enabled, skip intermediate page
+            if (!opdsSettings.ContainsKey("author-details") || !opdsSettings["author-details"])
+            {
+                return GetDirectAuthorRoute(author, opdsSettings);
+            }
+
+            // Get author's books to analyze structure
+            var authorBooks = Library.GetBooksByAuthor(author);
+            var booksWithSeries = authorBooks.Where(b => !string.IsNullOrEmpty(b.Sequence)).ToList();
+            var booksWithoutSeries = authorBooks.Where(b => string.IsNullOrEmpty(b.Sequence)).ToList();
+
+            // If author has both series and non-series books, show intermediate page
+            if (booksWithSeries.Count > 0 && booksWithoutSeries.Count > 0)
+            {
+                return "/author-details/" + Uri.EscapeDataString(author);
+            }
+
+            // If author has only one type of books, go directly to appropriate view
+            return GetDirectAuthorRoute(author, opdsSettings);
+        }
+
+        /// <summary>
+        /// Get direct route to author's books based on OPDS settings
+        /// </summary>
+        /// <param name="author">Author name</param>
+        /// <param name="opdsSettings">OPDS structure settings</param>
+        /// <returns>Direct route URL</returns>
+        private string GetDirectAuthorRoute(string author, Dictionary<string, bool> opdsSettings)
+        {
+            // Priority order: by date -> alphabetic (as fallback)
+            
+            if (opdsSettings.ContainsKey("author-by-date") && opdsSettings["author-by-date"])
+            {
+                return "/author-by-date/" + Uri.EscapeDataString(author);
+            }
+
+            // Default to alphabetic view (should always be available)
+            return "/author-alphabetic/" + Uri.EscapeDataString(author);
+        }
+
+        /// <summary>
+        /// Get OPDS structure settings from application settings
+        /// </summary>
+        /// <returns>Dictionary of OPDS structure settings</returns>
+        private Dictionary<string, bool> GetOPDSStructureSettings()
+        {
+            var settings = new Dictionary<string, bool>();
+            
+            try
+            {
+                string settingsString = Properties.Settings.Default.OPDSStructure ?? 
+                    "newdate:1;newtitle:1;authorsindex:1;author-details:1;author-series:1;author-no-series:1;author-alphabetic:1;author-by-date:1;sequencesindex:1;genres:1";
+
+                string[] parts = settingsString.Split(';');
+                foreach (string part in parts)
+                {
+                    string[] keyValue = part.Split(':');
+                    if (keyValue.Length == 2)
+                    {
+                        settings[keyValue[0]] = keyValue[1] == "1";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Warning, "Error parsing OPDS structure settings: {0}", ex.Message);
+                // Default fallback - enable alphabetic view
+                settings["author-alphabetic"] = true;
+            }
+
+            return settings;
+        }
+
+        /// <summary>
         /// 
         /// </summary>
         /// <param name="searchPattern"></param>
@@ -107,14 +190,17 @@ namespace TinyOPDS.OPDS
             {
                 var booksCount = Library.GetBooksByAuthorCount(author);
 
+                // Use smart routing instead of always going to author-details
+                string authorRoute = GetAuthorRoute(author);
+
                 doc.Root.Add(
                     new XElement("entry",
                         new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                         new XElement("id", "tag:authors:" + author),
                         new XElement("title", author),
                         new XElement("content", string.Format(Localizer.Text("Books: {0}"), booksCount), new XAttribute("type", "text")),
-                        // Changed: now link to author details instead of direct books list
-                        new XElement("link", new XAttribute("href", "/author-details/" + Uri.EscapeDataString(author)), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
+                        // Smart routing based on OPDS settings and author's book structure
+                        new XElement("link", new XAttribute("href", authorRoute), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                     )
                 );
             }

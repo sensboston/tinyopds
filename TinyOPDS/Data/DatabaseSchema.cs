@@ -21,6 +21,7 @@ namespace TinyOPDS.Data
                 Version REAL NOT NULL DEFAULT 1.0,
                 FileName TEXT NOT NULL UNIQUE,
                 Title TEXT NOT NULL,
+                TitleSoundex TEXT,
                 Language TEXT,
                 BookDate INTEGER, -- DateTime as ticks
                 DocumentDate INTEGER, -- DateTime as ticks  
@@ -35,7 +36,14 @@ namespace TinyOPDS.Data
             CREATE TABLE IF NOT EXISTS Authors (
                 ID INTEGER PRIMARY KEY AUTOINCREMENT,
                 Name TEXT NOT NULL UNIQUE,
+                NameSoundex TEXT,
                 BookCount INTEGER NOT NULL DEFAULT 0
+            )";
+
+        public const string CreateAuthorAliasesTable = @"
+            CREATE TABLE IF NOT EXISTS AuthorAliases (
+                AliasName TEXT PRIMARY KEY,
+                CanonicalName TEXT NOT NULL
             )";
 
         public const string CreateGenresTable = @"
@@ -85,9 +93,12 @@ namespace TinyOPDS.Data
         public const string CreateIndexes = @"
             CREATE INDEX IF NOT EXISTS idx_books_filename ON Books(FileName);
             CREATE INDEX IF NOT EXISTS idx_books_title ON Books(Title);
+            CREATE INDEX IF NOT EXISTS idx_books_title_soundex ON Books(TitleSoundex);
             CREATE INDEX IF NOT EXISTS idx_books_sequence ON Books(Sequence);
             CREATE INDEX IF NOT EXISTS idx_books_addeddate ON Books(AddedDate);
             CREATE INDEX IF NOT EXISTS idx_authors_name ON Authors(Name);
+            CREATE INDEX IF NOT EXISTS idx_authors_name_soundex ON Authors(NameSoundex);
+            CREATE INDEX IF NOT EXISTS idx_authoraliases_canonical ON AuthorAliases(CanonicalName);
             CREATE INDEX IF NOT EXISTS idx_bookauthors_bookid ON BookAuthors(BookID);
             CREATE INDEX IF NOT EXISTS idx_bookauthors_authorid ON BookAuthors(AuthorID);
             CREATE INDEX IF NOT EXISTS idx_bookgenres_bookid ON BookGenres(BookID);
@@ -100,14 +111,17 @@ namespace TinyOPDS.Data
 
         public const string InsertBook = @"
             INSERT OR REPLACE INTO Books 
-            (ID, Version, FileName, Title, Language, BookDate, DocumentDate, 
+            (ID, Version, FileName, Title, TitleSoundex, Language, BookDate, DocumentDate, 
              Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate)
             VALUES 
-            (@ID, @Version, @FileName, @Title, @Language, @BookDate, @DocumentDate,
+            (@ID, @Version, @FileName, @Title, @TitleSoundex, @Language, @BookDate, @DocumentDate,
              @Sequence, @NumberInSequence, @Annotation, @DocumentSize, @AddedDate)";
 
         public const string InsertAuthor = @"
-            INSERT OR IGNORE INTO Authors (Name, BookCount) VALUES (@Name, 0)";
+            INSERT OR IGNORE INTO Authors (Name, NameSoundex, BookCount) VALUES (@Name, @NameSoundex, 0)";
+
+        public const string InsertAuthorAlias = @"
+            INSERT OR REPLACE INTO AuthorAliases (AliasName, CanonicalName) VALUES (@AliasName, @CanonicalName)";
 
         public const string InsertTranslator = @"
             INSERT OR IGNORE INTO Translators (Name) VALUES (@Name)";
@@ -132,27 +146,33 @@ namespace TinyOPDS.Data
                 SELECT COUNT(*) FROM BookAuthors WHERE AuthorID = Authors.ID
             ) WHERE Name = @AuthorName";
 
+        public const string UpdateAuthorSoundex = @"
+            UPDATE Authors SET NameSoundex = @NameSoundex WHERE Name = @Name";
+
+        public const string UpdateBookTitleSoundex = @"
+            UPDATE Books SET TitleSoundex = @TitleSoundex WHERE ID = @ID";
+
         #endregion
 
         #region Select Queries
 
         public const string SelectAllBooks = @"
-            SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
+            SELECT ID, Version, FileName, Title, TitleSoundex, Language, BookDate, DocumentDate,
                    Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate
             FROM Books";
 
         public const string SelectBookById = @"
-            SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
+            SELECT ID, Version, FileName, Title, TitleSoundex, Language, BookDate, DocumentDate,
                    Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate
             FROM Books WHERE ID = @ID";
 
         public const string SelectBookByFileName = @"
-            SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
+            SELECT ID, Version, FileName, Title, TitleSoundex, Language, BookDate, DocumentDate,
                    Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate
             FROM Books WHERE FileName = @FileName";
 
         public const string SelectBooksByAuthor = @"
-            SELECT b.ID, b.Version, b.FileName, b.Title, b.Language, b.BookDate, b.DocumentDate,
+            SELECT b.ID, b.Version, b.FileName, b.Title, b.TitleSoundex, b.Language, b.BookDate, b.DocumentDate,
                    b.Sequence, b.NumberInSequence, b.Annotation, b.DocumentSize, b.AddedDate
             FROM Books b
             INNER JOIN BookAuthors ba ON b.ID = ba.BookID
@@ -160,27 +180,33 @@ namespace TinyOPDS.Data
             WHERE a.Name = @AuthorName";
 
         public const string SelectBooksBySequence = @"
-            SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
+            SELECT ID, Version, FileName, Title, TitleSoundex, Language, BookDate, DocumentDate,
                    Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate
             FROM Books 
             WHERE Sequence LIKE '%' || @Sequence || '%'
             ORDER BY NumberInSequence";
 
         public const string SelectBooksByGenre = @"
-            SELECT b.ID, b.Version, b.FileName, b.Title, b.Language, b.BookDate, b.DocumentDate,
+            SELECT b.ID, b.Version, b.FileName, b.Title, b.TitleSoundex, b.Language, b.BookDate, b.DocumentDate,
                    b.Sequence, b.NumberInSequence, b.Annotation, b.DocumentSize, b.AddedDate
             FROM Books b
             INNER JOIN BookGenres bg ON b.ID = bg.BookID
             WHERE bg.GenreTag = @GenreTag";
 
         public const string SelectBooksByTitle = @"
-            SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
+            SELECT ID, Version, FileName, Title, TitleSoundex, Language, BookDate, DocumentDate,
                    Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate
             FROM Books 
             WHERE Title LIKE '%' || @Title || '%' OR Sequence LIKE '%' || @Title || '%'";
 
+        public const string SelectBooksByTitleSoundex = @"
+            SELECT ID, Version, FileName, Title, TitleSoundex, Language, BookDate, DocumentDate,
+                   Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate
+            FROM Books 
+            WHERE TitleSoundex = @TitleSoundex";
+
         public const string SelectNewBooks = @"
-            SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
+            SELECT ID, Version, FileName, Title, TitleSoundex, Language, BookDate, DocumentDate,
                    Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate
             FROM Books 
             WHERE AddedDate >= @FromDate";
@@ -190,6 +216,20 @@ namespace TinyOPDS.Data
             FROM Authors a
             INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
             ORDER BY a.Name";
+
+        public const string SelectAuthorsByNamePattern = @"
+            SELECT DISTINCT COALESCE(aa.CanonicalName, a.Name) as Name
+            FROM Authors a
+            LEFT JOIN AuthorAliases aa ON a.Name = aa.AliasName
+            WHERE a.Name LIKE @Pattern OR COALESCE(aa.CanonicalName, a.Name) LIKE @Pattern
+            ORDER BY COALESCE(aa.CanonicalName, a.Name)";
+
+        public const string SelectAuthorsByNameSoundex = @"
+            SELECT DISTINCT COALESCE(aa.CanonicalName, a.Name) as Name
+            FROM Authors a
+            LEFT JOIN AuthorAliases aa ON a.Name = aa.AliasName
+            WHERE a.NameSoundex = @NameSoundex
+            ORDER BY COALESCE(aa.CanonicalName, a.Name)";
 
         public const string SelectSequences = @"
             SELECT DISTINCT Sequence
@@ -229,6 +269,12 @@ namespace TinyOPDS.Data
             WHERE bt.BookID = @BookID
             ORDER BY t.Name";
 
+        public const string SelectAuthorAlias = @"
+            SELECT CanonicalName FROM AuthorAliases WHERE AliasName = @AliasName";
+
+        public const string SelectAliasesForCanonical = @"
+            SELECT AliasName FROM AuthorAliases WHERE CanonicalName = @CanonicalName";
+
         public const string CountBooks = @"SELECT COUNT(*) FROM Books";
 
         public const string CountFB2Books = @"SELECT COUNT(*) FROM Books WHERE FileName LIKE '%.fb2%'";
@@ -244,6 +290,8 @@ namespace TinyOPDS.Data
         public const string DeleteBook = @"DELETE FROM Books WHERE ID = @ID";
 
         public const string DeleteBookByFileName = @"DELETE FROM Books WHERE FileName = @FileName";
+
+        public const string ClearAuthorAliases = @"DELETE FROM AuthorAliases";
 
         #endregion
     }

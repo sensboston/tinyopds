@@ -7,7 +7,6 @@
  *
  * This module contains OPDS OpenSearch implementation
  *
- * TODO: implement SOUNDEX search
  */
 
 using System;
@@ -43,28 +42,6 @@ namespace TinyOPDS.OPDS
             return doc;
         }
 
-        /// <summary>
-        /// Apply aliases to author search results and remove duplicates
-        /// </summary>
-        /// <param name="authors">Original authors list</param>
-        /// <returns>List of canonical author names</returns>
-        private List<string> ApplyAliasesToAuthors(List<string> authors)
-        {
-            if (!Properties.Settings.Default.UseAuthorsAliases || authors == null || authors.Count == 0)
-                return authors ?? new List<string>();
-
-            // Apply aliases to get canonical names and remove duplicates
-            var canonicalAuthors = new HashSet<string>();
-            foreach (var author in authors)
-            {
-                string canonical = Library.ApplyAuthorAlias(author);
-                canonicalAuthors.Add(canonical);
-            }
-
-            // Return sorted list
-            return canonicalAuthors.OrderBy(a => a, new OPDSComparer(Properties.Settings.Default.SortOrder > 0)).ToList();
-        }
-
         public XDocument Search(string searchPattern, string searchType = "", bool fb2Only = false, int pageNumber = 0, int threshold = 100)
         {
             if (!string.IsNullOrEmpty(searchPattern)) searchPattern = Uri.UnescapeDataString(searchPattern).Replace('+', ' ').ToLower();
@@ -85,23 +62,11 @@ namespace TinyOPDS.OPDS
 
             if (string.IsNullOrEmpty(searchType))
             {
-                string transSearchPattern = Transliteration.Back(searchPattern, TransliterationType.GOST);
-
-                // Search for authors and apply aliases
+                // Library.GetAuthorsByName now handles transliteration and Soundex fallback internally
                 authors = Library.GetAuthorsByName(searchPattern, true);
-                if (authors.Count == 0 && !string.IsNullOrEmpty(transSearchPattern))
-                {
-                    authors = Library.GetAuthorsByName(transSearchPattern, true);
-                }
-                // Apply aliases to remove duplicates and get canonical names
-                authors = ApplyAliasesToAuthors(authors);
 
-                // Search for titles
+                // Library.GetBooksByTitle now handles transliteration and Soundex fallback internally
                 titles = Library.GetBooksByTitle(searchPattern);
-                if (titles.Count == 0 && !string.IsNullOrEmpty(transSearchPattern))
-                {
-                    titles = Library.GetBooksByTitle(transSearchPattern);
-                }
             }
 
             if (string.IsNullOrEmpty(searchType) && authors.Count > 0 && titles.Count > 0)
@@ -124,13 +89,13 @@ namespace TinyOPDS.OPDS
             }
             else if (searchType.Equals("authors") || (authors.Count > 0 && titles.Count == 0))
             {
-                // Use AuthorsCatalog which already handles aliases properly
+                // Delegate to AuthorsCatalog which handles aliases, Soundex and transliteration
                 return new AuthorsCatalog().GetCatalog(searchPattern, true);
             }
             else if (searchType.Equals("books") || (titles.Count > 0 && authors.Count == 0))
             {
                 if (pageNumber > 0) searchPattern += "/" + pageNumber;
-                // BooksCatalog already applies aliases in output
+                // Delegate to BooksCatalog which handles aliases in output
                 return new BooksCatalog().GetCatalogByTitle(searchPattern, fb2Only, 0, 1000);
             }
             return doc;

@@ -53,9 +53,10 @@ namespace TinyOPDS.Data
 
         private void InitializeSchema()
         {
-            // Create tables
+            // Create tables in dependency order
             ExecuteNonQuery(DatabaseSchema.CreateBooksTable);
             ExecuteNonQuery(DatabaseSchema.CreateAuthorsTable);
+            ExecuteNonQuery(DatabaseSchema.CreateAuthorAliasesTable);
             ExecuteNonQuery(DatabaseSchema.CreateGenresTable);
             ExecuteNonQuery(DatabaseSchema.CreateTranslatorsTable);
             ExecuteNonQuery(DatabaseSchema.CreateBookAuthorsTable);
@@ -65,7 +66,77 @@ namespace TinyOPDS.Data
             // Create indexes
             ExecuteNonQuery(DatabaseSchema.CreateIndexes);
 
+            // Migrate existing data if needed (add Soundex columns to existing tables)
+            MigrateExistingData();
+
             Log.WriteLine("Database schema initialized");
+        }
+
+        /// <summary>
+        /// Migrate existing database to add Soundex columns if they don't exist
+        /// </summary>
+        private void MigrateExistingData()
+        {
+            try
+            {
+                // Check if TitleSoundex column exists in Books table
+                var hasBookSoundex = CheckColumnExists("Books", "TitleSoundex");
+                if (!hasBookSoundex)
+                {
+                    ExecuteNonQuery("ALTER TABLE Books ADD COLUMN TitleSoundex TEXT");
+                    Log.WriteLine("Added TitleSoundex column to Books table");
+                }
+
+                // Check if NameSoundex column exists in Authors table
+                var hasAuthorSoundex = CheckColumnExists("Authors", "NameSoundex");
+                if (!hasAuthorSoundex)
+                {
+                    ExecuteNonQuery("ALTER TABLE Authors ADD COLUMN NameSoundex TEXT");
+                    Log.WriteLine("Added NameSoundex column to Authors table");
+                }
+
+                // Recreate indexes if columns were added
+                if (!hasBookSoundex || !hasAuthorSoundex)
+                {
+                    ExecuteNonQuery("CREATE INDEX IF NOT EXISTS idx_books_title_soundex ON Books(TitleSoundex)");
+                    ExecuteNonQuery("CREATE INDEX IF NOT EXISTS idx_authors_name_soundex ON Authors(NameSoundex)");
+                    Log.WriteLine("Created Soundex indexes");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Warning, "Error during schema migration: {0}", ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Check if a column exists in a table
+        /// </summary>
+        /// <param name="tableName">Table name</param>
+        /// <param name="columnName">Column name</param>
+        /// <returns>True if column exists</returns>
+        private bool CheckColumnExists(string tableName, string columnName)
+        {
+            try
+            {
+                var result = ExecuteScalar($"PRAGMA table_info({tableName})");
+                using (var reader = ExecuteReader($"PRAGMA table_info({tableName})"))
+                {
+                    while (reader.Read())
+                    {
+                        var colName = reader.GetString(1); // Column name is at index 1
+                        if (colName.Equals(columnName, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Warning, "Error checking column existence: {0}", ex.Message);
+            }
+            return false;
         }
 
         public int ExecuteNonQuery(string sql, params IDbDataParameter[] parameters)

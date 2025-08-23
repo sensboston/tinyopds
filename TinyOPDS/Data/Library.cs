@@ -89,9 +89,6 @@ namespace TinyOPDS.Data
                 _genres = new List<Genre>();
                 _soundexedGenres = new Dictionary<string, string>();
             }
-
-            // Load author aliases (restored original format)
-            LoadAuthorAliases();
         }
 
         #region Database Initialization
@@ -114,6 +111,9 @@ namespace TinyOPDS.Data
                 _database?.Dispose();
                 _database = new DatabaseManager(_databaseFullPath);
                 _bookRepository = new BookRepository(_database);
+
+                // Load author aliases after repository is initialized
+                LoadAuthorAliases();
 
                 Log.WriteLine("SQLite database initialized: {0}", _databaseFullPath);
             }
@@ -604,12 +604,101 @@ namespace TinyOPDS.Data
         /// <returns>Canonical author name if alias exists, otherwise original</returns>
         public static string ApplyAuthorAlias(string originalAuthor)
         {
-            if (TinyOPDS.Properties.Settings.Default.UseAuthorsAliases &&
-                _aliases.ContainsKey(originalAuthor))
-            {
+            if (!TinyOPDS.Properties.Settings.Default.UseAuthorsAliases)
+                return originalAuthor;
+
+            // First try in-memory cache for speed
+            if (_aliases.ContainsKey(originalAuthor))
                 return _aliases[originalAuthor];
+
+            // If not in cache but repository is available, try database lookup
+            if (_bookRepository != null)
+            {
+                string canonical = _bookRepository.GetCanonicalAuthorName(originalAuthor);
+                if (!canonical.Equals(originalAuthor))
+                {
+                    // Cache the result for future use
+                    _aliases[originalAuthor] = canonical;
+                    return canonical;
+                }
             }
+
             return originalAuthor;
+        }
+
+        /// <summary>
+        /// Get authors by name pattern with Soundex fallback for fuzzy search
+        /// </summary>
+        /// <param name="name">Search pattern</param>
+        /// <param name="isOpenSearch">Whether this is open search (contains) or prefix search</param>
+        /// <returns>List of matching author names</returns>
+        public static List<string> GetAuthorsByName(string name, bool isOpenSearch)
+        {
+            if (_bookRepository == null) return new List<string>();
+
+            try
+            {
+                // First try exact/pattern match using optimized SQL query
+                var authors = _bookRepository.GetAuthorsByNamePattern(name, isOpenSearch);
+
+                // If no results found and pattern is long enough, try Soundex search
+                if (authors.Count == 0 && !string.IsNullOrEmpty(name) && name.Length >= 3)
+                {
+                    string nameSoundex = name.SoundexByWord();
+                    var soundexAuthors = _bookRepository.GetAuthorsBySoundex(nameSoundex);
+
+                    if (soundexAuthors.Count > 0)
+                    {
+                        Log.WriteLine(LogLevel.Info, "Soundex fallback for '{0}' found {1} authors", name, soundexAuthors.Count);
+                        authors.AddRange(soundexAuthors);
+                    }
+                }
+
+                // Remove duplicates and sort
+                var comparer = new OPDSComparer(TinyOPDS.Properties.Settings.Default.SortOrder > 0);
+                return authors.Where(a => a.Length > 1).Distinct().OrderBy(a => a, comparer).ToList();
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error in GetAuthorsByName: {0}", ex.Message);
+                return new List<string>();
+            }
+        }
+
+        /// <summary>
+        /// Get books by title with Soundex fallback for fuzzy search
+        /// </summary>
+        /// <param name="title">Title to search for</param>
+        /// <returns>List of matching books</returns>
+        public static List<Book> GetBooksByTitle(string title)
+        {
+            if (_bookRepository == null) return new List<Book>();
+
+            try
+            {
+                // First try exact pattern match
+                var books = _bookRepository.GetBooksByTitle(title);
+
+                // If no results found and title is long enough, try Soundex search
+                if (books.Count == 0 && !string.IsNullOrEmpty(title) && title.Length >= 3)
+                {
+                    string titleSoundex = title.SoundexByWord();
+                    var soundexBooks = _bookRepository.GetBooksByTitleSoundex(titleSoundex);
+
+                    if (soundexBooks.Count > 0)
+                    {
+                        Log.WriteLine(LogLevel.Info, "Soundex fallback for '{0}' found {1} books", title, soundexBooks.Count);
+                        books.AddRange(soundexBooks);
+                    }
+                }
+
+                return books.Distinct().ToList();
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error in GetBooksByTitle: {0}", ex.Message);
+                return new List<Book>();
+            }
         }
 
         #endregion
@@ -617,44 +706,14 @@ namespace TinyOPDS.Data
         #region Query Methods (maintaining original API)
 
         /// <summary>
-        /// Return list of authors by name
+        /// Return number of books by specific author
         /// </summary>
-        /// <param name="name"></param>
-        /// <param name="isOpenSearch"></param>
+        /// <param name="author"></param>
         /// <returns></returns>
-        public static List<string> GetAuthorsByName(string name, bool isOpenSearch)
+        public static int GetBooksByAuthorCount(string author)
         {
-            if (_bookRepository == null) return new List<string>();
-
-            var allAuthors = Authors; // This will get sorted authors from database
-
-            List<string> authors;
-            if (isOpenSearch)
-            {
-                authors = allAuthors.Where(a => a.IndexOf(name, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
-                if (authors.Count == 0)
-                {
-                    string reversedName = name.Reverse();
-                    authors = allAuthors.Where(a => a.IndexOf(reversedName, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
-                }
-            }
-            else
-            {
-                authors = allAuthors.Where(a => a.StartsWith(name, StringComparison.OrdinalIgnoreCase)).ToList();
-            }
-
-            return authors;
-        }
-
-        /// <summary>
-        /// Return list of books by title
-        /// </summary>
-        /// <param name="title"></param>
-        /// <returns></returns>
-        public static List<Book> GetBooksByTitle(string title)
-        {
-            if (_bookRepository == null) return new List<Book>();
-            return _bookRepository.GetBooksByTitle(title);
+            if (_bookRepository == null) return 0;
+            return _bookRepository.GetBooksByAuthor(author).Count;
         }
 
         /// <summary>
@@ -666,17 +725,6 @@ namespace TinyOPDS.Data
         {
             if (_bookRepository == null) return new List<Book>();
             return _bookRepository.GetBooksByAuthor(author);
-        }
-
-        /// <summary>
-        /// Return number of books by specific author
-        /// </summary>
-        /// <param name="author"></param>
-        /// <returns></returns>
-        public static int GetBooksByAuthorCount(string author)
-        {
-            if (_bookRepository == null) return 0;
-            return _bookRepository.GetBooksByAuthor(author).Count;
         }
 
         /// <summary>
@@ -727,11 +775,19 @@ namespace TinyOPDS.Data
 
         private static void LoadAuthorAliases()
         {
-            // Load external file first (with old format)
-            string aliasesFileName = Path.Combine(Utils.ServiceFilesLocation, "a_aliases.txt");
-            if (File.Exists(aliasesFileName))
+            if (_bookRepository == null) return;
+
+            try
             {
-                try
+                // Clear existing aliases in database
+                _bookRepository.ClearAuthorAliases();
+                _aliases.Clear();
+
+                int loadedCount = 0;
+
+                // Load external file first (with old format)
+                string aliasesFileName = Path.Combine(Utils.ServiceFilesLocation, "a_aliases.txt");
+                if (File.Exists(aliasesFileName))
                 {
                     using (var stream = File.OpenRead(aliasesFileName))
                     using (var reader = new StreamReader(stream))
@@ -748,7 +804,13 @@ namespace TinyOPDS.Data
                                     {
                                         string aliasName = string.Format("{2} {0} {1}", parts[1], parts[2], parts[3]).Trim();
                                         string canonicalName = string.Format("{2} {0} {1}", parts[5], parts[6], parts[7]).Trim();
-                                        _aliases[aliasName] = canonicalName;
+
+                                        if (!string.IsNullOrEmpty(aliasName) && !string.IsNullOrEmpty(canonicalName))
+                                        {
+                                            _aliases[aliasName] = canonicalName;
+                                            _bookRepository.AddAuthorAlias(aliasName, canonicalName);
+                                            loadedCount++;
+                                        }
                                     }
                                 }
                                 catch
@@ -758,18 +820,11 @@ namespace TinyOPDS.Data
                             }
                         }
                     }
-                    Log.WriteLine(LogLevel.Info, "Loaded {0} authors aliases from {1}", _aliases.Count, aliasesFileName);
+                    Log.WriteLine(LogLevel.Info, "Loaded {0} authors aliases from {1}", loadedCount, aliasesFileName);
                 }
-                catch (Exception e)
+                else
                 {
-                    Log.WriteLine(LogLevel.Error, "Error loading aliases: exception {0}", e.Message);
-                }
-            }
-            else
-            {
-                // Load from embedded gzipped resource
-                try
-                {
+                    // Load from embedded gzipped resource
                     using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(
                         Assembly.GetExecutingAssembly().GetName().Name + ".a_aliases.txt.gz"))
                     {
@@ -790,7 +845,13 @@ namespace TinyOPDS.Data
                                             {
                                                 string aliasName = string.Format("{2} {0} {1}", parts[1], parts[2], parts[3]).Trim();
                                                 string canonicalName = string.Format("{2} {0} {1}", parts[5], parts[6], parts[7]).Trim();
-                                                _aliases[aliasName] = canonicalName;
+
+                                                if (!string.IsNullOrEmpty(aliasName) && !string.IsNullOrEmpty(canonicalName))
+                                                {
+                                                    _aliases[aliasName] = canonicalName;
+                                                    _bookRepository.AddAuthorAlias(aliasName, canonicalName);
+                                                    loadedCount++;
+                                                }
                                             }
                                         }
                                         catch
@@ -800,14 +861,14 @@ namespace TinyOPDS.Data
                                     }
                                 }
                             }
-                            Log.WriteLine(LogLevel.Info, "Loaded {0} authors aliases from embedded resource", _aliases.Count);
+                            Log.WriteLine(LogLevel.Info, "Loaded {0} authors aliases from embedded resource", loadedCount);
                         }
                     }
                 }
-                catch (Exception e)
-                {
-                    Log.WriteLine(LogLevel.Error, "Error loading embedded aliases: {0}", e.Message);
-                }
+            }
+            catch (Exception e)
+            {
+                Log.WriteLine(LogLevel.Error, "Error loading author aliases: {0}", e.Message);
             }
         }
 

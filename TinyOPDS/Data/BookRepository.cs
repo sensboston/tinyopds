@@ -33,6 +33,9 @@ namespace TinyOPDS.Data
             {
                 _db.BeginTransaction();
 
+                // Calculate Soundex for title
+                string titleSoundex = !string.IsNullOrEmpty(book.Title) ? book.Title.SoundexByWord() : "";
+
                 // Insert or update book
                 var bookParams = new[]
                 {
@@ -40,6 +43,7 @@ namespace TinyOPDS.Data
                     DatabaseManager.CreateParameter("@Version", book.Version),
                     DatabaseManager.CreateParameter("@FileName", book.FileName),
                     DatabaseManager.CreateParameter("@Title", book.Title),
+                    DatabaseManager.CreateParameter("@TitleSoundex", titleSoundex),
                     DatabaseManager.CreateParameter("@Language", book.Language),
                     DatabaseManager.CreateParameter("@BookDate", book.BookDate == DateTime.MinValue ? (DateTime?)null : book.BookDate),
                     DatabaseManager.CreateParameter("@DocumentDate", book.DocumentDate == DateTime.MinValue ? (DateTime?)null : book.DocumentDate),
@@ -63,9 +67,13 @@ namespace TinyOPDS.Data
                 // Add authors
                 foreach (var authorName in book.Authors)
                 {
+                    // Calculate Soundex for author name
+                    string authorSoundex = !string.IsNullOrEmpty(authorName) ? authorName.SoundexByWord() : "";
+
                     // Insert author if not exists
                     _db.ExecuteNonQuery(DatabaseSchema.InsertAuthor,
-                        DatabaseManager.CreateParameter("@Name", authorName));
+                        DatabaseManager.CreateParameter("@Name", authorName),
+                        DatabaseManager.CreateParameter("@NameSoundex", authorSoundex));
 
                     // Link book to author
                     _db.ExecuteNonQuery(DatabaseSchema.InsertBookAuthor,
@@ -143,6 +151,9 @@ namespace TinyOPDS.Data
                             continue;
                         }
 
+                        // Calculate Soundex for title
+                        string titleSoundex = !string.IsNullOrEmpty(book.Title) ? book.Title.SoundexByWord() : "";
+
                         // Insert book
                         var bookParams = new[]
                         {
@@ -150,6 +161,7 @@ namespace TinyOPDS.Data
                             DatabaseManager.CreateParameter("@Version", book.Version),
                             DatabaseManager.CreateParameter("@FileName", book.FileName),
                             DatabaseManager.CreateParameter("@Title", book.Title),
+                            DatabaseManager.CreateParameter("@TitleSoundex", titleSoundex),
                             DatabaseManager.CreateParameter("@Language", book.Language),
                             DatabaseManager.CreateParameter("@BookDate", book.BookDate == DateTime.MinValue ? (DateTime?)null : book.BookDate),
                             DatabaseManager.CreateParameter("@DocumentDate", book.DocumentDate == DateTime.MinValue ? (DateTime?)null : book.DocumentDate),
@@ -164,9 +176,13 @@ namespace TinyOPDS.Data
                         // Insert authors and relationships
                         foreach (var authorName in book.Authors)
                         {
+                            // Calculate Soundex for author name
+                            string authorSoundex = !string.IsNullOrEmpty(authorName) ? authorName.SoundexByWord() : "";
+
                             // Insert author if not exists
                             _db.ExecuteNonQuery(DatabaseSchema.InsertAuthor,
-                                DatabaseManager.CreateParameter("@Name", authorName));
+                                DatabaseManager.CreateParameter("@Name", authorName),
+                                DatabaseManager.CreateParameter("@NameSoundex", authorSoundex));
 
                             // Insert book-author relationship
                             _db.ExecuteNonQuery(DatabaseSchema.InsertBookAuthor,
@@ -309,6 +325,62 @@ namespace TinyOPDS.Data
 
         #endregion
 
+        #region Author Aliases Operations
+
+        /// <summary>
+        /// Insert or update author alias
+        /// </summary>
+        public bool AddAuthorAlias(string aliasName, string canonicalName)
+        {
+            try
+            {
+                _db.ExecuteNonQuery(DatabaseSchema.InsertAuthorAlias,
+                    DatabaseManager.CreateParameter("@AliasName", aliasName),
+                    DatabaseManager.CreateParameter("@CanonicalName", canonicalName));
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error adding author alias {0} -> {1}: {2}", aliasName, canonicalName, ex.Message);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Get canonical name for alias
+        /// </summary>
+        public string GetCanonicalAuthorName(string aliasName)
+        {
+            try
+            {
+                var result = _db.ExecuteScalar(DatabaseSchema.SelectAuthorAlias,
+                    DatabaseManager.CreateParameter("@AliasName", aliasName));
+                return result?.ToString() ?? aliasName;
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error getting canonical name for {0}: {1}", aliasName, ex.Message);
+                return aliasName;
+            }
+        }
+
+        /// <summary>
+        /// Clear all author aliases and reload them
+        /// </summary>
+        public void ClearAuthorAliases()
+        {
+            try
+            {
+                _db.ExecuteNonQuery(DatabaseSchema.ClearAuthorAliases);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error clearing author aliases: {0}", ex.Message);
+            }
+        }
+
+        #endregion
+
         #region Book Queries
 
         public List<Book> GetAllBooks()
@@ -369,6 +441,21 @@ namespace TinyOPDS.Data
             return books;
         }
 
+        /// <summary>
+        /// Search books by title using Soundex (fuzzy search)
+        /// </summary>
+        public List<Book> GetBooksByTitleSoundex(string titleSoundex)
+        {
+            var books = _db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksByTitleSoundex, MapBook,
+                DatabaseManager.CreateParameter("@TitleSoundex", titleSoundex));
+
+            foreach (var book in books)
+            {
+                LoadBookRelations(book);
+            }
+            return books;
+        }
+
         public List<Book> GetNewBooks(DateTime fromDate)
         {
             var books = _db.ExecuteQuery<Book>(DatabaseSchema.SelectNewBooks, MapBook,
@@ -384,7 +471,7 @@ namespace TinyOPDS.Data
         public List<Book> GetBooksByFileNamePrefix(string fileNamePrefix)
         {
             var books = _db.ExecuteQuery<Book>(@"
-                SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
+                SELECT ID, Version, FileName, Title, TitleSoundex, Language, BookDate, DocumentDate,
                        Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate
                 FROM Books 
                 WHERE FileName LIKE @FileNamePrefix || '%'",
@@ -396,6 +483,51 @@ namespace TinyOPDS.Data
                 LoadBookRelations(book);
             }
             return books;
+        }
+
+        #endregion
+
+        #region Author Queries
+
+        /// <summary>
+        /// Get authors by name pattern with aliases support - fast version using SQL
+        /// </summary>
+        public List<string> GetAuthorsByNamePattern(string pattern, bool isOpenSearch = false)
+        {
+            try
+            {
+                string searchPattern = isOpenSearch ? $"%{pattern}%" : $"{pattern}%";
+                var authors = _db.ExecuteQuery<string>(DatabaseSchema.SelectAuthorsByNamePattern,
+                    reader => reader.GetString(0),
+                    DatabaseManager.CreateParameter("@Pattern", searchPattern));
+
+                return authors.Distinct().ToList();
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error getting authors by pattern {0}: {1}", pattern, ex.Message);
+                return new List<string>();
+            }
+        }
+
+        /// <summary>
+        /// Search authors by name using Soundex (fuzzy search)
+        /// </summary>
+        public List<string> GetAuthorsBySoundex(string nameSoundex)
+        {
+            try
+            {
+                var authors = _db.ExecuteQuery<string>(DatabaseSchema.SelectAuthorsByNameSoundex,
+                    reader => reader.GetString(0),
+                    DatabaseManager.CreateParameter("@NameSoundex", nameSoundex));
+
+                return authors.Distinct().ToList();
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error getting authors by soundex {0}: {1}", nameSoundex, ex.Message);
+                return new List<string>();
+            }
         }
 
         #endregion

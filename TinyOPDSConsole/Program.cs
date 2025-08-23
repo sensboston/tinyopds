@@ -331,16 +331,12 @@ namespace TinyOPDSConsole
                 // Flush any remaining books before exit
                 FlushRemainingBooks();
                 SaveLibrary();
-
-                EmbeddedDllLoader.Cleanup();
                 Log.WriteLine("Application cleanup completed");
             }
             catch (Exception ex)
             {
                 Log.WriteLine(LogLevel.Error, "Error during cleanup: {0}", ex.Message);
             }
-
-            Environment.Exit(exitCode);
         }
 
         private static bool RunElevated(string param)
@@ -368,7 +364,6 @@ namespace TinyOPDSConsole
         protected override void OnStop()
         {
             StopServer();
-            EmbeddedDllLoader.Cleanup();
         }
 
         #endregion
@@ -799,8 +794,7 @@ namespace TinyOPDSConsole
                 if (!Utils.IsLinux)
                 {
                     Console.Write(info + "\r");
-                    float dy = (float)info.Length / (float)Console.WindowWidth;
-                    Console.SetCursorPosition(0, Console.CursorTop - (int)dy);
+                    Console.SetCursorPosition(0, Console.CursorTop - info.Length / Console.WindowWidth);
                 }
                 else
                 {

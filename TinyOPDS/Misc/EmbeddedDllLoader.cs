@@ -308,47 +308,6 @@ namespace TinyOPDS
         }
 
         /// <summary>
-        /// Clean up extracted native DLLs on application exit
-        /// </summary>
-        public static void Cleanup()
-        {
-            try
-            {
-                foreach (string extractedPath in _extractedNativeDlls.Values)
-                {
-                    try
-                    {
-                        if (File.Exists(extractedPath))
-                        {
-                            File.Delete(extractedPath);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.WriteLine(LogLevel.Warning, "Could not delete extracted DLL {0}: {1}", extractedPath, ex.Message);
-                    }
-                }
-
-                string tempDir = Path.Combine(Path.GetTempPath(), "TinyOPDS_Native");
-                if (Directory.Exists(tempDir))
-                {
-                    try
-                    {
-                        Directory.Delete(tempDir, true);
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.WriteLine(LogLevel.Warning, "Could not delete temp directory {0}: {1}", tempDir, ex.Message);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.WriteLine(LogLevel.Error, "Error during EmbeddedDllLoader cleanup: {0}", ex.Message);
-            }
-        }
-
-        /// <summary>
         /// Get information about loaded assemblies (for debugging)
         /// </summary>
         public static string GetLoadedAssembliesInfo()

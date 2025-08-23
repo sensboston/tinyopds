@@ -52,7 +52,7 @@ namespace TinyOPDS.Scanner
         }
 
         /// <summary>
-        /// Scan zip file using stream-based approach to reduce memory usage
+        /// Scan zip file using extract-to-memory approach for proper size handling
         /// </summary>
         public void Scan()
         {
@@ -85,18 +85,34 @@ namespace TinyOPDS.Scanner
                             }
                             else if (ext.Contains(".epub"))
                             {
-                                // Stream-based parsing for EPUB
-                                using (var entryStream = entry.OpenReader())
+                                // Extract to memory stream for proper size handling
+                                using (var memStream = new MemoryStream())
                                 {
-                                    book = new ePubParser().Parse(entryStream, ZipFileName + "@" + entryFileName);
+                                    entry.Extract(memStream);
+                                    memStream.Position = 0;
+                                    book = new ePubParser().Parse(memStream, ZipFileName + "@" + entryFileName);
+
+                                    // Ensure correct DocumentSize for archive entries
+                                    if (book != null)
+                                    {
+                                        book.DocumentSize = (uint)entry.UncompressedSize;
+                                    }
                                 }
                             }
                             else if (ext.Contains(".fb2"))
                             {
-                                // Stream-based parsing for FB2
-                                using (var entryStream = entry.OpenReader())
+                                // Extract to memory stream for proper size handling
+                                using (var memStream = new MemoryStream())
                                 {
-                                    book = new FB2Parser().Parse(entryStream, ZipFileName + "@" + entryFileName);
+                                    entry.Extract(memStream);
+                                    memStream.Position = 0;
+                                    book = new FB2Parser().Parse(memStream, ZipFileName + "@" + entryFileName);
+
+                                    // Ensure correct DocumentSize for archive entries
+                                    if (book != null)
+                                    {
+                                        book.DocumentSize = (uint)entry.UncompressedSize;
+                                    }
                                 }
                             }
 
@@ -112,7 +128,6 @@ namespace TinyOPDS.Scanner
                             Log.WriteLine(LogLevel.Error, ".ScanDirectory: exception {0} on file: {1}", e.Message, ZipFileName + "@" + entryFileName);
                             if (OnInvalidBook != null) OnInvalidBook(this, new InvalidBookEventArgs(ZipFileName + "@" + entryFileName));
                         }
-                        // Stream automatically disposed by using statement - no manual cleanup needed
                     }
                 }
             }

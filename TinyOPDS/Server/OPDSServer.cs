@@ -650,6 +650,7 @@ namespace TinyOPDS.Server
                         if (entry != null)
                         {
                             entry.Extract(memStream);
+                            memStream.Position = 0;
                             return true;
                         }
                     }
@@ -659,6 +660,7 @@ namespace TinyOPDS.Server
                     using (var stream = new FileStream(book.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
                     {
                         stream.CopyTo(memStream);
+                        memStream.Position = 0;
                         return true;
                     }
                 }

@@ -58,16 +58,9 @@ namespace TinyOPDS.Parsers
             }
             catch (Exception e)
             {
-                Log.WriteLine(LogLevel.Error, "exception {0}" , e.Message);
+                Log.WriteLine(LogLevel.Error, "exception {0}", e.Message);
             }
-            finally
-            {
-                if (stream != null)
-                {
-                    stream.Dispose();
-                    stream = null;
-                }
-            }
+            // Note: Don't dispose the stream here - it's managed by the caller
             return book;
         }
 

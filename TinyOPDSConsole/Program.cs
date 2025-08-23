@@ -26,6 +26,8 @@ using UPnP;
 using Bluegrams.Application;
 using System.Net;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Runtime.Remoting.Messaging;
 
 namespace TinyOPDSConsole
 {
@@ -47,6 +49,12 @@ namespace TinyOPDSConsole
 
         #region Statistical information
         private static int _fb2Count, _epubCount, _skippedFiles, _invalidFiles, _duplicates;
+        #endregion
+
+        #region Batch processing for CLI performance
+        private static List<Book> _pendingBooks = new List<Book>();
+        private static readonly object _batchLock = new object();
+        private static int _batchSize = 500;
         #endregion
 
         #region Startup, command line processing and service overrides
@@ -78,11 +86,19 @@ namespace TinyOPDSConsole
 
         static int Main(string[] args)
         {
+            // Initialize embedded DLL loader FIRST
+            EmbeddedDllLoader.Initialize();
+            EmbeddedDllLoader.PreloadNativeDlls();
+
+            // Use portable settings provider
             PortableSettingsProvider.SettingsFileName = "TinyOPDS.config";
             PortableSettingsProvider.ApplyProvider(Settings.Default);
 
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
             Log.SaveToFile = Settings.Default.SaveLogToDisk;
+
+            // Initialize batch size from settings
+            _batchSize = Settings.Default.BatchSize > 0 ? Settings.Default.BatchSize : 500;
 
             if (Utils.IsLinux || Environment.UserInteractive)
             {
@@ -95,7 +111,8 @@ namespace TinyOPDSConsole
                     if (_scanner != null)
                     {
                         _scanner.Stop();
-                        Library.Save();
+                        FlushRemainingBooks();
+                        SaveLibrary();
                         Console.WriteLine("\nScanner interruped by user.");
                         Log.WriteLine("Directory scanner stopped");
                     }
@@ -319,6 +336,106 @@ namespace TinyOPDSConsole
         protected override void OnStop()
         {
             StopServer();
+        }
+
+        #endregion
+
+        #region Batch processing methods (same as MainForm.cs)
+
+        /// <summary>
+        /// Add book to pending batch - console shows progress, actual writing is deferred
+        /// </summary>
+        /// <param name="book"></param>
+        /// <returns></returns>
+        private static bool AddBookToBatch(Book book)
+        {
+            lock (_batchLock)
+            {
+                _pendingBooks.Add(book);
+
+                // Check if we need to flush the batch
+                if (_pendingBooks.Count >= _batchSize)
+                {
+                    FlushPendingBooks();
+                }
+
+                return true; // For console counting purposes
+            }
+        }
+
+        /// <summary>
+        /// Flush pending books to database using batch insert
+        /// </summary>
+        private static void FlushPendingBooks()
+        {
+            List<Book> booksToProcess;
+
+            lock (_batchLock)
+            {
+                if (_pendingBooks.Count == 0) return;
+
+                booksToProcess = new List<Book>(_pendingBooks);
+                _pendingBooks.Clear();
+            }
+
+            try
+            {
+                var addedCount = Library.AddBatch(booksToProcess);
+                Log.WriteLine("Flushed {0} books to database ({1} actually added)", booksToProcess.Count, addedCount);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error flushing books batch: {0}", ex.Message);
+
+                // Fallback: try to add books individually
+                foreach (var book in booksToProcess)
+                {
+                    try
+                    {
+                        Library.Add(book);
+                    }
+                    catch (Exception ex2)
+                    {
+                        Log.WriteLine(LogLevel.Error, "Error adding book {0}: {1}", book.FileName, ex2.Message);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Flush any remaining pending books (call at scan completion)
+        /// </summary>
+        private static void FlushRemainingBooks()
+        {
+            lock (_batchLock)
+            {
+                if (_pendingBooks.Count > 0)
+                {
+                    Log.WriteLine("Flushing {0} remaining books at scan completion", _pendingBooks.Count);
+                    FlushPendingBooks();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Wrapper for Library.Save with SQLite support
+        /// </summary>
+        private static void SaveLibrary()
+        {
+            // First flush any pending books
+            FlushRemainingBooks();
+
+            // Then call the library save (no-op for SQLite, but maintains API compatibility)
+            Library.Save();
+        }
+
+        /// <summary>
+        /// Get library statistics with SQLite support
+        /// </summary>
+        /// <returns></returns>
+        private static (int Total, int FB2, int EPUB) GetLibraryStats()
+        {
+            return (Library.Count, Library.FB2Count, Library.EPUBCount);
         }
 
         #endregion
@@ -549,14 +666,14 @@ namespace TinyOPDSConsole
             // Init log file settings
             Log.SaveToFile = Settings.Default.SaveLogToDisk;
 
-            // ДОБАВЛЕНО: Init localization service (как в GUI)
+            // Init localization service (как в GUI)
             Localizer.Init();
             Localizer.Language = Settings.Default.Language;
 
-            // ДОБАВЛЕНО: Initialize SQLite database before scanning
+            // Initialize SQLite database before scanning
             InitializeSQLiteDatabase();
 
-            // ДОБАВЛЕНО: Load existing library
+            // Load existing library
             Library.Load();
 
             _scanner = new FileScanner();
@@ -569,7 +686,11 @@ namespace TinyOPDSConsole
             };
             _scanner.OnScanCompleted += (_, __) =>
             {
+                // Flush any remaining books at scan completion
+                FlushRemainingBooks();
+                SaveLibrary();
                 UpdateInfo(true);
+
                 Log.WriteLine("Directory scanner completed");
                 Console.WriteLine("\nScan completed. Press any key to exit...");
                 Console.ReadKey();
@@ -578,23 +699,39 @@ namespace TinyOPDSConsole
             _scanStartTime = DateTime.Now;
             _scanner.Start(Library.LibraryPath);
             Console.WriteLine("Scanning directory {0}", Library.LibraryPath);
-            Log.WriteLine("Directory scanner started");
+            Log.WriteLine("Directory scanner started with batch size: {0}", _batchSize);
             UpdateInfo();
             while (_scanner != null && _scanner.Status == FileScannerStatus.SCANNING) Thread.Sleep(500);
-            // Save library in the main thread
-            Library.Save();
+
+            // Final flush and save at the end
+            FlushRemainingBooks();
+            SaveLibrary();
         }
 
+        /// <summary>
+        /// Optimized book found handler with batching (same logic as MainForm.cs)
+        /// </summary>
         static void scanner_OnBookFound(object sender, BookFoundEventArgs e)
         {
-            if (Library.Add(e.Book))
+            // Add book to batch instead of directly to library
+            if (AddBookToBatch(e.Book))
             {
                 if (e.Book.BookType == BookType.FB2) _fb2Count++; else _epubCount++;
             }
             else _duplicates++;
-            if (Library.Count % 500 == 0) Library.Save();
-            if (Library.Count % 20000 == 0) GC.Collect();
-            UpdateInfo();
+
+            // Update console every 20 books for better responsiveness
+            var totalProcessed = _fb2Count + _epubCount + _duplicates;
+            if (totalProcessed % 20 == 0)
+            {
+                UpdateInfo();
+            }
+
+            // Force GC every 20,000 books to manage memory
+            if (totalProcessed % 20000 == 0)
+            {
+                GC.Collect();
+            }
         }
 
         private static void UpdateInfo(bool IsScanFinished = false)
@@ -603,10 +740,11 @@ namespace TinyOPDSConsole
 
             if (IsScanFinished || totalBooksProcessed % 10 == 0)
             {
+                var stats = GetLibraryStats();
                 TimeSpan dt = DateTime.Now.Subtract(_scanStartTime);
                 string rate = (dt.TotalSeconds) > 0 ? string.Format("{0:0.} books/min", totalBooksProcessed / dt.TotalSeconds * 60) : "---";
 
-                string info = string.Format("Elapsed time: {1}, rate: {2}, found fb2: {3}, epub: {4}, skipped: {5}, dups: {6}, invalid: {7}, total: {8}     ",
+                string info = string.Format("Elapsed time: {1}, rate: {2}, found fb2: {3}, epub: {4}, skipped: {5}, dups: {6}, invalid: {7}, total: {8}, in DB: {9}     ",
                     _scanStartTime.ToString(@"hh\:mm\:ss"),
                     dt.ToString(@"hh\:mm\:ss"),
                     rate,
@@ -615,7 +753,8 @@ namespace TinyOPDSConsole
                     _skippedFiles,
                     _duplicates,
                     _invalidFiles,
-                    totalBooksProcessed);
+                    totalBooksProcessed,
+                    stats.Total);
 
                 if (!Utils.IsLinux)
                 {

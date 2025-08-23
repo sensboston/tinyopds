@@ -29,6 +29,10 @@ namespace TinyOPDS
         [STAThread]
         static void Main()
         {
+            // Initialize embedded DLL loader first (before any other operations)
+            EmbeddedDllLoader.Initialize();
+            EmbeddedDllLoader.PreloadNativeDlls();
+
             // DPI Awareness for .NET Framework 4.7 and later
             if (Environment.OSVersion.Version.Major >= 6)
             {

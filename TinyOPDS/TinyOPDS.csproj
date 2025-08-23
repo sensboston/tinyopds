@@ -149,10 +149,11 @@
     <Compile Include="Data\ImagesCache.cs" />
     <Compile Include="Data\Library.cs" />
     <Compile Include="Data\SqliteConnectionFactory.cs" />
+    <Compile Include="Misc\EmbeddedDllLoader.cs" />
     <Compile Include="OPDS\AuthorBooksCatalog.cs" />
     <Compile Include="OPDS\AuthorDetailsCatalog.cs" />
-    <Compile Include="PortableSettingsProvider.cs" />
-    <Compile Include="PortableSettingsProviderBase.cs" />
+    <Compile Include="Misc\PortableSettingsProvider.cs" />
+    <Compile Include="Misc\PortableSettingsProviderBase.cs" />
     <Compile Include="SgmlReader\SgmlParser.cs" />
     <Compile Include="SgmlReader\SgmlReader.cs" />
     <EmbeddedResource Include="a_aliases.txt.gz" />
@@ -163,7 +164,6 @@
       <DependentUpon>MainForm.cs</DependentUpon>
     </Compile>
     <Compile Include="Misc\Crypt.cs" />
-    <Compile Include="Misc\CustomSettingsProvider.cs" />
     <Compile Include="Misc\Localizer.cs" />
     <Compile Include="Misc\Log.cs" />
     <Compile Include="Misc\OPDSComparer.cs" />
@@ -254,16 +254,14 @@
     <None Include="donate.png" />
     <None Include="Icons\folder.png" />
     <EmbeddedResource Include="Resources\book_cover.jpg" />
-    <None Include="FodyWeavers.xml" />
-    <EmbeddedResource Include="costura-win-x86\SQLite.Interop.dll" />
-    <EmbeddedResource Include="costura-win-x64\SQLite.Interop.dll" />
     <Content Include="Icons\lib.png" />
     <Content Include="Icons\TinyOPDS.ico" />
-    <Content Include="Libs\eBdb.EpubReader.dll" />
-    <Content Include="Libs\FB2Library.dll" />
-    <Content Include="Libs\Ionic.Zip.Reduced.dll" />
-    <Content Include="Libs\x64\SQLite.Interop.dll" />
-    <Content Include="Libs\x86\SQLite.Interop.dll" />
+    <EmbeddedResource Include="Libs\eBdb.EpubReader.dll" />
+    <EmbeddedResource Include="Libs\FB2Library.dll" />
+    <EmbeddedResource Include="Libs\Ionic.Zip.Reduced.dll" />
+    <EmbeddedResource Include="Libs\System.Data.SQLite.dll" />
+    <EmbeddedResource Include="Libs\x64\SQLite.Interop.dll" />
+    <EmbeddedResource Include="Libs\x86\SQLite.Interop.dll" />
     <Content Include="License.txt" />
     <None Include="Resources\trayIcon.ico" />
     <Content Include="TinyOPDS.ico" />

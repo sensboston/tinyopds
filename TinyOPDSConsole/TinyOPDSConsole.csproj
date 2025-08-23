@@ -114,8 +114,8 @@
     <Compile Include="..\TinyOPDS\Misc\Crypt.cs">
       <Link>Misc\Crypt.cs</Link>
     </Compile>
-    <Compile Include="..\TinyOPDS\Misc\CustomSettingsProvider.cs">
-      <Link>Misc\CustomSettingsProvider.cs</Link>
+    <Compile Include="..\TinyOPDS\Misc\EmbeddedDllLoader.cs">
+      <Link>Misc\EmbeddedDllLoader.cs</Link>
     </Compile>
     <Compile Include="..\TinyOPDS\Misc\Localizer.cs">
       <Link>Misc\Localizer.cs</Link>
@@ -125,6 +125,12 @@
     </Compile>
     <Compile Include="..\TinyOPDS\Misc\OPDSComparer.cs">
       <Link>Misc\OPDSComparer.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\Misc\PortableSettingsProvider.cs">
+      <Link>Misc\PortableSettingsProvider.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\Misc\PortableSettingsProviderBase.cs">
+      <Link>Misc\PortableSettingsProviderBase.cs</Link>
     </Compile>
     <Compile Include="..\TinyOPDS\Misc\ProcessHelper.cs">
       <Link>Misc\ProcessHelper.cs</Link>
@@ -183,12 +189,6 @@
     <Compile Include="..\TinyOPDS\Parsers\FB2Parser.cs">
       <Link>Parsers\FB2Parser.cs</Link>
     </Compile>
-    <Compile Include="..\TinyOPDS\PortableSettingsProvider.cs">
-      <Link>PortableSettingsProvider.cs</Link>
-    </Compile>
-    <Compile Include="..\TinyOPDS\PortableSettingsProviderBase.cs">
-      <Link>PortableSettingsProviderBase.cs</Link>
-    </Compile>
     <Compile Include="..\TinyOPDS\Scanner\FileScanner.cs">
       <Link>Scanner\FileScanner.cs</Link>
     </Compile>
@@ -239,6 +239,9 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="..\TinyOPDS\Libs\System.Data.SQLite.dll">
+      <Link>Libs\System.Data.SQLite.dll</Link>
+    </EmbeddedResource>
     <EmbeddedResource Include="..\TinyOPDS\Resources\book_cover.jpg">
       <Link>Resources\book_cover.jpg</Link>
     </EmbeddedResource>
@@ -252,21 +255,21 @@
     <EmbeddedResource Include="..\TinyOPDS\genres.xml">
       <Link>genres.xml</Link>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\TinyOPDS\costura-win-x86\SQLite.Interop.dll">
-      <Link>costura-win-x86\SQLite.Interop.dll</Link>
+    <EmbeddedResource Include="..\TinyOPDS\Libs\x86\SQLite.Interop.dll">
+      <Link>Libs\x86\SQLite.Interop.dll</Link>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\TinyOPDS\costura-win-x64\SQLite.Interop.dll">
-      <Link>costura-win-x64\SQLite.Interop.dll</Link>
+    <EmbeddedResource Include="..\TinyOPDS\Libs\x64\SQLite.Interop.dll">
+      <Link>Libs\x64\SQLite.Interop.dll</Link>
     </EmbeddedResource>
-    <Content Include="..\TinyOPDS\Libs\eBdb.EpubReader.dll">
+    <EmbeddedResource Include="..\TinyOPDS\Libs\eBdb.EpubReader.dll">
       <Link>Libs\eBdb.EpubReader.dll</Link>
-    </Content>
-    <Content Include="..\TinyOPDS\Libs\FB2Library.dll">
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\Libs\FB2Library.dll">
       <Link>Libs\FB2Library.dll</Link>
-    </Content>
-    <Content Include="..\TinyOPDS\Libs\Ionic.Zip.Reduced.dll">
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\Libs\Ionic.Zip.Reduced.dll">
       <Link>Libs\Ionic.Zip.Reduced.dll</Link>
-    </Content>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.5">

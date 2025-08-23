@@ -16,6 +16,9 @@ using System.Threading;
 using System.Reflection;
 using System.Diagnostics;
 using System.IO;
+using System.Net;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 
 using TinyOPDS;
 using TinyOPDS.Data;
@@ -24,10 +27,6 @@ using TinyOPDS.Server;
 using TinyOPDS.Properties;
 using UPnP;
 using Bluegrams.Application;
-using System.Net;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Runtime.Remoting.Messaging;
 
 namespace TinyOPDSConsole
 {
@@ -44,7 +43,7 @@ namespace TinyOPDSConsole
         private static FileScanner _scanner;
         private static Watcher _watcher;
         private static DateTime _scanStartTime;
-        private static UPnPController _upnpController = new UPnPController();
+        private static readonly UPnPController _upnpController = new UPnPController();
         private static Timer _upnpRefreshTimer = null;
 
         #region Statistical information
@@ -52,7 +51,7 @@ namespace TinyOPDSConsole
         #endregion
 
         #region Batch processing for CLI performance
-        private static List<Book> _pendingBooks = new List<Book>();
+        private static readonly List<Book> _pendingBooks = new List<Book>();
         private static readonly object _batchLock = new object();
         private static int _batchSize = 500;
         #endregion
@@ -102,7 +101,7 @@ namespace TinyOPDSConsole
 
             if (Utils.IsLinux || Environment.UserInteractive)
             {
-                // Add Ctrl+c handler
+                // Add Ctrl+c handler with proper cleanup
                 Console.CancelKeyPress += (sender, eventArgs) =>
                 {
                     eventArgs.Cancel = true;
@@ -116,6 +115,8 @@ namespace TinyOPDSConsole
                         Console.WriteLine("\nScanner interruped by user.");
                         Log.WriteLine("Directory scanner stopped");
                     }
+
+                    CleanupAndExit(0);
                 };
 
                 // On Linux, we need clear console (terminal) window first
@@ -139,7 +140,7 @@ namespace TinyOPDSConsole
                                     catch (Exception e)
                                     {
                                         Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to install with exception: \"{0}\"", e.Message);
-                                        return (-1);
+                                        CleanupAndExit(-1);
                                     }
                                 }
                                 else
@@ -148,8 +149,9 @@ namespace TinyOPDSConsole
                                     if (RunElevated("install")) Console.WriteLine(SERVICE_DISPLAY_NAME + " installed");
                                     else Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to install");
                                 }
-                                return (0);
+                                CleanupAndExit(0);
                             }
+                            break;
 
                         // Uninstall service command
                         case "uninstall":
@@ -157,7 +159,7 @@ namespace TinyOPDSConsole
                                 if (!TinyOPDS.ServiceInstaller.ServiceIsInstalled(SERVICE_NAME))
                                 {
                                     Console.WriteLine(SERVICE_DISPLAY_NAME + " is not installed");
-                                    return (-1);
+                                    CleanupAndExit(-1);
                                 }
 
                                 if (Utils.IsElevated)
@@ -178,7 +180,7 @@ namespace TinyOPDSConsole
                                     catch (Exception e)
                                     {
                                         Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to uninstall with exception: \"{0}\"", e.Message);
-                                        return (-1);
+                                        CleanupAndExit(-1);
                                     }
                                 }
                                 else
@@ -187,8 +189,9 @@ namespace TinyOPDSConsole
                                     if (RunElevated("uninstall")) Console.WriteLine(SERVICE_DISPLAY_NAME + " uninstalled");
                                     else Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to uninstall");
                                 }
-                                return (0);
+                                CleanupAndExit(0);
                             }
+                            break;
 
                         // Start service command
                         case "start":
@@ -205,7 +208,7 @@ namespace TinyOPDSConsole
                                         catch (Exception e)
                                         {
                                             Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to start with exception: \"{0}\"", e.Message);
-                                            return (-1);
+                                            CleanupAndExit(-1);
                                         }
                                     }
                                     else
@@ -216,8 +219,9 @@ namespace TinyOPDSConsole
                                     }
                                 }
                                 else StartServer();
-                                return (0);
+                                CleanupAndExit(0);
                             }
+                            break;
 
                         // Stop service command
                         case "stop":
@@ -225,7 +229,7 @@ namespace TinyOPDSConsole
                                 if (!TinyOPDS.ServiceInstaller.ServiceIsInstalled(SERVICE_NAME))
                                 {
                                     Console.WriteLine(SERVICE_DISPLAY_NAME + " is not installed");
-                                    return (-1);
+                                    CleanupAndExit(-1);
                                 }
 
                                 if (Utils.IsElevated)
@@ -238,7 +242,7 @@ namespace TinyOPDSConsole
                                     catch (Exception e)
                                     {
                                         Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to stop with exception: \"{0}\"", e.Message);
-                                        return (-1);
+                                        CleanupAndExit(-1);
                                     }
                                 }
                                 else
@@ -247,14 +251,16 @@ namespace TinyOPDSConsole
                                     if (RunElevated("stop")) Console.WriteLine(SERVICE_DISPLAY_NAME + " stopped");
                                     else Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to stop");
                                 }
-                                return (0);
+                                CleanupAndExit(0);
                             }
+                            break;
 
                         case "scan":
                             {
                                 ScanFolder();
-                                return (0);
+                                CleanupAndExit(0);
                             }
+                            break;
 
                         case "encred":
                             {
@@ -268,8 +274,9 @@ namespace TinyOPDSConsole
                                 {
                                     Console.WriteLine("To encode credentials, please provide additional parameters: user1 password1 user2 password2 ...");
                                 }
-                                return (0);
+                                CleanupAndExit(0);
                             }
+                            break;
 
                         case "encpath":
                             {
@@ -282,8 +289,9 @@ namespace TinyOPDSConsole
                                 {
                                     Console.WriteLine("Please provide a path to the library files (without closing slash), for example: TinyOPDSConsole.exe \"C:\\My Documents\\My ebooks\"");
                                 }
-                                return (0);
+                                CleanupAndExit(0);
                             }
+                            break;
                     }
                 }
 
@@ -308,7 +316,31 @@ namespace TinyOPDSConsole
                 }
             }
 
-            return (0);
+            CleanupAndExit(0);
+            return 0; // This line will never be reached, but satisfies compiler
+        }
+
+        /// <summary>
+        /// Cleanup extracted DLLs and exit gracefully
+        /// </summary>
+        /// <param name="exitCode"></param>
+        private static void CleanupAndExit(int exitCode = 0)
+        {
+            try
+            {
+                // Flush any remaining books before exit
+                FlushRemainingBooks();
+                SaveLibrary();
+
+                EmbeddedDllLoader.Cleanup();
+                Log.WriteLine("Application cleanup completed");
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error during cleanup: {0}", ex.Message);
+            }
+
+            Environment.Exit(exitCode);
         }
 
         private static bool RunElevated(string param)
@@ -336,6 +368,7 @@ namespace TinyOPDSConsole
         protected override void OnStop()
         {
             StopServer();
+            EmbeddedDllLoader.Cleanup();
         }
 
         #endregion
@@ -479,7 +512,7 @@ namespace TinyOPDSConsole
         }
 
         /// <summary>
-        /// 
+        /// Start OPDS server
         /// </summary>
         private static void StartServer()
         {
@@ -521,7 +554,7 @@ namespace TinyOPDSConsole
             };
             _watcher.IsEnabled = Settings.Default.WatchLibrary;
 
-            _upnpController.DiscoverCompleted += _upnpController_DiscoverCompleted;
+            _upnpController.DiscoverCompleted += UpnpController_DiscoverCompleted;
             _upnpController.DiscoverAsync(Settings.Default.UseUPnP);
 
             // Load saved credentials
@@ -558,8 +591,10 @@ namespace TinyOPDSConsole
             HttpProcessor.BannedClients.Clear();
             _server = new OPDSServer(IPAddress.Any, int.Parse(Settings.Default.ServerPort));
 
-            _serverThread = new Thread(new ThreadStart(_server.Listen));
-            _serverThread.Priority = ThreadPriority.BelowNormal;
+            _serverThread = new Thread(new ThreadStart(_server.Listen))
+            {
+                Priority = ThreadPriority.BelowNormal
+            };
             _serverThread.Start();
             _server.ServerReady.WaitOne(TimeSpan.FromMilliseconds(500));
             if (!_server.IsActive)
@@ -593,14 +628,11 @@ namespace TinyOPDSConsole
         }
 
         /// <summary>
-        /// 
+        /// Stop OPDS server
         /// </summary>
         private static void StopServer()
         {
-            if (_upnpRefreshTimer != null)
-            {
-                _upnpRefreshTimer.Dispose();
-            }
+            _upnpRefreshTimer?.Dispose();
 
             if (_server != null)
             {
@@ -624,12 +656,12 @@ namespace TinyOPDSConsole
                     _upnpController.DeleteForwardingRule(port, System.Net.Sockets.ProtocolType.Tcp);
                     Log.WriteLine("Port {0} closed", port);
                 }
-                _upnpController.DiscoverCompleted -= _upnpController_DiscoverCompleted;
+                _upnpController.DiscoverCompleted -= UpnpController_DiscoverCompleted;
                 _upnpController.Dispose();
             }
         }
 
-        private static void _upnpController_DiscoverCompleted(object sender, EventArgs e)
+        private static void UpnpController_DiscoverCompleted(object sender, EventArgs e)
         {
             if (_upnpController != null && _upnpController.UPnPReady)
             {
@@ -666,7 +698,7 @@ namespace TinyOPDSConsole
             // Init log file settings
             Log.SaveToFile = Settings.Default.SaveLogToDisk;
 
-            // Init localization service (как в GUI)
+            // Init localization service
             Localizer.Init();
             Localizer.Language = Settings.Default.Language;
 
@@ -677,7 +709,7 @@ namespace TinyOPDSConsole
             Library.Load();
 
             _scanner = new FileScanner();
-            _scanner.OnBookFound += scanner_OnBookFound;
+            _scanner.OnBookFound += Scanner_OnBookFound;
             _scanner.OnInvalidBook += (_, __) => { _invalidFiles++; };
             _scanner.OnFileSkipped += (object _sender, FileSkippedEventArgs _e) =>
             {
@@ -709,9 +741,9 @@ namespace TinyOPDSConsole
         }
 
         /// <summary>
-        /// Optimized book found handler with batching (same logic as MainForm.cs)
+        /// Optimized book found handler with batching and regular flushes
         /// </summary>
-        static void scanner_OnBookFound(object sender, BookFoundEventArgs e)
+        static void Scanner_OnBookFound(object sender, BookFoundEventArgs e)
         {
             // Add book to batch instead of directly to library
             if (AddBookToBatch(e.Book))
@@ -720,9 +752,17 @@ namespace TinyOPDSConsole
             }
             else _duplicates++;
 
-            // Update console every 20 books for better responsiveness
             var totalProcessed = _fb2Count + _epubCount + _duplicates;
-            if (totalProcessed % 20 == 0)
+
+            // Force flush every 1000 books to prevent "freezing"
+            if (totalProcessed % 1000 == 0)
+            {
+                FlushPendingBooks(); // Forced flush every 1000 books
+                Log.WriteLine("Forced flush at {0} books processed", totalProcessed);
+            }
+
+            // Update console every 10 books for better responsiveness
+            if (totalProcessed % 10 == 0)
             {
                 UpdateInfo();
             }
@@ -736,16 +776,16 @@ namespace TinyOPDSConsole
 
         private static void UpdateInfo(bool IsScanFinished = false)
         {
-            int totalBooksProcessed = _fb2Count + _epubCount + _skippedFiles + _invalidFiles + _duplicates;
-
-            if (IsScanFinished || totalBooksProcessed % 10 == 0)
+            try
             {
+                int totalBooksProcessed = _fb2Count + _epubCount + _skippedFiles + _invalidFiles + _duplicates;
+
+                // Always show info - no additional checks
                 var stats = GetLibraryStats();
                 TimeSpan dt = DateTime.Now.Subtract(_scanStartTime);
                 string rate = (dt.TotalSeconds) > 0 ? string.Format("{0:0.} books/min", totalBooksProcessed / dt.TotalSeconds * 60) : "---";
 
-                string info = string.Format("Elapsed time: {1}, rate: {2}, found fb2: {3}, epub: {4}, skipped: {5}, dups: {6}, invalid: {7}, total: {8}, in DB: {9}     ",
-                    _scanStartTime.ToString(@"hh\:mm\:ss"),
+                string info = string.Format("Elapsed: {0}, rate: {1}, found fb2: {2}, epub: {3}, skipped: {4}, dups: {5}, invalid: {6}, total: {7}, in DB: {8}     ",
                     dt.ToString(@"hh\:mm\:ss"),
                     rate,
                     _fb2Count,
@@ -762,11 +802,16 @@ namespace TinyOPDSConsole
                     float dy = (float)info.Length / (float)Console.WindowWidth;
                     Console.SetCursorPosition(0, Console.CursorTop - (int)dy);
                 }
-                // For Linux we should use ANSI escape sequences to control cursor
                 else
                 {
+                    // For Linux we use ANSI escape sequences to control cursor
                     Console.Write("\u001b[s" + info + "\u001b[u");
                 }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error in UpdateInfo: {0}", ex.Message);
+                Console.WriteLine("Books processed: {0}", _fb2Count + _epubCount + _duplicates);
             }
         }
 

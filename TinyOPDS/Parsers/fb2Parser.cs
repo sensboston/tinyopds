@@ -156,10 +156,6 @@ namespace TinyOPDS.Parsers
                     stream.CopyTo(memoryStream);
                     memoryStream.Position = 0;
 
-                    // Update document size now that we have the actual content
-                    // Note: This won't be called anymore since ZipScanner now uses Extract()
-                    // but keeping for backward compatibility
-
                     return ParseSeekableStream(memoryStream, fileName);
                 }
             }

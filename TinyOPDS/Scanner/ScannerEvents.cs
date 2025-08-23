@@ -5,9 +5,6 @@
  * Copyright (c) 2013-2025 SeNSSoFT
  * SPDX-License-Identifier: MIT
  *
- * Simple implementation of UPnP controller. Works fine with 
- * some D-Link and NetGear router models (need more tests)
- * 
  * Events and handlers classes for scanners
  *
  */

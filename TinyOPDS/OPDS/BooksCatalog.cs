@@ -5,9 +5,6 @@
  * Copyright (c) 2013-2025 SeNSSoFT
  * SPDX-License-Identifier: MIT
  *
- * Simple implementation of UPnP controller. Works fine with 
- * some D-Link and NetGear router models (need more tests)
- * 
  * This module defines the OPDS BookCatalog class
  *
  */
@@ -171,12 +168,14 @@ namespace TinyOPDS.OPDS
                         new XElement("title", book.Title)
                 );
 
+                // Apply aliases to author names in output
                 foreach (string author in book.Authors)
                 {
+                    string displayAuthor = Library.ApplyAuthorAlias(author);
                     entry.Add(
                         new XElement("author",
-                            new XElement("name", author),
-                            new XElement("uri", "/author-details/" + Uri.EscapeDataString(author)
+                            new XElement("name", displayAuthor),
+                            new XElement("uri", "/author-details/" + Uri.EscapeDataString(displayAuthor)
                     )));
                 }
 
@@ -227,7 +226,9 @@ namespace TinyOPDS.OPDS
                 // Adding download links
                 );
 
-                string fileName = Uri.EscapeDataString(Transliteration.Front(string.Format("{0}_{1}", book.Authors.First(), book.Title)).SanitizeFileName());
+                // Use canonical author name for filename
+                string canonicalFirstAuthor = book.Authors.Any() ? Library.ApplyAuthorAlias(book.Authors.First()) : "Unknown";
+                string fileName = Uri.EscapeDataString(Transliteration.Front(string.Format("{0}_{1}", canonicalFirstAuthor, book.Title)).SanitizeFileName());
                 string url = "/" + string.Format("{0}/{1}", book.ID, fileName);
                 if (book.BookType == BookType.EPUB || (book.BookType == BookType.FB2 && !acceptFB2 && !string.IsNullOrEmpty(TinyOPDS.Properties.Settings.Default.ConvertorPath)))
                 {
@@ -239,14 +240,15 @@ namespace TinyOPDS.OPDS
                     entry.Add(new XElement("link", new XAttribute("href", url + ".fb2.zip"), new XAttribute("rel", "http://opds-spec.org/acquisition/open-access"), new XAttribute("type", "application/fb2+zip")));
                 }
 
-                // Add navigation links for author and series (if any)
+                // Add navigation links for author and series (if any) - use canonical author names
                 foreach (string author in book.Authors)
                 {
+                    string displayAuthor = Library.ApplyAuthorAlias(author);
                     entry.Add(new XElement("link",
-                                    new XAttribute("href", "/author-details/" + Uri.EscapeDataString(author)),
+                                    new XAttribute("href", "/author-details/" + Uri.EscapeDataString(displayAuthor)),
                                     new XAttribute("rel", "related"),
                                     new XAttribute("type", "application/atom+xml;profile=opds-catalog"),
-                                    new XAttribute("title", string.Format(Localizer.Text("All books by author {0}"), author))));
+                                    new XAttribute("title", string.Format(Localizer.Text("All books by author {0}"), displayAuthor))));
                 }
 
                 if (searchFor != SearchFor.Sequence && !string.IsNullOrEmpty(book.Sequence))

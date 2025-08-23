@@ -120,7 +120,7 @@ namespace TinyOPDSConsole
 
                 // On Linux, we need clear console (terminal) window first
                 if (Utils.IsLinux) Console.Write("\u001b[1J\u001b[0;0H");
-                Console.WriteLine("TinyOPDS console, {0}, copyright (c) 2013 SeNSSoFT", string.Format(Localizer.Text("version {0}.{1} {2}"), Utils.Version.Major, Utils.Version.Minor, Utils.Version.Major == 0 ? " (beta)" : ""));
+                Console.WriteLine("TinyOPDS console, {0}, copyright (c) 2013-2025 SeNSSoFT", string.Format(Localizer.Text("version {0}.{1} {2}"), Utils.Version.Major, Utils.Version.Minor, Utils.Version.Major == 0 ? " (beta)" : ""));
 
                 if (args.Length > 0)
                 {

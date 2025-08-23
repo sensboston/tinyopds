@@ -5,9 +5,6 @@
  * Copyright (c) 2013-2025 SeNSSoFT
  * SPDX-License-Identifier: MIT
  *
- * Simple implementation of UPnP controller. Works fine with 
- * some D-Link and NetGear router models (need more tests)
- * 
  * This module contains OPDS OpenSearch implementation
  *
  * TODO: implement SOUNDEX search
@@ -15,6 +12,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Xml.Linq;
 
 using TinyOPDS.Data;
@@ -45,6 +43,28 @@ namespace TinyOPDS.OPDS
             return doc;
         }
 
+        /// <summary>
+        /// Apply aliases to author search results and remove duplicates
+        /// </summary>
+        /// <param name="authors">Original authors list</param>
+        /// <returns>List of canonical author names</returns>
+        private List<string> ApplyAliasesToAuthors(List<string> authors)
+        {
+            if (!Properties.Settings.Default.UseAuthorsAliases || authors == null || authors.Count == 0)
+                return authors ?? new List<string>();
+
+            // Apply aliases to get canonical names and remove duplicates
+            var canonicalAuthors = new HashSet<string>();
+            foreach (var author in authors)
+            {
+                string canonical = Library.ApplyAuthorAlias(author);
+                canonicalAuthors.Add(canonical);
+            }
+
+            // Return sorted list
+            return canonicalAuthors.OrderBy(a => a, new OPDSComparer(Properties.Settings.Default.SortOrder > 0)).ToList();
+        }
+
         public XDocument Search(string searchPattern, string searchType = "", bool fb2Only = false, int pageNumber = 0, int threshold = 100)
         {
             if (!string.IsNullOrEmpty(searchPattern)) searchPattern = Uri.UnescapeDataString(searchPattern).Replace('+', ' ').ToLower();
@@ -52,7 +72,7 @@ namespace TinyOPDS.OPDS
             XDocument doc = new XDocument(
                 // Add root element and namespaces
                 new XElement("feed", new XAttribute(XNamespace.Xmlns + "dc", Namespaces.dc), new XAttribute(XNamespace.Xmlns + "os", Namespaces.os), new XAttribute(XNamespace.Xmlns + "opds", Namespaces.opds),
-                    new XElement("id", "tag:search:"+searchPattern),
+                    new XElement("id", "tag:search:" + searchPattern),
                     new XElement("title", Localizer.Text("Search results")),
                     new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                     new XElement("icon", "/series.ico"),
@@ -66,11 +86,17 @@ namespace TinyOPDS.OPDS
             if (string.IsNullOrEmpty(searchType))
             {
                 string transSearchPattern = Transliteration.Back(searchPattern, TransliterationType.GOST);
+
+                // Search for authors and apply aliases
                 authors = Library.GetAuthorsByName(searchPattern, true);
                 if (authors.Count == 0 && !string.IsNullOrEmpty(transSearchPattern))
                 {
                     authors = Library.GetAuthorsByName(transSearchPattern, true);
                 }
+                // Apply aliases to remove duplicates and get canonical names
+                authors = ApplyAliasesToAuthors(authors);
+
+                // Search for titles
                 titles = Library.GetBooksByTitle(searchPattern);
                 if (titles.Count == 0 && !string.IsNullOrEmpty(transSearchPattern))
                 {
@@ -98,11 +124,13 @@ namespace TinyOPDS.OPDS
             }
             else if (searchType.Equals("authors") || (authors.Count > 0 && titles.Count == 0))
             {
+                // Use AuthorsCatalog which already handles aliases properly
                 return new AuthorsCatalog().GetCatalog(searchPattern, true);
             }
             else if (searchType.Equals("books") || (titles.Count > 0 && authors.Count == 0))
             {
                 if (pageNumber > 0) searchPattern += "/" + pageNumber;
+                // BooksCatalog already applies aliases in output
                 return new BooksCatalog().GetCatalogByTitle(searchPattern, fb2Only, 0, 1000);
             }
             return doc;

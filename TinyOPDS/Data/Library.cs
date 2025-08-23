@@ -12,6 +12,7 @@
 
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
@@ -89,7 +90,7 @@ namespace TinyOPDS.Data
                 _soundexedGenres = new Dictionary<string, string>();
             }
 
-            // Load author aliases (same as original)
+            // Load author aliases (restored original format)
             LoadAuthorAliases();
         }
 
@@ -350,17 +351,7 @@ namespace TinyOPDS.Data
                     if (book.AddedDate == DateTime.MinValue)
                         book.AddedDate = DateTime.Now;
 
-                    // Replace author aliases if enabled
-                    if (TinyOPDS.Properties.Settings.Default.UseAuthorsAliases)
-                    {
-                        for (int i = 0; i < book.Authors.Count; i++)
-                        {
-                            if (_aliases.ContainsKey(book.Authors[i]))
-                            {
-                                book.Authors[i] = _aliases[book.Authors[i]];
-                            }
-                        }
-                    }
+                    // Store original author names in database (removed alias application)
 
                     bool success = _bookRepository.AddBook(book);
                     if (success)
@@ -421,17 +412,7 @@ namespace TinyOPDS.Data
                         if (book.AddedDate == DateTime.MinValue)
                             book.AddedDate = DateTime.Now;
 
-                        // Replace author aliases if enabled
-                        if (TinyOPDS.Properties.Settings.Default.UseAuthorsAliases)
-                        {
-                            for (int i = 0; i < book.Authors.Count; i++)
-                            {
-                                if (_aliases.ContainsKey(book.Authors[i]))
-                                {
-                                    book.Authors[i] = _aliases[book.Authors[i]];
-                                }
-                            }
-                        }
+                        // Store original author names in database (removed alias application)
 
                         processedBooks.Add(book);
 
@@ -616,6 +597,21 @@ namespace TinyOPDS.Data
             }
         }
 
+        /// <summary>
+        /// Apply author aliases to author name (for OPDS output)
+        /// </summary>
+        /// <param name="originalAuthor">Original author name from database</param>
+        /// <returns>Canonical author name if alias exists, otherwise original</returns>
+        public static string ApplyAuthorAlias(string originalAuthor)
+        {
+            if (TinyOPDS.Properties.Settings.Default.UseAuthorsAliases &&
+                _aliases.ContainsKey(originalAuthor))
+            {
+                return _aliases[originalAuthor];
+            }
+            return originalAuthor;
+        }
+
         #endregion
 
         #region Query Methods (maintaining original API)
@@ -731,28 +727,87 @@ namespace TinyOPDS.Data
 
         private static void LoadAuthorAliases()
         {
-            try
+            // Load external file first (with old format)
+            string aliasesFileName = Path.Combine(Utils.ServiceFilesLocation, "a_aliases.txt");
+            if (File.Exists(aliasesFileName))
             {
-                string aliasesPath = Path.Combine(Utils.ServiceFilesLocation, "authors.aliases");
-                if (File.Exists(aliasesPath))
+                try
                 {
-                    foreach (string line in File.ReadAllLines(aliasesPath))
+                    using (var stream = File.OpenRead(aliasesFileName))
+                    using (var reader = new StreamReader(stream))
                     {
-                        if (!string.IsNullOrEmpty(line) && line.Contains('='))
+                        string line;
+                        while ((line = reader.ReadLine()) != null)
                         {
-                            string[] parts = line.Split('=');
-                            if (parts.Length == 2)
+                            if (!string.IsNullOrEmpty(line))
                             {
-                                _aliases[parts[0].Trim()] = parts[1].Trim();
+                                string[] parts = line.Split(new char[] { '\t', ',' });
+                                try
+                                {
+                                    if (parts.Length >= 8)
+                                    {
+                                        string aliasName = string.Format("{2} {0} {1}", parts[1], parts[2], parts[3]).Trim();
+                                        string canonicalName = string.Format("{2} {0} {1}", parts[5], parts[6], parts[7]).Trim();
+                                        _aliases[aliasName] = canonicalName;
+                                    }
+                                }
+                                catch
+                                {
+                                    Log.WriteLine(LogLevel.Warning, "Error parsing alias '{0}'", line);
+                                }
                             }
                         }
                     }
-                    Log.WriteLine("Loaded {0} author aliases", _aliases.Count);
+                    Log.WriteLine(LogLevel.Info, "Loaded {0} authors aliases from {1}", _aliases.Count, aliasesFileName);
+                }
+                catch (Exception e)
+                {
+                    Log.WriteLine(LogLevel.Error, "Error loading aliases: exception {0}", e.Message);
                 }
             }
-            catch (Exception ex)
+            else
             {
-                Log.WriteLine(LogLevel.Error, "Error loading author aliases: {0}", ex.Message);
+                // Load from embedded gzipped resource
+                try
+                {
+                    using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(
+                        Assembly.GetExecutingAssembly().GetName().Name + ".a_aliases.txt.gz"))
+                    {
+                        if (stream != null)
+                        {
+                            using (var gzipStream = new GZipStream(stream, CompressionMode.Decompress))
+                            using (var reader = new StreamReader(gzipStream))
+                            {
+                                string line;
+                                while ((line = reader.ReadLine()) != null)
+                                {
+                                    if (!string.IsNullOrEmpty(line))
+                                    {
+                                        string[] parts = line.Split('\t');
+                                        try
+                                        {
+                                            if (parts.Length >= 8)
+                                            {
+                                                string aliasName = string.Format("{2} {0} {1}", parts[1], parts[2], parts[3]).Trim();
+                                                string canonicalName = string.Format("{2} {0} {1}", parts[5], parts[6], parts[7]).Trim();
+                                                _aliases[aliasName] = canonicalName;
+                                            }
+                                        }
+                                        catch
+                                        {
+                                            // Ignore malformed lines
+                                        }
+                                    }
+                                }
+                            }
+                            Log.WriteLine(LogLevel.Info, "Loaded {0} authors aliases from embedded resource", _aliases.Count);
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    Log.WriteLine(LogLevel.Error, "Error loading embedded aliases: {0}", e.Message);
+                }
             }
         }
 
@@ -794,8 +849,7 @@ namespace TinyOPDS.Data
                             reader.BaseStream.Position = 0;
                         }
 
-                        bool useAliases = TinyOPDS.Properties.Settings.Default.UseAuthorsAliases;
-
+                        // Don't apply aliases during migration - store original names
                         while (reader.BaseStream.Position < reader.BaseStream.Length)
                         {
                             try
@@ -819,8 +873,7 @@ namespace TinyOPDS.Data
                                 for (int i = 0; i < count; i++)
                                 {
                                     string authorName = reader.ReadString();
-                                    if (useAliases && _aliases.ContainsKey(authorName))
-                                        authorName = _aliases[authorName];
+                                    // Store original name during migration
                                     book.Authors.Add(authorName);
                                 }
 

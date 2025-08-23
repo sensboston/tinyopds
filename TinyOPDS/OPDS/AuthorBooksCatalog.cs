@@ -5,9 +5,6 @@
  * Copyright (c) 2013-2025 SeNSSoFT
  * SPDX-License-Identifier: MIT
  *
- * Simple implementation of UPnP controller. Works fine with 
- * some D-Link and NetGear router models (need more tests)
- * 
  * This module defines the OPDS AuthorBooksCatalog class
  *
  */
@@ -35,6 +32,62 @@ namespace TinyOPDS.OPDS
         }
 
         /// <summary>
+        /// Get all books for author including books from aliases, avoiding duplicates
+        /// </summary>
+        /// <param name="author">Author name (can be canonical or alias)</param>
+        /// <returns>Combined list of unique books</returns>
+        private List<Book> GetAllAuthorBooks(string author)
+        {
+            var allBooks = new Dictionary<string, Book>(); // Use dictionary to avoid duplicates by ID
+            var canonicalAuthor = Library.ApplyAuthorAlias(author);
+
+            // Add books from the requested author name (direct match)
+            foreach (var book in Library.GetBooksByAuthor(author))
+            {
+                allBooks[book.ID] = book;
+            }
+
+            // If aliases are enabled and the requested author is canonical, 
+            // also add books from all aliases that map to this canonical name
+            if (Properties.Settings.Default.UseAuthorsAliases && author.Equals(canonicalAuthor))
+            {
+                var aliases = GetAliasesForCanonicalName(canonicalAuthor);
+                foreach (var alias in aliases)
+                {
+                    foreach (var book in Library.GetBooksByAuthor(alias))
+                    {
+                        allBooks[book.ID] = book; // Dictionary handles duplicates
+                    }
+                }
+            }
+
+            return allBooks.Values.ToList();
+        }
+
+        /// <summary>
+        /// Get all alias names that map to the canonical name
+        /// </summary>
+        /// <param name="canonicalName">Canonical author name</param>
+        /// <returns>List of alias names</returns>
+        private List<string> GetAliasesForCanonicalName(string canonicalName)
+        {
+            var aliases = new List<string>();
+
+            var allAuthors = Library.Authors;
+            foreach (var author in allAuthors)
+            {
+                var canonical = Library.ApplyAuthorAlias(author);
+                if (canonical.Equals(canonicalName, StringComparison.OrdinalIgnoreCase) &&
+                    !author.Equals(canonicalName, StringComparison.OrdinalIgnoreCase))
+                {
+                    aliases.Add(author);
+                }
+            }
+
+            return aliases;
+        }
+
+        /// <summary>
         /// Get books catalog for series list by author
         /// </summary>
         public XDocument GetSeriesCatalog(string author, bool acceptFB2, int threshold = 100)
@@ -42,20 +95,23 @@ namespace TinyOPDS.OPDS
             if (!string.IsNullOrEmpty(author))
                 author = Uri.UnescapeDataString(author).Replace('+', ' ');
 
+            // Apply alias to get canonical name for display
+            string displayAuthor = Library.ApplyAuthorAlias(author);
+
             XDocument doc = new XDocument(
                 new XElement("feed",
                     new XAttribute(XNamespace.Xmlns + "dc", Namespaces.dc),
                     new XAttribute(XNamespace.Xmlns + "os", Namespaces.os),
                     new XAttribute(XNamespace.Xmlns + "opds", Namespaces.opds),
-                    new XElement("id", "tag:author-series:" + author),
-                    new XElement("title", string.Format(Localizer.Text("Books by series - {0}"), author)),
+                    new XElement("id", "tag:author-series:" + displayAuthor),
+                    new XElement("title", string.Format(Localizer.Text("Books by series - {0}"), displayAuthor)),
                     new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                     new XElement("icon", "/series.ico"),
                     Links.opensearch, Links.search, Links.start)
                 );
 
-            // Get author's books with series
-            List<Book> allBooks = Library.GetBooksByAuthor(author);
+            // Get author's books with series (including from aliases)
+            List<Book> allBooks = GetAllAuthorBooks(author);
             var seriesGroups = allBooks
                 .Where(b => !string.IsNullOrEmpty(b.Sequence))
                 .GroupBy(b => b.Sequence)
@@ -67,7 +123,7 @@ namespace TinyOPDS.OPDS
                 doc.Root.Add(
                     new XElement("entry",
                         new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                        new XElement("id", "tag:author-series:" + author + ":" + seriesGroup.Key),
+                        new XElement("id", "tag:author-series:" + displayAuthor + ":" + seriesGroup.Key),
                         new XElement("title", seriesGroup.Key),
                         new XElement("content",
                             string.Format(Localizer.Text("{0} books in series"), seriesBooks.Count),
@@ -99,6 +155,9 @@ namespace TinyOPDS.OPDS
                 author = author.Substring(0, slashIndex);
             }
 
+            // Apply alias to get canonical name for display
+            string displayAuthor = Library.ApplyAuthorAlias(author);
+
             string titleSuffix = "";
             string iconPath = "/icons/books.ico";
 
@@ -120,15 +179,15 @@ namespace TinyOPDS.OPDS
                     new XAttribute(XNamespace.Xmlns + "dc", Namespaces.dc),
                     new XAttribute(XNamespace.Xmlns + "os", Namespaces.os),
                     new XAttribute(XNamespace.Xmlns + "opds", Namespaces.opds),
-                    new XElement("id", "tag:author-books:" + viewType.ToString().ToLower() + ":" + author),
-                    new XElement("title", string.Format("{0} - {1}", titleSuffix, author)),
+                    new XElement("id", "tag:author-books:" + viewType.ToString().ToLower() + ":" + displayAuthor),
+                    new XElement("title", string.Format("{0} - {1}", titleSuffix, displayAuthor)),
                     new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                     new XElement("icon", iconPath),
                     Links.opensearch, Links.search, Links.start)
                 );
 
-            // Get and filter books based on view type
-            List<Book> books = Library.GetBooksByAuthor(author);
+            // Get and filter books based on view type (including from aliases)
+            List<Book> books = GetAllAuthorBooks(author);
 
             switch (viewType)
             {
@@ -166,13 +225,13 @@ namespace TinyOPDS.OPDS
                 switch (viewType)
                 {
                     case ViewType.NoSeries:
-                        nextPageUrl = "/author-no-series/" + Uri.EscapeDataString(author) + "/" + (pageNumber + 1);
+                        nextPageUrl = "/author-no-series/" + Uri.EscapeDataString(displayAuthor) + "/" + (pageNumber + 1);
                         break;
                     case ViewType.Alphabetic:
-                        nextPageUrl = "/author-alphabetic/" + Uri.EscapeDataString(author) + "/" + (pageNumber + 1);
+                        nextPageUrl = "/author-alphabetic/" + Uri.EscapeDataString(displayAuthor) + "/" + (pageNumber + 1);
                         break;
                     case ViewType.ByDate:
-                        nextPageUrl = "/author-by-date/" + Uri.EscapeDataString(author) + "/" + (pageNumber + 1);
+                        nextPageUrl = "/author-by-date/" + Uri.EscapeDataString(displayAuthor) + "/" + (pageNumber + 1);
                         break;
                 }
 
@@ -196,12 +255,14 @@ namespace TinyOPDS.OPDS
                     new XElement("title", book.Title)
                 );
 
+                // Apply aliases to author names in output
                 foreach (string authorName in book.Authors)
                 {
+                    string displayAuthorName = Library.ApplyAuthorAlias(authorName);
                     entry.Add(
                         new XElement("author",
-                            new XElement("name", authorName),
-                            new XElement("uri", "/author-details/" + Uri.EscapeDataString(authorName))
+                            new XElement("name", displayAuthorName),
+                            new XElement("uri", "/author-details/" + Uri.EscapeDataString(displayAuthorName))
                     ));
                 }
 
@@ -252,8 +313,9 @@ namespace TinyOPDS.OPDS
                     new XElement("link", new XAttribute("href", "/thumbnail/" + book.ID + ".jpeg"), new XAttribute("rel", "x-stanza-cover-image-thumbnail"), new XAttribute("type", "image/jpeg"))
                 );
 
-                // Add download links
-                string fileName = Uri.EscapeDataString(Transliteration.Front(string.Format("{0}_{1}", book.Authors.First(), book.Title)).SanitizeFileName());
+                // Add download links - use canonical author name
+                string canonicalFirstAuthor = book.Authors.Any() ? Library.ApplyAuthorAlias(book.Authors.First()) : "Unknown";
+                string fileName = Uri.EscapeDataString(Transliteration.Front(string.Format("{0}_{1}", canonicalFirstAuthor, book.Title)).SanitizeFileName());
                 string url = "/" + string.Format("{0}/{1}", book.ID, fileName);
 
                 if (book.BookType == BookType.EPUB || (book.BookType == BookType.FB2 && !acceptFB2 && !string.IsNullOrEmpty(Properties.Settings.Default.ConvertorPath)))

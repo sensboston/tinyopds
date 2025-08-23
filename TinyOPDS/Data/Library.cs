@@ -112,7 +112,7 @@ namespace TinyOPDS.Data
                 _database = new DatabaseManager(_databaseFullPath);
                 _bookRepository = new BookRepository(_database);
 
-                // Load author aliases after repository is initialized
+                // Load author aliases
                 LoadAuthorAliases();
 
                 Log.WriteLine("SQLite database initialized: {0}", _databaseFullPath);
@@ -351,8 +351,6 @@ namespace TinyOPDS.Data
                     if (book.AddedDate == DateTime.MinValue)
                         book.AddedDate = DateTime.Now;
 
-                    // Store original author names in database (removed alias application)
-
                     bool success = _bookRepository.AddBook(book);
                     if (success)
                     {
@@ -411,8 +409,6 @@ namespace TinyOPDS.Data
                     {
                         if (book.AddedDate == DateTime.MinValue)
                             book.AddedDate = DateTime.Now;
-
-                        // Store original author names in database (removed alias application)
 
                         processedBooks.Add(book);
 
@@ -783,12 +779,13 @@ namespace TinyOPDS.Data
                 _bookRepository.ClearAuthorAliases();
                 _aliases.Clear();
 
-                int loadedCount = 0;
+                var batchAliases = new Dictionary<string, string>();
 
                 // Load external file first (with old format)
                 string aliasesFileName = Path.Combine(Utils.ServiceFilesLocation, "a_aliases.txt");
                 if (File.Exists(aliasesFileName))
                 {
+                    Log.WriteLine("Loading author aliases from external file...");
                     using (var stream = File.OpenRead(aliasesFileName))
                     using (var reader = new StreamReader(stream))
                     {
@@ -807,9 +804,7 @@ namespace TinyOPDS.Data
 
                                         if (!string.IsNullOrEmpty(aliasName) && !string.IsNullOrEmpty(canonicalName))
                                         {
-                                            _aliases[aliasName] = canonicalName;
-                                            _bookRepository.AddAuthorAlias(aliasName, canonicalName);
-                                            loadedCount++;
+                                            batchAliases[aliasName] = canonicalName;
                                         }
                                     }
                                 }
@@ -820,11 +815,11 @@ namespace TinyOPDS.Data
                             }
                         }
                     }
-                    Log.WriteLine(LogLevel.Info, "Loaded {0} authors aliases from {1}", loadedCount, aliasesFileName);
                 }
                 else
                 {
                     // Load from embedded gzipped resource
+                    Log.WriteLine("Loading author aliases from embedded resource...");
                     using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(
                         Assembly.GetExecutingAssembly().GetName().Name + ".a_aliases.txt.gz"))
                     {
@@ -848,9 +843,7 @@ namespace TinyOPDS.Data
 
                                                 if (!string.IsNullOrEmpty(aliasName) && !string.IsNullOrEmpty(canonicalName))
                                                 {
-                                                    _aliases[aliasName] = canonicalName;
-                                                    _bookRepository.AddAuthorAlias(aliasName, canonicalName);
-                                                    loadedCount++;
+                                                    batchAliases[aliasName] = canonicalName;
                                                 }
                                             }
                                         }
@@ -861,113 +854,31 @@ namespace TinyOPDS.Data
                                     }
                                 }
                             }
-                            Log.WriteLine(LogLevel.Info, "Loaded {0} authors aliases from embedded resource", loadedCount);
                         }
                     }
+                }
+
+                // Add all aliases to database in one batch operation
+                if (batchAliases.Count > 0)
+                {
+                    int loadedCount = _bookRepository.AddAuthorAliasesBatch(batchAliases);
+
+                    // Cache them in memory for fast lookup
+                    foreach (var alias in batchAliases)
+                    {
+                        _aliases[alias.Key] = alias.Value;
+                    }
+
+                    Log.WriteLine(LogLevel.Info, "Loaded {0} authors aliases", loadedCount);
+                }
+                else
+                {
+                    Log.WriteLine("No author aliases found to load");
                 }
             }
             catch (Exception e)
             {
                 Log.WriteLine(LogLevel.Error, "Error loading author aliases: {0}", e.Message);
-            }
-        }
-
-        #endregion
-
-        #region Migration Helper
-
-        /// <summary>
-        /// Migrate existing binary database to SQLite
-        /// </summary>
-        /// <param name="binaryDbPath">Path to existing books.db file</param>
-        public static void MigrateFromBinaryDatabase(string binaryDbPath)
-        {
-            if (!File.Exists(binaryDbPath))
-            {
-                Log.WriteLine("Binary database file not found: {0}", binaryDbPath);
-                return;
-            }
-
-            Log.WriteLine("Starting migration from binary database to SQLite...");
-            var start = DateTime.Now;
-            int migratedCount = 0;
-
-            try
-            {
-                using (var memStream = new MemoryStream())
-                {
-                    using (var fileStream = new FileStream(binaryDbPath, FileMode.Open, FileAccess.Read, FileShare.Read))
-                    {
-                        fileStream.CopyTo(memStream);
-                    }
-
-                    memStream.Position = 0;
-                    using (var reader = new BinaryReader(memStream))
-                    {
-                        bool newFormat = reader.ReadString().Equals("VER1.1");
-                        if (!newFormat)
-                        {
-                            reader.BaseStream.Position = 0;
-                        }
-
-                        // Don't apply aliases during migration - store original names
-                        while (reader.BaseStream.Position < reader.BaseStream.Length)
-                        {
-                            try
-                            {
-                                string fileName = reader.ReadString();
-                                var book = new Book(Path.Combine(LibraryPath, fileName));
-
-                                string id = reader.ReadString().Replace("{", "").Replace("}", "");
-                                book.ID = id;
-                                book.Version = reader.ReadSingle();
-                                book.Title = reader.ReadString();
-                                book.Language = reader.ReadString();
-                                book.BookDate = DateTime.FromBinary(reader.ReadInt64());
-                                book.DocumentDate = DateTime.FromBinary(reader.ReadInt64());
-                                book.Sequence = reader.ReadString();
-                                book.NumberInSequence = reader.ReadUInt32();
-                                book.Annotation = reader.ReadString();
-                                book.DocumentSize = reader.ReadUInt32();
-
-                                int count = reader.ReadInt32();
-                                for (int i = 0; i < count; i++)
-                                {
-                                    string authorName = reader.ReadString();
-                                    // Store original name during migration
-                                    book.Authors.Add(authorName);
-                                }
-
-                                count = reader.ReadInt32();
-                                for (int i = 0; i < count; i++)
-                                    book.Translators.Add(reader.ReadString());
-
-                                count = reader.ReadInt32();
-                                for (int i = 0; i < count; i++)
-                                    book.Genres.Add(reader.ReadString());
-
-                                book.AddedDate = newFormat ? DateTime.FromBinary(reader.ReadInt64()) : DateTime.Now;
-
-                                if (_bookRepository.AddBook(book))
-                                {
-                                    migratedCount++;
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                Log.WriteLine(LogLevel.Warning, "Error migrating book: {0}", ex.Message);
-                            }
-                        }
-                    }
-                }
-
-                Log.WriteLine("Migration completed: {0} books migrated in {1} ms",
-                    migratedCount, (DateTime.Now - start).TotalMilliseconds);
-            }
-            catch (Exception ex)
-            {
-                Log.WriteLine(LogLevel.Error, "Migration failed: {0}", ex.Message);
-                throw;
             }
         }
 

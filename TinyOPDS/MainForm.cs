@@ -68,15 +68,21 @@ namespace TinyOPDS
             InitializeComponent();
 
             // Fix TabControl height for high DPI displays
+            float dpiScale = 1.0f;
             using (Graphics g = CreateGraphics())
             {
-                float dpiScale = g.DpiX / 96f;
+                dpiScale = g.DpiX / 96f;
                 if (dpiScale > 1.0f)
                 {
                     tabControl1.SizeMode = TabSizeMode.Normal;
                     tabControl1.ItemSize = new Size(Math.Max(120, (int)(120 * dpiScale)), Math.Max(28, (int)(28 * dpiScale)));
                 }
             }
+
+            // Adjust TreeView appearance
+            treeViewOPDS.ShowLines = true;
+            treeViewOPDS.Indent = 80;
+            treeViewOPDS.ItemHeight = 50;
 
             // Assign combo data source to the list of all available interfaces
             interfaceCombo.DataSource = UPnPController.LocalInterfaces;
@@ -1358,6 +1364,15 @@ namespace TinyOPDS
 
             TreeNode node = e.Node;
             string tag = node.Tag?.ToString();
+
+            // Root node protection
+            if (tag == "root" && !node.Checked)
+            {
+                _isLoading = true;
+                node.Checked = true;
+                _isLoading = false;
+                return;
+            }
 
             Log.WriteLine(LogLevel.Info, "OPDS route changed: {0} = {1}", tag, node.Checked);
 

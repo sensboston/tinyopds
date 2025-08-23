@@ -53,20 +53,69 @@ namespace TinyOPDS.Data
 
         private void InitializeSchema()
         {
-            // Create tables in dependency order
-            ExecuteNonQuery(DatabaseSchema.CreateBooksTable);
-            ExecuteNonQuery(DatabaseSchema.CreateAuthorsTable);
-            ExecuteNonQuery(DatabaseSchema.CreateAuthorAliasesTable);
-            ExecuteNonQuery(DatabaseSchema.CreateGenresTable);
-            ExecuteNonQuery(DatabaseSchema.CreateTranslatorsTable);
-            ExecuteNonQuery(DatabaseSchema.CreateBookAuthorsTable);
-            ExecuteNonQuery(DatabaseSchema.CreateBookGenresTable);
-            ExecuteNonQuery(DatabaseSchema.CreateBookTranslatorsTable);
+            try
+            {
+                // Create tables in dependency order
+                ExecuteNonQuery(DatabaseSchema.CreateBooksTable);
+                ExecuteNonQuery(DatabaseSchema.CreateAuthorsTable);
+                ExecuteNonQuery(DatabaseSchema.CreateAuthorAliasesTable);
+                ExecuteNonQuery(DatabaseSchema.CreateGenresTable);
+                ExecuteNonQuery(DatabaseSchema.CreateTranslatorsTable);
+                ExecuteNonQuery(DatabaseSchema.CreateBookAuthorsTable);
+                ExecuteNonQuery(DatabaseSchema.CreateBookGenresTable);
+                ExecuteNonQuery(DatabaseSchema.CreateBookTranslatorsTable);
 
-            // Create indexes
-            ExecuteNonQuery(DatabaseSchema.CreateIndexes);
+                // Upgrade existing schema if necessary
+                UpgradeSchema();
 
-            Log.WriteLine("Database schema initialized");
+                // Create indexes
+                ExecuteNonQuery(DatabaseSchema.CreateIndexes);
+
+                Log.WriteLine("Database schema initialized");
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error initializing database schema: {0}", ex.Message);
+                throw;
+            }
+        }
+
+        private void UpgradeSchema()
+        {
+            try
+            {
+                // Check if Soundex columns exist, add them if they don't
+                if (!ColumnExists("Books", "TitleSoundex"))
+                {
+                    Log.WriteLine("Adding TitleSoundex column to Books table");
+                    ExecuteNonQuery(DatabaseSchema.AddTitleSoundexColumn);
+                    ExecuteNonQuery(DatabaseSchema.UpdateExistingTitleSoundex);
+                }
+
+                if (!ColumnExists("Authors", "NameSoundex"))
+                {
+                    Log.WriteLine("Adding NameSoundex column to Authors table");
+                    ExecuteNonQuery(DatabaseSchema.AddAuthorSoundexColumn);
+                    ExecuteNonQuery(DatabaseSchema.UpdateExistingAuthorSoundex);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Warning, "Error during schema upgrade: {0}", ex.Message);
+            }
+        }
+
+        private bool ColumnExists(string tableName, string columnName)
+        {
+            try
+            {
+                var result = ExecuteScalar($"SELECT COUNT(*) FROM pragma_table_info('{tableName}') WHERE name='{columnName}'");
+                return Convert.ToInt32(result) > 0;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         public int ExecuteNonQuery(string sql, params IDbDataParameter[] parameters)

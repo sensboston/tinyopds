@@ -294,5 +294,27 @@ namespace TinyOPDS.Data
         public const string ClearAuthorAliases = @"DELETE FROM AuthorAliases";
 
         #endregion
+
+        #region Schema Upgrade Queries
+
+        /// <summary>
+        /// Add missing Soundex columns to existing database if they don't exist
+        /// </summary>
+        public const string AddTitleSoundexColumn = @"
+            ALTER TABLE Books ADD COLUMN TitleSoundex TEXT";
+
+        public const string AddAuthorSoundexColumn = @"
+            ALTER TABLE Authors ADD COLUMN NameSoundex TEXT";
+
+        /// <summary>
+        /// Update existing records with Soundex values
+        /// </summary>
+        public const string UpdateExistingTitleSoundex = @"
+            UPDATE Books SET TitleSoundex = '' WHERE TitleSoundex IS NULL";
+
+        public const string UpdateExistingAuthorSoundex = @"
+            UPDATE Authors SET NameSoundex = '' WHERE NameSoundex IS NULL";
+
+        #endregion
     }
 }

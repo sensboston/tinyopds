@@ -328,21 +328,60 @@ namespace TinyOPDS.Data
         #region Author Aliases Operations
 
         /// <summary>
-        /// Insert or update author alias
+        /// Add multiple author aliases in batch - optimized for performance
         /// </summary>
-        public bool AddAuthorAlias(string aliasName, string canonicalName)
+        /// <param name="aliases">Dictionary of alias -> canonical name mappings</param>
+        /// <returns>Number of aliases added</returns>
+        public int AddAuthorAliasesBatch(Dictionary<string, string> aliases)
         {
+            if (aliases == null || aliases.Count == 0) return 0;
+
+            var addedCount = 0;
+
             try
             {
-                _db.ExecuteNonQuery(DatabaseSchema.InsertAuthorAlias,
-                    DatabaseManager.CreateParameter("@AliasName", aliasName),
-                    DatabaseManager.CreateParameter("@CanonicalName", canonicalName));
-                return true;
+                // Optimize SQLite settings for bulk insert
+                _db.ExecuteNonQuery("PRAGMA synchronous = OFF");
+                _db.ExecuteNonQuery("PRAGMA journal_mode = MEMORY");
+                _db.ExecuteNonQuery("PRAGMA temp_store = MEMORY");
+                _db.ExecuteNonQuery("PRAGMA cache_size = 10000");
+
+                _db.BeginTransaction();
+
+                foreach (var alias in aliases)
+                {
+                    try
+                    {
+                        _db.ExecuteNonQuery(DatabaseSchema.InsertAuthorAlias,
+                            DatabaseManager.CreateParameter("@AliasName", alias.Key),
+                            DatabaseManager.CreateParameter("@CanonicalName", alias.Value));
+                        addedCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.WriteLine(LogLevel.Error, "Error adding alias in batch {0} -> {1}: {2}",
+                            alias.Key, alias.Value, ex.Message);
+                    }
+                }
+
+                _db.CommitTransaction();
+
+                Log.WriteLine("Author aliases batch insert completed: {0} added", addedCount);
+                return addedCount;
             }
             catch (Exception ex)
             {
-                Log.WriteLine(LogLevel.Error, "Error adding author alias {0} -> {1}: {2}", aliasName, canonicalName, ex.Message);
-                return false;
+                _db.RollbackTransaction();
+                Log.WriteLine(LogLevel.Error, "BookRepository.AddAuthorAliasesBatch: {0}", ex.Message);
+                return addedCount;
+            }
+            finally
+            {
+                // Restore normal SQLite settings
+                _db.ExecuteNonQuery("PRAGMA synchronous = NORMAL");
+                _db.ExecuteNonQuery("PRAGMA journal_mode = DELETE");
+                _db.ExecuteNonQuery("PRAGMA temp_store = DEFAULT");
+                _db.ExecuteNonQuery("PRAGMA cache_size = 2000");
             }
         }
 

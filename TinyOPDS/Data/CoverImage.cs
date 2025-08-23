@@ -218,13 +218,46 @@ namespace TinyOPDS.Data
         {
             try
             {
-                string resourceName = Assembly.GetExecutingAssembly().GetName().Name + ".Resources.book_cover.jpg";
-                using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
+                // Get all manifest resource names to find the correct one
+                string[] resourceNames = Assembly.GetExecutingAssembly().GetManifestResourceNames();
+                string resourceName = null;
+
+                // Look for book_cover.jpg in Resources folder
+                foreach (string name in resourceNames)
                 {
-                    if (stream != null && stream.Length > 0)
+                    if (name.EndsWith("Resources.book_cover.jpg"))
                     {
-                        return Image.FromStream(stream);
+                        resourceName = name;
+                        break;
                     }
+                }
+
+                // Fallback: look for any book_cover.jpg
+                if (resourceName == null)
+                {
+                    foreach (string name in resourceNames)
+                    {
+                        if (name.EndsWith("book_cover.jpg"))
+                        {
+                            resourceName = name;
+                            break;
+                        }
+                    }
+                }
+
+                if (resourceName != null)
+                {
+                    using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
+                    {
+                        if (stream != null && stream.Length > 0)
+                        {
+                            return Image.FromStream(stream);
+                        }
+                    }
+                }
+                else
+                {
+                    Log.WriteLine(LogLevel.Warning, "book_cover.jpg resource not found in assembly");
                 }
             }
             catch (Exception ex)

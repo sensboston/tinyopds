@@ -148,6 +148,7 @@
     <Compile Include="Data\Genre.cs" />
     <Compile Include="Data\ImagesCache.cs" />
     <Compile Include="Data\Library.cs" />
+    <Compile Include="Data\SqliteConnectionFactory.cs" />
     <Compile Include="OPDS\AuthorBooksCatalog.cs" />
     <Compile Include="OPDS\AuthorDetailsCatalog.cs" />
     <Compile Include="PortableSettingsProvider.cs" />

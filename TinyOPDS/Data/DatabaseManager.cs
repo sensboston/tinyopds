@@ -12,14 +12,14 @@
 
 using System;
 using System.Collections.Generic;
-using System.Data.SQLite;
+using System.Data;
 using System.IO;
 
 namespace TinyOPDS.Data
 {
     public class DatabaseManager : IDisposable
     {
-        private SQLiteConnection _connection;
+        private IDbConnection _connection;
         private readonly string _connectionString;
         private bool _disposed = false;
 
@@ -27,13 +27,23 @@ namespace TinyOPDS.Data
         {
             _connectionString = $"Data Source={databasePath};Version=3;";
 
-            // Create database file if it doesn't exist
-            if (!File.Exists(databasePath))
+            // Create database file if it doesn't exist (only for System.Data.SQLite on Windows)
+            if (!Utils.IsLinux && !File.Exists(databasePath))
             {
-                SQLiteConnection.CreateFile(databasePath);
+                // Use reflection to call SQLiteConnection.CreateFile on Windows
+                try
+                {
+                    var sqliteType = typeof(System.Data.SQLite.SQLiteConnection);
+                    var createFileMethod = sqliteType.GetMethod("CreateFile", new[] { typeof(string) });
+                    createFileMethod?.Invoke(null, new object[] { databasePath });
+                }
+                catch (Exception ex)
+                {
+                    Log.WriteLine(LogLevel.Warning, "Could not create SQLite file: {0}", ex.Message);
+                }
             }
 
-            _connection = new SQLiteConnection(_connectionString);
+            _connection = SqliteConnectionFactory.CreateConnection(_connectionString);
             _connection.Open();
 
             // Enable foreign keys
@@ -59,14 +69,17 @@ namespace TinyOPDS.Data
             Log.WriteLine("Database schema initialized");
         }
 
-        public int ExecuteNonQuery(string sql, params SQLiteParameter[] parameters)
+        public int ExecuteNonQuery(string sql, params IDbDataParameter[] parameters)
         {
-            var command = new SQLiteCommand(sql, _connection);
+            var command = SqliteConnectionFactory.CreateCommand(sql, _connection);
             try
             {
                 if (parameters != null)
                 {
-                    command.Parameters.AddRange(parameters);
+                    foreach (var param in parameters)
+                    {
+                        command.Parameters.Add(param);
+                    }
                 }
                 return command.ExecuteNonQuery();
             }
@@ -76,14 +89,17 @@ namespace TinyOPDS.Data
             }
         }
 
-        public object ExecuteScalar(string sql, params SQLiteParameter[] parameters)
+        public object ExecuteScalar(string sql, params IDbDataParameter[] parameters)
         {
-            var command = new SQLiteCommand(sql, _connection);
+            var command = SqliteConnectionFactory.CreateCommand(sql, _connection);
             try
             {
                 if (parameters != null)
                 {
-                    command.Parameters.AddRange(parameters);
+                    foreach (var param in parameters)
+                    {
+                        command.Parameters.Add(param);
+                    }
                 }
                 return command.ExecuteScalar();
             }
@@ -93,17 +109,20 @@ namespace TinyOPDS.Data
             }
         }
 
-        public SQLiteDataReader ExecuteReader(string sql, params SQLiteParameter[] parameters)
+        public IDataReader ExecuteReader(string sql, params IDbDataParameter[] parameters)
         {
-            var command = new SQLiteCommand(sql, _connection);
+            var command = SqliteConnectionFactory.CreateCommand(sql, _connection);
             if (parameters != null)
             {
-                command.Parameters.AddRange(parameters);
+                foreach (var param in parameters)
+                {
+                    command.Parameters.Add(param);
+                }
             }
             return command.ExecuteReader();
         }
 
-        public List<T> ExecuteQuery<T>(string sql, Func<SQLiteDataReader, T> mapper, params SQLiteParameter[] parameters)
+        public List<T> ExecuteQuery<T>(string sql, Func<IDataReader, T> mapper, params IDbDataParameter[] parameters)
         {
             var results = new List<T>();
             var reader = ExecuteReader(sql, parameters);
@@ -122,7 +141,7 @@ namespace TinyOPDS.Data
             return results;
         }
 
-        public T ExecuteQuerySingle<T>(string sql, Func<SQLiteDataReader, T> mapper, params SQLiteParameter[] parameters) where T : class
+        public T ExecuteQuerySingle<T>(string sql, Func<IDataReader, T> mapper, params IDbDataParameter[] parameters) where T : class
         {
             var reader = ExecuteReader(sql, parameters);
             try
@@ -155,63 +174,73 @@ namespace TinyOPDS.Data
             ExecuteNonQuery("ROLLBACK");
         }
 
-        // Helper methods for parameter creation
-        public static SQLiteParameter CreateParameter(string name, object value)
+        // Helper methods for parameter creation using factory
+        public static IDbDataParameter CreateParameter(string name, object value)
         {
-            return new SQLiteParameter(name, value ?? DBNull.Value);
+            if (Utils.IsLinux)
+            {
+                // Create Mono.Data.Sqlite parameter via reflection
+                var assembly = System.Reflection.Assembly.Load("Mono.Data.Sqlite");
+                var paramType = assembly.GetType("Mono.Data.Sqlite.SqliteParameter");
+                return (IDbDataParameter)Activator.CreateInstance(paramType, name, value ?? DBNull.Value);
+            }
+            else
+            {
+                return new System.Data.SQLite.SQLiteParameter(name, value ?? DBNull.Value);
+            }
         }
 
-        public static SQLiteParameter CreateParameter(string name, string value)
+        public static IDbDataParameter CreateParameter(string name, string value)
         {
-            return new SQLiteParameter(name, string.IsNullOrEmpty(value) ? DBNull.Value : (object)value);
+            return CreateParameter(name, string.IsNullOrEmpty(value) ? DBNull.Value : (object)value);
         }
 
-        public static SQLiteParameter CreateParameter(string name, DateTime? value)
+        public static IDbDataParameter CreateParameter(string name, DateTime? value)
         {
             if (value.HasValue)
-                return new SQLiteParameter(name, value.Value.ToBinary());
+                return CreateParameter(name, value.Value.ToBinary());
             else
-                return new SQLiteParameter(name, DBNull.Value);
+                return CreateParameter(name, DBNull.Value);
         }
 
-        public static SQLiteParameter CreateParameter(string name, bool value)
+        public static IDbDataParameter CreateParameter(string name, bool value)
         {
-            return new SQLiteParameter(name, value ? 1 : 0);
+            return CreateParameter(name, value ? 1 : 0);
         }
 
-        // Helper methods for reading from SQLiteDataReader
-        public static string GetString(SQLiteDataReader reader, string columnName)
+        // Helper methods for reading from IDataReader
+        public static string GetString(IDataReader reader, string columnName)
         {
             var ordinal = reader.GetOrdinal(columnName);
             return reader.IsDBNull(ordinal) ? string.Empty : reader.GetString(ordinal);
         }
 
-        public static DateTime? GetDateTime(SQLiteDataReader reader, string columnName)
+        public static DateTime? GetDateTime(IDataReader reader, string columnName)
         {
             var ordinal = reader.GetOrdinal(columnName);
             if (reader.IsDBNull(ordinal)) return null;
             return DateTime.FromBinary(reader.GetInt64(ordinal));
         }
 
-        public static bool GetBoolean(SQLiteDataReader reader, string columnName)
+        public static bool GetBoolean(IDataReader reader, string columnName)
         {
             var ordinal = reader.GetOrdinal(columnName);
             return !reader.IsDBNull(ordinal) && reader.GetInt32(ordinal) != 0;
         }
 
-        public static int GetInt32(SQLiteDataReader reader, string columnName)
+        public static int GetInt32(IDataReader reader, string columnName)
         {
             var ordinal = reader.GetOrdinal(columnName);
             return reader.IsDBNull(ordinal) ? 0 : reader.GetInt32(ordinal);
         }
 
-        public static uint GetUInt32(SQLiteDataReader reader, string columnName)
+        public static uint GetUInt32(IDataReader reader, string columnName)
         {
             var ordinal = reader.GetOrdinal(columnName);
             return reader.IsDBNull(ordinal) ? 0u : (uint)reader.GetInt64(ordinal);
         }
 
-        public static float GetFloat(SQLiteDataReader reader, string columnName)
+        public static float GetFloat(IDataReader reader, string columnName)
         {
             var ordinal = reader.GetOrdinal(columnName);
             return reader.IsDBNull(ordinal) ? 0f : reader.GetFloat(ordinal);

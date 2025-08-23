@@ -112,6 +112,9 @@
     <Compile Include="..\TinyOPDS\Data\Library.cs">
       <Link>Data\Library.cs</Link>
     </Compile>
+    <Compile Include="..\TinyOPDS\Data\SqliteConnectionFactory.cs">
+      <Link>Data\SqliteConnectionFactory.cs</Link>
+    </Compile>
     <Compile Include="..\TinyOPDS\Misc\Crypt.cs">
       <Link>Misc\Crypt.cs</Link>
     </Compile>

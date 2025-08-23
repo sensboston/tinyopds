@@ -12,7 +12,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.Data.SQLite;
+using System.Data;
 using System.Linq;
 
 namespace TinyOPDS.Data
@@ -237,7 +237,7 @@ namespace TinyOPDS.Data
 
         public Book GetBookById(string id)
         {
-            var book = _db.ExecuteQuerySingle(DatabaseSchema.SelectBookById, MapBook,
+            var book = _db.ExecuteQuerySingle<Book>(DatabaseSchema.SelectBookById, MapBook,
                 DatabaseManager.CreateParameter("@ID", id));
 
             if (book != null)
@@ -250,7 +250,7 @@ namespace TinyOPDS.Data
 
         public Book GetBookByFileName(string fileName)
         {
-            var book = _db.ExecuteQuerySingle(DatabaseSchema.SelectBookByFileName, MapBook,
+            var book = _db.ExecuteQuerySingle<Book>(DatabaseSchema.SelectBookByFileName, MapBook,
                 DatabaseManager.CreateParameter("@FileName", fileName));
 
             if (book != null)
@@ -314,7 +314,7 @@ namespace TinyOPDS.Data
 
         public List<Book> GetAllBooks()
         {
-            var books = _db.ExecuteQuery(DatabaseSchema.SelectAllBooks, MapBook);
+            var books = _db.ExecuteQuery<Book>(DatabaseSchema.SelectAllBooks, MapBook);
             foreach (var book in books)
             {
                 LoadBookRelations(book);
@@ -324,7 +324,7 @@ namespace TinyOPDS.Data
 
         public List<Book> GetBooksByAuthor(string authorName)
         {
-            var books = _db.ExecuteQuery(DatabaseSchema.SelectBooksByAuthor, MapBook,
+            var books = _db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksByAuthor, MapBook,
                 DatabaseManager.CreateParameter("@AuthorName", authorName));
 
             foreach (var book in books)
@@ -336,7 +336,7 @@ namespace TinyOPDS.Data
 
         public List<Book> GetBooksBySequence(string sequence)
         {
-            var books = _db.ExecuteQuery(DatabaseSchema.SelectBooksBySequence, MapBook,
+            var books = _db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksBySequence, MapBook,
                 DatabaseManager.CreateParameter("@Sequence", sequence));
 
             foreach (var book in books)
@@ -348,7 +348,7 @@ namespace TinyOPDS.Data
 
         public List<Book> GetBooksByGenre(string genreTag)
         {
-            var books = _db.ExecuteQuery(DatabaseSchema.SelectBooksByGenre, MapBook,
+            var books = _db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksByGenre, MapBook,
                 DatabaseManager.CreateParameter("@GenreTag", genreTag));
 
             foreach (var book in books)
@@ -360,7 +360,7 @@ namespace TinyOPDS.Data
 
         public List<Book> GetBooksByTitle(string title)
         {
-            var books = _db.ExecuteQuery(DatabaseSchema.SelectBooksByTitle, MapBook,
+            var books = _db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksByTitle, MapBook,
                 DatabaseManager.CreateParameter("@Title", title));
 
             foreach (var book in books)
@@ -372,7 +372,7 @@ namespace TinyOPDS.Data
 
         public List<Book> GetNewBooks(DateTime fromDate)
         {
-            var books = _db.ExecuteQuery(DatabaseSchema.SelectNewBooks, MapBook,
+            var books = _db.ExecuteQuery<Book>(DatabaseSchema.SelectNewBooks, MapBook,
                 DatabaseManager.CreateParameter("@FromDate", fromDate));
 
             foreach (var book in books)
@@ -384,7 +384,7 @@ namespace TinyOPDS.Data
 
         public List<Book> GetBooksByFileNamePrefix(string fileNamePrefix)
         {
-            var books = _db.ExecuteQuery(@"
+            var books = _db.ExecuteQuery<Book>(@"
                 SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
                        Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate
                 FROM Books 
@@ -430,17 +430,17 @@ namespace TinyOPDS.Data
 
         public List<string> GetAllAuthors()
         {
-            return _db.ExecuteQuery(DatabaseSchema.SelectAuthors, reader => reader.GetString(0));
+            return _db.ExecuteQuery<string>(DatabaseSchema.SelectAuthors, reader => reader.GetString(0));
         }
 
         public List<string> GetAllSequences()
         {
-            return _db.ExecuteQuery(DatabaseSchema.SelectSequences, reader => reader.GetString(0));
+            return _db.ExecuteQuery<string>(DatabaseSchema.SelectSequences, reader => reader.GetString(0));
         }
 
         public List<string> GetAllGenreTags()
         {
-            return _db.ExecuteQuery(DatabaseSchema.SelectGenreTags, reader => reader.GetString(0));
+            return _db.ExecuteQuery<string>(DatabaseSchema.SelectGenreTags, reader => reader.GetString(0));
         }
 
         public int GetAuthorsCount()
@@ -459,7 +459,7 @@ namespace TinyOPDS.Data
 
         #region Helper Methods
 
-        private Book MapBook(SQLiteDataReader reader)
+        private Book MapBook(IDataReader reader)
         {
             var fileName = DatabaseManager.GetString(reader, "FileName");
             var book = new Book(fileName)
@@ -489,15 +489,15 @@ namespace TinyOPDS.Data
         private void LoadBookRelations(Book book)
         {
             // Load authors
-            book.Authors = _db.ExecuteQuery(DatabaseSchema.SelectBookAuthors, reader => reader.GetString(0),
+            book.Authors = _db.ExecuteQuery<string>(DatabaseSchema.SelectBookAuthors, reader => reader.GetString(0),
                 DatabaseManager.CreateParameter("@BookID", book.ID));
 
             // Load genres
-            book.Genres = _db.ExecuteQuery(DatabaseSchema.SelectBookGenres, reader => reader.GetString(0),
+            book.Genres = _db.ExecuteQuery<string>(DatabaseSchema.SelectBookGenres, reader => reader.GetString(0),
                 DatabaseManager.CreateParameter("@BookID", book.ID));
 
             // Load translators
-            book.Translators = _db.ExecuteQuery(DatabaseSchema.SelectBookTranslators, reader => reader.GetString(0),
+            book.Translators = _db.ExecuteQuery<string>(DatabaseSchema.SelectBookTranslators, reader => reader.GetString(0),
                 DatabaseManager.CreateParameter("@BookID", book.ID));
         }
 

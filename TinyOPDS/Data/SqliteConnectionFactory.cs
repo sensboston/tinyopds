@@ -32,7 +32,7 @@ namespace TinyOPDS.Data
             if (Utils.IsLinux)
             {
                 // Use reflection to create Mono.Data.Sqlite connection at runtime
-                var assembly = System.Reflection.Assembly.Load("Mono.Data.Sqlite");
+                var assembly = System.Reflection.Assembly.LoadFrom("/usr/lib/mono/4.5/Mono.Data.Sqlite.dll");
                 var connectionType = assembly.GetType("Mono.Data.Sqlite.SqliteConnection");
                 return (IDbConnection)Activator.CreateInstance(connectionType, connectionString);
             }

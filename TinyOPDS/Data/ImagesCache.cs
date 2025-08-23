@@ -5,80 +5,82 @@
  * Copyright (c) 2013-2025 SeNSSoFT
  * SPDX-License-Identifier: MIT
  *
- * File-based image caching class with lazy write support
+ * Enhanced image caching class with configurable RAM/Disk storage
  *
  */
 
 using System;
 using System.IO;
 using System.Collections.Generic;
-using System.Collections.Concurrent;
 using System.Drawing;
 using System.Drawing.Imaging;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace TinyOPDS.Data
 {
     public static class ImagesCache
     {
         private static readonly object _lockObject = new object();
-        private static readonly Dictionary<string, CoverImage> _memoryCache;
-        private static readonly ConcurrentQueue<SaveTask> _saveQueue;
-        private static readonly Timer _saveTimer;
-        private static volatile bool _isProcessing;
 
+        // RAM cache for covers (when CacheImagesInMemory = true)
+        private static readonly Dictionary<string, CoverImageData> _ramCoversCache = new Dictionary<string, CoverImageData>();
+        private static readonly Queue<string> _coversAccessOrder = new Queue<string>(); // FIFO for covers
+
+        // RAM cache for thumbnails (always enabled)
+        private static readonly Dictionary<string, byte[]> _thumbnailsCache = new Dictionary<string, byte[]>();
+
+        // Disk cache paths
         private static readonly string _cacheBasePath;
         private static readonly string _coversPath;
         private static readonly string _thumbsPath;
 
+        // Current RAM usage tracking
+        private static long _currentRamUsageBytes = 0;
+
         static ImagesCache()
         {
-            _memoryCache = new Dictionary<string, CoverImage>();
-            _saveQueue = new ConcurrentQueue<SaveTask>();
-
             // Cache paths relative to application directory
             _cacheBasePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "cached_pics");
             _coversPath = Path.Combine(_cacheBasePath, "covers");
             _thumbsPath = Path.Combine(_cacheBasePath, "thumbs");
 
             EnsureCacheDirectories();
-
-            // Timer for lazy write operations (flush every 5 seconds)
-            _saveTimer = new Timer(ProcessSaveQueue, null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
         }
 
-        private struct SaveTask
+        private struct CoverImageData
         {
-            public string Id;
-            public Image CoverImage;
-            public Image ThumbnailImage;
+            public byte[] ImageData;
+            public int Width;
+            public int Height;
+            public long SizeBytes;
         }
 
         /// <summary>
-        /// Ensure cache directories exist
+        /// Ensure cache directories exist (only if disk caching is enabled)
         /// </summary>
         private static void EnsureCacheDirectories()
         {
-            try
+            if (!TinyOPDS.Properties.Settings.Default.CacheImagesInMemory)
             {
-                if (!Directory.Exists(_cacheBasePath))
-                    Directory.CreateDirectory(_cacheBasePath);
+                try
+                {
+                    if (!Directory.Exists(_cacheBasePath))
+                        Directory.CreateDirectory(_cacheBasePath);
 
-                if (!Directory.Exists(_coversPath))
-                    Directory.CreateDirectory(_coversPath);
+                    if (!Directory.Exists(_coversPath))
+                        Directory.CreateDirectory(_coversPath);
 
-                if (!Directory.Exists(_thumbsPath))
-                    Directory.CreateDirectory(_thumbsPath);
-            }
-            catch (Exception ex)
-            {
-                Log.WriteLine(LogLevel.Error, "Failed to create cache directories: {0}", ex.Message);
+                    if (!Directory.Exists(_thumbsPath))
+                        Directory.CreateDirectory(_thumbsPath);
+                }
+                catch (Exception ex)
+                {
+                    Log.WriteLine(LogLevel.Error, "Failed to create cache directories: {0}", ex.Message);
+                }
             }
         }
 
         /// <summary>
-        /// Add image to cache (immediate memory cache + lazy disk write)
+        /// Add image to cache (RAM or disk based on settings)
         /// </summary>
         public static void Add(CoverImage image)
         {
@@ -86,241 +88,253 @@ namespace TinyOPDS.Data
 
             lock (_lockObject)
             {
-                // Always add to memory cache if not in low memory mode
-                if (!_memoryCache.ContainsKey(image.ID))
+                // Always cache thumbnails in RAM (they're tiny)
+                CacheThumbnailInRam(image);
+
+                // Cache covers based on settings
+                if (TinyOPDS.Properties.Settings.Default.CacheImagesInMemory)
                 {
-                    // Remove oldest entry if cache is full
-                    if (_memoryCache.Count >= 1000)
-                    {
-                        var firstKey = GetOldestCacheKey();
-                        if (firstKey != null)
-                            _memoryCache.Remove(firstKey);
-                    }
-                    _memoryCache[image.ID] = image;
+                    CacheCoverInRam(image);
                 }
-
-                // Queue for lazy disk save if files don't exist
-                string coverPath = Path.Combine(_coversPath, image.ID + ".jpg");
-                string thumbPath = Path.Combine(_thumbsPath, image.ID + ".jpg");
-
-                if (!File.Exists(coverPath) || !File.Exists(thumbPath))
+                else
                 {
-                    var saveTask = new SaveTask
-                    {
-                        Id = image.ID,
-                        CoverImage = CloneImage(image.CoverImageStream),
-                        ThumbnailImage = CloneImage(image.ThumbnailImageStream)
-                    };
-
-                    _saveQueue.Enqueue(saveTask);
+                    CacheCoverOnDisk(image);
                 }
             }
         }
 
         /// <summary>
-        /// Check if image exists in cache (memory or disk)
+        /// Cache thumbnail in RAM (always enabled)
+        /// </summary>
+        private static void CacheThumbnailInRam(CoverImage image)
+        {
+            try
+            {
+                if (image.ThumbnailImageStream != null && !_thumbnailsCache.ContainsKey(image.ID))
+                {
+                    image.ThumbnailImageStream.Position = 0;
+                    byte[] thumbnailData = new byte[image.ThumbnailImageStream.Length];
+                    image.ThumbnailImageStream.Read(thumbnailData, 0, thumbnailData.Length);
+                    _thumbnailsCache[image.ID] = thumbnailData;
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Warning, "Failed to cache thumbnail for {0}: {1}", image.ID, ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Cache cover image in RAM with size limit
+        /// </summary>
+        private static void CacheCoverInRam(CoverImage image)
+        {
+            try
+            {
+                if (image.CoverImageStream != null && !_ramCoversCache.ContainsKey(image.ID))
+                {
+                    image.CoverImageStream.Position = 0;
+                    byte[] coverData = new byte[image.CoverImageStream.Length];
+                    image.CoverImageStream.Read(coverData, 0, coverData.Length);
+
+                    var coverImageData = new CoverImageData
+                    {
+                        ImageData = coverData,
+                        Width = 0, // We don't need dimensions for this implementation
+                        Height = 0,
+                        SizeBytes = coverData.Length
+                    };
+
+                    // Check RAM limit
+                    long maxBytes = TinyOPDS.Properties.Settings.Default.MaxRAMImageCacheSizeMB * 1024L * 1024L;
+                    long neededSpace = coverImageData.SizeBytes;
+
+                    // Remove oldest covers if needed (FIFO)
+                    while (_currentRamUsageBytes + neededSpace > maxBytes && _coversAccessOrder.Count > 0)
+                    {
+                        string oldestId = _coversAccessOrder.Dequeue();
+                        if (_ramCoversCache.TryGetValue(oldestId, out var oldCover))
+                        {
+                            _currentRamUsageBytes -= oldCover.SizeBytes;
+                            _ramCoversCache.Remove(oldestId);
+                        }
+                    }
+
+                    // Add new cover
+                    _ramCoversCache[image.ID] = coverImageData;
+                    _coversAccessOrder.Enqueue(image.ID);
+                    _currentRamUsageBytes += coverImageData.SizeBytes;
+
+                    Log.WriteLine(LogLevel.Info, "Cached cover for {0} in RAM ({1} KB, total: {2} MB)",
+                        image.ID, coverImageData.SizeBytes / 1024, _currentRamUsageBytes / (1024 * 1024));
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Warning, "Failed to cache cover in RAM for {0}: {1}", image.ID, ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Cache cover image on disk
+        /// </summary>
+        private static void CacheCoverOnDisk(CoverImage image)
+        {
+            try
+            {
+                string coverPath = Path.Combine(_coversPath, image.ID + ".jpg");
+                string thumbPath = Path.Combine(_thumbsPath, image.ID + ".jpg");
+
+                // Save cover to disk if not exists
+                if (image.CoverImageStream != null && !File.Exists(coverPath))
+                {
+                    using (var diskImage = Image.FromStream(image.CoverImageStream))
+                    {
+                        diskImage.Save(coverPath, ImageFormat.Jpeg);
+                    }
+                }
+
+                // Save thumbnail to disk if not exists
+                if (image.ThumbnailImageStream != null && !File.Exists(thumbPath))
+                {
+                    using (var diskThumb = Image.FromStream(image.ThumbnailImageStream))
+                    {
+                        diskThumb.Save(thumbPath, ImageFormat.Jpeg);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Warning, "Failed to cache images on disk for {0}: {1}", image.ID, ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Check if image exists in cache
         /// </summary>
         public static bool HasImage(string id)
         {
             if (string.IsNullOrEmpty(id)) return false;
 
-            // Check memory cache first
             lock (_lockObject)
             {
-                if (_memoryCache.ContainsKey(id))
-                    return true;
-            }
+                // Check thumbnails (always in RAM)
+                if (_thumbnailsCache.ContainsKey(id)) return true;
 
-            // Check disk cache
-            string coverPath = Path.Combine(_coversPath, id + ".jpg");
-            return File.Exists(coverPath);
+                // Check covers based on cache mode
+                if (TinyOPDS.Properties.Settings.Default.CacheImagesInMemory)
+                {
+                    return _ramCoversCache.ContainsKey(id);
+                }
+                else
+                {
+                    string coverPath = Path.Combine(_coversPath, id + ".jpg");
+                    return File.Exists(coverPath);
+                }
+            }
         }
 
         /// <summary>
-        /// Get image from cache (memory first, then disk)
+        /// Get image from cache
         /// </summary>
         public static CoverImage GetImage(string id)
         {
             if (string.IsNullOrEmpty(id)) return null;
 
-            // Try memory cache first
             lock (_lockObject)
-            {
-                if (_memoryCache.ContainsKey(id))
-                    return _memoryCache[id];
-            }
-
-            // Try loading from disk - create a wrapper that behaves like CoverImage
-            return CreateCoverImageFromDisk(id);
-        }
-
-        /// <summary>
-        /// Create a CoverImage-compatible object from disk cache
-        /// </summary>
-        private static CoverImage CreateCoverImageFromDisk(string id)
-        {
-            try
-            {
-                string coverPath = Path.Combine(_coversPath, id + ".jpg");
-
-                if (!File.Exists(coverPath)) return null;
-
-                // Load image from disk and create a temporary book object for CoverImage constructor
-                var tempImage = Image.FromFile(coverPath);
-                var dummyBook = new Book { ID = id };
-
-                // Create a new CoverImage and manually set its internal image
-                var coverImage = new CoverImageFromDisk(dummyBook, tempImage);
-
-                // Add back to memory cache if not in low memory mode
-                lock (_lockObject)
-                {
-                    if (!_memoryCache.ContainsKey(id))
-                    {
-                        if (_memoryCache.Count >= 1000)
-                        {
-                            var firstKey = GetOldestCacheKey();
-                            if (firstKey != null)
-                                _memoryCache.Remove(firstKey);
-                        }
-                        _memoryCache[id] = coverImage;
-                    }
-                }
-
-
-                return coverImage;
-            }
-            catch (Exception ex)
-            {
-                Log.WriteLine(LogLevel.Error, "Failed to load image from disk cache for ID {0}: {1}", id, ex.Message);
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Process lazy save queue
-        /// </summary>
-        private static void ProcessSaveQueue(object state)
-        {
-            if (_isProcessing || _saveQueue.IsEmpty) return;
-
-            _isProcessing = true;
-
-            Task.Run(() =>
             {
                 try
                 {
-                    var processed = 0;
-                    while (_saveQueue.TryDequeue(out SaveTask task) && processed < 10) // Process max 10 per batch
+                    // Create wrapper for cached images
+                    Stream coverStream = null;
+                    Stream thumbnailStream = null;
+
+                    // Get thumbnail (always from RAM)
+                    if (_thumbnailsCache.TryGetValue(id, out byte[] thumbData))
                     {
-                        SaveImageToDisk(task);
-                        processed++;
+                        thumbnailStream = new MemoryStream(thumbData);
+                    }
+
+                    // Get cover based on cache mode
+                    if (TinyOPDS.Properties.Settings.Default.CacheImagesInMemory)
+                    {
+                        // Get cover from RAM
+                        if (_ramCoversCache.TryGetValue(id, out var coverData))
+                        {
+                            coverStream = new MemoryStream(coverData.ImageData);
+                        }
+                    }
+                    else
+                    {
+                        // Get cover from disk
+                        string coverPath = Path.Combine(_coversPath, id + ".jpg");
+                        if (File.Exists(coverPath))
+                        {
+                            byte[] diskData = File.ReadAllBytes(coverPath);
+                            coverStream = new MemoryStream(diskData);
+                        }
+
+                        // Get thumbnail from disk if not in RAM
+                        if (thumbnailStream == null)
+                        {
+                            string thumbPath = Path.Combine(_thumbsPath, id + ".jpg");
+                            if (File.Exists(thumbPath))
+                            {
+                                byte[] diskThumbData = File.ReadAllBytes(thumbPath);
+                                thumbnailStream = new MemoryStream(diskThumbData);
+                            }
+                        }
+                    }
+
+                    // Create cached cover image wrapper
+                    if (coverStream != null || thumbnailStream != null)
+                    {
+                        return new CachedCoverImage(id, coverStream, thumbnailStream);
                     }
                 }
                 catch (Exception ex)
                 {
-                    Log.WriteLine(LogLevel.Error, "Error in lazy save queue processing: {0}", ex.Message);
+                    Log.WriteLine(LogLevel.Error, "Failed to get cached image for {0}: {1}", id, ex.Message);
                 }
-                finally
-                {
-                    _isProcessing = false;
-                }
-            });
-        }
-
-        /// <summary>
-        /// Save single image to disk
-        /// </summary>
-        private static void SaveImageToDisk(SaveTask task)
-        {
-            try
-            {
-                string coverPath = Path.Combine(_coversPath, task.Id + ".jpg");
-                string thumbPath = Path.Combine(_thumbsPath, task.Id + ".jpg");
-
-                // Save cover image
-                if (task.CoverImage != null && !File.Exists(coverPath))
-                {
-                    task.CoverImage.Save(coverPath, ImageFormat.Jpeg);
-                }
-
-                // Save thumbnail
-                if (task.ThumbnailImage != null && !File.Exists(thumbPath))
-                {
-                    task.ThumbnailImage.Save(thumbPath, ImageFormat.Jpeg);
-                }
-
-                // Dispose temporary images
-                task.CoverImage?.Dispose();
-                task.ThumbnailImage?.Dispose();
             }
-            catch (Exception ex)
-            {
-                Log.WriteLine(LogLevel.Error, "Failed to save image to disk for ID {0}: {1}", task.Id, ex.Message);
-            }
-        }
 
-        /// <summary>
-        /// Clone image from stream to avoid disposal issues
-        /// </summary>
-        private static Image CloneImage(Stream imageStream)
-        {
-            if (imageStream == null) return null;
-
-            try
-            {
-                imageStream.Position = 0;
-                return Image.FromStream(imageStream);
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Get oldest cache key for removal
-        /// </summary>
-        private static string GetOldestCacheKey()
-        {
-            // Simple FIFO - return first key
-            foreach (var key in _memoryCache.Keys)
-                return key;
             return null;
         }
 
         /// <summary>
-        /// Clear all cache (memory and disk)
+        /// Clear all caches
         /// </summary>
         public static void ClearCache()
         {
             lock (_lockObject)
             {
-                _memoryCache.Clear();
+                // Clear RAM caches
+                _ramCoversCache.Clear();
+                _thumbnailsCache.Clear();
+                _coversAccessOrder.Clear();
+                _currentRamUsageBytes = 0;
 
-                // Clear save queue
-                while (_saveQueue.TryDequeue(out _)) { }
-            }
-
-            // Clear disk cache
-            try
-            {
-                if (Directory.Exists(_coversPath))
+                // Clear disk cache if exists
+                try
                 {
-                    foreach (var file in Directory.GetFiles(_coversPath, "*.jpg"))
-                        File.Delete(file);
+                    if (Directory.Exists(_coversPath))
+                    {
+                        foreach (var file in Directory.GetFiles(_coversPath, "*.jpg"))
+                            File.Delete(file);
+                    }
+
+                    if (Directory.Exists(_thumbsPath))
+                    {
+                        foreach (var file in Directory.GetFiles(_thumbsPath, "*.jpg"))
+                            File.Delete(file);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.WriteLine(LogLevel.Error, "Failed to clear disk cache: {0}", ex.Message);
                 }
 
-                if (Directory.Exists(_thumbsPath))
-                {
-                    foreach (var file in Directory.GetFiles(_thumbsPath, "*.jpg"))
-                        File.Delete(file);
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.WriteLine(LogLevel.Error, "Failed to clear disk cache: {0}", ex.Message);
+                Log.WriteLine("Image cache cleared");
             }
         }
 
@@ -331,46 +345,62 @@ namespace TinyOPDS.Data
         {
             lock (_lockObject)
             {
-                int diskCovers = 0, diskThumbs = 0;
-
-                try
+                var stats = new CacheStats
                 {
-                    if (Directory.Exists(_coversPath))
-                        diskCovers = Directory.GetFiles(_coversPath, "*.jpg").Length;
-                    if (Directory.Exists(_thumbsPath))
-                        diskThumbs = Directory.GetFiles(_thumbsPath, "*.jpg").Length;
-                }
-                catch { }
-
-                return new CacheStats
-                {
-                    MemoryCacheCount = _memoryCache.Count,
-                    DiskCacheCovers = diskCovers,
-                    DiskCacheThumbnails = diskThumbs,
-                    PendingSaves = _saveQueue.Count
+                    ThumbnailsCacheCount = _thumbnailsCache.Count,
+                    CacheMode = TinyOPDS.Properties.Settings.Default.CacheImagesInMemory ? "RAM" : "Disk"
                 };
+
+                if (TinyOPDS.Properties.Settings.Default.CacheImagesInMemory)
+                {
+                    stats.CoversCacheCount = _ramCoversCache.Count;
+                    stats.RamUsageMB = _currentRamUsageBytes / (1024.0 * 1024.0);
+                    stats.RamLimitMB = TinyOPDS.Properties.Settings.Default.MaxRAMImageCacheSizeMB;
+                }
+                else
+                {
+                    try
+                    {
+                        if (Directory.Exists(_coversPath))
+                            stats.CoversCacheCount = Directory.GetFiles(_coversPath, "*.jpg").Length;
+                    }
+                    catch { }
+                }
+
+                return stats;
             }
         }
 
         public struct CacheStats
         {
-            public int MemoryCacheCount;
-            public int DiskCacheCovers;
-            public int DiskCacheThumbnails;
-            public int PendingSaves;
+            public int CoversCacheCount;
+            public int ThumbnailsCacheCount;
+            public string CacheMode;
+            public double RamUsageMB;
+            public int RamLimitMB;
         }
     }
 
     /// <summary>
-    /// CoverImage that loads from pre-existing disk file
+    /// CoverImage implementation for cached images
     /// </summary>
-    internal class CoverImageFromDisk : CoverImage
+    internal class CachedCoverImage : CoverImage
     {
-        public CoverImageFromDisk(Book book, Image loadedImage) : base(book)
+        private readonly Stream _coverStream;
+        private readonly Stream _thumbnailStream;
+        private readonly string _id;
+
+        public CachedCoverImage(string id, Stream coverStream, Stream thumbnailStream)
+            : base(new Book { ID = id })
         {
-            // Use reflection to set the private _cover field
-            var field = typeof(CoverImage).GetField("_cover", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            field?.SetValue(this, loadedImage);
+            _id = id;
+            _coverStream = coverStream;
+            _thumbnailStream = thumbnailStream;
         }
+
+        public new string ID => _id;
+        public new Stream CoverImageStream => _coverStream;
+        public new Stream ThumbnailImageStream => _thumbnailStream;
+        public new bool HasImages => _coverStream != null || _thumbnailStream != null;
     }
 }

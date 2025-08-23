@@ -98,5 +98,11 @@
     <Setting Name="BatchSize" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">1000</Value>
     </Setting>
+    <Setting Name="CacheImagesInMemory" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="MaxRAMImageCacheSizeMB" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">256</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

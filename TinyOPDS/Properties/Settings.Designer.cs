@@ -407,5 +407,29 @@ namespace TinyOPDS.Properties {
                 this["BatchSize"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool CacheImagesInMemory {
+            get {
+                return ((bool)(this["CacheImagesInMemory"]));
+            }
+            set {
+                this["CacheImagesInMemory"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("256")]
+        public int MaxRAMImageCacheSizeMB {
+            get {
+                return ((int)(this["MaxRAMImageCacheSizeMB"]));
+            }
+            set {
+                this["MaxRAMImageCacheSizeMB"] = value;
+            }
+        }
     }
 }

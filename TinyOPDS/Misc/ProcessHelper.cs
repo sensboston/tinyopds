@@ -1,15 +1,14 @@
-﻿/***********************************************************
- * This file is a part of TinyOPDS server project
- * 
- * Copyright (c) 2013 SeNSSoFT
+﻿/*
+ * This file is part of TinyOPDS server project
+ * https://github.com/sensboston/tinyopds
  *
- * This code is licensed under the Microsoft Public License, 
- * see http://tinyopds.codeplex.com/license for the details.
+ * Copyright (c) 2013-2025 SeNSSoFT
+ * SPDX-License-Identifier: MIT
  *
  * This module defines helper to run console processes in 
  * background, with output (including errout) collection
- * 
- ************************************************************/
+ *
+ */
 
 using System;
 using System.Collections.ObjectModel;

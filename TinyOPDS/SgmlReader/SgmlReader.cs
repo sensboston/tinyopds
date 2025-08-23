@@ -1,14 +1,16 @@
 /*
-* 
-* An XmlReader implementation for loading SGML (including HTML) converting it
-* to well formed XML, by adding missing quotes, empty attribute values, ignoring
-* duplicate attributes, case folding on tag names, adding missing closing tags
-* based on SGML DTD information, and so on.
-*
-* Copyright (c) 2002 Microsoft Corporation. All rights reserved.
-*
-* Chris Lovett
-* 
+ * This file is part of TinyOPDS server project
+ * https://github.com/sensboston/tinyopds
+ *
+ * An XmlReader implementation for loading SGML (including HTML) converting it
+ * to well formed XML, by adding missing quotes, empty attribute values, ignoring
+ * duplicate attributes, case folding on tag names, adding missing closing tags
+ * based on SGML DTD information, and so on.
+ *
+ * Copyright (c) 2002 Microsoft Corporation. All rights reserved.
+ *
+ * Chris Lovett
+ * 
 */
 
 using System;

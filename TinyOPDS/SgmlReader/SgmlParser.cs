@@ -1,3 +1,14 @@
+/*
+ * This file is part of TinyOPDS server project
+ * https://github.com/sensboston/tinyopds
+ *
+ * Copyright (c) 2002 Microsoft Corporation. All rights reserved.
+ *
+ * Chris Lovett
+ *
+ */
+
+
 using System;
 using System.IO;
 using System.Collections;

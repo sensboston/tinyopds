@@ -1,15 +1,14 @@
-﻿/***********************************************************
- * This file is a part of TinyOPDS server project
- * 
- * Copyright (c) 2013 SeNSSoFT
+﻿/*
+ * This file is part of TinyOPDS server project
+ * https://github.com/sensboston/tinyopds
  *
- * This code is licensed under the Microsoft Public License, 
- * see http://tinyopds.codeplex.com/license for the details.
+ * Copyright (c) 2013-2025 SeNSSoFT
+ * SPDX-License-Identifier: MIT
  *
  * SQLite connection factory for cross-platform compatibility
  * Uses System.Data.SQLite on Windows and Mono.Data.Sqlite on Linux
- * 
- ************************************************************/
+ *
+ */
 
 using System;
 using System.Data;

@@ -1,17 +1,17 @@
-﻿/***********************************************************
- * This file is a part of TinyOPDS server project
+﻿/*
+ * This file is part of TinyOPDS server project
+ * https://github.com/sensboston/tinyopds
+ *
+ * Copyright (c) 2013-2025 SeNSSoFT
+ * SPDX-License-Identifier: MIT
+ *
+ * Simple implementation of UPnP controller. Works fine with 
+ * some D-Link and NetGear router models (need more tests)
  * 
- * Copyright (c) 2013 SeNSSoFT
- *
- * This code is licensed under the Microsoft Public License, 
- * see http://tinyopds.codeplex.com/license for the details.
- *
  * This is a file watcher class
  * 
- * TODO: should disable UI "scan" button during Watcher's 
- * operations
- * 
- ************************************************************/
+ * TODO: should disable UI "scan" button during Watcher's operations
+ */
 
 using System;
 using System.Collections.Generic;

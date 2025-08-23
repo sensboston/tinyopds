@@ -214,6 +214,7 @@ namespace TinyOPDS.Server
         private string NormalizeRequest(string httpUrl)
         {
             string request = httpUrl;
+            Log.WriteLine(LogLevel.Info, "Original request: {0}", request);
 
             if (!request.Contains("opds-opensearch.xml") && !string.IsNullOrEmpty(Properties.Settings.Default.RootPrefix))
             {
@@ -230,6 +231,7 @@ namespace TinyOPDS.Server
             if (!request.StartsWith("/"))
                 request = "/" + request;
 
+            // Handle parameters specially - don't decode them yet as they may contain encoded data
             int paramPos = request.IndexOf('?');
             if (paramPos >= 0)
             {
@@ -247,6 +249,7 @@ namespace TinyOPDS.Server
                 }
             }
 
+            Log.WriteLine(LogLevel.Info, "Normalized request: {0}", request);
             return request;
         }
 
@@ -321,6 +324,8 @@ namespace TinyOPDS.Server
 
         private string GenerateOPDSResponse(string request, bool acceptFB2, int threshold)
         {
+            Log.WriteLine(LogLevel.Info, "Generating OPDS response for: {0}", request);
+
             string[] pathParts = request.Split(new char[] { '?', '=', '&' }, StringSplitOptions.RemoveEmptyEntries);
 
             if (request.Equals("/"))
@@ -339,73 +344,111 @@ namespace TinyOPDS.Server
             {
                 int numChars = request.StartsWith("/authorsindex/") ? 14 : 13;
                 string searchPattern = request.Substring(numChars);
+
+                // Important: Pass the URL-encoded pattern to catalog - let it handle decoding
+                Log.WriteLine(LogLevel.Info, "AuthorsIndex search pattern (raw): '{0}'", searchPattern);
+
                 return new AuthorsCatalogWithStructure(_opdsStructure).GetCatalog(searchPattern, false, threshold).ToStringWithDeclaration();
             }
             else if (request.StartsWith("/author-details/") && IsRouteEnabled("author-details"))
             {
-                return new AuthorDetailsCatalogWithStructure(_opdsStructure).GetCatalog(request.Substring(16)).ToStringWithDeclaration();
+                string authorParam = request.Substring(16);
+                Log.WriteLine(LogLevel.Info, "Author details parameter (raw): '{0}'", authorParam);
+
+                return new AuthorDetailsCatalogWithStructure(_opdsStructure).GetCatalog(authorParam).ToStringWithDeclaration();
             }
             else if (request.StartsWith("/author-series/") && IsRouteEnabled("author-series"))
             {
-                return new AuthorBooksCatalog().GetSeriesCatalog(request.Substring(15), acceptFB2, threshold).ToStringWithDeclaration();
+                string authorParam = request.Substring(15);
+                Log.WriteLine(LogLevel.Info, "Author series parameter (raw): '{0}'", authorParam);
+
+                return new AuthorBooksCatalog().GetSeriesCatalog(authorParam, acceptFB2, threshold).ToStringWithDeclaration();
             }
             else if (request.StartsWith("/author-no-series/") && IsRouteEnabled("author-no-series"))
             {
-                return new AuthorBooksCatalog().GetBooksCatalog(request.Substring(18), AuthorBooksCatalog.ViewType.NoSeries, acceptFB2, threshold).ToStringWithDeclaration();
+                string authorParam = request.Substring(18);
+                Log.WriteLine(LogLevel.Info, "Author no-series parameter (raw): '{0}'", authorParam);
+
+                return new AuthorBooksCatalog().GetBooksCatalog(authorParam, AuthorBooksCatalog.ViewType.NoSeries, acceptFB2, threshold).ToStringWithDeclaration();
             }
             else if (request.StartsWith("/author-alphabetic/") && IsRouteEnabled("author-alphabetic"))
             {
-                return new AuthorBooksCatalog().GetBooksCatalog(request.Substring(19), AuthorBooksCatalog.ViewType.Alphabetic, acceptFB2, threshold).ToStringWithDeclaration();
+                string authorParam = request.Substring(19);
+                Log.WriteLine(LogLevel.Info, "Author alphabetic parameter (raw): '{0}'", authorParam);
+
+                return new AuthorBooksCatalog().GetBooksCatalog(authorParam, AuthorBooksCatalog.ViewType.Alphabetic, acceptFB2, threshold).ToStringWithDeclaration();
             }
             else if (request.StartsWith("/author-by-date/") && IsRouteEnabled("author-by-date"))
             {
-                return new AuthorBooksCatalog().GetBooksCatalog(request.Substring(16), AuthorBooksCatalog.ViewType.ByDate, acceptFB2, threshold).ToStringWithDeclaration();
+                string authorParam = request.Substring(16);
+                Log.WriteLine(LogLevel.Info, "Author by-date parameter (raw): '{0}'", authorParam);
+
+                return new AuthorBooksCatalog().GetBooksCatalog(authorParam, AuthorBooksCatalog.ViewType.ByDate, acceptFB2, threshold).ToStringWithDeclaration();
             }
             else if (request.StartsWith("/author/"))
             {
-                string authorName = request.Substring(8);
+                string authorParam = request.Substring(8);
+                Log.WriteLine(LogLevel.Info, "Author parameter (raw): '{0}'", authorParam);
+
                 if (IsRouteEnabled("author-details"))
                 {
-                    return new AuthorDetailsCatalogWithStructure(_opdsStructure).GetCatalog(authorName).ToStringWithDeclaration();
+                    return new AuthorDetailsCatalogWithStructure(_opdsStructure).GetCatalog(authorParam).ToStringWithDeclaration();
                 }
                 else
                 {
-                    return new AuthorBooksCatalog().GetBooksCatalog(authorName, AuthorBooksCatalog.ViewType.Alphabetic, acceptFB2, threshold).ToStringWithDeclaration();
+                    return new AuthorBooksCatalog().GetBooksCatalog(authorParam, AuthorBooksCatalog.ViewType.Alphabetic, acceptFB2, threshold).ToStringWithDeclaration();
                 }
             }
             else if (request.StartsWith("/sequencesindex") && IsRouteEnabled("sequencesindex"))
             {
                 int numChars = request.StartsWith("/sequencesindex/") ? 16 : 15;
-                return new SequencesCatalog().GetCatalog(request.Substring(numChars), threshold).ToStringWithDeclaration();
+                string searchPattern = request.Substring(numChars);
+                Log.WriteLine(LogLevel.Info, "SequencesIndex search pattern (raw): '{0}'", searchPattern);
+
+                return new SequencesCatalog().GetCatalog(searchPattern, threshold).ToStringWithDeclaration();
             }
             else if (request.Contains("/sequence/"))
             {
-                return new BooksCatalog().GetCatalogBySequence(request.Substring(10), acceptFB2, threshold).ToStringWithDeclaration();
+                string sequenceParam = request.Substring(request.IndexOf("/sequence/") + 10);
+                Log.WriteLine(LogLevel.Info, "Sequence parameter (raw): '{0}'", sequenceParam);
+
+                return new BooksCatalog().GetCatalogBySequence(sequenceParam, acceptFB2, threshold).ToStringWithDeclaration();
             }
             else if (request.StartsWith("/genres") && IsRouteEnabled("genres"))
             {
                 int numChars = request.Contains("/genres/") ? 8 : 7;
-                return new GenresCatalog().GetCatalog(request.Substring(numChars)).ToStringWithDeclaration();
+                string genreParam = request.Substring(numChars);
+                Log.WriteLine(LogLevel.Info, "Genres parameter (raw): '{0}'", genreParam);
+
+                return new GenresCatalog().GetCatalog(genreParam).ToStringWithDeclaration();
             }
             else if (request.StartsWith("/genre/"))
             {
-                return new BooksCatalog().GetCatalogByGenre(request.Substring(7), acceptFB2, threshold).ToStringWithDeclaration();
+                string genreParam = request.Substring(7);
+                Log.WriteLine(LogLevel.Info, "Genre parameter (raw): '{0}'", genreParam);
+
+                return new BooksCatalog().GetCatalogByGenre(genreParam, acceptFB2, threshold).ToStringWithDeclaration();
             }
             else if (request.StartsWith("/search"))
             {
                 return HandleSearchRequest(pathParts, acceptFB2);
             }
 
+            Log.WriteLine(LogLevel.Warning, "No matching route found for request: {0}", request);
             return null;
         }
 
         private string HandleSearchRequest(string[] pathParts, bool acceptFB2)
         {
+            Log.WriteLine(LogLevel.Info, "Handling search request with {0} parts", pathParts.Length);
+
             if (pathParts.Length > 1)
             {
                 if (pathParts[1].Equals("searchTerm") && pathParts.Length > 2)
                 {
-                    return new OpenSearch().Search(pathParts[2], "", acceptFB2).ToStringWithDeclaration();
+                    string searchTerm = pathParts[2];
+                    Log.WriteLine(LogLevel.Info, "Simple search term: '{0}'", searchTerm);
+                    return new OpenSearch().Search(searchTerm, "", acceptFB2).ToStringWithDeclaration();
                 }
                 else if (pathParts[1].Equals("searchType") && pathParts.Length > 4)
                 {
@@ -414,7 +457,10 @@ namespace TinyOPDS.Server
                     {
                         int.TryParse(pathParts[6], out pageNumber);
                     }
-                    return new OpenSearch().Search(pathParts[4], pathParts[2], acceptFB2, pageNumber).ToStringWithDeclaration();
+                    string searchType = pathParts[2];
+                    string searchTerm = pathParts[4];
+                    Log.WriteLine(LogLevel.Info, "Advanced search - type: '{0}', term: '{1}', page: {2}", searchType, searchTerm, pageNumber);
+                    return new OpenSearch().Search(searchTerm, searchType, acceptFB2, pageNumber).ToStringWithDeclaration();
                 }
             }
             return null;
@@ -1076,5 +1122,4 @@ namespace TinyOPDS.Server
             return _opdsStructure.ContainsKey(route) && _opdsStructure[route];
         }
     }
-
 }

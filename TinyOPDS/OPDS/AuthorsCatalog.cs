@@ -39,8 +39,8 @@ namespace TinyOPDS.OPDS
                 return GetDirectAuthorRoute(author, opdsSettings);
             }
 
-            // Get author's books to analyze structure (including books from aliases)
-            var authorBooks = GetAllAuthorBooks(author);
+            // Get author's books to analyze structure - database now contains canonical names
+            var authorBooks = Library.GetBooksByAuthor(author);
             var booksWithSeries = authorBooks.Where(b => !string.IsNullOrEmpty(b.Sequence)).ToList();
             var booksWithoutSeries = authorBooks.Where(b => string.IsNullOrEmpty(b.Sequence)).ToList();
 
@@ -52,58 +52,6 @@ namespace TinyOPDS.OPDS
 
             // If author has only one type of books, go directly to appropriate view
             return GetDirectAuthorRoute(author, opdsSettings);
-        }
-
-        /// <summary>
-        /// Get all books for author including books from aliases
-        /// </summary>
-        /// <param name="author">Canonical author name</param>
-        /// <returns>Combined list of books</returns>
-        private List<Book> GetAllAuthorBooks(string author)
-        {
-            var allBooks = new Dictionary<string, Book>(); // Use dictionary to avoid duplicates by ID
-
-            // Add books from canonical name
-            foreach (var book in Library.GetBooksByAuthor(author))
-            {
-                allBooks[book.ID] = book;
-            }
-
-            // Add books from all aliases that map to this canonical name
-            var aliases = GetAliasesForCanonicalName(author);
-            foreach (var alias in aliases)
-            {
-                foreach (var book in Library.GetBooksByAuthor(alias))
-                {
-                    allBooks[book.ID] = book; // Dictionary will handle duplicates
-                }
-            }
-
-            return allBooks.Values.ToList();
-        }
-
-        /// <summary>
-        /// Get all alias names that map to the canonical name
-        /// </summary>
-        /// <param name="canonicalName">Canonical author name</param>
-        /// <returns>List of alias names</returns>
-        private List<string> GetAliasesForCanonicalName(string canonicalName)
-        {
-            var aliases = new List<string>();
-
-            // This is a simple approach - in a real implementation you might want to cache this
-            var allAuthors = Library.Authors;
-            foreach (var author in allAuthors)
-            {
-                var canonical = Library.ApplyAuthorAlias(author);
-                if (canonical.Equals(canonicalName, StringComparison.OrdinalIgnoreCase) &&
-                    !author.Equals(canonicalName, StringComparison.OrdinalIgnoreCase))
-                {
-                    aliases.Add(author);
-                }
-            }
-
-            return aliases;
         }
 
         /// <summary>
@@ -159,80 +107,95 @@ namespace TinyOPDS.OPDS
         }
 
         /// <summary>
-        /// Get total books count for author including aliases
+        /// Get authors catalog
         /// </summary>
-        /// <param name="canonicalAuthor">Canonical author name</param>
-        /// <returns>Total books count</returns>
-        private int GetTotalAuthorBooksCount(string canonicalAuthor)
-        {
-            return GetAllAuthorBooks(canonicalAuthor).Count;
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="searchPattern"></param>
-        /// <param name="threshold"></param>
-        /// <returns></returns>
+        /// <param name="searchPattern">Search pattern</param>
+        /// <param name="isOpenSearch">Is this an open search</param>
+        /// <param name="threshold">Items per page</param>
+        /// <returns>OPDS catalog</returns>
         public XDocument GetCatalog(string searchPattern, bool isOpenSearch = false, int threshold = 100)
         {
-            if (!string.IsNullOrEmpty(searchPattern)) searchPattern = Uri.UnescapeDataString(searchPattern).Replace('+', ' ').ToLower();
+            // Decode URL-encoded search pattern properly for Cyrillic
+            if (!string.IsNullOrEmpty(searchPattern))
+            {
+                try
+                {
+                    searchPattern = Uri.UnescapeDataString(searchPattern).Replace('+', ' ');
+                    Log.WriteLine(LogLevel.Info, "AuthorsCatalog search pattern decoded: '{0}'", searchPattern);
+                }
+                catch (Exception ex)
+                {
+                    Log.WriteLine(LogLevel.Warning, "Error decoding search pattern '{0}': {1}", searchPattern, ex.Message);
+                }
+            }
 
             XDocument doc = new XDocument(
                 // Add root element and namespaces
                 new XElement("feed", new XAttribute(XNamespace.Xmlns + "dc", Namespaces.dc), new XAttribute(XNamespace.Xmlns + "os", Namespaces.os), new XAttribute(XNamespace.Xmlns + "opds", Namespaces.opds),
                     new XElement("id", "tag:authors"),
-                    new XElement("title", Localizer.Text("Books by authors")),
+                    new XElement("title", string.IsNullOrEmpty(searchPattern) ?
+                        Localizer.Text("Books by authors") :
+                        string.Format(Localizer.Text("Authors starting with '{0}'"), searchPattern)),
                     new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                     new XElement("icon", "/authors.ico"),
                     // Add links
                     Links.opensearch, Links.search, Links.start)
                 );
 
-            // Get all authors names starting with searchPattern
-            List<string> authors = Library.GetAuthorsByName(searchPattern, isOpenSearch);
+            // Get authors names - Library handles Soundex fallback and transliteration internally
+            List<string> authors = Library.GetAuthorsByName(searchPattern ?? "", isOpenSearch);
 
             // For search, also check transliterated names
-            if (isOpenSearch)
+            if (isOpenSearch && !string.IsNullOrEmpty(searchPattern))
             {
                 // Try transliteration
                 string translit = Transliteration.Back(searchPattern, TransliterationType.GOST);
-                if (!string.IsNullOrEmpty(translit))
+                if (!string.IsNullOrEmpty(translit) && !translit.Equals(searchPattern))
                 {
                     List<string> transAuthors = Library.GetAuthorsByName(translit, isOpenSearch);
-                    if (transAuthors.Count > 0) authors.AddRange(transAuthors);
+                    if (transAuthors.Count > 0)
+                    {
+                        Log.WriteLine(LogLevel.Info, "Found {0} additional authors via transliteration", transAuthors.Count);
+                        authors.AddRange(transAuthors);
+                    }
                 }
             }
 
-            // Apply aliases to get canonical names and remove duplicates
-            var canonicalAuthors = new HashSet<string>();
-            foreach (var author in authors)
-            {
-                string canonical = Library.ApplyAuthorAlias(author);
-                canonicalAuthors.Add(canonical);
-            }
-            authors = canonicalAuthors.OrderBy(a => a, new OPDSComparer(Properties.Settings.Default.SortOrder > 0)).ToList();
+            // Remove duplicates and sort - authors are already canonical from database
+            authors = authors.Distinct().OrderBy(a => a, new OPDSComparer(Properties.Settings.Default.SortOrder > 0)).ToList();
+
+            Log.WriteLine(LogLevel.Info, "Found {0} authors for pattern '{1}'", authors.Count, searchPattern ?? "");
 
             // if there are more authors then threshold, try to collapse them into groups
             // and render these groups first and authors after them
             if (authors.Count > threshold)
             {
                 Dictionary<string, int> catalogGroups = null;
+                string currentPattern = searchPattern ?? "";
+
                 do
                 {
                     catalogGroups = (from a in authors
-                                     group a by (a.Length > searchPattern.Length ? a.Substring(0, searchPattern.Length + 1).Capitalize(true)
-                                                                                 : a.Capitalize(true)) into g
+                                     group a by (a.Length > currentPattern.Length ?
+                                         a.Substring(0, currentPattern.Length + 1).Capitalize(true) :
+                                         a.Capitalize(true)) into g
                                      where g.Count() > 1
                                      select new { Name = g, Count = g.Count() }).ToDictionary(x => x.Name.Key, y => y.Count);
 
-                    if (catalogGroups.Count == 1) searchPattern = catalogGroups.First().Key;
-                    else break;
+                    if (catalogGroups.Count == 1)
+                    {
+                        currentPattern = catalogGroups.First().Key;
+                    }
+                    else
+                    {
+                        break;
+                    }
                 } while (true);
 
                 // remove entry that exactly matches search pattern to avoid recursion 
-                catalogGroups.Remove(searchPattern.Capitalize(true));
-                // remove entries that are groupped ( if any )
+                catalogGroups.Remove(currentPattern.Capitalize(true));
+
+                // remove entries that are grouped ( if any )
                 foreach (var kv in catalogGroups)
                 {
                     authors.RemoveAll(a => a.StartsWith(kv.Key, StringComparison.InvariantCultureIgnoreCase));
@@ -255,26 +218,31 @@ namespace TinyOPDS.OPDS
                 }
             }
 
-            // Add catalog entries with canonical author names
+            // Add catalog entries - authors are already canonical names from database
             foreach (string author in authors)
             {
-                // Use total count including books from aliases
-                var booksCount = GetTotalAuthorBooksCount(author);
+                // Get books count directly - no need for alias handling
+                var booksCount = Library.GetBooksByAuthorCount(author);
 
-                // Use smart routing instead of always going to author-details
+                // Use smart routing based on OPDS settings and author's book structure
                 string authorRoute = GetAuthorRoute(author);
 
                 doc.Root.Add(
                     new XElement("entry",
                         new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                         new XElement("id", "tag:authors:" + author),
-                        new XElement("title", author), // This is now canonical name
+                        new XElement("title", author), // Already canonical name
                         new XElement("content", string.Format(Localizer.Text("Books: {0}"), booksCount), new XAttribute("type", "text")),
                         // Smart routing based on OPDS settings and author's book structure
                         new XElement("link", new XAttribute("href", authorRoute), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                     )
                 );
             }
+
+            Log.WriteLine(LogLevel.Info, "Generated authors catalog with {0} entries and {1} groups",
+                authors.Count,
+                doc.Root.Elements("entry").Count(e => e.Element("link")?.Attribute("href")?.Value?.Contains("/authorsindex/") == true));
+
             return doc;
         }
     }

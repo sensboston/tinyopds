@@ -30,7 +30,10 @@ namespace TinyOPDS.Data
         private static readonly List<Genre> _genres;
         private static readonly Dictionary<string, string> _soundexedGenres;
         private static readonly TimeSpan[] _periods = new TimeSpan[7];
+
+        // Author aliases - now stored in memory for fast access
         private static readonly Dictionary<string, string> _aliases = new Dictionary<string, string>();
+        private static readonly Dictionary<string, List<string>> _reverseAliases = new Dictionary<string, List<string>>();
 
         // Cache for frequently accessed data
         private static DateTime _lastStatsUpdate = DateTime.MinValue;
@@ -112,7 +115,7 @@ namespace TinyOPDS.Data
                 _database = new DatabaseManager(_databaseFullPath);
                 _bookRepository = new BookRepository(_database);
 
-                // Load author aliases
+                // Load author aliases into memory
                 LoadAuthorAliases();
 
                 Log.WriteLine("SQLite database initialized: {0}", _databaseFullPath);
@@ -257,7 +260,7 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Return list of new books
+        /// Return list of new books (DEPRECATED - use GetNewBooksPaginated for large datasets)
         /// </summary>
         public static List<Book> NewBooks
         {
@@ -284,6 +287,68 @@ namespace TinyOPDS.Data
                 var comparer = new OPDSComparer(TinyOPDS.Properties.Settings.Default.SortOrder > 0);
                 return books.Select(b => b.Title).Distinct().OrderBy(t => t, comparer).ToList();
             }
+        }
+
+        #endregion
+
+        #region New Books Pagination (NEW)
+
+        /// <summary>
+        /// Get new books with pagination support
+        /// </summary>
+        /// <param name="sortByDate">Sort by date (true) or alphabetically by title (false)</param>
+        /// <param name="pageNumber">Zero-based page number</param>
+        /// <param name="pageSize">Number of books per page</param>
+        /// <returns>Paginated result with books and pagination info</returns>
+        public static NewBooksPaginatedResult GetNewBooksPaginated(bool sortByDate, int pageNumber = 0, int pageSize = 100)
+        {
+            var result = new NewBooksPaginatedResult();
+
+            if (_bookRepository == null)
+            {
+                return result;
+            }
+
+            try
+            {
+                var period = _periods[TinyOPDS.Properties.Settings.Default.NewBooksPeriod];
+                var fromDate = DateTime.Now.Subtract(period);
+
+                // Get total count for pagination
+                result.TotalBooks = _bookRepository.GetNewBooksCount(fromDate);
+                result.PageSize = pageSize;
+                result.CurrentPage = pageNumber;
+                result.TotalPages = (int)Math.Ceiling((double)result.TotalBooks / pageSize);
+
+                // Calculate offset
+                int offset = pageNumber * pageSize;
+
+                // Get books for current page
+                result.Books = _bookRepository.GetNewBooksPaginated(fromDate, offset, pageSize, sortByDate);
+
+                result.HasPreviousPage = pageNumber > 0;
+                result.HasNextPage = pageNumber < result.TotalPages - 1;
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error getting paginated new books: {0}", ex.Message);
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// Get total count of new books for the current period
+        /// </summary>
+        /// <returns>Total count of new books</returns>
+        public static int GetNewBooksTotalCount()
+        {
+            if (_bookRepository == null) return 0;
+
+            var period = _periods[TinyOPDS.Properties.Settings.Default.NewBooksPeriod];
+            var fromDate = DateTime.Now.Subtract(period);
+            return _bookRepository.GetNewBooksCount(fromDate);
         }
 
         #endregion
@@ -328,6 +393,7 @@ namespace TinyOPDS.Data
 
         /// <summary>
         /// Add unique book descriptor to the library
+        /// ВАЖНО: Применяем алиасы к именам авторов перед записью в базу!
         /// </summary>
         /// <param name="book"></param>
         public static bool Add(Book book)
@@ -336,6 +402,9 @@ namespace TinyOPDS.Data
 
             try
             {
+                // Apply author aliases before saving to database
+                ApplyAliasesToBookAuthors(book);
+
                 // Check for duplicates (similar to original logic)
                 var existingBook = _bookRepository.GetBookById(book.ID);
                 if (existingBook != null && !book.Title.Equals(existingBook.Title))
@@ -380,6 +449,7 @@ namespace TinyOPDS.Data
 
         /// <summary>
         /// Add multiple books in batch - optimized for performance with detailed results
+        /// ВАЖНО: Применяем алиасы к именам авторов перед записью в базу!
         /// </summary>
         /// <param name="books">List of books to add</param>
         /// <returns>BatchResult with detailed statistics</returns>
@@ -404,6 +474,9 @@ namespace TinyOPDS.Data
 
                 foreach (var book in books)
                 {
+                    // Apply author aliases before processing
+                    ApplyAliasesToBookAuthors(book);
+
                     // Check for duplicates and handle ID conflicts
                     var existingBook = _bookRepository.GetBookById(book.ID);
                     if (existingBook != null && !book.Title.Equals(existingBook.Title))
@@ -616,34 +689,70 @@ namespace TinyOPDS.Data
             }
         }
 
+        #endregion
+
+        #region Author Aliases Management (NEW - in memory)
+
         /// <summary>
-        /// Apply author aliases to author name (for OPDS output)
+        /// Apply author aliases to book before saving to database
+        /// Этот метод применяет алиасы к именам авторов ПЕРЕД записью в базу
         /// </summary>
-        /// <param name="originalAuthor">Original author name from database</param>
-        /// <returns>Canonical author name if alias exists, otherwise original</returns>
-        public static string ApplyAuthorAlias(string originalAuthor)
+        /// <param name="book">Book to process</param>
+        private static void ApplyAliasesToBookAuthors(Book book)
         {
-            if (!TinyOPDS.Properties.Settings.Default.UseAuthorsAliases)
-                return originalAuthor;
+            if (!TinyOPDS.Properties.Settings.Default.UseAuthorsAliases || book.Authors == null)
+                return;
 
-            // First try in-memory cache for speed
-            if (_aliases.ContainsKey(originalAuthor))
-                return _aliases[originalAuthor];
-
-            // If not in cache but repository is available, try database lookup
-            if (_bookRepository != null)
+            for (int i = 0; i < book.Authors.Count; i++)
             {
-                string canonical = _bookRepository.GetCanonicalAuthorName(originalAuthor);
-                if (!canonical.Equals(originalAuthor))
+                string originalAuthor = book.Authors[i];
+                if (_aliases.ContainsKey(originalAuthor))
                 {
-                    // Cache the result for future use
-                    _aliases[originalAuthor] = canonical;
-                    return canonical;
+                    book.Authors[i] = _aliases[originalAuthor];
+                    Log.WriteLine(LogLevel.Info, "Applied alias: '{0}' -> '{1}'", originalAuthor, book.Authors[i]);
                 }
             }
+        }
 
+        /// <summary>
+        /// Apply author aliases to author name (for OPDS output)
+        /// Этот метод используется для вывода в OPDS - возвращает каноническое имя
+        /// </summary>
+        /// <param name="originalAuthor">Original author name from database (already canonical)</param>
+        /// <returns>Canonical author name (same as input since database already contains canonical names)</returns>
+        public static string ApplyAuthorAlias(string originalAuthor)
+        {
+            // В новой схеме в базе уже лежат канонические имена, поэтому просто возвращаем как есть
             return originalAuthor;
         }
+
+        /// <summary>
+        /// Get all alias names that map to the canonical name
+        /// Получить все алиасы, которые указывают на данное каноническое имя
+        /// </summary>
+        /// <param name="canonicalName">Canonical author name</param>
+        /// <returns>List of alias names</returns>
+        public static List<string> GetAliasesForCanonicalName(string canonicalName)
+        {
+            if (!_reverseAliases.ContainsKey(canonicalName))
+                return new List<string>();
+
+            return _reverseAliases[canonicalName];
+        }
+
+        /// <summary>
+        /// Get canonical name for alias (for internal use)
+        /// </summary>
+        /// <param name="aliasName">Alias name</param>
+        /// <returns>Canonical name if alias exists, otherwise original name</returns>
+        public static string GetCanonicalName(string aliasName)
+        {
+            return _aliases.ContainsKey(aliasName) ? _aliases[aliasName] : aliasName;
+        }
+
+        #endregion
+
+        #region Query Methods with Enhanced Search
 
         /// <summary>
         /// Get authors by name pattern with Soundex fallback for fuzzy search
@@ -720,10 +829,6 @@ namespace TinyOPDS.Data
             }
         }
 
-        #endregion
-
-        #region Query Methods (maintaining original API)
-
         /// <summary>
         /// Return number of books by specific author
         /// </summary>
@@ -792,17 +897,16 @@ namespace TinyOPDS.Data
             _lastStatsUpdate = DateTime.MinValue;
         }
 
+        /// <summary>
+        /// Load author aliases into memory - much faster than database lookups
+        /// </summary>
         private static void LoadAuthorAliases()
         {
-            if (_bookRepository == null) return;
-
             try
             {
-                // Clear existing aliases in database
-                _bookRepository.ClearAuthorAliases();
+                // Clear existing aliases
                 _aliases.Clear();
-
-                var batchAliases = new Dictionary<string, string>();
+                _reverseAliases.Clear();
 
                 // Load external file first (with old format)
                 string aliasesFileName = Path.Combine(Utils.ServiceFilesLocation, "a_aliases.txt");
@@ -812,31 +916,7 @@ namespace TinyOPDS.Data
                     using (var stream = File.OpenRead(aliasesFileName))
                     using (var reader = new StreamReader(stream))
                     {
-                        string line;
-                        while ((line = reader.ReadLine()) != null)
-                        {
-                            if (!string.IsNullOrEmpty(line))
-                            {
-                                string[] parts = line.Split(new char[] { '\t', ',' });
-                                try
-                                {
-                                    if (parts.Length >= 8)
-                                    {
-                                        string aliasName = string.Format("{2} {0} {1}", parts[1], parts[2], parts[3]).Trim();
-                                        string canonicalName = string.Format("{2} {0} {1}", parts[5], parts[6], parts[7]).Trim();
-
-                                        if (!string.IsNullOrEmpty(aliasName) && !string.IsNullOrEmpty(canonicalName))
-                                        {
-                                            batchAliases[aliasName] = canonicalName;
-                                        }
-                                    }
-                                }
-                                catch
-                                {
-                                    Log.WriteLine(LogLevel.Warning, "Error parsing alias '{0}'", line);
-                                }
-                            }
-                        }
+                        LoadAliasesFromReader(reader);
                     }
                 }
                 else
@@ -851,53 +931,16 @@ namespace TinyOPDS.Data
                             using (var gzipStream = new GZipStream(stream, CompressionMode.Decompress))
                             using (var reader = new StreamReader(gzipStream))
                             {
-                                string line;
-                                while ((line = reader.ReadLine()) != null)
-                                {
-                                    if (!string.IsNullOrEmpty(line))
-                                    {
-                                        string[] parts = line.Split('\t');
-                                        try
-                                        {
-                                            if (parts.Length >= 8)
-                                            {
-                                                string aliasName = string.Format("{2} {0} {1}", parts[1], parts[2], parts[3]).Trim();
-                                                string canonicalName = string.Format("{2} {0} {1}", parts[5], parts[6], parts[7]).Trim();
-
-                                                if (!string.IsNullOrEmpty(aliasName) && !string.IsNullOrEmpty(canonicalName))
-                                                {
-                                                    batchAliases[aliasName] = canonicalName;
-                                                }
-                                            }
-                                        }
-                                        catch
-                                        {
-                                            // Ignore malformed lines
-                                        }
-                                    }
-                                }
+                                LoadAliasesFromReader(reader);
                             }
                         }
                     }
                 }
 
-                // Add all aliases to database in one batch operation
-                if (batchAliases.Count > 0)
-                {
-                    int loadedCount = _bookRepository.AddAuthorAliasesBatch(batchAliases);
+                // Build reverse lookup dictionary for fast access
+                BuildReverseAliasesLookup();
 
-                    // Cache them in memory for fast lookup
-                    foreach (var alias in batchAliases)
-                    {
-                        _aliases[alias.Key] = alias.Value;
-                    }
-
-                    Log.WriteLine(LogLevel.Info, "Loaded {0} authors aliases", loadedCount);
-                }
-                else
-                {
-                    Log.WriteLine("No author aliases found to load");
-                }
+                Log.WriteLine(LogLevel.Info, "Loaded {0} author aliases into memory", _aliases.Count);
             }
             catch (Exception e)
             {
@@ -905,6 +948,70 @@ namespace TinyOPDS.Data
             }
         }
 
+        /// <summary>
+        /// Load aliases from a TextReader
+        /// </summary>
+        private static void LoadAliasesFromReader(TextReader reader)
+        {
+            string line;
+            while ((line = reader.ReadLine()) != null)
+            {
+                if (!string.IsNullOrEmpty(line))
+                {
+                    string[] parts = line.Split(new char[] { '\t', ',' });
+                    try
+                    {
+                        if (parts.Length >= 8)
+                        {
+                            string canonicalName = string.Format("{2} {0} {1}", parts[1], parts[2], parts[3]).Trim();
+                            string aliasName = string.Format("{2} {0} {1}", parts[5], parts[6], parts[7]).Trim();
+                            if (!string.IsNullOrEmpty(aliasName) && !string.IsNullOrEmpty(canonicalName))
+                            {
+                                _aliases[aliasName] = canonicalName;
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore malformed lines
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Build reverse lookup dictionary for fast alias queries
+        /// </summary>
+        private static void BuildReverseAliasesLookup()
+        {
+            foreach (var alias in _aliases)
+            {
+                string canonicalName = alias.Value;
+                if (!_reverseAliases.ContainsKey(canonicalName))
+                    _reverseAliases[canonicalName] = new List<string>();
+
+                _reverseAliases[canonicalName].Add(alias.Key);
+            }
+        }
+
         #endregion
     }
+
+    #region New Books Pagination Support Classes
+
+    /// <summary>
+    /// Result class for paginated New Books queries
+    /// </summary>
+    public class NewBooksPaginatedResult
+    {
+        public List<Book> Books { get; set; } = new List<Book>();
+        public int TotalBooks { get; set; } = 0;
+        public int TotalPages { get; set; } = 0;
+        public int CurrentPage { get; set; } = 0;
+        public int PageSize { get; set; } = 100;
+        public bool HasPreviousPage { get; set; } = false;
+        public bool HasNextPage { get; set; } = false;
+    }
+
+    #endregion
 }

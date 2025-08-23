@@ -77,11 +77,11 @@
     <Setting Name="RootPrefix" Type="System.String" Scope="User">
       <Value Profile="(Default)">opds</Value>
     </Setting>
-    <Setting Name="ItemsPerOPDSPage" Type="System.Decimal" Scope="User">
+    <Setting Name="ItemsPerOPDSPage" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">50</Value>
     </Setting>
-    <Setting Name="ItemsPerWebPage" Type="System.Decimal" Scope="User">
-      <Value Profile="(Default)">1000</Value>
+    <Setting Name="ItemsPerWebPage" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">200</Value>
     </Setting>
     <Setting Name="SortOrder" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">1</Value>

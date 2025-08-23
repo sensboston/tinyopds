@@ -58,7 +58,6 @@ namespace TinyOPDS.Data
                 // Create tables in dependency order
                 ExecuteNonQuery(DatabaseSchema.CreateBooksTable);
                 ExecuteNonQuery(DatabaseSchema.CreateAuthorsTable);
-                ExecuteNonQuery(DatabaseSchema.CreateAuthorAliasesTable);
                 ExecuteNonQuery(DatabaseSchema.CreateGenresTable);
                 ExecuteNonQuery(DatabaseSchema.CreateTranslatorsTable);
                 ExecuteNonQuery(DatabaseSchema.CreateBookAuthorsTable);

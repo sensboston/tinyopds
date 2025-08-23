@@ -362,101 +362,6 @@ namespace TinyOPDS.Data
 
         #endregion
 
-        #region Author Aliases Operations
-
-        /// <summary>
-        /// Add multiple author aliases in batch - optimized for performance
-        /// </summary>
-        /// <param name="aliases">Dictionary of alias -> canonical name mappings</param>
-        /// <returns>Number of aliases added</returns>
-        public int AddAuthorAliasesBatch(Dictionary<string, string> aliases)
-        {
-            if (aliases == null || aliases.Count == 0) return 0;
-
-            var addedCount = 0;
-
-            try
-            {
-                // Optimize SQLite settings for bulk insert
-                _db.ExecuteNonQuery("PRAGMA synchronous = OFF");
-                _db.ExecuteNonQuery("PRAGMA journal_mode = MEMORY");
-                _db.ExecuteNonQuery("PRAGMA temp_store = MEMORY");
-                _db.ExecuteNonQuery("PRAGMA cache_size = 10000");
-
-                _db.BeginTransaction();
-
-                foreach (var alias in aliases)
-                {
-                    try
-                    {
-                        _db.ExecuteNonQuery(DatabaseSchema.InsertAuthorAlias,
-                            DatabaseManager.CreateParameter("@AliasName", alias.Key),
-                            DatabaseManager.CreateParameter("@CanonicalName", alias.Value));
-                        addedCount++;
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.WriteLine(LogLevel.Error, "Error adding alias in batch {0} -> {1}: {2}",
-                            alias.Key, alias.Value, ex.Message);
-                    }
-                }
-
-                _db.CommitTransaction();
-
-                Log.WriteLine("Author aliases batch insert completed: {0} added", addedCount);
-                return addedCount;
-            }
-            catch (Exception ex)
-            {
-                _db.RollbackTransaction();
-                Log.WriteLine(LogLevel.Error, "BookRepository.AddAuthorAliasesBatch: {0}", ex.Message);
-                return addedCount;
-            }
-            finally
-            {
-                // Restore normal SQLite settings
-                _db.ExecuteNonQuery("PRAGMA synchronous = NORMAL");
-                _db.ExecuteNonQuery("PRAGMA journal_mode = DELETE");
-                _db.ExecuteNonQuery("PRAGMA temp_store = DEFAULT");
-                _db.ExecuteNonQuery("PRAGMA cache_size = 2000");
-            }
-        }
-
-        /// <summary>
-        /// Get canonical name for alias
-        /// </summary>
-        public string GetCanonicalAuthorName(string aliasName)
-        {
-            try
-            {
-                var result = _db.ExecuteScalar(DatabaseSchema.SelectAuthorAlias,
-                    DatabaseManager.CreateParameter("@AliasName", aliasName));
-                return result?.ToString() ?? aliasName;
-            }
-            catch (Exception ex)
-            {
-                Log.WriteLine(LogLevel.Error, "Error getting canonical name for {0}: {1}", aliasName, ex.Message);
-                return aliasName;
-            }
-        }
-
-        /// <summary>
-        /// Clear all author aliases and reload them
-        /// </summary>
-        public void ClearAuthorAliases()
-        {
-            try
-            {
-                _db.ExecuteNonQuery(DatabaseSchema.ClearAuthorAliases);
-            }
-            catch (Exception ex)
-            {
-                Log.WriteLine(LogLevel.Error, "Error clearing author aliases: {0}", ex.Message);
-            }
-        }
-
-        #endregion
-
         #region Book Queries
 
         public List<Book> GetAllBooks()
@@ -566,7 +471,7 @@ namespace TinyOPDS.Data
         #region Author Queries
 
         /// <summary>
-        /// Get authors by name pattern with aliases support - fast version using SQL
+        /// Get authors by name pattern - simple and fast SQL query
         /// </summary>
         public List<string> GetAuthorsByNamePattern(string pattern, bool isOpenSearch = false)
         {
@@ -633,6 +538,41 @@ namespace TinyOPDS.Data
             var result = _db.ExecuteScalar(DatabaseSchema.CountNewBooks,
                 DatabaseManager.CreateParameter("@FromDate", fromDate));
             return Convert.ToInt32(result);
+        }
+
+        /// <summary>
+        /// Get new books with pagination support
+        /// </summary>
+        /// <param name="fromDate">Date from which to consider books as new</param>
+        /// <param name="offset">Number of records to skip</param>
+        /// <param name="limit">Maximum number of records to return</param>
+        /// <param name="sortByDate">Sort by date (true) or alphabetically by title (false)</param>
+        /// <returns>List of books for the requested page</returns>
+        public List<Book> GetNewBooksPaginated(DateTime fromDate, int offset, int limit, bool sortByDate = true)
+        {
+            try
+            {
+                string query = sortByDate
+                    ? DatabaseSchema.SelectNewBooksPaginatedByDate
+                    : DatabaseSchema.SelectNewBooksPaginatedByTitle;
+
+                var books = _db.ExecuteQuery<Book>(query, MapBook,
+                    DatabaseManager.CreateParameter("@FromDate", fromDate),
+                    DatabaseManager.CreateParameter("@Offset", offset),
+                    DatabaseManager.CreateParameter("@Limit", limit));
+
+                foreach (var book in books)
+                {
+                    LoadBookRelations(book);
+                }
+
+                return books;
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error getting paginated new books: {0}", ex.Message);
+                return new List<Book>();
+            }
         }
 
         public List<string> GetAllAuthors()

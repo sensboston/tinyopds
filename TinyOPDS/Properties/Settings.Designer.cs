@@ -326,9 +326,9 @@ namespace TinyOPDS.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("50")]
-        public decimal ItemsPerOPDSPage {
+        public int ItemsPerOPDSPage {
             get {
-                return ((decimal)(this["ItemsPerOPDSPage"]));
+                return ((int)(this["ItemsPerOPDSPage"]));
             }
             set {
                 this["ItemsPerOPDSPage"] = value;
@@ -337,10 +337,10 @@ namespace TinyOPDS.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("1000")]
-        public decimal ItemsPerWebPage {
+        [global::System.Configuration.DefaultSettingValueAttribute("200")]
+        public int ItemsPerWebPage {
             get {
-                return ((decimal)(this["ItemsPerWebPage"]));
+                return ((int)(this["ItemsPerWebPage"]));
             }
             set {
                 this["ItemsPerWebPage"] = value;

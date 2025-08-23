@@ -168,14 +168,13 @@ namespace TinyOPDS.OPDS
                         new XElement("title", book.Title)
                 );
 
-                // Apply aliases to author names in output
+                // Author names are already canonical in database
                 foreach (string author in book.Authors)
                 {
-                    string displayAuthor = Library.ApplyAuthorAlias(author);
                     entry.Add(
                         new XElement("author",
-                            new XElement("name", displayAuthor),
-                            new XElement("uri", "/author-details/" + Uri.EscapeDataString(displayAuthor)
+                            new XElement("name", author),
+                            new XElement("uri", "/author-details/" + Uri.EscapeDataString(author)
                     )));
                 }
 
@@ -226,9 +225,9 @@ namespace TinyOPDS.OPDS
                 // Adding download links
                 );
 
-                // Use canonical author name for filename
-                string canonicalFirstAuthor = book.Authors.Any() ? Library.ApplyAuthorAlias(book.Authors.First()) : "Unknown";
-                string fileName = Uri.EscapeDataString(Transliteration.Front(string.Format("{0}_{1}", canonicalFirstAuthor, book.Title)).SanitizeFileName());
+                // Author names already canonical - no need to apply aliases
+                string firstAuthor = book.Authors.Any() ? book.Authors.First() : "Unknown";
+                string fileName = Uri.EscapeDataString(Transliteration.Front(string.Format("{0}_{1}", firstAuthor, book.Title)).SanitizeFileName());
                 string url = "/" + string.Format("{0}/{1}", book.ID, fileName);
                 if (book.BookType == BookType.EPUB || (book.BookType == BookType.FB2 && !acceptFB2 && !string.IsNullOrEmpty(TinyOPDS.Properties.Settings.Default.ConvertorPath)))
                 {
@@ -240,15 +239,14 @@ namespace TinyOPDS.OPDS
                     entry.Add(new XElement("link", new XAttribute("href", url + ".fb2.zip"), new XAttribute("rel", "http://opds-spec.org/acquisition/open-access"), new XAttribute("type", "application/fb2+zip")));
                 }
 
-                // Add navigation links for author and series (if any) - use canonical author names
+                // Add navigation links for author and series - author names already canonical
                 foreach (string author in book.Authors)
                 {
-                    string displayAuthor = Library.ApplyAuthorAlias(author);
                     entry.Add(new XElement("link",
-                                    new XAttribute("href", "/author-details/" + Uri.EscapeDataString(displayAuthor)),
+                                    new XAttribute("href", "/author-details/" + Uri.EscapeDataString(author)),
                                     new XAttribute("rel", "related"),
                                     new XAttribute("type", "application/atom+xml;profile=opds-catalog"),
-                                    new XAttribute("title", string.Format(Localizer.Text("All books by author {0}"), displayAuthor))));
+                                    new XAttribute("title", string.Format(Localizer.Text("All books by author {0}"), author))));
                 }
 
                 if (searchFor != SearchFor.Sequence && !string.IsNullOrEmpty(book.Sequence))

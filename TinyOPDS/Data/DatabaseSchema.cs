@@ -40,12 +40,6 @@ namespace TinyOPDS.Data
                 BookCount INTEGER NOT NULL DEFAULT 0
             )";
 
-        public const string CreateAuthorAliasesTable = @"
-            CREATE TABLE IF NOT EXISTS AuthorAliases (
-                AliasName TEXT PRIMARY KEY,
-                CanonicalName TEXT NOT NULL
-            )";
-
         public const string CreateGenresTable = @"
             CREATE TABLE IF NOT EXISTS Genres (
                 ID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -98,7 +92,6 @@ namespace TinyOPDS.Data
             CREATE INDEX IF NOT EXISTS idx_books_addeddate ON Books(AddedDate);
             CREATE INDEX IF NOT EXISTS idx_authors_name ON Authors(Name);
             CREATE INDEX IF NOT EXISTS idx_authors_name_soundex ON Authors(NameSoundex);
-            CREATE INDEX IF NOT EXISTS idx_authoraliases_canonical ON AuthorAliases(CanonicalName);
             CREATE INDEX IF NOT EXISTS idx_bookauthors_bookid ON BookAuthors(BookID);
             CREATE INDEX IF NOT EXISTS idx_bookauthors_authorid ON BookAuthors(AuthorID);
             CREATE INDEX IF NOT EXISTS idx_bookgenres_bookid ON BookGenres(BookID);
@@ -119,9 +112,6 @@ namespace TinyOPDS.Data
 
         public const string InsertAuthor = @"
             INSERT OR IGNORE INTO Authors (Name, NameSoundex, BookCount) VALUES (@Name, @NameSoundex, 0)";
-
-        public const string InsertAuthorAlias = @"
-            INSERT OR REPLACE INTO AuthorAliases (AliasName, CanonicalName) VALUES (@AliasName, @CanonicalName)";
 
         public const string InsertTranslator = @"
             INSERT OR IGNORE INTO Translators (Name) VALUES (@Name)";
@@ -218,18 +208,18 @@ namespace TinyOPDS.Data
             ORDER BY a.Name";
 
         public const string SelectAuthorsByNamePattern = @"
-            SELECT DISTINCT COALESCE(aa.CanonicalName, a.Name) as Name
+            SELECT DISTINCT a.Name
             FROM Authors a
-            LEFT JOIN AuthorAliases aa ON a.Name = aa.AliasName
-            WHERE a.Name LIKE @Pattern OR COALESCE(aa.CanonicalName, a.Name) LIKE @Pattern
-            ORDER BY COALESCE(aa.CanonicalName, a.Name)";
+            INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
+            WHERE a.Name LIKE @Pattern
+            ORDER BY a.Name";
 
         public const string SelectAuthorsByNameSoundex = @"
-            SELECT DISTINCT COALESCE(aa.CanonicalName, a.Name) as Name
+            SELECT DISTINCT a.Name
             FROM Authors a
-            LEFT JOIN AuthorAliases aa ON a.Name = aa.AliasName
+            INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
             WHERE a.NameSoundex = @NameSoundex
-            ORDER BY COALESCE(aa.CanonicalName, a.Name)";
+            ORDER BY a.Name";
 
         public const string SelectSequences = @"
             SELECT DISTINCT Sequence
@@ -269,12 +259,6 @@ namespace TinyOPDS.Data
             WHERE bt.BookID = @BookID
             ORDER BY t.Name";
 
-        public const string SelectAuthorAlias = @"
-            SELECT CanonicalName FROM AuthorAliases WHERE AliasName = @AliasName";
-
-        public const string SelectAliasesForCanonical = @"
-            SELECT AliasName FROM AuthorAliases WHERE CanonicalName = @CanonicalName";
-
         public const string CountBooks = @"SELECT COUNT(*) FROM Books";
 
         public const string CountFB2Books = @"SELECT COUNT(*) FROM Books WHERE FileName LIKE '%.fb2%'";
@@ -285,13 +269,43 @@ namespace TinyOPDS.Data
 
         #endregion
 
+        #region New Books Pagination Queries
+
+        /// <summary>
+        /// Get new books with pagination, sorted by AddedDate (newest first)
+        /// </summary>
+        public const string SelectNewBooksPaginatedByDate = @"
+            SELECT ID, Version, FileName, Title, TitleSoundex, Language, BookDate, DocumentDate,
+                   Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate
+            FROM Books 
+            WHERE AddedDate >= @FromDate
+            ORDER BY AddedDate DESC
+            LIMIT @Limit OFFSET @Offset";
+
+        /// <summary>
+        /// Get new books with pagination, sorted by Title alphabetically
+        /// </summary>
+        public const string SelectNewBooksPaginatedByTitle = @"
+            SELECT ID, Version, FileName, Title, TitleSoundex, Language, BookDate, DocumentDate,
+                   Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate
+            FROM Books 
+            WHERE AddedDate >= @FromDate
+            ORDER BY Title COLLATE NOCASE
+            LIMIT @Limit OFFSET @Offset";
+
+        /// <summary>
+        /// Count total new books for pagination calculation
+        /// </summary>
+        public const string CountNewBooksForPagination = @"
+            SELECT COUNT(*) FROM Books WHERE AddedDate >= @FromDate";
+
+        #endregion
+
         #region Delete Queries
 
         public const string DeleteBook = @"DELETE FROM Books WHERE ID = @ID";
 
         public const string DeleteBookByFileName = @"DELETE FROM Books WHERE FileName = @FileName";
-
-        public const string ClearAuthorAliases = @"DELETE FROM AuthorAliases";
 
         #endregion
 

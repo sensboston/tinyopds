@@ -92,7 +92,7 @@ namespace TinyOPDS.Data
                 CacheThumbnailInRam(image);
 
                 // Cache covers based on settings
-                if (TinyOPDS.Properties.Settings.Default.CacheImagesInMemory)
+                if (Properties.Settings.Default.CacheImagesInMemory)
                 {
                     CacheCoverInRam(image);
                 }
@@ -146,7 +146,7 @@ namespace TinyOPDS.Data
                     };
 
                     // Check RAM limit
-                    long maxBytes = TinyOPDS.Properties.Settings.Default.MaxRAMImageCacheSizeMB * 1024L * 1024L;
+                    long maxBytes = Properties.Settings.Default.MaxRAMImageCacheSizeMB * 1024L * 1024L;
                     long neededSpace = coverImageData.SizeBytes;
 
                     // Remove oldest covers if needed (FIFO)
@@ -222,7 +222,7 @@ namespace TinyOPDS.Data
                 if (_thumbnailsCache.ContainsKey(id)) return true;
 
                 // Check covers based on cache mode
-                if (TinyOPDS.Properties.Settings.Default.CacheImagesInMemory)
+                if (Properties.Settings.Default.CacheImagesInMemory)
                 {
                     return _ramCoversCache.ContainsKey(id);
                 }
@@ -256,7 +256,7 @@ namespace TinyOPDS.Data
                     }
 
                     // Get cover based on cache mode
-                    if (TinyOPDS.Properties.Settings.Default.CacheImagesInMemory)
+                    if (Properties.Settings.Default.CacheImagesInMemory)
                     {
                         // Get cover from RAM
                         if (_ramCoversCache.TryGetValue(id, out var coverData))
@@ -348,10 +348,10 @@ namespace TinyOPDS.Data
                 var stats = new CacheStats
                 {
                     ThumbnailsCacheCount = _thumbnailsCache.Count,
-                    CacheMode = TinyOPDS.Properties.Settings.Default.CacheImagesInMemory ? "RAM" : "Disk"
+                    CacheMode = Properties.Settings.Default.CacheImagesInMemory ? "RAM" : "Disk"
                 };
 
-                if (TinyOPDS.Properties.Settings.Default.CacheImagesInMemory)
+                if (Properties.Settings.Default.CacheImagesInMemory)
                 {
                     stats.CoversCacheCount = _ramCoversCache.Count;
                     stats.RamUsageMB = _currentRamUsageBytes / (1024.0 * 1024.0);

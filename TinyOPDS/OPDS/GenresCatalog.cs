@@ -25,13 +25,27 @@ namespace TinyOPDS.OPDS
     {
         public XDocument GetCatalog(string searchPattern, int threshold = 100)
         {
-            if (!string.IsNullOrEmpty(searchPattern)) searchPattern = Uri.UnescapeDataString(searchPattern).Replace('+', ' ');
+            // Decode URL-encoded search pattern properly for any special characters
+            if (!string.IsNullOrEmpty(searchPattern))
+            {
+                try
+                {
+                    searchPattern = Uri.UnescapeDataString(searchPattern).Replace('+', ' ');
+                    Log.WriteLine(LogLevel.Info, "GenresCatalog search pattern decoded: '{0}'", searchPattern);
+                }
+                catch (Exception ex)
+                {
+                    Log.WriteLine(LogLevel.Warning, "Error decoding search pattern '{0}': {1}", searchPattern, ex.Message);
+                }
+            }
 
             XDocument doc = new XDocument(
                 // Add root element and namespaces
                 new XElement("feed", new XAttribute(XNamespace.Xmlns + "dc", Namespaces.dc), new XAttribute(XNamespace.Xmlns + "os", Namespaces.os), new XAttribute(XNamespace.Xmlns + "opds", Namespaces.opds),
                 new XElement("id", "tag:genres"),
-                new XElement("title", Localizer.Text("Books by genres")),
+                new XElement("title", string.IsNullOrEmpty(searchPattern) ?
+                    Localizer.Text("Books by genres") :
+                    string.Format(Localizer.Text("Genres: {0}"), searchPattern)),
                 new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                 new XElement("icon", "/genres.ico"),
                 // Add links
@@ -41,42 +55,120 @@ namespace TinyOPDS.OPDS
             bool topLevel = true;
             bool useCyrillic = TinyOPDS.Properties.Settings.Default.SortOrder > 0;
 
-            List<Genre> libGenres = Library.Genres;
+            // Get all genre statistics with single fast query
+            Dictionary<string, int> genreStatistics;
+            try
+            {
+                genreStatistics = Library.GetBookRepository()?.GetAllGenreStatistics() ?? new Dictionary<string, int>();
+                Log.WriteLine(LogLevel.Info, "Loaded statistics for {0} genres from database", genreStatistics.Count);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error getting genre statistics from database: {0}", ex.Message);
+                return doc; // Return empty catalog on error
+            }
+
             List<Genre> genres = null;
 
             // Is it top level (main genres)?
             if (string.IsNullOrEmpty(searchPattern))
             {
-                genres = (from g in Library.FB2Genres from sg in g.Subgenres where libGenres.Contains(sg) select g).Distinct().ToList();
+                // Find all main genres that have at least one subgenre used in database
+                genres = new List<Genre>();
+
+                foreach (var mainGenre in Library.FB2Genres)
+                {
+                    // Check if this main genre has any subgenres that have books in database
+                    bool hasUsedSubgenres = mainGenre.Subgenres.Any(sg => genreStatistics.ContainsKey(sg.Tag) && genreStatistics[sg.Tag] > 0);
+
+                    if (hasUsedSubgenres)
+                    {
+                        genres.Add(mainGenre);
+                    }
+                }
+
+                Log.WriteLine(LogLevel.Info, "Found {0} main genres with books", genres.Count);
             }
             // Is it a second level (subgenres)?
             else
             {
-                Genre genre = Library.FB2Genres.Where(g => g.Name.Equals(searchPattern) || g.Translation.Equals(searchPattern)).FirstOrDefault();
-                if (genre != null)
+                Genre mainGenre = Library.FB2Genres.Where(g => g.Name.Equals(searchPattern) || g.Translation.Equals(searchPattern)).FirstOrDefault();
+                if (mainGenre != null)
                 {
-                    genres = (from g in libGenres where genre.Subgenres.Contains(g) select g).Distinct().ToList();
+                    // Filter subgenres to show only those that have books in database
+                    genres = mainGenre.Subgenres.Where(sg => genreStatistics.ContainsKey(sg.Tag) && genreStatistics[sg.Tag] > 0).ToList();
                     topLevel = false;
+
+                    Log.WriteLine(LogLevel.Info, "Found {0} subgenres with books for main genre '{1}'", genres.Count, searchPattern);
+                }
+                else
+                {
+                    Log.WriteLine(LogLevel.Warning, "Main genre not found: '{0}'", searchPattern);
                 }
             }
 
-            if (genres != null)
+            if (genres != null && genres.Count > 0)
             {
-                genres.Sort(new OPDSComparer(useCyrillic));
+                // Sort genres
+                genres.Sort((g1, g2) =>
+                {
+                    var comparer = new OPDSComparer(useCyrillic);
+                    string name1 = useCyrillic ? g1.Translation : g1.Name;
+                    string name2 = useCyrillic ? g2.Translation : g2.Name;
+                    return comparer.Compare(name1, name2);
+                });
 
                 // Add catalog entries
                 foreach (Genre genre in genres)
                 {
-                    doc.Root.Add(
-                        new XElement("entry",
-                            new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                            new XElement("id", "tag:root:genre:" + (useCyrillic ? genre.Translation : genre.Name)),
-                            new XElement("title", (useCyrillic ? genre.Translation : genre.Name)),
-                            new XElement("content", string.Format(Localizer.Text("Books in genre «{0}»"), (useCyrillic ? genre.Translation : genre.Name)), new XAttribute("type", "text")),
-                            new XElement("link", new XAttribute("href", "/" + (topLevel ? "genres/" : "genre/") + (topLevel ? Uri.EscapeDataString((useCyrillic ? genre.Translation : genre.Name)) : genre.Tag)), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
-                        )
-                    );
+                    string genreName = useCyrillic ? genre.Translation : genre.Name;
+                    string genreId = topLevel ? genreName : genre.Tag;
+
+                    // Calculate books count using preloaded statistics
+                    int booksCount = 0;
+                    if (topLevel)
+                    {
+                        // Count books in all subgenres of this main genre
+                        foreach (var subgenre in genre.Subgenres)
+                        {
+                            if (genreStatistics.ContainsKey(subgenre.Tag))
+                            {
+                                booksCount += genreStatistics[subgenre.Tag];
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Get books count for this specific subgenre
+                        if (genreStatistics.ContainsKey(genre.Tag))
+                        {
+                            booksCount = genreStatistics[genre.Tag];
+                        }
+                    }
+
+                    // Only add entry if there are books (should always be true due to filtering above)
+                    if (booksCount > 0)
+                    {
+                        doc.Root.Add(
+                            new XElement("entry",
+                                new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
+                                new XElement("id", "tag:root:genre:" + genreName),
+                                new XElement("title", genreName),
+                                new XElement("content", string.Format(Localizer.Text("Books in genre «{0}»: {1}"), genreName, booksCount), new XAttribute("type", "text")),
+                                new XElement("link",
+                                    new XAttribute("href", "/" + (topLevel ? "genres/" : "genre/") + Uri.EscapeDataString(genreId)),
+                                    new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
+                            )
+                        );
+                    }
                 }
+
+                Log.WriteLine(LogLevel.Info, "Generated {0} genre entries for level '{1}' in fast mode",
+                    doc.Root.Elements("entry").Count(), topLevel ? "main" : "sub");
+            }
+            else
+            {
+                Log.WriteLine(LogLevel.Info, "No genres found for pattern '{0}'", searchPattern ?? "root");
             }
 
             return doc;

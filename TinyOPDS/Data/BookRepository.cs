@@ -602,6 +602,55 @@ namespace TinyOPDS.Data
             return Convert.ToInt32(result);
         }
 
+        /// <summary>
+        /// Get count of books by genre - fast count without loading book data
+        /// </summary>
+        /// <param name="genreTag">Genre tag to count books for</param>
+        /// <returns>Number of books with this genre</returns>
+        public int GetBooksByGenreCount(string genreTag)
+        {
+            try
+            {
+                var result = _db.ExecuteScalar(DatabaseSchema.CountBooksByGenre,
+                    DatabaseManager.CreateParameter("@GenreTag", genreTag));
+                return Convert.ToInt32(result);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error counting books for genre {0}: {1}", genreTag, ex.Message);
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Get statistics for all genres with book counts - single fast query
+        /// </summary>
+        /// <returns>Dictionary of genre tag to book count</returns>
+        public Dictionary<string, int> GetAllGenreStatistics()
+        {
+            try
+            {
+                var result = new Dictionary<string, int>();
+
+                var statistics = _db.ExecuteQuery<(string GenreTag, int BookCount)>(
+                    DatabaseSchema.SelectGenreStatistics,
+                    reader => (reader.GetString(0), reader.GetInt32(1)));
+
+                foreach (var (genreTag, bookCount) in statistics)
+                {
+                    result[genreTag] = bookCount;
+                }
+
+                Log.WriteLine(LogLevel.Info, "Loaded statistics for {0} genres", result.Count);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error getting genre statistics: {0}", ex.Message);
+                return new Dictionary<string, int>();
+            }
+        }
+
         #endregion
 
         #region Helper Methods

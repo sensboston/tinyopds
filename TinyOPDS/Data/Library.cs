@@ -873,6 +873,15 @@ namespace TinyOPDS.Data
             return _bookRepository.GetBooksByGenre(genre);
         }
 
+        /// <summary>
+        /// Get access to BookRepository for internal use by catalogs
+        /// </summary>
+        /// <returns>BookRepository instance or null if not initialized</returns>
+        internal static BookRepository GetBookRepository()
+        {
+            return _bookRepository;
+        }
+
         #endregion
 
         #region Helper Methods

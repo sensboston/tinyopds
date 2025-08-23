@@ -267,6 +267,18 @@ namespace TinyOPDS.Data
 
         public const string CountNewBooks = @"SELECT COUNT(*) FROM Books WHERE AddedDate >= @FromDate";
 
+        public const string CountBooksByGenre = @"
+            SELECT COUNT(*) FROM Books b 
+            INNER JOIN BookGenres bg ON b.ID = bg.BookID 
+            WHERE bg.GenreTag = @GenreTag";
+
+        public const string SelectGenreStatistics = @"
+            SELECT bg.GenreTag, COUNT(*) as BookCount 
+            FROM BookGenres bg 
+            INNER JOIN Books b ON bg.BookID = b.ID
+            GROUP BY bg.GenreTag
+            ORDER BY bg.GenreTag";
+
         #endregion
 
         #region New Books Pagination Queries

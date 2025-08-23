@@ -367,7 +367,7 @@ namespace TinyOPDSConsole
 
         #endregion
 
-        #region Batch processing methods (same as MainForm.cs)
+        #region Batch processing methods
 
         /// <summary>
         /// Add book to pending batch - console shows progress, actual writing is deferred
@@ -386,7 +386,7 @@ namespace TinyOPDSConsole
                     FlushPendingBooks();
                 }
 
-                return true; // For console counting purposes
+                return true; // For console counting purposes, always return true here
             }
         }
 
@@ -407,8 +407,32 @@ namespace TinyOPDSConsole
 
             try
             {
-                var addedCount = Library.AddBatch(booksToProcess);
-                Log.WriteLine("Flushed {0} books to database ({1} actually added)", booksToProcess.Count, addedCount);
+                var batchResult = Library.AddBatch(booksToProcess);
+
+                // Update counters based on actual results
+                if (batchResult.Duplicates > 0 || batchResult.Errors > 0)
+                {
+                    // Adjust counters based on actual batch results
+                    int booksToSubtract = batchResult.Duplicates + batchResult.Errors;
+
+                    // Add duplicates to duplicate counter
+                    _duplicates += batchResult.Duplicates;
+
+                    // Subtract duplicates and errors from type-specific counters
+                    double fb2Ratio = batchResult.FB2Count > 0 ? (double)batchResult.FB2Count / (batchResult.FB2Count + batchResult.EPUBCount) : 0.5;
+                    int fb2ToSubtract = (int)(booksToSubtract * fb2Ratio);
+                    int epubToSubtract = booksToSubtract - fb2ToSubtract;
+
+                    _fb2Count = Math.Max(0, _fb2Count - fb2ToSubtract);
+                    _epubCount = Math.Max(0, _epubCount - epubToSubtract);
+
+                    Log.WriteLine("Batch flush completed: {0} processed, {1} added, {2} duplicates, {3} errors",
+                        batchResult.TotalProcessed, batchResult.Added, batchResult.Duplicates, batchResult.Errors);
+                }
+                else
+                {
+                    Log.WriteLine("Batch flush completed: {0} books successfully added", batchResult.Added);
+                }
             }
             catch (Exception ex)
             {
@@ -419,7 +443,13 @@ namespace TinyOPDSConsole
                 {
                     try
                     {
-                        Library.Add(book);
+                        if (!Library.Add(book))
+                        {
+                            _duplicates++;
+                            // Adjust counters for the duplicate
+                            if (book.BookType == BookType.FB2) _fb2Count = Math.Max(0, _fb2Count - 1);
+                            else _epubCount = Math.Max(0, _epubCount - 1);
+                        }
                     }
                     catch (Exception ex2)
                     {
@@ -735,16 +765,19 @@ namespace TinyOPDSConsole
         }
 
         /// <summary>
-        /// Optimized book found handler with batching and regular flushes
+        /// Optimized book found handler with batching and proper duplicate counting
         /// </summary>
         static void Scanner_OnBookFound(object sender, BookFoundEventArgs e)
         {
-            // Add book to batch instead of directly to library
-            if (AddBookToBatch(e.Book))
-            {
-                if (e.Book.BookType == BookType.FB2) _fb2Count++; else _epubCount++;
-            }
-            else _duplicates++;
+            // Add book to batch and count it for console display
+            // The actual duplicate detection happens in FlushPendingBooks()
+            AddBookToBatch(e.Book);
+
+            // Count for console display - duplicates will be corrected during flush
+            if (e.Book.BookType == BookType.FB2)
+                _fb2Count++;
+            else
+                _epubCount++;
 
             var totalProcessed = _fb2Count + _epubCount + _duplicates;
 

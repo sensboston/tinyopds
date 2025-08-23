@@ -379,20 +379,29 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Add multiple books in batch - optimized for performance
+        /// Add multiple books in batch - optimized for performance with detailed results
         /// </summary>
         /// <param name="books">List of books to add</param>
-        /// <returns>Number of books actually added</returns>
-        public static int AddBatch(List<Book> books)
+        /// <returns>BatchResult with detailed statistics</returns>
+        public static BookRepository.BatchResult AddBatch(List<Book> books)
         {
-            if (_bookRepository == null || books == null || books.Count == 0) return 0;
+            var result = new BookRepository.BatchResult();
+            var startTime = DateTime.Now;
+
+            if (_bookRepository == null || books == null || books.Count == 0)
+            {
+                result.ProcessingTime = DateTime.Now - startTime;
+                return result;
+            }
 
             try
             {
-                var start = DateTime.Now;
+                result.TotalProcessed = books.Count;
 
                 // Process each book similar to individual Add method
                 var processedBooks = new List<Book>();
+                int skippedDuplicates = 0;
+
                 foreach (var book in books)
                 {
                     // Check for duplicates and handle ID conflicts
@@ -420,27 +429,41 @@ namespace TinyOPDS.Data
                     }
                     else
                     {
+                        skippedDuplicates++;
                         Log.WriteLine(LogLevel.Warning, "Skipping duplicate in batch. File name {0}, book ID {1}",
                             book.FileName, book.ID);
                     }
                 }
 
-                var addedCount = _bookRepository.AddBooksBatch(processedBooks);
+                // Use repository batch method
+                var batchResult = _bookRepository.AddBooksBatch(processedBooks);
 
-                if (addedCount > 0)
+                // Combine results - add duplicates found at Library level
+                result.Added = batchResult.Added;
+                result.Duplicates = batchResult.Duplicates + skippedDuplicates;
+                result.Errors = batchResult.Errors;
+                result.FB2Count = batchResult.FB2Count;
+                result.EPUBCount = batchResult.EPUBCount;
+                result.ErrorMessages = batchResult.ErrorMessages;
+                result.ProcessingTime = DateTime.Now - startTime;
+
+                if (result.Added > 0)
                 {
                     IsChanged = true;
                     InvalidateStatsCache();
-                    Log.WriteLine("Added {0} books in batch ({1} ms)",
-                        addedCount, (DateTime.Now - start).TotalMilliseconds);
+                    Log.WriteLine("Library.AddBatch completed: {0} added, {1} duplicates, {2} errors in {3}ms",
+                        result.Added, result.Duplicates, result.Errors, result.ProcessingTime.TotalMilliseconds);
                 }
 
-                return addedCount;
+                return result;
             }
             catch (Exception ex)
             {
                 Log.WriteLine(LogLevel.Error, "Library.AddBatch: {0}", ex.Message);
-                return 0;
+                result.Errors = result.TotalProcessed;
+                result.ErrorMessages.Add($"Library batch operation failed: {ex.Message}");
+                result.ProcessingTime = DateTime.Now - startTime;
+                return result;
             }
         }
 

@@ -320,7 +320,7 @@ namespace TinyOPDS
                     FlushPendingBooks();
                 }
 
-                return true; // For UI counting purposes
+                return true; // For UI counting purposes, always return true here
             }
         }
 
@@ -341,8 +341,35 @@ namespace TinyOPDS
 
             try
             {
-                var addedCount = Library.AddBatch(booksToProcess);
-                Log.WriteLine("Flushed {0} books to database ({1} actually added)", booksToProcess.Count, addedCount);
+                var batchResult = Library.AddBatch(booksToProcess);
+
+                // Update counters based on actual results
+                // Note: We subtract what we already counted and add the real results
+                if (batchResult.Duplicates > 0 || batchResult.Errors > 0)
+                {
+                    // Adjust counters based on actual batch results
+                    // We need to subtract books that were counted as found but are actually duplicates/errors
+                    int booksToSubtract = batchResult.Duplicates + batchResult.Errors;
+
+                    // Add duplicates to duplicate counter
+                    _duplicates += batchResult.Duplicates;
+
+                    // Subtract duplicates and errors from type-specific counters
+                    // This is approximate since we don't know which specific books were duplicates
+                    double fb2Ratio = batchResult.FB2Count > 0 ? (double)batchResult.FB2Count / (batchResult.FB2Count + batchResult.EPUBCount) : 0.5;
+                    int fb2ToSubtract = (int)(booksToSubtract * fb2Ratio);
+                    int epubToSubtract = booksToSubtract - fb2ToSubtract;
+
+                    _fb2Count = Math.Max(0, _fb2Count - fb2ToSubtract);
+                    _epubCount = Math.Max(0, _epubCount - epubToSubtract);
+
+                    Log.WriteLine("Batch flush completed: {0} processed, {1} added, {2} duplicates, {3} errors",
+                        batchResult.TotalProcessed, batchResult.Added, batchResult.Duplicates, batchResult.Errors);
+                }
+                else
+                {
+                    Log.WriteLine("Batch flush completed: {0} books successfully added", batchResult.Added);
+                }
             }
             catch (Exception ex)
             {
@@ -353,7 +380,13 @@ namespace TinyOPDS
                 {
                     try
                     {
-                        Library.Add(book);
+                        if (!Library.Add(book))
+                        {
+                            _duplicates++;
+                            // Adjust counters for the duplicate
+                            if (book.BookType == BookType.FB2) _fb2Count = Math.Max(0, _fb2Count - 1);
+                            else _epubCount = Math.Max(0, _epubCount - 1);
+                        }
                     }
                     catch (Exception ex2)
                     {
@@ -635,12 +668,15 @@ namespace TinyOPDS
 
         void scanner_OnBookFound(object sender, BookFoundEventArgs e)
         {
-            // Add book to batch instead of directly to library
-            if (AddBookToBatch(e.Book))
-            {
-                if (e.Book.BookType == BookType.FB2) _fb2Count++; else _epubCount++;
-            }
-            else _duplicates++;
+            // Add book to batch and count it for UI display
+            // The actual duplicate detection happens in FlushPendingBooks()
+            AddBookToBatch(e.Book);
+
+            // Count for UI display - duplicates will be corrected during flush
+            if (e.Book.BookType == BookType.FB2)
+                _fb2Count++;
+            else
+                _epubCount++;
 
             // Update UI every 20 books for responsiveness
             var totalProcessed = _fb2Count + _epubCount + _duplicates;

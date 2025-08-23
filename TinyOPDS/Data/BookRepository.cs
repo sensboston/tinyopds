@@ -25,6 +25,23 @@ namespace TinyOPDS.Data
             _db = database;
         }
 
+        /// <summary>
+        /// Result of batch operations with detailed statistics
+        /// </summary>
+        public class BatchResult
+        {
+            public int TotalProcessed { get; set; }
+            public int Added { get; set; }
+            public int Duplicates { get; set; }
+            public int Errors { get; set; }
+            public int FB2Count { get; set; }
+            public int EPUBCount { get; set; }
+            public TimeSpan ProcessingTime { get; set; }
+            public List<string> ErrorMessages { get; set; } = new List<string>();
+
+            public bool IsSuccess => Added > 0 || Duplicates > 0;
+        }
+
         #region Book CRUD Operations
 
         public bool AddBook(Book book)
@@ -119,14 +136,20 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Add multiple books in batch - optimized for performance
+        /// Add multiple books in batch - optimized for performance with detailed result
         /// </summary>
-        public int AddBooksBatch(List<Book> books)
+        public BatchResult AddBooksBatch(List<Book> books)
         {
-            if (books == null || books.Count == 0) return 0;
+            var result = new BatchResult();
+            var startTime = DateTime.Now;
 
-            var addedCount = 0;
-            var duplicatesCount = 0;
+            if (books == null || books.Count == 0)
+            {
+                result.ProcessingTime = DateTime.Now - startTime;
+                return result;
+            }
+
+            result.TotalProcessed = books.Count;
 
             try
             {
@@ -147,7 +170,7 @@ namespace TinyOPDS.Data
                         // Check for duplicates
                         if (BookExists(book.FileName))
                         {
-                            duplicatesCount++;
+                            result.Duplicates++;
                             continue;
                         }
 
@@ -214,10 +237,18 @@ namespace TinyOPDS.Data
                                 DatabaseManager.CreateParameter("@TranslatorName", translatorName));
                         }
 
-                        addedCount++;
+                        result.Added++;
+
+                        // Count by type for statistics
+                        if (book.BookType == BookType.FB2)
+                            result.FB2Count++;
+                        else
+                            result.EPUBCount++;
                     }
                     catch (Exception ex)
                     {
+                        result.Errors++;
+                        result.ErrorMessages.Add($"Book {book.FileName}: {ex.Message}");
                         Log.WriteLine(LogLevel.Error, "BookRepository.AddBooksBatch - Book {0}: {1}", book.FileName, ex.Message);
                     }
                 }
@@ -231,14 +262,20 @@ namespace TinyOPDS.Data
 
                 _db.CommitTransaction();
 
-                Log.WriteLine("Batch insert completed: {0} added, {1} duplicates skipped", addedCount, duplicatesCount);
-                return addedCount;
+                result.ProcessingTime = DateTime.Now - startTime;
+                Log.WriteLine("Batch insert completed: {0} added, {1} duplicates skipped, {2} errors in {3}ms",
+                    result.Added, result.Duplicates, result.Errors, result.ProcessingTime.TotalMilliseconds);
+
+                return result;
             }
             catch (Exception ex)
             {
                 _db.RollbackTransaction();
+                result.Errors = result.TotalProcessed;
+                result.ErrorMessages.Add($"Batch transaction failed: {ex.Message}");
+                result.ProcessingTime = DateTime.Now - startTime;
                 Log.WriteLine(LogLevel.Error, "BookRepository.AddBooksBatch: {0}", ex.Message);
-                return addedCount;
+                return result;
             }
             finally
             {

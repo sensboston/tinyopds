@@ -24,7 +24,7 @@ namespace TinyOPDS.Parsers
     public class ePubParser : BookParser
     {
         /// <summary>
-        /// 
+        /// Parse EPUB book and normalize author names to standard format
         /// </summary>
         /// <param name="stream"></param>
         /// <param name="fileName"></param>
@@ -49,8 +49,17 @@ namespace TinyOPDS.Parsers
                 }
                 book.Title = epub.Title[0];
                 book.Authors = new List<string>();
-                book.Authors.AddRange(epub.Creator);
-                for (int i = 0; i < book.Authors.Count; i++) book.Authors[i] = book.Authors[i].Capitalize();
+
+                // Process and normalize author names for EPUB
+                foreach (var creator in epub.Creator)
+                {
+                    string normalizedAuthor = NormalizeAuthorName(creator);
+                    if (!string.IsNullOrEmpty(normalizedAuthor))
+                    {
+                        book.Authors.Add(normalizedAuthor);
+                    }
+                }
+
                 book.Genres = LookupGenres(epub.Subject);
                 if (epub.Description != null && epub.Description.Count > 0) book.Annotation = epub.Description.First();
                 if (epub.Language != null && epub.Language.Count > 0) book.Language = epub.Language.First();
@@ -59,8 +68,74 @@ namespace TinyOPDS.Parsers
             {
                 Log.WriteLine(LogLevel.Error, "exception {0}", e.Message);
             }
-            // Note: Don't dispose the stream here - it's managed by the caller
             return book;
+        }
+
+        /// <summary>
+        /// Normalize EPUB author name to standard "LastName FirstName MiddleName" format
+        /// EPUB authors can come in various formats: "John Smith", "Smith, John", "John Middle Smith"
+        /// </summary>
+        /// <param name="authorName">Raw author name from EPUB</param>
+        /// <returns>Normalized author name in "LastName FirstName MiddleName" format</returns>
+        private string NormalizeAuthorName(string authorName)
+        {
+            if (string.IsNullOrEmpty(authorName))
+                return string.Empty;
+
+            string normalized = authorName.Trim().Capitalize();
+
+            // Handle comma-separated format "Smith, John" or "Smith, John Middle"
+            if (normalized.Contains(","))
+            {
+                var parts = normalized.Split(',');
+                if (parts.Length >= 2)
+                {
+                    string lastName = parts[0].Trim();
+                    string remainingNames = parts[1].Trim();
+
+                    if (!string.IsNullOrEmpty(remainingNames))
+                    {
+                        var nameWords = remainingNames.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+                        if (nameWords.Length == 1)
+                        {
+                            // "Smith, John" → "Smith John"
+                            return $"{lastName} {nameWords[0]}";
+                        }
+                        else if (nameWords.Length >= 2)
+                        {
+                            // "Smith, John Middle" → "Smith John Middle"
+                            return $"{lastName} {string.Join(" ", nameWords)}";
+                        }
+                    }
+
+                    return lastName;
+                }
+            }
+
+            // Handle space-separated format "John Smith" or "John Middle Smith"
+            var words = normalized.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+            if (words.Length == 1)
+            {
+                // Single word - assume it's LastName
+                return words[0];
+            }
+            else if (words.Length == 2)
+            {
+                // Two words "John Smith" → "Smith John"
+                return $"{words[1]} {words[0]}";
+            }
+            else if (words.Length >= 3)
+            {
+                // Three or more words "John Middle Smith" → "Smith John Middle"
+                string lastName = words[words.Length - 1];
+                var firstAndMiddleNames = new string[words.Length - 1];
+                Array.Copy(words, 0, firstAndMiddleNames, 0, words.Length - 1);
+                return $"{lastName} {string.Join(" ", firstAndMiddleNames)}";
+            }
+
+            return normalized;
         }
 
         /// <summary>
@@ -80,7 +155,7 @@ namespace TinyOPDS.Parsers
             {
                 foreach (string subj in subjects)
                 {
-                    var genre = Library.SoundexedGenres.Where(g => g.Key.StartsWith(subj.SoundexByWord()) && g.Key.WordsCount() <= subj.WordsCount()+1).FirstOrDefault();
+                    var genre = Library.SoundexedGenres.Where(g => g.Key.StartsWith(subj.SoundexByWord()) && g.Key.WordsCount() <= subj.WordsCount() + 1).FirstOrDefault();
                     if (genre.Key != null) genres.Add(genre.Value);
                 }
                 if (genres.Count < 1) genres.Add("prose");
@@ -89,7 +164,7 @@ namespace TinyOPDS.Parsers
         }
 
         /// <summary>
-        /// 
+        /// Get cover image from EPUB file
         /// </summary>
         /// <param name="stream"></param>
         /// <param name="fileName"></param>

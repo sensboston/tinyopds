@@ -369,7 +369,7 @@ namespace TinyOPDS.Server
                 // Important: Pass the URL-encoded pattern to catalog - let it handle decoding
                 Log.WriteLine(LogLevel.Info, "AuthorsIndex search pattern (raw): '{0}'", searchPattern);
 
-                return new AuthorsCatalogWithStructure(_opdsStructure).GetCatalog(searchPattern, false, threshold).ToStringWithDeclaration();
+                return new AuthorsCatalog().GetCatalog(searchPattern, false, threshold).ToStringWithDeclaration();
             }
             else if (request.StartsWith("/author-details/") && IsRouteEnabled("author-details"))
             {

@@ -142,23 +142,18 @@ namespace TinyOPDS.OPDS
                     Links.opensearch, Links.search, Links.start)
                 );
 
-            // Get authors names - Library handles Soundex fallback and transliteration internally
-            List<string> authors = Library.GetAuthorsByName(searchPattern ?? "", isOpenSearch);
+            // Get authors names based on search pattern
+            List<string> authors;
 
-            // For search, also check transliterated names
-            if (isOpenSearch && !string.IsNullOrEmpty(searchPattern))
+            if (string.IsNullOrEmpty(searchPattern))
             {
-                // Try transliteration
-                string translit = Transliteration.Back(searchPattern, TransliterationType.GOST);
-                if (!string.IsNullOrEmpty(translit) && !translit.Equals(searchPattern))
-                {
-                    List<string> transAuthors = Library.GetAuthorsByName(translit, isOpenSearch);
-                    if (transAuthors.Count > 0)
-                    {
-                        Log.WriteLine(LogLevel.Info, "Found {0} additional authors via transliteration", transAuthors.Count);
-                        authors.AddRange(transAuthors);
-                    }
-                }
+                // Get all authors for initial navigation
+                authors = Library.GetAuthorsByName("", false);
+            }
+            else
+            {
+                // Get authors matching the pattern - use prefix search for navigation
+                authors = Library.GetAuthorsByName(searchPattern, isOpenSearch);
             }
 
             // Remove duplicates and sort - authors are already canonical from database
@@ -166,62 +161,37 @@ namespace TinyOPDS.OPDS
 
             Log.WriteLine(LogLevel.Info, "Found {0} authors for pattern '{1}'", authors.Count, searchPattern ?? "");
 
-            // if there are more authors then threshold, try to collapse them into groups
-            // and render these groups first and authors after them
-            if (authors.Count > threshold)
+            // If no search pattern (root level) or too many results, create navigation groups
+            if (string.IsNullOrEmpty(searchPattern) || authors.Count > threshold)
             {
-                Dictionary<string, int> catalogGroups = null;
-                string currentPattern = searchPattern ?? "";
+                // Create alphabetical groups for navigation
+                var navigationGroups = CreateNavigationGroups(authors, searchPattern, threshold);
 
-                do
-                {
-                    catalogGroups = (from a in authors
-                                     group a by (a.Length > currentPattern.Length ?
-                                         a.Substring(0, currentPattern.Length + 1).Capitalize(true) :
-                                         a.Capitalize(true)) into g
-                                     where g.Count() > 1
-                                     select new { Name = g, Count = g.Count() }).ToDictionary(x => x.Name.Key, y => y.Count);
-
-                    if (catalogGroups.Count == 1)
-                    {
-                        currentPattern = catalogGroups.First().Key;
-                    }
-                    else
-                    {
-                        break;
-                    }
-                } while (true);
-
-                // remove entry that exactly matches search pattern to avoid recursion 
-                catalogGroups.Remove(currentPattern.Capitalize(true));
-
-                // remove entries that are grouped ( if any )
-                foreach (var kv in catalogGroups)
-                {
-                    authors.RemoveAll(a => a.StartsWith(kv.Key, StringComparison.InvariantCultureIgnoreCase));
-                }
-
-                // Add catalog groups
-                foreach (KeyValuePair<string, int> cg in catalogGroups)
+                // Add navigation entries
+                foreach (var group in navigationGroups)
                 {
                     doc.Root.Add(
                         new XElement("entry",
                             new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                            new XElement("id", "tag:authors:" + cg.Key),
-                            new XElement("title", cg.Key),
-                            new XElement("content", string.Format(Localizer.Text("Total authors on {0}: {1}"), cg.Key, cg.Value),
+                            new XElement("id", "tag:authors:" + group.Key),
+                            new XElement("title", group.Key),
+                            new XElement("content", string.Format(Localizer.Text("Total authors on {0}: {1}"), group.Key, group.Value),
                                          new XAttribute("type", "text")),
-                            new XElement("link", new XAttribute("href", "/authorsindex/" + Uri.EscapeDataString(cg.Key)),
+                            new XElement("link", new XAttribute("href", "/authorsindex/" + Uri.EscapeDataString(group.Key)),
                                          new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                         )
                     );
                 }
+
+                // Filter out authors that are now in groups
+                var groupPrefixes = navigationGroups.Keys.ToList();
+                authors = authors.Where(a => !groupPrefixes.Any(prefix => a.StartsWith(prefix, StringComparison.InvariantCultureIgnoreCase) && a.Length > prefix.Length)).ToList();
             }
 
-            // Add catalog entries - authors are already canonical names from database
-            foreach (string author in authors)
+            // Add individual author entries
+            foreach (string author in authors.Take(threshold))
             {
-                // Get books count directly - no need for alias handling
+                // Get books count directly
                 var booksCount = Library.GetBooksByAuthorCount(author);
 
                 // Use smart routing based on OPDS settings and author's book structure
@@ -239,11 +209,48 @@ namespace TinyOPDS.OPDS
                 );
             }
 
-            Log.WriteLine(LogLevel.Info, "Generated authors catalog with {0} entries and {1} groups",
-                authors.Count,
-                doc.Root.Elements("entry").Count(e => e.Element("link")?.Attribute("href")?.Value?.Contains("/authorsindex/") == true));
+            int totalEntries = doc.Root.Elements("entry").Count();
+            int groupEntries = doc.Root.Elements("entry").Count(e => e.Element("link")?.Attribute("href")?.Value?.Contains("/authorsindex/") == true);
+
+            Log.WriteLine(LogLevel.Info, "Generated authors catalog with {0} author entries and {1} navigation groups",
+                totalEntries - groupEntries, groupEntries);
 
             return doc;
+        }
+
+        /// <summary>
+        /// Create navigation groups for authors based on first letters
+        /// </summary>
+        /// <param name="authors">List of all authors</param>
+        /// <param name="currentPattern">Current search pattern</param>
+        /// <param name="threshold">Threshold for grouping</param>
+        /// <returns>Dictionary of group name to author count</returns>
+        private Dictionary<string, int> CreateNavigationGroups(List<string> authors, string currentPattern, int threshold)
+        {
+            var groups = new Dictionary<string, int>();
+
+            if (string.IsNullOrEmpty(currentPattern))
+            {
+                // Root level - group by first letter
+                var firstLetterGroups = authors
+                    .GroupBy(a => a.Substring(0, 1).ToUpperInvariant())
+                    .Where(g => g.Count() > 0)
+                    .ToDictionary(g => g.Key, g => g.Count());
+
+                return firstLetterGroups;
+            }
+            else
+            {
+                // Deeper level - extend current pattern by one character
+                int nextCharPos = currentPattern.Length;
+                var extendedGroups = authors
+                    .Where(a => a.Length > nextCharPos)
+                    .GroupBy(a => a.Substring(0, nextCharPos + 1).Capitalize(true))
+                    .Where(g => g.Count() > 1) // Only create groups if there are multiple authors
+                    .ToDictionary(g => g.Key, g => g.Count());
+
+                return extendedGroups;
+            }
         }
     }
 }

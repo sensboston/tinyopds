@@ -62,10 +62,11 @@ namespace TinyOPDS.OPDS
 
             if (string.IsNullOrEmpty(searchType))
             {
-                // Library.GetAuthorsByName now handles transliteration and Soundex fallback internally
+                // Enhanced author search with FirstName/LastName parsing and Soundex fallback
+                // Handles both "Пилевин" and "Виктор Пилевин" search patterns
                 authors = Library.GetAuthorsByName(searchPattern, true);
 
-                // Library.GetBooksByTitle now handles transliteration and Soundex fallback internally
+                // Simple title search (no Soundex for book titles as per requirements)
                 titles = Library.GetBooksByTitle(searchPattern);
             }
 
@@ -89,13 +90,13 @@ namespace TinyOPDS.OPDS
             }
             else if (searchType.Equals("authors") || (authors.Count > 0 && titles.Count == 0))
             {
-                // Delegate to AuthorsCatalog which handles aliases, Soundex and transliteration
+                // Delegate to AuthorsCatalog which uses enhanced search with FirstName/LastName support
                 return new AuthorsCatalog().GetCatalog(searchPattern, true);
             }
             else if (searchType.Equals("books") || (titles.Count > 0 && authors.Count == 0))
             {
                 if (pageNumber > 0) searchPattern += "/" + pageNumber;
-                // Delegate to BooksCatalog which handles aliases in output
+                // Delegate to BooksCatalog for title search
                 return new BooksCatalog().GetCatalogByTitle(searchPattern, fb2Only, 0, 1000);
             }
             return doc;

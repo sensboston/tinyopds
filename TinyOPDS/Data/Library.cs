@@ -82,8 +82,8 @@ namespace TinyOPDS.Data
                 _soundexedGenres = new Dictionary<string, string>();
                 foreach (var genre in _genres.SelectMany(g => g.Subgenres))
                 {
-                    _soundexedGenres[StringExtensions.Soundex(genre.Name)] = genre.Tag;
-                    _soundexedGenres[StringExtensions.Soundex(genre.Translation)] = genre.Tag;
+                    _soundexedGenres[StringUtils.Soundex(genre.Name)] = genre.Tag;
+                    _soundexedGenres[StringUtils.Soundex(genre.Translation)] = genre.Tag;
                 }
             }
             catch (Exception ex)
@@ -746,35 +746,22 @@ namespace TinyOPDS.Data
 
         #endregion
 
-        #region Query Methods with Enhanced Search
+        #region Enhanced Author Search Methods
 
         /// <summary>
-        /// Get authors by name pattern with Soundex fallback for fuzzy search
+        /// Get authors by name pattern with enhanced FirstName/LastName support and Soundex fallback
         /// </summary>
-        /// <param name="name">Search pattern</param>
+        /// <param name="name">Search pattern - single word (LastName) or multiple words (FirstName LastName)</param>
         /// <param name="isOpenSearch">Whether this is open search (contains) or prefix search</param>
-        /// <returns>List of matching author names</returns>
+        /// <returns>List of matching canonical author names</returns>
         public static List<string> GetAuthorsByName(string name, bool isOpenSearch)
         {
             if (_bookRepository == null) return new List<string>();
 
             try
             {
-                // First try exact/pattern match using optimized SQL query
+                // Use enhanced search from repository
                 var authors = _bookRepository.GetAuthorsByNamePattern(name, isOpenSearch);
-
-                // If no results found and pattern is long enough, try Soundex search
-                if (authors.Count == 0 && !string.IsNullOrEmpty(name) && name.Length >= 3)
-                {
-                    string nameSoundex = name.SoundexByWord();
-                    var soundexAuthors = _bookRepository.GetAuthorsBySoundex(nameSoundex);
-
-                    if (soundexAuthors.Count > 0)
-                    {
-                        Log.WriteLine(LogLevel.Info, "Soundex fallback for '{0}' found {1} authors", name, soundexAuthors.Count);
-                        authors.AddRange(soundexAuthors);
-                    }
-                }
 
                 // Remove duplicates and sort
                 var comparer = new OPDSComparer(TinyOPDS.Properties.Settings.Default.SortOrder > 0);
@@ -788,7 +775,7 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Get books by title with Soundex fallback for fuzzy search
+        /// Get books by title - simplified without Soundex (as per requirements)
         /// </summary>
         /// <param name="title">Title to search for</param>
         /// <returns>List of matching books</returns>
@@ -798,23 +785,7 @@ namespace TinyOPDS.Data
 
             try
             {
-                // First try exact pattern match
-                var books = _bookRepository.GetBooksByTitle(title);
-
-                // If no results found and title is long enough, try Soundex search
-                if (books.Count == 0 && !string.IsNullOrEmpty(title) && title.Length >= 3)
-                {
-                    string titleSoundex = title.SoundexByWord();
-                    var soundexBooks = _bookRepository.GetBooksByTitleSoundex(titleSoundex);
-
-                    if (soundexBooks.Count > 0)
-                    {
-                        Log.WriteLine(LogLevel.Info, "Soundex fallback for '{0}' found {1} books", title, soundexBooks.Count);
-                        books.AddRange(soundexBooks);
-                    }
-                }
-
-                return books.Distinct().ToList();
+                return _bookRepository.GetBooksByTitle(title);
             }
             catch (Exception ex)
             {

@@ -50,9 +50,6 @@ namespace TinyOPDS.Data
             {
                 _db.BeginTransaction();
 
-                // Calculate Soundex for title
-                string titleSoundex = !string.IsNullOrEmpty(book.Title) ? book.Title.SoundexByWord() : "";
-
                 // Insert or update book
                 var bookParams = new[]
                 {
@@ -60,7 +57,6 @@ namespace TinyOPDS.Data
                     DatabaseManager.CreateParameter("@Version", book.Version),
                     DatabaseManager.CreateParameter("@FileName", book.FileName),
                     DatabaseManager.CreateParameter("@Title", book.Title),
-                    DatabaseManager.CreateParameter("@TitleSoundex", titleSoundex),
                     DatabaseManager.CreateParameter("@Language", book.Language),
                     DatabaseManager.CreateParameter("@BookDate", book.BookDate == DateTime.MinValue ? (DateTime?)null : book.BookDate),
                     DatabaseManager.CreateParameter("@DocumentDate", book.DocumentDate == DateTime.MinValue ? (DateTime?)null : book.DocumentDate),
@@ -84,13 +80,16 @@ namespace TinyOPDS.Data
                 // Add authors
                 foreach (var authorName in book.Authors)
                 {
-                    // Calculate Soundex for author name
-                    string authorSoundex = !string.IsNullOrEmpty(authorName) ? authorName.SoundexByWord() : "";
+                    var (firstName, middleName, lastName) = ParseAuthorName(authorName);
+                    string lastNameSoundex = !string.IsNullOrEmpty(lastName) ? StringUtils.Soundex(lastName) : "";
 
                     // Insert author if not exists
                     _db.ExecuteNonQuery(DatabaseSchema.InsertAuthor,
                         DatabaseManager.CreateParameter("@Name", authorName),
-                        DatabaseManager.CreateParameter("@NameSoundex", authorSoundex));
+                        DatabaseManager.CreateParameter("@FirstName", firstName),
+                        DatabaseManager.CreateParameter("@MiddleName", middleName),
+                        DatabaseManager.CreateParameter("@LastName", lastName),
+                        DatabaseManager.CreateParameter("@LastNameSoundex", lastNameSoundex));
 
                     // Link book to author
                     _db.ExecuteNonQuery(DatabaseSchema.InsertBookAuthor,
@@ -174,9 +173,6 @@ namespace TinyOPDS.Data
                             continue;
                         }
 
-                        // Calculate Soundex for title
-                        string titleSoundex = !string.IsNullOrEmpty(book.Title) ? book.Title.SoundexByWord() : "";
-
                         // Insert book
                         var bookParams = new[]
                         {
@@ -184,7 +180,6 @@ namespace TinyOPDS.Data
                             DatabaseManager.CreateParameter("@Version", book.Version),
                             DatabaseManager.CreateParameter("@FileName", book.FileName),
                             DatabaseManager.CreateParameter("@Title", book.Title),
-                            DatabaseManager.CreateParameter("@TitleSoundex", titleSoundex),
                             DatabaseManager.CreateParameter("@Language", book.Language),
                             DatabaseManager.CreateParameter("@BookDate", book.BookDate == DateTime.MinValue ? (DateTime?)null : book.BookDate),
                             DatabaseManager.CreateParameter("@DocumentDate", book.DocumentDate == DateTime.MinValue ? (DateTime?)null : book.DocumentDate),
@@ -199,13 +194,16 @@ namespace TinyOPDS.Data
                         // Insert authors and relationships
                         foreach (var authorName in book.Authors)
                         {
-                            // Calculate Soundex for author name
-                            string authorSoundex = !string.IsNullOrEmpty(authorName) ? authorName.SoundexByWord() : "";
+                            var (firstName, middleName, lastName) = ParseAuthorName(authorName);
+                            string lastNameSoundex = !string.IsNullOrEmpty(lastName) ? StringUtils.Soundex(lastName) : "";
 
                             // Insert author if not exists
                             _db.ExecuteNonQuery(DatabaseSchema.InsertAuthor,
                                 DatabaseManager.CreateParameter("@Name", authorName),
-                                DatabaseManager.CreateParameter("@NameSoundex", authorSoundex));
+                                DatabaseManager.CreateParameter("@FirstName", firstName),
+                                DatabaseManager.CreateParameter("@MiddleName", middleName),
+                                DatabaseManager.CreateParameter("@LastName", lastName),
+                                DatabaseManager.CreateParameter("@LastNameSoundex", lastNameSoundex));
 
                             // Insert book-author relationship
                             _db.ExecuteNonQuery(DatabaseSchema.InsertBookAuthor,
@@ -422,21 +420,6 @@ namespace TinyOPDS.Data
             return books;
         }
 
-        /// <summary>
-        /// Search books by title using Soundex (fuzzy search)
-        /// </summary>
-        public List<Book> GetBooksByTitleSoundex(string titleSoundex)
-        {
-            var books = _db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksByTitleSoundex, MapBook,
-                DatabaseManager.CreateParameter("@TitleSoundex", titleSoundex));
-
-            foreach (var book in books)
-            {
-                LoadBookRelations(book);
-            }
-            return books;
-        }
-
         public List<Book> GetNewBooks(DateTime fromDate)
         {
             var books = _db.ExecuteQuery<Book>(DatabaseSchema.SelectNewBooks, MapBook,
@@ -452,7 +435,7 @@ namespace TinyOPDS.Data
         public List<Book> GetBooksByFileNamePrefix(string fileNamePrefix)
         {
             var books = _db.ExecuteQuery<Book>(@"
-                SELECT ID, Version, FileName, Title, TitleSoundex, Language, BookDate, DocumentDate,
+                SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
                        Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate
                 FROM Books 
                 WHERE FileName LIKE @FileNamePrefix || '%'",
@@ -468,46 +451,94 @@ namespace TinyOPDS.Data
 
         #endregion
 
-        #region Author Queries
+        #region Enhanced Author Search
 
         /// <summary>
-        /// Get authors by name pattern - simple and fast SQL query
+        /// Enhanced author search with proper pattern matching for navigation
         /// </summary>
-        public List<string> GetAuthorsByNamePattern(string pattern, bool isOpenSearch = false)
+        /// <param name="searchPattern">Author name or pattern to search</param>
+        /// <param name="isOpenSearch">OpenSearch mode (contains) vs prefix search</param>
+        /// <returns>List of matching canonical author names</returns>
+        public List<string> GetAuthorsByNamePattern(string searchPattern, bool isOpenSearch = false)
         {
             try
             {
-                string searchPattern = isOpenSearch ? $"%{pattern}%" : $"{pattern}%";
+                // If empty pattern, return all authors
+                if (string.IsNullOrEmpty(searchPattern))
+                {
+                    return _db.ExecuteQuery<string>(DatabaseSchema.SelectAuthors, reader => reader.GetString(0));
+                }
+
+                // For navigation, search by author name directly using prefix matching
+                string namePattern = isOpenSearch ? $"%{searchPattern}%" : $"{searchPattern}%";
+
+                // Use name pattern search for navigation
                 var authors = _db.ExecuteQuery<string>(DatabaseSchema.SelectAuthorsByNamePattern,
                     reader => reader.GetString(0),
-                    DatabaseManager.CreateParameter("@Pattern", searchPattern));
+                    DatabaseManager.CreateParameter("@Pattern", namePattern));
+
+                // If no results and OpenSearch mode, try Soundex fallback on LastName
+                if (authors.Count == 0 && isOpenSearch && searchPattern.Length >= 3)
+                {
+                    // Try parsing as last name and use Soundex
+                    var words = searchPattern.Trim().Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                    if (words.Length == 1)
+                    {
+                        // Single word - try Soundex on LastName
+                        string lastNameSoundex = StringUtils.Soundex(words[0]);
+                        var soundexAuthors = _db.ExecuteQuery<string>(DatabaseSchema.SelectAuthorsByLastNameSoundex,
+                            reader => reader.GetString(0),
+                            DatabaseManager.CreateParameter("@LastNameSoundex", lastNameSoundex));
+
+                        if (soundexAuthors.Count > 0)
+                        {
+                            Log.WriteLine(LogLevel.Info, "Soundex fallback for '{0}' found {1} authors", searchPattern, soundexAuthors.Count);
+                            authors.AddRange(soundexAuthors);
+                        }
+                    }
+                }
 
                 return authors.Distinct().ToList();
             }
             catch (Exception ex)
             {
-                Log.WriteLine(LogLevel.Error, "Error getting authors by pattern {0}: {1}", pattern, ex.Message);
+                Log.WriteLine(LogLevel.Error, "Error in GetAuthorsByNamePattern {0}: {1}", searchPattern, ex.Message);
                 return new List<string>();
             }
         }
 
         /// <summary>
-        /// Search authors by name using Soundex (fuzzy search)
+        /// Parse author name into FirstName, MiddleName, LastName components
+        /// Handles both FB2 format and EPUB format names
         /// </summary>
-        public List<string> GetAuthorsBySoundex(string nameSoundex)
+        /// <param name="fullName">Full author name</param>
+        /// <returns>Tuple of (FirstName, MiddleName, LastName)</returns>
+        private (string firstName, string middleName, string lastName) ParseAuthorName(string fullName)
         {
-            try
-            {
-                var authors = _db.ExecuteQuery<string>(DatabaseSchema.SelectAuthorsByNameSoundex,
-                    reader => reader.GetString(0),
-                    DatabaseManager.CreateParameter("@NameSoundex", nameSoundex));
+            if (string.IsNullOrEmpty(fullName))
+                return (null, null, null);
 
-                return authors.Distinct().ToList();
-            }
-            catch (Exception ex)
+            var parts = fullName.Trim().Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+            switch (parts.Length)
             {
-                Log.WriteLine(LogLevel.Error, "Error getting authors by soundex {0}: {1}", nameSoundex, ex.Message);
-                return new List<string>();
+                case 1:
+                    // Only one word - assume it's LastName
+                    return (null, null, parts[0]);
+
+                case 2:
+                    // Two words - FirstName LastName
+                    return (parts[0], null, parts[1]);
+
+                case 3:
+                    // Three words - FirstName MiddleName LastName
+                    return (parts[0], parts[1], parts[2]);
+
+                default:
+                    // More than 3 words - take first as FirstName, last as LastName, combine middle as MiddleName
+                    var middleParts = new string[parts.Length - 2];
+                    Array.Copy(parts, 1, middleParts, 0, parts.Length - 2);
+                    return (parts[0], string.Join(" ", middleParts), parts[parts.Length - 1]);
             }
         }
 

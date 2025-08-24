@@ -50,6 +50,7 @@ namespace TinyOPDS.Parsers
 
         /// <summary>
         /// Parse FB2 book from stream - supports both seekable and non-seekable streams
+        /// Uses structured FirstName/MiddleName/LastName from FB2 format
         /// </summary>
         /// <param name="stream"></param>
         /// <param name="fileName"></param>
@@ -115,16 +116,43 @@ namespace TinyOPDS.Parsers
                         }
                         if (fb2.TitleInfo.Language != null) book.Language = fb2.TitleInfo.Language;
                         if (fb2.TitleInfo.BookDate != null) book.BookDate = fb2.TitleInfo.BookDate.DateValue;
+
+                        // Process authors using structured FB2 data
                         if (fb2.TitleInfo.BookAuthors != null && fb2.TitleInfo.BookAuthors.Any())
                         {
                             book.Authors = new List<string>();
-                            book.Authors.AddRange(from ba in fb2.TitleInfo.BookAuthors select string.Concat(ba.LastName, " ", ba.FirstName, " ", ba.MiddleName).Replace("  ", " ").Capitalize());
+                            foreach (var ba in fb2.TitleInfo.BookAuthors)
+                            {
+                                string firstName = ba.FirstName?.Text ?? "";
+                                string middleName = ba.MiddleName?.Text ?? "";
+                                string lastName = ba.LastName?.Text ?? "";
+
+                                string authorName = BuildAuthorName(firstName, middleName, lastName);
+                                if (!string.IsNullOrEmpty(authorName))
+                                {
+                                    book.Authors.Add(authorName);
+                                }
+                            }
                         }
+
+                        // Process translators using structured FB2 data
                         if (fb2.TitleInfo.Translators != null && fb2.TitleInfo.Translators.Any())
                         {
                             book.Translators = new List<string>();
-                            book.Translators.AddRange(from ba in fb2.TitleInfo.Translators select string.Concat(ba.LastName, " ", ba.FirstName, " ", ba.MiddleName).Replace("  ", " ").Capitalize());
+                            foreach (var tr in fb2.TitleInfo.Translators)
+                            {
+                                string firstName = tr.FirstName?.Text ?? "";
+                                string middleName = tr.MiddleName?.Text ?? "";
+                                string lastName = tr.LastName?.Text ?? "";
+
+                                string translatorName = BuildAuthorName(firstName, middleName, lastName);
+                                if (!string.IsNullOrEmpty(translatorName))
+                                {
+                                    book.Translators.Add(translatorName);
+                                }
+                            }
                         }
+
                         if (fb2.TitleInfo.Genres != null && fb2.TitleInfo.Genres.Any())
                         {
                             book.Genres = new List<string>();
@@ -137,9 +165,41 @@ namespace TinyOPDS.Parsers
             {
                 Log.WriteLine(LogLevel.Error, "Book.Parse() exception {0} on file: {1}", e.Message, fileName);
             }
-            // Note: Don't dispose the stream here - it's managed by the caller
 
             return book;
+        }
+
+        /// <summary>
+        /// Build author name in standard "LastName FirstName MiddleName" format from FB2 structured data
+        /// FB2 already provides separate FirstName, MiddleName, LastName fields
+        /// </summary>
+        /// <param name="firstName">First name from FB2</param>
+        /// <param name="middleName">Middle name from FB2</param>
+        /// <param name="lastName">Last name from FB2</param>
+        /// <returns>Formatted author name</returns>
+        private string BuildAuthorName(string firstName, string middleName, string lastName)
+        {
+            var nameParts = new List<string>();
+
+            // Always start with LastName if available
+            if (!string.IsNullOrEmpty(lastName))
+            {
+                nameParts.Add(lastName.Trim().Capitalize());
+            }
+
+            // Add FirstName if available
+            if (!string.IsNullOrEmpty(firstName))
+            {
+                nameParts.Add(firstName.Trim().Capitalize());
+            }
+
+            // Add MiddleName if available
+            if (!string.IsNullOrEmpty(middleName))
+            {
+                nameParts.Add(middleName.Trim().Capitalize());
+            }
+
+            return string.Join(" ", nameParts);
         }
 
         /// <summary>
@@ -254,6 +314,7 @@ namespace TinyOPDS.Parsers
         /// <summary>
         /// Get cover image from FB2 file
         /// </summary>
+        /// <param name="stream"></param>
         /// <param name="fileName"></param>
         /// <returns></returns>
         public override Image GetCoverImage(Stream stream, string fileName)

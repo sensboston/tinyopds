@@ -31,10 +31,10 @@ namespace TinyOPDS.Data
         public static Size CoverSize = new Size(480, 800);
         public static Size ThumbnailSize = new Size(48, 80);
 
-        private Image _cover;
-        private Image _thumbnail { get { return (_cover != null) ? _cover.Resize(ThumbnailSize) : null; } }
+        private readonly Image _cover;
+        private Image Thumbnail { get { return _cover?.Resize(ThumbnailSize); } }
         public Stream CoverImageStream { get { return _cover.ToStream(ImageFormat.Jpeg); } }
-        public Stream ThumbnailImageStream { get { return _thumbnail.ToStream(ImageFormat.Jpeg); } }
+        public Stream ThumbnailImageStream { get { return Thumbnail.ToStream(ImageFormat.Jpeg); } }
         public bool HasImages { get { return _cover != null; } }
         public string ID { get; set; }
 
@@ -185,7 +185,7 @@ namespace TinyOPDS.Data
                     Font authorFont = GetBestFont("Times New Roman", 18, FontStyle.Bold | FontStyle.Italic);
                     Font titleFont = GetBestFont("Times New Roman", 22, FontStyle.Bold);
 
-                    // Calculate text areas - измененные позиции
+                    // Calculate text areas
                     Rectangle authorArea = new Rectangle(40, 120, CoverSize.Width - 80, 200);
                     Rectangle titleArea = new Rectangle(30, CoverSize.Height - 360, CoverSize.Width - 60, 300);
 
@@ -321,11 +321,13 @@ namespace TinyOPDS.Data
             using (Brush shadowBrush = new SolidBrush(shadowColor))
             {
                 // Set text alignment
-                StringFormat format = new StringFormat();
-                format.Alignment = StringAlignment.Center;
-                format.LineAlignment = isAuthor ? StringAlignment.Near : StringAlignment.Center;
-                format.Trimming = StringTrimming.Word;
-                format.FormatFlags = 0;
+                StringFormat format = new StringFormat
+                {
+                    Alignment = StringAlignment.Center,
+                    LineAlignment = isAuthor ? StringAlignment.Near : StringAlignment.Center,
+                    Trimming = StringTrimming.Word,
+                    FormatFlags = 0
+                };
 
                 // Calculate optimal font size for the text area
                 Font scaledFont = GetOptimalFontSize(g, text, font, area, !isAuthor);

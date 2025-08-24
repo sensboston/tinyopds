@@ -63,9 +63,7 @@ namespace TinyOPDS
 
                 try
                 {
-                    // Hook into AssemblyResolve event for managed DLLs
                     AppDomain.CurrentDomain.AssemblyResolve += OnAssemblyResolve;
-
                     Log.WriteLine("EmbeddedDllLoader initialized");
                     _isInitialized = true;
                 }
@@ -83,19 +81,30 @@ namespace TinyOPDS
         {
             try
             {
-                // Get the assembly name without version info
                 string assemblyName = new AssemblyName(args.Name).Name;
+
+                // Skip resource assemblies to avoid loading localization files
+                if (assemblyName.EndsWith(".resources", StringComparison.OrdinalIgnoreCase))
+                {
+                    return null;
+                }
+
+                // Skip system assemblies
+                if (assemblyName.StartsWith("System.", StringComparison.OrdinalIgnoreCase) ||
+                    assemblyName.StartsWith("Microsoft.", StringComparison.OrdinalIgnoreCase) ||
+                    assemblyName.Equals("mscorlib", StringComparison.OrdinalIgnoreCase))
+                {
+                    return null;
+                }
 
                 Log.WriteLine("Attempting to resolve assembly: {0}", assemblyName);
 
-                // Check if already loaded
                 if (_loadedAssemblies.ContainsKey(assemblyName))
                 {
                     Log.WriteLine("Assembly {0} already loaded from cache", assemblyName);
                     return _loadedAssemblies[assemblyName];
                 }
 
-                // Try to load from embedded resources
                 Assembly assembly = LoadManagedAssembly(assemblyName);
                 if (assembly != null)
                 {
@@ -121,7 +130,6 @@ namespace TinyOPDS
         {
             try
             {
-                // Try different resource name patterns
                 string[] resourcePatterns = {
                     $"TinyOPDS.Libs.{assemblyName}.dll",
                     $"TinyOPDSConsole.Libs.{assemblyName}.dll",
@@ -165,7 +173,6 @@ namespace TinyOPDS
         {
             try
             {
-                // Check if already loaded
                 if (_extractedNativeDlls.ContainsKey(dllName))
                 {
                     Log.WriteLine("Native DLL {0} already loaded", dllName);
@@ -179,7 +186,6 @@ namespace TinyOPDS
                     return false;
                 }
 
-                // Load the native library
                 IntPtr handle = LoadNativeLibrary(extractedPath);
                 if (handle == IntPtr.Zero)
                 {
@@ -205,7 +211,6 @@ namespace TinyOPDS
         {
             try
             {
-                // Determine platform-specific resource path
                 string architecture = Environment.Is64BitProcess ? "x64" : "x86";
                 string resourceName = $"{Assembly.GetExecutingAssembly().GetName().Name}.Libs.{architecture}.{dllName}";
 
@@ -219,17 +224,14 @@ namespace TinyOPDS
                         return null;
                     }
 
-                    // Create temp directory for native DLLs
                     string tempDir = Path.Combine(Path.GetTempPath(), "TinyOPDS_Native");
                     if (!Directory.Exists(tempDir))
                     {
                         Directory.CreateDirectory(tempDir);
                     }
 
-                    // Extract to temp file
                     string extractedPath = Path.Combine(tempDir, dllName);
 
-                    // Don't extract if file already exists and has correct size
                     if (File.Exists(extractedPath) && new FileInfo(extractedPath).Length == stream.Length)
                     {
                         Log.WriteLine("Native DLL already extracted: {0}", extractedPath);
@@ -302,7 +304,6 @@ namespace TinyOPDS
         /// </summary>
         public static void PreloadNativeDlls()
         {
-            // Load SQLite native DLL
             LoadNativeDll("SQLite.Interop.dll");
         }
 

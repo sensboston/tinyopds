@@ -93,7 +93,11 @@
             this.rootPrefix = new System.Windows.Forms.TextBox();
             this.serverName = new System.Windows.Forms.TextBox();
             this.tabPage6 = new System.Windows.Forms.TabPage();
-            this.checkBox2 = new System.Windows.Forms.CheckBox();
+            this.label40 = new System.Windows.Forms.Label();
+            this.comboBox1 = new System.Windows.Forms.ComboBox();
+            this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.radioButton2 = new System.Windows.Forms.RadioButton();
+            this.radioButton1 = new System.Windows.Forms.RadioButton();
             this.newBooksPeriodCombo = new System.Windows.Forms.ComboBox();
             this.label39 = new System.Windows.Forms.Label();
             this.sortOrderCombo = new System.Windows.Forms.ComboBox();
@@ -157,6 +161,7 @@
             this.tabPage1.SuspendLayout();
             this.tabPage2.SuspendLayout();
             this.tabPage6.SuspendLayout();
+            this.groupBox1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.itemsPerWeb)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.itemsPerOPDS)).BeginInit();
             this.tabPage7.SuspendLayout();
@@ -880,7 +885,9 @@
             // tabPage6
             // 
             this.tabPage6.BackColor = System.Drawing.SystemColors.Control;
-            this.tabPage6.Controls.Add(this.checkBox2);
+            this.tabPage6.Controls.Add(this.label40);
+            this.tabPage6.Controls.Add(this.comboBox1);
+            this.tabPage6.Controls.Add(this.groupBox1);
             this.tabPage6.Controls.Add(this.newBooksPeriodCombo);
             this.tabPage6.Controls.Add(this.label39);
             this.tabPage6.Controls.Add(this.sortOrderCombo);
@@ -896,20 +903,67 @@
             this.tabPage6.TabIndex = 5;
             this.tabPage6.Text = "OPDS catalog";
             // 
-            // checkBox2
+            // label40
             // 
-            this.checkBox2.AutoSize = true;
-            this.checkBox2.Checked = global::TinyOPDS.Properties.Settings.Default.UseAuthorsAliases;
-            this.checkBox2.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox2.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "UseAuthorsAliases", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.checkBox2.Location = new System.Drawing.Point(67, 386);
-            this.checkBox2.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.checkBox2.Name = "checkBox2";
-            this.checkBox2.Size = new System.Drawing.Size(301, 36);
-            this.checkBox2.TabIndex = 9;
-            this.checkBox2.Text = "Use authors aliases";
-            this.checkBox2.UseVisualStyleBackColor = true;
-            this.checkBox2.CheckedChanged += new System.EventHandler(this.checkBox_CheckedChanged);
+            this.label40.AutoSize = true;
+            this.label40.Location = new System.Drawing.Point(669, 382);
+            this.label40.Name = "label40";
+            this.label40.Size = new System.Drawing.Size(264, 32);
+            this.label40.TabIndex = 10;
+            this.label40.Text = "Memory cache size:";
+            // 
+            // comboBox1
+            // 
+            this.comboBox1.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.comboBox1.FormattingEnabled = true;
+            this.comboBox1.Items.AddRange(new object[] {
+            "64 MB",
+            "128 MB",
+            "256 MB",
+            "384 MB",
+            "512 MB",
+            "768 MB",
+            "1024 MB"});
+            this.comboBox1.Location = new System.Drawing.Point(675, 442);
+            this.comboBox1.Name = "comboBox1";
+            this.comboBox1.Size = new System.Drawing.Size(258, 39);
+            this.comboBox1.TabIndex = 9;
+            this.comboBox1.SelectedIndexChanged += new System.EventHandler(this.comboBox1_SelectedIndexChanged);
+            // 
+            // groupBox1
+            // 
+            this.groupBox1.Controls.Add(this.radioButton2);
+            this.groupBox1.Controls.Add(this.radioButton1);
+            this.groupBox1.Location = new System.Drawing.Point(67, 382);
+            this.groupBox1.Name = "groupBox1";
+            this.groupBox1.Size = new System.Drawing.Size(463, 138);
+            this.groupBox1.TabIndex = 8;
+            this.groupBox1.TabStop = false;
+            this.groupBox1.Text = "Cache images";
+            // 
+            // radioButton2
+            // 
+            this.radioButton2.AutoSize = true;
+            this.radioButton2.Location = new System.Drawing.Point(290, 63);
+            this.radioButton2.Name = "radioButton2";
+            this.radioButton2.Size = new System.Drawing.Size(141, 36);
+            this.radioButton2.TabIndex = 1;
+            this.radioButton2.Text = "on disk";
+            this.radioButton2.UseVisualStyleBackColor = true;
+            this.radioButton2.CheckedChanged += new System.EventHandler(this.cacheType_CheckedChanged);
+            // 
+            // radioButton1
+            // 
+            this.radioButton1.AutoSize = true;
+            this.radioButton1.Checked = true;
+            this.radioButton1.Location = new System.Drawing.Point(47, 63);
+            this.radioButton1.Name = "radioButton1";
+            this.radioButton1.Size = new System.Drawing.Size(182, 36);
+            this.radioButton1.TabIndex = 0;
+            this.radioButton1.TabStop = true;
+            this.radioButton1.Text = "in memory";
+            this.radioButton1.UseVisualStyleBackColor = true;
+            this.radioButton1.CheckedChanged += new System.EventHandler(this.cacheType_CheckedChanged);
             // 
             // newBooksPeriodCombo
             // 
@@ -923,17 +977,17 @@
             "month and half",
             "two month",
             "three month"});
-            this.newBooksPeriodCombo.Location = new System.Drawing.Point(677, 274);
+            this.newBooksPeriodCombo.Location = new System.Drawing.Point(677, 270);
             this.newBooksPeriodCombo.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.newBooksPeriodCombo.Name = "newBooksPeriodCombo";
-            this.newBooksPeriodCombo.Size = new System.Drawing.Size(463, 39);
+            this.newBooksPeriodCombo.Size = new System.Drawing.Size(256, 39);
             this.newBooksPeriodCombo.TabIndex = 7;
             this.newBooksPeriodCombo.SelectedIndexChanged += new System.EventHandler(this.newBooksPeriodCombo_SelectedIndexChanged);
             // 
             // label39
             // 
             this.label39.AutoSize = true;
-            this.label39.Location = new System.Drawing.Point(669, 227);
+            this.label39.Location = new System.Drawing.Point(669, 218);
             this.label39.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label39.Name = "label39";
             this.label39.Size = new System.Drawing.Size(349, 32);
@@ -947,7 +1001,7 @@
             this.sortOrderCombo.Items.AddRange(new object[] {
             "Latin first",
             "Cyrillic first"});
-            this.sortOrderCombo.Location = new System.Drawing.Point(67, 274);
+            this.sortOrderCombo.Location = new System.Drawing.Point(67, 270);
             this.sortOrderCombo.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.sortOrderCombo.Name = "sortOrderCombo";
             this.sortOrderCombo.Size = new System.Drawing.Size(463, 39);
@@ -957,7 +1011,7 @@
             // label38
             // 
             this.label38.AutoSize = true;
-            this.label38.Location = new System.Drawing.Point(59, 227);
+            this.label38.Location = new System.Drawing.Point(59, 218);
             this.label38.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label38.Name = "label38";
             this.label38.Size = new System.Drawing.Size(217, 32);
@@ -1670,6 +1724,8 @@
             this.tabPage2.PerformLayout();
             this.tabPage6.ResumeLayout(false);
             this.tabPage6.PerformLayout();
+            this.groupBox1.ResumeLayout(false);
+            this.groupBox1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.itemsPerWeb)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.itemsPerOPDS)).EndInit();
             this.tabPage7.ResumeLayout(false);
@@ -1807,9 +1863,13 @@
         private System.Windows.Forms.NumericUpDown itemsPerOPDS;
         private System.Windows.Forms.Label label36;
         private System.Windows.Forms.LinkLabel linkLabel6;
-        private System.Windows.Forms.CheckBox checkBox2;
         private System.Windows.Forms.TabPage tabPage7;
         private System.Windows.Forms.TreeView treeViewOPDS;
+        private System.Windows.Forms.Label label40;
+        private System.Windows.Forms.ComboBox comboBox1;
+        private System.Windows.Forms.GroupBox groupBox1;
+        private System.Windows.Forms.RadioButton radioButton2;
+        private System.Windows.Forms.RadioButton radioButton1;
     }
 }
 

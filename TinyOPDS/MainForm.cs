@@ -499,6 +499,12 @@ namespace TinyOPDS
                 Properties.Settings.Default.Save();
             }
 
+            // Setup image cache controls
+            radioButton1.Checked = Properties.Settings.Default.CacheImagesInMemory;
+            radioButton2.Checked = !radioButton1.Checked;
+            comboBox1.Text = $"{Properties.Settings.Default.MaxRAMImageCacheSizeMB} MB";
+            comboBox1.Enabled = radioButton1.Checked;
+
             // Load saved credentials
             try
             {
@@ -911,6 +917,30 @@ namespace TinyOPDS
 
         #region Form controls handling
 
+        private void cacheType_CheckedChanged(object sender, EventArgs e)
+        {
+            if (sender != null)
+            {
+                comboBox1.Enabled = (sender == radioButton1) ? true : false;
+                Properties.Settings.Default.CacheImagesInMemory = (sender == radioButton1) ? true : false;
+                Properties.Settings.Default.Save();
+            }
+        }
+
+        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (sender != null)
+            {
+                var data = ((sender as ComboBox).SelectedItem as string).Split();
+                if (int.TryParse(data[0], out int memorySize))
+                {
+                    Properties.Settings.Default.MaxRAMImageCacheSizeMB = memorySize;
+                    Properties.Settings.Default.Save();
+                }
+            }
+        }
+
+
         private void convertorPath_Validated(object sender, EventArgs e)
         {
             if (!string.IsNullOrEmpty(convertorPath.Text) && Directory.Exists(convertorPath.Text) && File.Exists(Path.Combine(convertorPath.Text, Utils.IsLinux ? "fb2toepub" : "Fb2ePub.exe")))
@@ -1203,21 +1233,6 @@ namespace TinyOPDS
         }
 
         #endregion
-
-        /// <summary>
-        /// This event raised on the checkbox change and should reload library
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void checkBox_CheckedChanged(object sender, EventArgs e)
-        {
-            if ((sender as CheckBox).Name.Equals("checkBox2") && (sender as CheckBox).Checked != Properties.Settings.Default.UseAuthorsAliases)
-            {
-                // Reload library
-                _watcher.IsEnabled = false;
-                Library.Load();
-            }
-        }
 
         #region OPDS routes structure 
 

@@ -9,6 +9,38 @@
 		<language id="fr">Français</language>
 	</languages>
 	<properties>
+		<property form="MainForm" ctrl="groupBox1">
+			<text lang="en">Cache images</text>
+			<text lang="ru">Кэширование изображений</text>
+			<text lang="uk">Кешування зображень</text>
+			<text lang="de">Bilder zwischenspeichern</text>
+			<text lang="es">Caché de imágenes</text>
+			<text lang="fr">Cache des images</text>
+		</property>
+		<property form="MainForm" ctrl="radioButton1">
+			<text lang="en">in memory</text>
+			<text lang="ru">в памяти</text>
+			<text lang="uk">в пам'яті</text>
+			<text lang="de">im Arbeitsspeicher</text>
+			<text lang="es">en memoria</text>
+			<text lang="fr">en mémoire</text>
+		</property>
+		<property form="MainForm" ctrl="radioButton2">
+			<text lang="en">on disk</text>
+			<text lang="ru">на диске</text>
+			<text lang="uk">на диску</text>
+			<text lang="de">auf Festplatte</text>
+			<text lang="es">en disco</text>
+			<text lang="fr">sur disque</text>
+		</property>
+		<property form="MainForm" ctrl="label40">
+			<text lang="en">Memory cache size:</text>
+			<text lang="ru">Размер кэша в памяти:</text>
+			<text lang="uk">Розмір кешу в пам'яті:</text>
+			<text lang="de">Größe des Arbeitsspeicher-Cache:</text>
+			<text lang="es">Tamaño de caché en memoria:</text>
+			<text lang="fr">Taille du cache mémoire:</text>
+		</property>
 		<property form="MainForm" ctrl="label15">
 			<text lang="en">Path to books folder:</text>
 			<text lang="ru">Путь к книжному каталогу:</text>
@@ -946,7 +978,7 @@
 			<text lang="fr">Cyrillique en premier</text>
 		</property>
 		<property form="MainForm" ctrl="label39">
-			<text lang="en">"New books" check period:</text>
+			<text lang="en">"New books" check time:</text>
 			<text lang="ru">Период для "новых книг":</text>
 			<text lang="uk">Період для "нових книг":</text>
 			<text lang="de">Zeitraum für "neue Bücher":</text>

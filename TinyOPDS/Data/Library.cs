@@ -393,7 +393,6 @@ namespace TinyOPDS.Data
 
         /// <summary>
         /// Add unique book descriptor to the library
-        /// ВАЖНО: Применяем алиасы к именам авторов перед записью в базу!
         /// </summary>
         /// <param name="book"></param>
         public static bool Add(Book book)
@@ -449,7 +448,6 @@ namespace TinyOPDS.Data
 
         /// <summary>
         /// Add multiple books in batch - optimized for performance with detailed results
-        /// ВАЖНО: Применяем алиасы к именам авторов перед записью в базу!
         /// </summary>
         /// <param name="books">List of books to add</param>
         /// <returns>BatchResult with detailed statistics</returns>
@@ -695,12 +693,11 @@ namespace TinyOPDS.Data
 
         /// <summary>
         /// Apply author aliases to book before saving to database
-        /// Этот метод применяет алиасы к именам авторов ПЕРЕД записью в базу
         /// </summary>
         /// <param name="book">Book to process</param>
         private static void ApplyAliasesToBookAuthors(Book book)
         {
-            if (!TinyOPDS.Properties.Settings.Default.UseAuthorsAliases || book.Authors == null)
+            if (!Properties.Settings.Default.UseAuthorsAliases || book.Authors == null)
                 return;
 
             for (int i = 0; i < book.Authors.Count; i++)
@@ -716,19 +713,16 @@ namespace TinyOPDS.Data
 
         /// <summary>
         /// Apply author aliases to author name (for OPDS output)
-        /// Этот метод используется для вывода в OPDS - возвращает каноническое имя
         /// </summary>
         /// <param name="originalAuthor">Original author name from database (already canonical)</param>
         /// <returns>Canonical author name (same as input since database already contains canonical names)</returns>
         public static string ApplyAuthorAlias(string originalAuthor)
         {
-            // В новой схеме в базе уже лежат канонические имена, поэтому просто возвращаем как есть
             return originalAuthor;
         }
 
         /// <summary>
         /// Get all alias names that map to the canonical name
-        /// Получить все алиасы, которые указывают на данное каноническое имя
         /// </summary>
         /// <param name="canonicalName">Canonical author name</param>
         /// <returns>List of alias names</returns>

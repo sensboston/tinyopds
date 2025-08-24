@@ -628,6 +628,7 @@ namespace TinyOPDS.Server
             }
             return null;
         }
+
         private void HandleFB2Download(HttpProcessor processor, Book book)
         {
             using (var memStream = new MemoryStream())
@@ -781,10 +782,14 @@ namespace TinyOPDS.Server
 
         private void HandleImageRequest(HttpProcessor processor, string request)
         {
+            string bookID = null;
             try
             {
                 bool getCover = request.Contains("/cover/");
-                string bookID = ExtractBookIdFromImageRequest(request, getCover);
+                bookID = ExtractBookIdFromImageRequest(request, getCover);
+
+                Log.WriteLine(LogLevel.Info, "Image request: {0}, BookID extracted: {1}, Type: {2}",
+                    request, bookID, getCover ? "cover" : "thumbnail");
 
                 if (string.IsNullOrEmpty(bookID))
                 {
@@ -801,16 +806,45 @@ namespace TinyOPDS.Server
                     return;
                 }
 
-                CoverImage image = GetOrCreateCoverImage(bookID, book);
-                if (image != null && image.HasImages)
+                Log.WriteLine(LogLevel.Info, "Found book: {0} (Title: {1})", bookID, book.Title);
+
+                var imageObject = GetOrCreateCoverImage(bookID, book);
+
+                if (imageObject != null)
                 {
                     Stream imageStream = null;
-                    try
-                    {
-                        imageStream = getCover ? image.CoverImageStream : image.ThumbnailImageStream;
+                    bool hasImages = false;
 
-                        if (imageStream != null && imageStream.Length > 0)
+                    // Handle both CoverImage and CachedCoverImage types
+                    if (imageObject is CachedCoverImage cachedImage)
+                    {
+                        hasImages = cachedImage.HasImages;
+                        if (hasImages)
                         {
+                            imageStream = getCover ? cachedImage.CoverImageStream : cachedImage.ThumbnailImageStream;
+                            Log.WriteLine(LogLevel.Info, "Using cached image for book {0}", bookID);
+                        }
+                    }
+                    else if (imageObject is CoverImage regularImage)
+                    {
+                        hasImages = regularImage.HasImages;
+                        if (hasImages)
+                        {
+                            imageStream = getCover ? regularImage.CoverImageStream : regularImage.ThumbnailImageStream;
+                            Log.WriteLine(LogLevel.Info, "Using regular image for book {0}", bookID);
+                        }
+                    }
+
+                    Log.WriteLine(LogLevel.Info, "Image object type: {0}, HasImages: {1}",
+                        imageObject.GetType().Name, hasImages);
+
+                    if (hasImages && imageStream != null && imageStream.Length > 0)
+                    {
+                        try
+                        {
+                            Log.WriteLine(LogLevel.Info, "Image stream obtained: Length={0}, CanRead={1}, Position={2}",
+                                imageStream.Length, imageStream.CanRead, imageStream.Position);
+
                             if (!processor.OutputStream.BaseStream.CanWrite)
                             {
                                 Log.WriteLine(LogLevel.Info, "Client disconnected before sending image for book {0}", bookID);
@@ -824,7 +858,11 @@ namespace TinyOPDS.Server
                             int bytesRead;
                             long totalBytesSent = 0;
 
+                            // Important: ensure stream position is at beginning
                             imageStream.Position = 0;
+
+                            Log.WriteLine(LogLevel.Info, "Starting to send image data for book {0}, stream length: {1}",
+                                bookID, imageStream.Length);
 
                             while ((bytesRead = imageStream.Read(buffer, 0, bufferSize)) > 0)
                             {
@@ -858,50 +896,56 @@ namespace TinyOPDS.Server
                                 Log.WriteLine(LogLevel.Info, "Successfully sent {0} image for book {1} ({2} bytes)",
                                     getCover ? "cover" : "thumbnail", bookID, totalBytesSent);
                             }
-                        }
-                        else
-                        {
-                            Log.WriteLine(LogLevel.Warning, "Empty or null image stream for book {0}", bookID);
-                            processor.WriteFailure();
-                        }
-                    }
-                    catch (IOException ioEx) when (ioEx.InnerException is SocketException)
-                    {
-                        Log.WriteLine(LogLevel.Info, "Client disconnected while preparing image for book {0}: {1}", bookID, ioEx.Message);
-                    }
-                    catch (ObjectDisposedException)
-                    {
-                        Log.WriteLine(LogLevel.Info, "Stream disposed while preparing image for book {0}", bookID);
-                    }
-                    catch (Exception imgEx)
-                    {
-                        Log.WriteLine(LogLevel.Error, "Unexpected error sending image for book {0}: {1}", bookID, imgEx.Message);
-
-                        try
-                        {
-                            if (processor.OutputStream.BaseStream.CanWrite)
+                            else
                             {
-                                processor.WriteFailure();
+                                Log.WriteLine(LogLevel.Warning, "Incomplete image transfer for book {0}: sent {1} of {2} bytes",
+                                    bookID, totalBytesSent, imageStream.Length);
                             }
                         }
-                        catch
+                        catch (IOException ioEx) when (ioEx.InnerException is SocketException)
                         {
+                            Log.WriteLine(LogLevel.Info, "Client disconnected while preparing image for book {0}: {1}", bookID, ioEx.Message);
+                        }
+                        catch (ObjectDisposedException)
+                        {
+                            Log.WriteLine(LogLevel.Info, "Stream disposed while preparing image for book {0}", bookID);
+                        }
+                        catch (Exception imgEx)
+                        {
+                            Log.WriteLine(LogLevel.Error, "Unexpected error sending image for book {0}: {1}", bookID, imgEx.Message);
+
+                            try
+                            {
+                                if (processor.OutputStream.BaseStream.CanWrite)
+                                {
+                                    processor.WriteFailure();
+                                }
+                            }
+                            catch
+                            {
+                            }
+                        }
+                        finally
+                        {
+                            imageStream?.Dispose();
                         }
                     }
-                    finally
+                    else
                     {
-                        imageStream?.Dispose();
+                        Log.WriteLine(LogLevel.Warning, "Empty or null image stream for book {0}: hasImages={1}, stream null={2}, length={3}",
+                            bookID, hasImages, imageStream == null, imageStream?.Length ?? -1);
+                        processor.WriteFailure();
                     }
                 }
                 else
                 {
-                    Log.WriteLine(LogLevel.Warning, "No image available for book {0}", bookID);
+                    Log.WriteLine(LogLevel.Warning, "No image available for book {0}, imageObject is null", bookID);
                     processor.WriteFailure();
                 }
             }
             catch (Exception ex)
             {
-                Log.WriteLine(LogLevel.Error, "Image request error: {0}", ex.Message);
+                Log.WriteLine(LogLevel.Error, "Image request error for book {0}: {1}", bookID ?? "unknown", ex.Message);
                 try
                 {
                     processor.WriteFailure();
@@ -933,20 +977,44 @@ namespace TinyOPDS.Server
             return null;
         }
 
-        private CoverImage GetOrCreateCoverImage(string bookID, Book book)
+        private object GetOrCreateCoverImage(string bookID, Book book)
         {
             try
             {
+                Log.WriteLine(LogLevel.Info, "GetOrCreateCoverImage for book {0}", bookID);
+
                 if (ImagesCache.HasImage(bookID))
                 {
-                    return ImagesCache.GetImage(bookID);
+                    Log.WriteLine(LogLevel.Info, "Found image in cache for book {0}", bookID);
+                    var cachedImage = ImagesCache.GetImage(bookID);
+
+                    if (cachedImage != null)
+                    {
+                        Log.WriteLine(LogLevel.Info, "Retrieved cached image for book {0}, HasImages: {1}",
+                            bookID, cachedImage.HasImages);
+                        return cachedImage;
+                    }
+                    else
+                    {
+                        Log.WriteLine(LogLevel.Warning, "Cache reported having image for book {0}, but GetImage returned null!", bookID);
+                    }
+                }
+                else
+                {
+                    Log.WriteLine(LogLevel.Info, "No cached image found for book {0}, creating new", bookID);
                 }
 
                 var image = new CoverImage(book);
 
                 if (image != null && image.HasImages)
                 {
+                    Log.WriteLine(LogLevel.Info, "Created new image for book {0}, adding to cache", bookID);
                     ImagesCache.Add(image);
+                }
+                else
+                {
+                    Log.WriteLine(LogLevel.Info, "Could not create image for book {0}: image null={1}, hasImages={2}",
+                        bookID, image == null, image?.HasImages ?? false);
                 }
 
                 return image;

@@ -88,6 +88,9 @@ namespace TinyOPDS.Data
 
             lock (_lockObject)
             {
+                Log.WriteLine(LogLevel.Info, "Adding image to cache: {0} (RAM mode: {1})",
+                    image.ID, Properties.Settings.Default.CacheImagesInMemory);
+
                 // Always cache thumbnails in RAM (they're tiny)
                 CacheThumbnailInRam(image);
 
@@ -116,6 +119,8 @@ namespace TinyOPDS.Data
                     byte[] thumbnailData = new byte[image.ThumbnailImageStream.Length];
                     image.ThumbnailImageStream.Read(thumbnailData, 0, thumbnailData.Length);
                     _thumbnailsCache[image.ID] = thumbnailData;
+                    Log.WriteLine(LogLevel.Info, "Cached thumbnail for {0} in RAM ({1} bytes)",
+                        image.ID, thumbnailData.Length);
                 }
             }
             catch (Exception ex)
@@ -218,26 +223,36 @@ namespace TinyOPDS.Data
 
             lock (_lockObject)
             {
+                Log.WriteLine(LogLevel.Info, "Checking cache for image: {0}", id);
+
                 // Check thumbnails (always in RAM)
-                if (_thumbnailsCache.ContainsKey(id)) return true;
+                bool hasThumbnail = _thumbnailsCache.ContainsKey(id);
 
                 // Check covers based on cache mode
+                bool hasCover = false;
                 if (Properties.Settings.Default.CacheImagesInMemory)
                 {
-                    return _ramCoversCache.ContainsKey(id);
+                    hasCover = _ramCoversCache.ContainsKey(id);
                 }
                 else
                 {
                     string coverPath = Path.Combine(_coversPath, id + ".jpg");
-                    return File.Exists(coverPath);
+                    hasCover = File.Exists(coverPath);
                 }
+
+                bool hasAny = hasThumbnail || hasCover;
+                Log.WriteLine(LogLevel.Info, "Cache check for {0}: thumbnail={1}, cover={2}, result={3}",
+                    id, hasThumbnail, hasCover, hasAny);
+
+                return hasAny;
             }
         }
 
         /// <summary>
-        /// Get image from cache
+        /// Get image from cache - FIXED: работает с byte[] данными и создает новые MemoryStream
+        /// Возвращает CachedCoverImage вместо CoverImage чтобы избежать проблем с наследованием
         /// </summary>
-        public static CoverImage GetImage(string id)
+        public static CachedCoverImage GetImage(string id)
         {
             if (string.IsNullOrEmpty(id)) return null;
 
@@ -245,23 +260,28 @@ namespace TinyOPDS.Data
             {
                 try
                 {
-                    // Create wrapper for cached images
-                    Stream coverStream = null;
-                    Stream thumbnailStream = null;
+                    Log.WriteLine(LogLevel.Info, "Getting cached image: {0}", id);
 
-                    // Get thumbnail (always from RAM)
-                    if (_thumbnailsCache.TryGetValue(id, out byte[] thumbData))
+                    // Get data from caches
+                    byte[] coverData = null;
+                    byte[] thumbnailData = null;
+
+                    // Get thumbnail data (always from RAM)
+                    if (_thumbnailsCache.TryGetValue(id, out thumbnailData))
                     {
-                        thumbnailStream = new MemoryStream(thumbData);
+                        Log.WriteLine(LogLevel.Info, "Found thumbnail in cache for {0}: {1} bytes",
+                            id, thumbnailData.Length);
                     }
 
-                    // Get cover based on cache mode
+                    // Get cover data based on cache mode
                     if (Properties.Settings.Default.CacheImagesInMemory)
                     {
                         // Get cover from RAM
-                        if (_ramCoversCache.TryGetValue(id, out var coverData))
+                        if (_ramCoversCache.TryGetValue(id, out var coverImageData))
                         {
-                            coverStream = new MemoryStream(coverData.ImageData);
+                            coverData = coverImageData.ImageData;
+                            Log.WriteLine(LogLevel.Info, "Found cover in RAM cache for {0}: {1} bytes",
+                                id, coverData.Length);
                         }
                     }
                     else
@@ -270,26 +290,35 @@ namespace TinyOPDS.Data
                         string coverPath = Path.Combine(_coversPath, id + ".jpg");
                         if (File.Exists(coverPath))
                         {
-                            byte[] diskData = File.ReadAllBytes(coverPath);
-                            coverStream = new MemoryStream(diskData);
+                            coverData = File.ReadAllBytes(coverPath);
+                            Log.WriteLine(LogLevel.Info, "Found cover on disk for {0}: {1} bytes",
+                                id, coverData.Length);
                         }
 
                         // Get thumbnail from disk if not in RAM
-                        if (thumbnailStream == null)
+                        if (thumbnailData == null)
                         {
                             string thumbPath = Path.Combine(_thumbsPath, id + ".jpg");
                             if (File.Exists(thumbPath))
                             {
-                                byte[] diskThumbData = File.ReadAllBytes(thumbPath);
-                                thumbnailStream = new MemoryStream(diskThumbData);
+                                thumbnailData = File.ReadAllBytes(thumbPath);
+                                Log.WriteLine(LogLevel.Info, "Found thumbnail on disk for {0}: {1} bytes",
+                                    id, thumbnailData.Length);
                             }
                         }
                     }
 
-                    // Create cached cover image wrapper
-                    if (coverStream != null || thumbnailStream != null)
+                    // Create cached cover image if we have any data
+                    if (coverData != null || thumbnailData != null)
                     {
-                        return new CachedCoverImage(id, coverStream, thumbnailStream);
+                        var result = new CachedCoverImage(id, coverData, thumbnailData);
+                        Log.WriteLine(LogLevel.Info, "Created CachedCoverImage for {0}, HasImages: {1}",
+                            id, result.HasImages);
+                        return result;
+                    }
+                    else
+                    {
+                        Log.WriteLine(LogLevel.Info, "No cached data found for {0}", id);
                     }
                 }
                 catch (Exception ex)
@@ -382,25 +411,56 @@ namespace TinyOPDS.Data
     }
 
     /// <summary>
-    /// CoverImage implementation for cached images
+    /// CoverImage implementation for cached images - FIXED: does NOT inherit from CoverImage!
+    /// Simple class without the problematic base class constructor
     /// </summary>
-    internal class CachedCoverImage : CoverImage
+    public class CachedCoverImage
     {
-        private readonly Stream _coverStream;
-        private readonly Stream _thumbnailStream;
+        private readonly byte[] _coverData;
+        private readonly byte[] _thumbnailData;
         private readonly string _id;
 
-        public CachedCoverImage(string id, Stream coverStream, Stream thumbnailStream)
-            : base(new Book { ID = id })
+        public CachedCoverImage(string id, byte[] coverData, byte[] thumbnailData)
         {
             _id = id;
-            _coverStream = coverStream;
-            _thumbnailStream = thumbnailStream;
+            _coverData = coverData;
+            _thumbnailData = thumbnailData;
         }
 
-        public new string ID => _id;
-        public new Stream CoverImageStream => _coverStream;
-        public new Stream ThumbnailImageStream => _thumbnailStream;
-        public new bool HasImages => _coverStream != null || _thumbnailStream != null;
+        public string ID => _id;
+
+        public Stream CoverImageStream
+        {
+            get
+            {
+                // КРИТИЧНО: Всегда создаем НОВЫЙ MemoryStream с Position = 0!
+                if (_coverData != null)
+                {
+                    var stream = new MemoryStream(_coverData);
+                    Log.WriteLine(LogLevel.Info, "Created new CoverImageStream for {0}: {1} bytes, Position: {2}",
+                        _id, stream.Length, stream.Position);
+                    return stream;
+                }
+                return null;
+            }
+        }
+
+        public Stream ThumbnailImageStream
+        {
+            get
+            {
+                // КРИТИЧНО: Всегда создаем НОВЫЙ MemoryStream с Position = 0!
+                if (_thumbnailData != null)
+                {
+                    var stream = new MemoryStream(_thumbnailData);
+                    Log.WriteLine(LogLevel.Info, "Created new ThumbnailImageStream for {0}: {1} bytes, Position: {2}",
+                        _id, stream.Length, stream.Position);
+                    return stream;
+                }
+                return null;
+            }
+        }
+
+        public bool HasImages => _coverData != null || _thumbnailData != null;
     }
 }

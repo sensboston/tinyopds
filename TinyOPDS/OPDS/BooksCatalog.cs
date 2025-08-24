@@ -225,18 +225,21 @@ namespace TinyOPDS.OPDS
                 // Adding download links
                 );
 
-                // Author names already canonical - no need to apply aliases
-                string firstAuthor = book.Authors.Any() ? book.Authors.First() : "Unknown";
-                string fileName = Uri.EscapeDataString(Transliteration.Front(string.Format("{0}_{1}", firstAuthor, book.Title)).SanitizeFileName());
-                string url = "/" + string.Format("{0}/{1}", book.ID, fileName);
+                // Add download links - NEW FORMAT WITHOUT FILENAME
                 if (book.BookType == BookType.EPUB || (book.BookType == BookType.FB2 && !acceptFB2 && !string.IsNullOrEmpty(TinyOPDS.Properties.Settings.Default.ConvertorPath)))
                 {
-                    entry.Add(new XElement("link", new XAttribute("href", url + ".epub"), new XAttribute("rel", "http://opds-spec.org/acquisition/open-access"), new XAttribute("type", "application/epub+zip")));
+                    entry.Add(new XElement("link",
+                        new XAttribute("href", "/download/" + book.ID + "/epub"),
+                        new XAttribute("rel", "http://opds-spec.org/acquisition/open-access"),
+                        new XAttribute("type", "application/epub+zip")));
                 }
 
                 if (book.BookType == BookType.FB2)
                 {
-                    entry.Add(new XElement("link", new XAttribute("href", url + ".fb2.zip"), new XAttribute("rel", "http://opds-spec.org/acquisition/open-access"), new XAttribute("type", "application/fb2+zip")));
+                    entry.Add(new XElement("link",
+                        new XAttribute("href", "/download/" + book.ID + "/fb2"),
+                        new XAttribute("rel", "http://opds-spec.org/acquisition/open-access"),
+                        new XAttribute("type", "application/fb2+zip")));
                 }
 
                 // Add navigation links for author and series - author names already canonical

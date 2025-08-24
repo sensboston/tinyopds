@@ -181,17 +181,20 @@ namespace TinyOPDS.OPDS
                 // Adding download links
                 );
 
-                string fileName = Uri.EscapeDataString(Transliteration.Front(book.Authors.First() + " - " + book.Title, TransliterationType.GOST));
-
+                // Add download links - NEW FORMAT WITHOUT FILENAME
                 if (book.BookType == BookType.FB2)
                 {
-                    entry.Add(new XElement("link", new XAttribute("href", "/download/" + book.ID + "/fb2/" + fileName + ".fb2"),
-                        new XAttribute("rel", "http://opds-spec.org/acquisition"), new XAttribute("type", "application/fb2+zip")));
+                    entry.Add(new XElement("link",
+                        new XAttribute("href", "/download/" + book.ID + "/fb2"),
+                        new XAttribute("rel", "http://opds-spec.org/acquisition"),
+                        new XAttribute("type", "application/fb2+zip")));
                 }
                 else
                 {
-                    entry.Add(new XElement("link", new XAttribute("href", "/download/" + book.ID + "/epub/" + fileName + ".epub"),
-                        new XAttribute("rel", "http://opds-spec.org/acquisition"), new XAttribute("type", "application/epub+zip")));
+                    entry.Add(new XElement("link",
+                        new XAttribute("href", "/download/" + book.ID + "/epub"),
+                        new XAttribute("rel", "http://opds-spec.org/acquisition"),
+                        new XAttribute("type", "application/epub+zip")));
                 }
 
                 doc.Root.Add(entry);

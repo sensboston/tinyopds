@@ -310,15 +310,11 @@ namespace TinyOPDS.OPDS
                     new XElement("link", new XAttribute("href", "/thumbnail/" + book.ID + ".jpeg"), new XAttribute("rel", "x-stanza-cover-image-thumbnail"), new XAttribute("type", "image/jpeg"))
                 );
 
-                // Add download links - author names already canonical
-                string firstAuthor = book.Authors.Any() ? book.Authors.First() : "Unknown";
-                string fileName = Uri.EscapeDataString(Transliteration.Front(string.Format("{0}_{1}", firstAuthor, book.Title)).SanitizeFileName());
-                string url = "/" + string.Format("{0}/{1}", book.ID, fileName);
-
+                // Add download links - NEW FORMAT WITHOUT FILENAME
                 if (book.BookType == BookType.EPUB || (book.BookType == BookType.FB2 && !acceptFB2 && !string.IsNullOrEmpty(Properties.Settings.Default.ConvertorPath)))
                 {
                     entry.Add(new XElement("link",
-                        new XAttribute("href", url + ".epub"),
+                        new XAttribute("href", "/download/" + book.ID + "/epub"),
                         new XAttribute("rel", "http://opds-spec.org/acquisition/open-access"),
                         new XAttribute("type", "application/epub+zip")));
                 }
@@ -326,7 +322,7 @@ namespace TinyOPDS.OPDS
                 if (book.BookType == BookType.FB2)
                 {
                     entry.Add(new XElement("link",
-                        new XAttribute("href", url + ".fb2.zip"),
+                        new XAttribute("href", "/download/" + book.ID + "/fb2"),
                         new XAttribute("rel", "http://opds-spec.org/acquisition/open-access"),
                         new XAttribute("type", "application/fb2+zip")));
                 }

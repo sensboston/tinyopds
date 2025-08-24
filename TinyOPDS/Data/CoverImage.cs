@@ -328,7 +328,7 @@ namespace TinyOPDS.Data
                 format.FormatFlags = 0;
 
                 // Calculate optimal font size for the text area
-                Font scaledFont = GetOptimalFontSize(g, text, font, area);
+                Font scaledFont = GetOptimalFontSize(g, text, font, area, !isAuthor);
 
                 // Draw shadow (offset by 2 pixels)
                 Rectangle shadowArea = new Rectangle(area.X + 2, area.Y + 2, area.Width, area.Height);
@@ -352,8 +352,9 @@ namespace TinyOPDS.Data
         /// <param name="text">Text to measure</param>
         /// <param name="baseFont">Base font to scale</param>
         /// <param name="area">Target area</param>
+        /// <param name="isTitle">True if this is title text (to apply size reduction)</param>
         /// <returns>Optimally sized font</returns>
-        private Font GetOptimalFontSize(Graphics g, string text, Font baseFont, Rectangle area)
+        private Font GetOptimalFontSize(Graphics g, string text, Font baseFont, Rectangle area, bool isTitle = false)
         {
             float fontSize = baseFont.Size;
             Font testFont = new Font(baseFont.FontFamily, fontSize, baseFont.Style);
@@ -370,6 +371,14 @@ namespace TinyOPDS.Data
                     testFont.Dispose();
                     testFont = new Font(baseFont.FontFamily, fontSize, baseFont.Style);
                     textSize = g.MeasureString(text, testFont, area.Width);
+                }
+
+                // Force reduce title font size by 2 points
+                if (isTitle && fontSize > 10)
+                {
+                    fontSize -= 2;
+                    testFont.Dispose();
+                    testFont = new Font(baseFont.FontFamily, fontSize, baseFont.Style);
                 }
 
                 return testFont;

@@ -31,7 +31,7 @@ namespace TinyOPDS.Server
     public class OPDSServer : HttpServer
     {
         private readonly string[] _extensions = { ".zip", ".epub", ".jpeg", ".ico", ".xml" };
-        private XslCompiledTransform _xslTransform = new XslCompiledTransform();
+        private readonly XslCompiledTransform _xslTransform = new XslCompiledTransform();
         private readonly object _xslLock = new object();
         private Dictionary<string, bool> _opdsStructure;
 
@@ -164,6 +164,27 @@ namespace TinyOPDS.Server
                 int threshold = (int)(isWWWRequest ?
                     Properties.Settings.Default.ItemsPerWebPage :
                     Properties.Settings.Default.ItemsPerOPDSPage);
+
+                // Check for download requests first, before checking extensions
+                if (request.StartsWith("/download/"))
+                {
+                    // Determine format from path structure: /download/{guid}/fb2 or /download/{guid}/epub
+                    string downloadExt = "";
+                    if (request.Contains("/fb2"))
+                    {
+                        downloadExt = ".zip"; // FB2 always comes as ZIP
+                    }
+                    else if (request.Contains("/epub"))
+                    {
+                        downloadExt = ".epub";
+                    }
+
+                    if (!string.IsNullOrEmpty(downloadExt))
+                    {
+                        HandleBookDownloadRequest(processor, request, downloadExt, acceptFB2);
+                        return;
+                    }
+                }
 
                 if (string.IsNullOrEmpty(ext))
                 {
@@ -590,11 +611,11 @@ namespace TinyOPDS.Server
                     return;
                 }
 
-                if (request.Contains(".fb2.zip"))
+                if (request.Contains("/fb2") || request.Contains(".fb2.zip"))
                 {
                     HandleFB2Download(processor, book);
                 }
-                else if (ext.Equals(".epub"))
+                else if (request.Contains("/epub") || ext.Equals(".epub"))
                 {
                     HandleEpubDownload(processor, book, acceptFB2);
                 }
@@ -612,19 +633,32 @@ namespace TinyOPDS.Server
         {
             try
             {
-                int startPos = request.IndexOf('/') + 1;
-                int endPos = request.IndexOf('/', startPos);
-                if (endPos == -1) endPos = request.Length;
+                Log.WriteLine(LogLevel.Info, "Extracting book ID from request: {0}", request);
 
-                if (endPos > startPos)
+                // Remove leading slash and split by slashes
+                if (request.StartsWith("/"))
+                    request = request.Substring(1);
+
+                string[] parts = request.Split('/');
+                Log.WriteLine(LogLevel.Info, "Request parts: [{0}]", string.Join(", ", parts));
+
+                // Expected: download/{guid}/fb2 or download/{guid}/epub 
+                if (parts.Length >= 3 && parts[0] == "download")
                 {
-                    string guid = request.Substring(startPos, endPos - startPos);
-                    return guid.Replace("%7B", "{").Replace("%7D", "}");
+                    string guid = parts[1];
+
+                    // Clean up common GUID encoding artifacts
+                    guid = guid.Replace("%7B", "{").Replace("%7D", "}");
+
+                    Log.WriteLine(LogLevel.Info, "Extracted book ID: {0}", guid);
+                    return guid;
                 }
+
+                Log.WriteLine(LogLevel.Warning, "Could not extract book ID from request: {0}", request);
             }
             catch (Exception ex)
             {
-                Log.WriteLine(LogLevel.Warning, "Error extracting book ID: {0}", ex.Message);
+                Log.WriteLine(LogLevel.Warning, "Error extracting book ID from {0}: {1}", request, ex.Message);
             }
             return null;
         }
@@ -650,7 +684,18 @@ namespace TinyOPDS.Server
                         zip.Save(outputStream);
                         outputStream.Position = 0;
 
-                        processor.WriteSuccess("application/fb2+zip");
+                        // Set proper filename for download
+                        string downloadFileName = Transliteration.Front(
+                            $"{book.Authors.FirstOrDefault() ?? "Unknown"}_{book.Title}.fb2.zip");
+
+                        // Write response headers manually
+                        processor.OutputStream.WriteLine("HTTP/1.0 200 OK");
+                        processor.OutputStream.WriteLine("Content-Type: application/zip");
+                        processor.OutputStream.WriteLine($"Content-Disposition: attachment; filename=\"{downloadFileName}\"");
+                        processor.OutputStream.WriteLine($"Content-Length: {outputStream.Length}");
+                        processor.OutputStream.WriteLine("Connection: close");
+                        processor.OutputStream.WriteLine();
+
                         outputStream.CopyTo(processor.OutputStream.BaseStream);
                         processor.OutputStream.BaseStream.Flush();
                     }
@@ -677,7 +722,18 @@ namespace TinyOPDS.Server
                     }
                 }
 
-                processor.WriteSuccess("application/epub+zip");
+                // Set proper filename for download
+                string downloadFileName = Transliteration.Front(
+                    $"{book.Authors.FirstOrDefault() ?? "Unknown"}_{book.Title}.epub");
+
+                // Write response headers manually
+                processor.OutputStream.WriteLine("HTTP/1.0 200 OK");
+                processor.OutputStream.WriteLine("Content-Type: application/epub+zip");
+                processor.OutputStream.WriteLine($"Content-Disposition: attachment; filename=\"{downloadFileName}\"");
+                processor.OutputStream.WriteLine($"Content-Length: {memStream.Length}");
+                processor.OutputStream.WriteLine("Connection: close");
+                processor.OutputStream.WriteLine();
+
                 memStream.Position = 0;
                 memStream.CopyTo(processor.OutputStream.BaseStream);
                 processor.OutputStream.BaseStream.Flush();
@@ -788,9 +844,6 @@ namespace TinyOPDS.Server
                 bool getCover = request.Contains("/cover/");
                 bookID = ExtractBookIdFromImageRequest(request, getCover);
 
-                Log.WriteLine(LogLevel.Info, "Image request: {0}, BookID extracted: {1}, Type: {2}",
-                    request, bookID, getCover ? "cover" : "thumbnail");
-
                 if (string.IsNullOrEmpty(bookID))
                 {
                     Log.WriteLine(LogLevel.Warning, "Invalid book ID in image request: {0}", request);
@@ -806,8 +859,6 @@ namespace TinyOPDS.Server
                     return;
                 }
 
-                Log.WriteLine(LogLevel.Info, "Found book: {0} (Title: {1})", bookID, book.Title);
-
                 var imageObject = GetOrCreateCoverImage(bookID, book);
 
                 if (imageObject != null)
@@ -822,7 +873,6 @@ namespace TinyOPDS.Server
                         if (hasImages)
                         {
                             imageStream = getCover ? cachedImage.CoverImageStream : cachedImage.ThumbnailImageStream;
-                            Log.WriteLine(LogLevel.Info, "Using cached image for book {0}", bookID);
                         }
                     }
                     else if (imageObject is CoverImage regularImage)
@@ -831,20 +881,13 @@ namespace TinyOPDS.Server
                         if (hasImages)
                         {
                             imageStream = getCover ? regularImage.CoverImageStream : regularImage.ThumbnailImageStream;
-                            Log.WriteLine(LogLevel.Info, "Using regular image for book {0}", bookID);
                         }
                     }
-
-                    Log.WriteLine(LogLevel.Info, "Image object type: {0}, HasImages: {1}",
-                        imageObject.GetType().Name, hasImages);
 
                     if (hasImages && imageStream != null && imageStream.Length > 0)
                     {
                         try
                         {
-                            Log.WriteLine(LogLevel.Info, "Image stream obtained: Length={0}, CanRead={1}, Position={2}",
-                                imageStream.Length, imageStream.CanRead, imageStream.Position);
-
                             if (!processor.OutputStream.BaseStream.CanWrite)
                             {
                                 Log.WriteLine(LogLevel.Info, "Client disconnected before sending image for book {0}", bookID);
@@ -858,11 +901,7 @@ namespace TinyOPDS.Server
                             int bytesRead;
                             long totalBytesSent = 0;
 
-                            // Important: ensure stream position is at beginning
                             imageStream.Position = 0;
-
-                            Log.WriteLine(LogLevel.Info, "Starting to send image data for book {0}, stream length: {1}",
-                                bookID, imageStream.Length);
 
                             while ((bytesRead = imageStream.Read(buffer, 0, bufferSize)) > 0)
                             {
@@ -896,11 +935,6 @@ namespace TinyOPDS.Server
                                 Log.WriteLine(LogLevel.Info, "Successfully sent {0} image for book {1} ({2} bytes)",
                                     getCover ? "cover" : "thumbnail", bookID, totalBytesSent);
                             }
-                            else
-                            {
-                                Log.WriteLine(LogLevel.Warning, "Incomplete image transfer for book {0}: sent {1} of {2} bytes",
-                                    bookID, totalBytesSent, imageStream.Length);
-                            }
                         }
                         catch (IOException ioEx) when (ioEx.InnerException is SocketException)
                         {
@@ -932,14 +966,13 @@ namespace TinyOPDS.Server
                     }
                     else
                     {
-                        Log.WriteLine(LogLevel.Warning, "Empty or null image stream for book {0}: hasImages={1}, stream null={2}, length={3}",
-                            bookID, hasImages, imageStream == null, imageStream?.Length ?? -1);
+                        Log.WriteLine(LogLevel.Warning, "No image available for book {0}", bookID);
                         processor.WriteFailure();
                     }
                 }
                 else
                 {
-                    Log.WriteLine(LogLevel.Warning, "No image available for book {0}, imageObject is null", bookID);
+                    Log.WriteLine(LogLevel.Warning, "No image available for book {0}", bookID);
                     processor.WriteFailure();
                 }
             }
@@ -981,40 +1014,16 @@ namespace TinyOPDS.Server
         {
             try
             {
-                Log.WriteLine(LogLevel.Info, "GetOrCreateCoverImage for book {0}", bookID);
-
                 if (ImagesCache.HasImage(bookID))
                 {
-                    Log.WriteLine(LogLevel.Info, "Found image in cache for book {0}", bookID);
-                    var cachedImage = ImagesCache.GetImage(bookID);
-
-                    if (cachedImage != null)
-                    {
-                        Log.WriteLine(LogLevel.Info, "Retrieved cached image for book {0}, HasImages: {1}",
-                            bookID, cachedImage.HasImages);
-                        return cachedImage;
-                    }
-                    else
-                    {
-                        Log.WriteLine(LogLevel.Warning, "Cache reported having image for book {0}, but GetImage returned null!", bookID);
-                    }
-                }
-                else
-                {
-                    Log.WriteLine(LogLevel.Info, "No cached image found for book {0}, creating new", bookID);
+                    return ImagesCache.GetImage(bookID);
                 }
 
                 var image = new CoverImage(book);
 
                 if (image != null && image.HasImages)
                 {
-                    Log.WriteLine(LogLevel.Info, "Created new image for book {0}, adding to cache", bookID);
                     ImagesCache.Add(image);
-                }
-                else
-                {
-                    Log.WriteLine(LogLevel.Info, "Could not create image for book {0}: image null={1}, hasImages={2}",
-                        bookID, image == null, image?.HasImages ?? false);
                 }
 
                 return image;
@@ -1060,7 +1069,7 @@ namespace TinyOPDS.Server
     // Helper classes for structure-aware catalogs
     internal class RootCatalogWithStructure
     {
-        private Dictionary<string, bool> _opdsStructure;
+        private readonly Dictionary<string, bool> _opdsStructure;
 
         public RootCatalogWithStructure(Dictionary<string, bool> opdsStructure)
         {
@@ -1108,7 +1117,7 @@ namespace TinyOPDS.Server
 
     internal class AuthorsCatalogWithStructure
     {
-        private Dictionary<string, bool> _opdsStructure;
+        private readonly Dictionary<string, bool> _opdsStructure;
 
         public AuthorsCatalogWithStructure(Dictionary<string, bool> opdsStructure)
         {
@@ -1146,7 +1155,7 @@ namespace TinyOPDS.Server
 
     internal class AuthorDetailsCatalogWithStructure
     {
-        private Dictionary<string, bool> _opdsStructure;
+        private readonly Dictionary<string, bool> _opdsStructure;
 
         public AuthorDetailsCatalogWithStructure(Dictionary<string, bool> opdsStructure)
         {

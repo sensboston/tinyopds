@@ -182,12 +182,12 @@ namespace TinyOPDS.Data
                     Color shadowColor = Color.FromArgb(100, 80, 60, 40);
 
                     // Create fonts
-                    Font authorFont = GetBestFont("Times New Roman", 32, FontStyle.Bold | FontStyle.Italic);
-                    Font titleFont = GetBestFont("Times New Roman", 40, FontStyle.Bold);
+                    Font authorFont = GetBestFont("Times New Roman", 18, FontStyle.Bold | FontStyle.Italic);
+                    Font titleFont = GetBestFont("Times New Roman", 22, FontStyle.Bold);
 
                     // Calculate text areas - измененные позиции
-                    Rectangle authorArea = new Rectangle(40, 120, CoverSize.Width - 80, 160);
-                    Rectangle titleArea = new Rectangle(40, CoverSize.Height - 400, CoverSize.Width - 80, 260);
+                    Rectangle authorArea = new Rectangle(40, 120, CoverSize.Width - 80, 200);
+                    Rectangle titleArea = new Rectangle(30, CoverSize.Height - 360, CoverSize.Width - 60, 300);
 
                     // Draw author text (top, moved down)
                     DrawTextWithShadow(g, author, authorFont, goldColor, shadowColor, authorArea, true);
@@ -323,9 +323,9 @@ namespace TinyOPDS.Data
                 // Set text alignment
                 StringFormat format = new StringFormat();
                 format.Alignment = StringAlignment.Center;
-                format.LineAlignment = isAuthor ? StringAlignment.Near : StringAlignment.Far;
+                format.LineAlignment = isAuthor ? StringAlignment.Near : StringAlignment.Center;
                 format.Trimming = StringTrimming.Word;
-                format.FormatFlags = StringFormatFlags.LineLimit;
+                format.FormatFlags = 0;
 
                 // Calculate optimal font size for the text area
                 Font scaledFont = GetOptimalFontSize(g, text, font, area);
@@ -340,6 +340,7 @@ namespace TinyOPDS.Data
                 // Clean up
                 if (scaledFont != font)
                     scaledFont.Dispose();
+
                 format.Dispose();
             }
         }
@@ -415,8 +416,8 @@ namespace TinyOPDS.Data
             {
                 int originalWidth = image.Width;
                 int originalHeight = image.Height;
-                float percentWidth = (float)size.Width / (float)originalWidth;
-                float percentHeight = (float)size.Height / (float)originalHeight;
+                float percentWidth = size.Width / (float)originalWidth;
+                float percentHeight = size.Height / (float)originalHeight;
                 float percent = percentHeight < percentWidth ? percentHeight : percentWidth;
                 newWidth = (int)(originalWidth * percent);
                 newHeight = (int)(originalHeight * percent);

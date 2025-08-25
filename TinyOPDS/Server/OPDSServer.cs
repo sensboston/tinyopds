@@ -159,7 +159,7 @@ namespace TinyOPDS.Server
                     return;
                 }
 
-                bool isWWWRequest = IsWebRequest(processor.HttpUrl);
+                bool isWWWRequest = IsWebRequest(processor.HttpUrl, processor);
                 bool acceptFB2 = DetectFB2Support(processor.HttpHeaders["User-Agent"] as string) || isWWWRequest;
                 int threshold = (int)(isWWWRequest ?
                     Properties.Settings.Default.ItemsPerWebPage :
@@ -285,10 +285,18 @@ namespace TinyOPDS.Server
             return !string.IsNullOrEmpty(request) && request.Length <= 2048;
         }
 
-        private bool IsWebRequest(string httpUrl)
+        private bool IsWebRequest(string httpUrl, HttpProcessor processor)
         {
-            return httpUrl.StartsWith("/" + Properties.Settings.Default.HttpPrefix) &&
-                   !httpUrl.StartsWith("/" + Properties.Settings.Default.RootPrefix);
+            // Original URL prefix check
+            bool prefixCheck = httpUrl.StartsWith("/" + Properties.Settings.Default.HttpPrefix) &&
+                              !httpUrl.StartsWith("/" + Properties.Settings.Default.RootPrefix);
+
+            // Accept header check for browser vs OPDS client
+            string acceptHeader = processor.HttpHeaders["Accept"] as string;
+            bool acceptCheck = !string.IsNullOrEmpty(acceptHeader) &&
+                             acceptHeader.Contains("text/html");
+
+            return prefixCheck || acceptCheck;
         }
 
         private bool DetectFB2Support(string userAgent)

@@ -291,7 +291,7 @@ namespace TinyOPDS.Data
 
         #endregion
 
-        #region New Books Pagination (NEW)
+        #region New Books Pagination
 
         /// <summary>
         /// Get new books with pagination support
@@ -689,7 +689,7 @@ namespace TinyOPDS.Data
 
         #endregion
 
-        #region Author Aliases Management (NEW - in memory)
+        #region Author Aliases Management
 
         /// <summary>
         /// Apply author aliases to book before saving to database
@@ -706,7 +706,6 @@ namespace TinyOPDS.Data
                 if (_aliases.ContainsKey(originalAuthor))
                 {
                     book.Authors[i] = _aliases[originalAuthor];
-                    Log.WriteLine(LogLevel.Info, "Applied alias: '{0}' -> '{1}'", originalAuthor, book.Authors[i]);
                 }
             }
         }
@@ -746,13 +745,13 @@ namespace TinyOPDS.Data
 
         #endregion
 
-        #region Enhanced Author Search Methods
+        #region Author Search Methods
 
         /// <summary>
-        /// Get authors by name pattern with enhanced FirstName/LastName support and Soundex fallback
+        /// Get authors by name - simplified dispatch method
         /// </summary>
-        /// <param name="name">Search pattern - single word (LastName) or multiple words (FirstName LastName)</param>
-        /// <param name="isOpenSearch">Whether this is open search (contains) or prefix search</param>
+        /// <param name="name">Search pattern</param>
+        /// <param name="isOpenSearch">True for OpenSearch, false for navigation</param>
         /// <returns>List of matching canonical author names</returns>
         public static List<string> GetAuthorsByName(string name, bool isOpenSearch)
         {
@@ -760,12 +759,25 @@ namespace TinyOPDS.Data
 
             try
             {
-                // Use enhanced search from repository
-                var authors = _bookRepository.GetAuthorsByNamePattern(name, isOpenSearch);
+                Log.WriteLine(LogLevel.Info, "Searching authors by name: '{0}', isOpenSearch: {1}", name, isOpenSearch);
+
+                List<string> authors;
+
+                if (isOpenSearch)
+                {
+                    authors = _bookRepository.GetAuthorsForOpenSearch(name);
+                }
+                else
+                {
+                    authors = _bookRepository.GetAuthorsForNavigation(name);
+                }
 
                 // Remove duplicates and sort
                 var comparer = new OPDSComparer(TinyOPDS.Properties.Settings.Default.SortOrder > 0);
-                return authors.Where(a => a.Length > 1).Distinct().OrderBy(a => a, comparer).ToList();
+                var result = authors.Where(a => a.Length > 1).Distinct().OrderBy(a => a, comparer).ToList();
+
+                Log.WriteLine(LogLevel.Info, "Found {0} authors for pattern '{1}'", result.Count, name);
+                return result;
             }
             catch (Exception ex)
             {
@@ -775,17 +787,33 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Get books by title - simplified without Soundex (as per requirements)
+        /// Get books by title - original method for compatibility (no Soundex)
         /// </summary>
         /// <param name="title">Title to search for</param>
         /// <returns>List of matching books</returns>
         public static List<Book> GetBooksByTitle(string title)
         {
+            return GetBooksByTitle(title, false);
+        }
+
+        /// <summary>
+        /// Get books by title - OpenSearch version (no Soundex, only partial matching)
+        /// </summary>
+        /// <param name="title">Title to search for</param>
+        /// <param name="isOpenSearch">Whether this is OpenSearch (ignored for books - no Soundex)</param>
+        /// <returns>List of matching books</returns>
+        public static List<Book> GetBooksByTitle(string title, bool isOpenSearch)
+        {
             if (_bookRepository == null) return new List<Book>();
 
             try
             {
-                return _bookRepository.GetBooksByTitle(title);
+                Log.WriteLine(LogLevel.Info, "Searching books by title: '{0}', isOpenSearch: {1}", title, isOpenSearch);
+
+                var books = _bookRepository.GetBooksByTitle(title, isOpenSearch);
+
+                Log.WriteLine(LogLevel.Info, "Found {0} books by title '{1}'", books.Count, title);
+                return books.Distinct().ToList();
             }
             catch (Exception ex)
             {

@@ -420,6 +420,17 @@ namespace TinyOPDS.Data
             return books;
         }
 
+        /// <summary>
+        /// Get books by title - OpenSearch version with only partial matching (NO Soundex)
+        /// </summary>
+        /// <param name="title">Title to search for</param>
+        /// <param name="isOpenSearch">Whether this is OpenSearch (ignored - no Soundex for titles)</param>
+        /// <returns>List of matching books</returns>
+        public List<Book> GetBooksByTitle(string title, bool isOpenSearch)
+        {
+            return GetBooksByTitle(title);
+        }
+
         public List<Book> GetNewBooks(DateTime fromDate)
         {
             var books = _db.ExecuteQuery<Book>(DatabaseSchema.SelectNewBooks, MapBook,
@@ -451,65 +462,141 @@ namespace TinyOPDS.Data
 
         #endregion
 
-        #region Enhanced Author Search
+        #region Author Search Methods
 
         /// <summary>
-        /// Enhanced author search with proper pattern matching for navigation
+        /// Get authors for navigation (catalog browsing with pagination)
         /// </summary>
-        /// <param name="searchPattern">Author name or pattern to search</param>
-        /// <param name="isOpenSearch">OpenSearch mode (contains) vs prefix search</param>
-        /// <returns>List of matching canonical author names</returns>
-        public List<string> GetAuthorsByNamePattern(string searchPattern, bool isOpenSearch = false)
+        /// <param name="searchPattern">Search pattern for prefix matching</param>
+        /// <returns>List of matching author names</returns>
+        public List<string> GetAuthorsForNavigation(string searchPattern)
         {
             try
             {
-                // If empty pattern, return all authors
                 if (string.IsNullOrEmpty(searchPattern))
                 {
                     return _db.ExecuteQuery<string>(DatabaseSchema.SelectAuthors, reader => reader.GetString(0));
                 }
 
-                // For navigation, search by author name directly using prefix matching
-                string namePattern = isOpenSearch ? $"%{searchPattern}%" : $"{searchPattern}%";
-
-                // Use name pattern search for navigation
-                var authors = _db.ExecuteQuery<string>(DatabaseSchema.SelectAuthorsByNamePattern,
+                string namePattern = $"{searchPattern}%";
+                return _db.ExecuteQuery<string>(DatabaseSchema.SelectAuthorsByNamePattern,
                     reader => reader.GetString(0),
                     DatabaseManager.CreateParameter("@Pattern", namePattern));
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error in GetAuthorsForNavigation {0}: {1}", searchPattern, ex.Message);
+                return new List<string>();
+            }
+        }
 
-                // If no results and OpenSearch mode, try Soundex fallback on LastName
-                if (authors.Count == 0 && isOpenSearch && searchPattern.Length >= 3)
+        /// <summary>
+        /// Get authors for OpenSearch (smart search without Soundex for now)
+        /// </summary>
+        /// <param name="searchPattern">Search pattern</param>
+        /// <returns>List of matching author names</returns>
+        public List<string> GetAuthorsForOpenSearch(string searchPattern)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(searchPattern))
                 {
-                    // Try parsing as last name and use Soundex
-                    var words = searchPattern.Trim().Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                    if (words.Length == 1)
-                    {
-                        // Single word - try Soundex on LastName
-                        string lastNameSoundex = StringUtils.Soundex(words[0]);
-                        var soundexAuthors = _db.ExecuteQuery<string>(DatabaseSchema.SelectAuthorsByLastNameSoundex,
-                            reader => reader.GetString(0),
-                            DatabaseManager.CreateParameter("@LastNameSoundex", lastNameSoundex));
-
-                        if (soundexAuthors.Count > 0)
-                        {
-                            Log.WriteLine(LogLevel.Info, "Soundex fallback for '{0}' found {1} authors", searchPattern, soundexAuthors.Count);
-                            authors.AddRange(soundexAuthors);
-                        }
-                    }
+                    return new List<string>();
                 }
 
+                var authors = new List<string>();
+                var words = searchPattern.Trim().Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+                Log.WriteLine(LogLevel.Info, "GetAuthorsForOpenSearch: searching for '{0}', {1} words", searchPattern, words.Length);
+
+                if (words.Length == 1)
+                {
+                    // Single word: search by LastName prefix - fix case for Cyrillic
+                    string capitalizedWord = char.ToUpper(words[0][0]) + words[0].Substring(1).ToLower();
+                    string wordPattern = $"{capitalizedWord}%";
+                    authors = _db.ExecuteQuery<string>(@"
+                        SELECT DISTINCT a.Name
+                        FROM Authors a
+                        INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
+                        WHERE a.LastName LIKE @Pattern
+                        ORDER BY a.Name",
+                        reader => reader.GetString(0),
+                        DatabaseManager.CreateParameter("@Pattern", wordPattern));
+                }
+                else if (words.Length == 2)
+                {
+                    // Two words: try both "FirstName LastName" and "LastName FirstName" - fix case for Cyrillic
+                    // Also check MiddleName for cases like "Ремарк Мария" where MiddleName = "Мария"
+                    string word1Capitalized = char.ToUpper(words[0][0]) + words[0].Substring(1).ToLower();
+                    string word2Capitalized = char.ToUpper(words[1][0]) + words[1].Substring(1).ToLower();
+                    string word1Pattern = $"{word1Capitalized}%";
+                    string word2Pattern = $"{word2Capitalized}%";
+
+                    authors = _db.ExecuteQuery<string>(@"
+                        SELECT DISTINCT a.Name
+                        FROM Authors a
+                        INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
+                        WHERE (
+                            (a.FirstName LIKE @FirstNamePattern OR a.FirstName IS NULL OR a.FirstName = '') AND
+                            (a.LastName LIKE @LastNamePattern OR a.LastName IS NULL OR a.LastName = '')
+                        ) OR (
+                            (a.MiddleName LIKE @FirstNamePattern OR a.MiddleName IS NULL OR a.MiddleName = '') AND
+                            (a.LastName LIKE @LastNamePattern OR a.LastName IS NULL OR a.LastName = '')
+                        )
+                        ORDER BY a.Name",
+                        reader => reader.GetString(0),
+                        DatabaseManager.CreateParameter("@FirstNamePattern", word1Pattern),
+                        DatabaseManager.CreateParameter("@LastNamePattern", word2Pattern));
+
+                    // Try reverse order if nothing found
+                    if (authors.Count == 0)
+                    {
+                        var reverseAuthors = _db.ExecuteQuery<string>(@"
+                            SELECT DISTINCT a.Name
+                            FROM Authors a
+                            INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
+                            WHERE (
+                                (a.FirstName LIKE @FirstNamePattern OR a.FirstName IS NULL OR a.FirstName = '') AND
+                                (a.LastName LIKE @LastNamePattern OR a.LastName IS NULL OR a.LastName = '')
+                            ) OR (
+                                (a.MiddleName LIKE @FirstNamePattern OR a.MiddleName IS NULL OR a.MiddleName = '') AND
+                                (a.LastName LIKE @LastNamePattern OR a.LastName IS NULL OR a.LastName = '')
+                            )
+                            ORDER BY a.Name",
+                            reader => reader.GetString(0),
+                            DatabaseManager.CreateParameter("@FirstNamePattern", word2Pattern),
+                            DatabaseManager.CreateParameter("@LastNamePattern", word1Pattern));
+
+                        authors.AddRange(reverseAuthors);
+                    }
+                }
+                else
+                {
+                    // Multiple words: fallback to name contains search
+                    string namePattern = $"%{searchPattern}%";
+                    authors = _db.ExecuteQuery<string>(@"
+                        SELECT DISTINCT a.Name
+                        FROM Authors a
+                        INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
+                        WHERE a.Name LIKE @Pattern COLLATE NOCASE
+                        ORDER BY a.Name",
+                        reader => reader.GetString(0),
+                        DatabaseManager.CreateParameter("@Pattern", namePattern));
+                }
+
+                Log.WriteLine(LogLevel.Info, "GetAuthorsForOpenSearch: found {0} authors", authors.Count);
                 return authors.Distinct().ToList();
             }
             catch (Exception ex)
             {
-                Log.WriteLine(LogLevel.Error, "Error in GetAuthorsByNamePattern {0}: {1}", searchPattern, ex.Message);
+                Log.WriteLine(LogLevel.Error, "Error in GetAuthorsForOpenSearch {0}: {1}", searchPattern, ex.Message);
                 return new List<string>();
             }
         }
 
         /// <summary>
         /// Parse author name into FirstName, MiddleName, LastName components
-        /// Handles both FB2 format and EPUB format names
+        /// Handles Russian format: "Фамилия Имя" or "Фамилия Имя Отчество"
         /// </summary>
         /// <param name="fullName">Full author name</param>
         /// <returns>Tuple of (FirstName, MiddleName, LastName)</returns>
@@ -523,22 +610,18 @@ namespace TinyOPDS.Data
             switch (parts.Length)
             {
                 case 1:
-                    // Only one word - assume it's LastName
                     return (null, null, parts[0]);
 
                 case 2:
-                    // Two words - FirstName LastName
-                    return (parts[0], null, parts[1]);
+                    return (parts[1], null, parts[0]);
 
                 case 3:
-                    // Three words - FirstName MiddleName LastName
-                    return (parts[0], parts[1], parts[2]);
+                    return (parts[1], parts[2], parts[0]);
 
                 default:
-                    // More than 3 words - take first as FirstName, last as LastName, combine middle as MiddleName
                     var middleParts = new string[parts.Length - 2];
-                    Array.Copy(parts, 1, middleParts, 0, parts.Length - 2);
-                    return (parts[0], string.Join(" ", middleParts), parts[parts.Length - 1]);
+                    Array.Copy(parts, 2, middleParts, 0, parts.Length - 2);
+                    return (parts[1], string.Join(" ", middleParts), parts[0]);
             }
         }
 

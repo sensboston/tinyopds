@@ -34,7 +34,7 @@ namespace TinyOPDS.OPDS
         /// <returns></returns>
         public XDocument GetCatalogBySequence(string sequence, bool fb2Only, int threshold = 100)
         {
-            return GetCatalog(sequence, SearchFor.Sequence, fb2Only, threshold);
+            return GetCatalog(sequence, SearchFor.Sequence, fb2Only, threshold, false);
         }
 
         /// <summary>
@@ -44,17 +44,21 @@ namespace TinyOPDS.OPDS
         /// <returns></returns>
         public XDocument GetCatalogByGenre(string genre, bool fb2Only, int threshold = 100)
         {
-            return GetCatalog(genre, SearchFor.Genre, fb2Only, threshold);
+            return GetCatalog(genre, SearchFor.Genre, fb2Only, threshold, false);
         }
 
         /// <summary>
-        /// Returns books catalog by selected genre
+        /// Returns books catalog by selected title
         /// </summary>
-        /// <param name="author"></param>
+        /// <param name="title">Title to search for</param>
+        /// <param name="fb2Only">FB2 only flag</param>
+        /// <param name="pageNumber">Page number</param>
+        /// <param name="threshold">Items per page</param>
+        /// <param name="isOpenSearch">Whether this is OpenSearch (enables Soundex)</param>
         /// <returns></returns>
-        public XDocument GetCatalogByTitle(string title, bool fb2Only, int pageNumber = 0, int threshold = 100)
+        public XDocument GetCatalogByTitle(string title, bool fb2Only, int pageNumber = 0, int threshold = 100, bool isOpenSearch = false)
         {
-            return GetCatalog(title, SearchFor.Title, fb2Only, threshold);
+            return GetCatalog(title, SearchFor.Title, fb2Only, threshold, isOpenSearch);
         }
 
         /// <summary>
@@ -64,8 +68,9 @@ namespace TinyOPDS.OPDS
         /// <param name="searchFor">Type of search</param>
         /// <param name="acceptFB2">Client can accept fb2 files</param>
         /// <param name="threshold">Items per page</param>
+        /// <param name="isOpenSearch">Whether this is OpenSearch (enables Soundex)</param>
         /// <returns></returns>
-        private XDocument GetCatalog(string searchPattern, SearchFor searchFor, bool acceptFB2, int threshold = 100)
+        private XDocument GetCatalog(string searchPattern, SearchFor searchFor, bool acceptFB2, int threshold = 100, bool isOpenSearch = false)
         {
             if (!string.IsNullOrEmpty(searchPattern)) searchPattern = Uri.UnescapeDataString(searchPattern).Replace('+', ' ');
 
@@ -103,14 +108,15 @@ namespace TinyOPDS.OPDS
                     catalogType = "/genre/" + Uri.EscapeDataString(searchPattern);
                     break;
                 case SearchFor.Title:
-                    books = Library.GetBooksByTitle(searchPattern);
+                    // Use OpenSearch flag for enhanced search with Soundex
+                    books = Library.GetBooksByTitle(searchPattern, isOpenSearch);
                     // For search, also return books by transliterated titles
                     if (threshold > 50)
                     {
                         string translit = Transliteration.Back(searchPattern, TransliterationType.GOST);
                         if (!string.IsNullOrEmpty(translit))
                         {
-                            List<Book> transTitles = Library.GetBooksByTitle(translit);
+                            List<Book> transTitles = Library.GetBooksByTitle(translit, isOpenSearch);
                             if (transTitles.Count > 0) books.AddRange(transTitles);
                         }
                     }

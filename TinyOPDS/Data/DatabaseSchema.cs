@@ -236,6 +236,43 @@ namespace TinyOPDS.Data
               AND a.LastNameSoundex = @LastNameSoundex
             ORDER BY a.Name";
 
+        // Enhanced OpenSearch queries for smart author matching
+        public const string SelectAuthorsByOpenSearchSingleWord = @"
+            SELECT DISTINCT a.Name
+            FROM Authors a
+            INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
+            WHERE a.LastName LIKE @WordPattern
+            ORDER BY a.Name";
+
+        public const string SelectAuthorsByOpenSearchSingleWordSoundex = @"
+            SELECT DISTINCT a.Name
+            FROM Authors a
+            INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
+            WHERE a.LastNameSoundex = @WordSoundex
+            ORDER BY a.Name";
+
+        public const string SelectAuthorsByOpenSearchTwoWords = @"
+            SELECT DISTINCT a.Name
+            FROM Authors a
+            INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
+            WHERE (
+                (a.FirstName LIKE @Word1Pattern AND a.LastName LIKE @Word2Pattern) OR
+                (a.FirstName LIKE @Word2Pattern AND a.LastName LIKE @Word1Pattern)
+            )
+            ORDER BY a.Name";
+
+        public const string SelectAuthorsByOpenSearchTwoWordsSoundex = @"
+            SELECT DISTINCT a.Name
+            FROM Authors a
+            INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
+            WHERE (
+                (a.FirstName LIKE @Word1Pattern AND a.LastNameSoundex = @Word2Soundex) OR
+                (a.FirstName LIKE @Word2Pattern AND a.LastNameSoundex = @Word1Soundex) OR
+                (a.LastNameSoundex = @Word1Soundex AND a.FirstName LIKE @Word2Pattern) OR
+                (a.LastNameSoundex = @Word2Soundex AND a.FirstName LIKE @Word1Pattern)
+            )
+            ORDER BY a.Name";
+
         public const string SelectSequences = @"
             SELECT DISTINCT Sequence
             FROM Books 

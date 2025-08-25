@@ -23,7 +23,6 @@ namespace TinyOPDS.OPDS
         public XDocument OpenSearchDescription()
         {
             XDocument doc = new XDocument(
-                // Add root element and namespaces
                 new XElement("OpenSearchDescription",
                     new XElement("ShortName", "TinyOPDS"),
                     new XElement("LongName", "TinyOPDS"),
@@ -44,61 +43,42 @@ namespace TinyOPDS.OPDS
 
         public XDocument Search(string searchPattern, string searchType = "", bool fb2Only = false, int pageNumber = 0, int threshold = 100)
         {
-            if (!string.IsNullOrEmpty(searchPattern)) searchPattern = Uri.UnescapeDataString(searchPattern).Replace('+', ' ').ToLower();
+            if (!string.IsNullOrEmpty(searchPattern))
+                searchPattern = Uri.UnescapeDataString(searchPattern).Replace('+', ' ').ToLower();
 
-            XDocument doc = new XDocument(
-                // Add root element and namespaces
-                new XElement("feed", new XAttribute(XNamespace.Xmlns + "dc", Namespaces.dc), new XAttribute(XNamespace.Xmlns + "os", Namespaces.os), new XAttribute(XNamespace.Xmlns + "opds", Namespaces.opds),
-                    new XElement("id", "tag:search:" + searchPattern),
-                    new XElement("title", Localizer.Text("Search results")),
-                    new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                    new XElement("icon", "/series.ico"),
-                    // Add links
-                    Links.opensearch, Links.search, Links.start, Links.self)
-                );
+            Log.WriteLine(LogLevel.Info, "OpenSearch.Search: pattern='{0}', searchType='{1}'", searchPattern, searchType);
 
+            // Search only authors - simple prefix search, no Soundex
             List<string> authors = new List<string>();
-            List<Book> titles = new List<Book>();
 
             if (string.IsNullOrEmpty(searchType))
             {
-                // Enhanced author search with FirstName/LastName parsing and Soundex fallback
-                // Handles both "Пилевин" and "Виктор Пилевин" search patterns
+                // OpenSearch mode - smart search without Soundex for now
                 authors = Library.GetAuthorsByName(searchPattern, true);
-
-                // Simple title search (no Soundex for book titles as per requirements)
-                titles = Library.GetBooksByTitle(searchPattern);
+                Log.WriteLine(LogLevel.Info, "OpenSearch found {0} authors", authors.Count);
             }
 
-            if (string.IsNullOrEmpty(searchType) && authors.Count > 0 && titles.Count > 0)
+            // Always delegate to AuthorsCatalog if we have authors or searchType is "authors"
+            if (searchType.Equals("authors") || authors.Count > 0)
             {
-                // Add two navigation entries: search by authors name and book title
-                doc.Root.Add(
-                    new XElement("entry",
-                        new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                        new XElement("id", "tag:search:author"),
-                        new XElement("title", Localizer.Text("Search authors")),
-                        new XElement("content", Localizer.Text("Search authors by name"), new XAttribute("type", "text")),
-                        new XElement("link", new XAttribute("href", "/search?searchType=authors&searchTerm=" + Uri.EscapeDataString(searchPattern)), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))),
-                    new XElement("entry",
-                        new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                        new XElement("id", "tag:search:title"),
-                        new XElement("title", Localizer.Text("Search books")),
-                        new XElement("content", Localizer.Text("Search books by title"), new XAttribute("type", "text")),
-                        new XElement("link", new XAttribute("href", "/search?searchType=books&searchTerm=" + Uri.EscapeDataString(searchPattern)), new XAttribute("type", "application/atom+xml;profile=opds-catalog")))
-                    );
-            }
-            else if (searchType.Equals("authors") || (authors.Count > 0 && titles.Count == 0))
-            {
-                // Delegate to AuthorsCatalog which uses enhanced search with FirstName/LastName support
+                Log.WriteLine(LogLevel.Info, "OpenSearch: showing authors catalog");
                 return new AuthorsCatalog().GetCatalog(searchPattern, true);
             }
-            else if (searchType.Equals("books") || (titles.Count > 0 && authors.Count == 0))
-            {
-                if (pageNumber > 0) searchPattern += "/" + pageNumber;
-                // Delegate to BooksCatalog for title search
-                return new BooksCatalog().GetCatalogByTitle(searchPattern, fb2Only, 0, 1000);
-            }
+
+            // If no authors found, return empty results
+            XDocument doc = new XDocument(
+                new XElement("feed",
+                    new XAttribute(XNamespace.Xmlns + "dc", Namespaces.dc),
+                    new XAttribute(XNamespace.Xmlns + "os", Namespaces.os),
+                    new XAttribute(XNamespace.Xmlns + "opds", Namespaces.opds),
+                    new XElement("id", "tag:search:" + searchPattern),
+                    new XElement("title", Localizer.Text("Search results")),
+                    new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
+                    new XElement("icon", "/authors.ico"),
+                    Links.opensearch, Links.search, Links.start, Links.self)
+                );
+
+            Log.WriteLine(LogLevel.Warning, "OpenSearch: no results found for pattern '{0}'", searchPattern);
             return doc;
         }
     }

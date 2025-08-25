@@ -797,10 +797,10 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Get books by title - OpenSearch version (no Soundex, only partial matching)
+        /// Get books by title - OpenSearch version with FTS5 search and transliteration
         /// </summary>
         /// <param name="title">Title to search for</param>
-        /// <param name="isOpenSearch">Whether this is OpenSearch (ignored for books - no Soundex)</param>
+        /// <param name="isOpenSearch">Whether this is OpenSearch (uses FTS5 when true)</param>
         /// <returns>List of matching books</returns>
         public static List<Book> GetBooksByTitle(string title, bool isOpenSearch)
         {
@@ -810,7 +810,18 @@ namespace TinyOPDS.Data
             {
                 Log.WriteLine(LogLevel.Info, "Searching books by title: '{0}', isOpenSearch: {1}", title, isOpenSearch);
 
-                var books = _bookRepository.GetBooksByTitle(title, isOpenSearch);
+                List<Book> books;
+
+                if (isOpenSearch)
+                {
+                    // Use FTS5 search with transliteration fallback
+                    books = _bookRepository.GetBooksForOpenSearch(title);
+                }
+                else
+                {
+                    // Use traditional LIKE search for navigation
+                    books = _bookRepository.GetBooksByTitle(title);
+                }
 
                 Log.WriteLine(LogLevel.Info, "Found {0} books by title '{1}'", books.Count, title);
                 return books.Distinct().ToList();

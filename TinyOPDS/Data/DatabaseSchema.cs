@@ -5,7 +5,7 @@
  * Copyright (c) 2013-2025 SeNSSoFT
  * SPDX-License-Identifier: MIT
  *
- * Database schema and SQL queries for SQLite migration
+ * Database schema and SQL queries for SQLite migration with FTS5 support
  *
  */
 
@@ -82,6 +82,11 @@ namespace TinyOPDS.Data
                 FOREIGN KEY (TranslatorID) REFERENCES Translators(ID) ON DELETE CASCADE
             )";
 
+        // NEW: FTS5 table for book titles search
+        public const string CreateBookTitlesFTSTable = @"
+            CREATE VIRTUAL TABLE IF NOT EXISTS BookTitlesFTS 
+            USING fts5(Title, tokenize='unicode61')";
+
         #endregion
 
         #region Indexes
@@ -130,6 +135,16 @@ namespace TinyOPDS.Data
         public const string InsertBookTranslator = @"
             INSERT OR IGNORE INTO BookTranslators (BookID, TranslatorID) 
             VALUES (@BookID, (SELECT ID FROM Translators WHERE Name = @TranslatorName))";
+
+        // NEW: FTS Insert/Update/Delete queries
+        public const string InsertBookTitleFTS = @"
+            INSERT INTO BookTitlesFTS(rowid, Title) VALUES (@rowid, @Title)";
+
+        public const string UpdateBookTitleFTS = @"
+            INSERT OR REPLACE INTO BookTitlesFTS(rowid, Title) VALUES (@rowid, @Title)";
+
+        public const string DeleteBookTitleFTS = @"
+            DELETE FROM BookTitlesFTS WHERE rowid = @rowid";
 
         #endregion
 
@@ -186,6 +201,18 @@ namespace TinyOPDS.Data
                    Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate
             FROM Books 
             WHERE Title LIKE '%' || @Title || '%' OR Sequence LIKE '%' || @Title || '%'";
+
+        // NEW: FTS5 search query for book titles with priority ordering
+        public const string SelectBooksByTitleFTS = @"
+            SELECT b.ID, b.Version, b.FileName, b.Title, b.Language, b.BookDate, b.DocumentDate,
+                   b.Sequence, b.NumberInSequence, b.Annotation, b.DocumentSize, b.AddedDate
+            FROM Books b
+            INNER JOIN BookTitlesFTS fts ON b.rowid = fts.rowid
+            WHERE BookTitlesFTS MATCH @SearchPattern
+            ORDER BY 
+                CASE WHEN b.Title LIKE @SearchPattern || '%' THEN 0 ELSE 1 END,
+                bm25(BookTitlesFTS),
+                b.Title";
 
         public const string SelectNewBooks = @"
             SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
@@ -361,6 +388,14 @@ namespace TinyOPDS.Data
         public const string DeleteBook = @"DELETE FROM Books WHERE ID = @ID";
 
         public const string DeleteBookByFileName = @"DELETE FROM Books WHERE FileName = @FileName";
+
+        #endregion
+
+        #region FTS5 Maintenance Queries
+
+        public const string RebuildBookTitlesFTS = @"INSERT INTO BookTitlesFTS(BookTitlesFTS) VALUES('rebuild')";
+
+        public const string OptimizeBookTitlesFTS = @"INSERT INTO BookTitlesFTS(BookTitlesFTS) VALUES('optimize')";
 
         #endregion
     }

@@ -64,10 +64,13 @@ namespace TinyOPDS.Data
                 ExecuteNonQuery(DatabaseSchema.CreateBookGenresTable);
                 ExecuteNonQuery(DatabaseSchema.CreateBookTranslatorsTable);
 
+                // Create FTS5 table for book titles
+                ExecuteNonQuery(DatabaseSchema.CreateBookTitlesFTSTable);
+
                 // Create indexes
                 ExecuteNonQuery(DatabaseSchema.CreateIndexes);
 
-                Log.WriteLine("Database schema initialized");
+                Log.WriteLine("Database schema initialized with FTS5 support");
             }
             catch (Exception ex)
             {
@@ -75,7 +78,6 @@ namespace TinyOPDS.Data
                 throw;
             }
         }
-
         public int ExecuteNonQuery(string sql, params IDbDataParameter[] parameters)
         {
             var command = SqliteConnectionFactory.CreateCommand(sql, _connection);

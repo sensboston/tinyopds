@@ -5,7 +5,7 @@
  * Copyright (c) 2013-2025 SeNSSoFT
  * SPDX-License-Identifier: MIT
  *
- * Repository for Book operations with SQLite database
+ * Repository for Book operations with SQLite database with FTS5 support
  *
  */
 
@@ -68,6 +68,16 @@ namespace TinyOPDS.Data
                 };
 
                 _db.ExecuteNonQuery(DatabaseSchema.InsertBook, bookParams);
+
+                // Get the rowid for FTS synchronization
+                var bookRowIdResult = _db.ExecuteScalar("SELECT rowid FROM Books WHERE ID = @ID",
+                    DatabaseManager.CreateParameter("@ID", book.ID));
+                long bookRowId = Convert.ToInt64(bookRowIdResult);
+
+                // Sync with FTS table
+                _db.ExecuteNonQuery(DatabaseSchema.InsertBookTitleFTS,
+                    DatabaseManager.CreateParameter("@rowid", bookRowId),
+                    DatabaseManager.CreateParameter("@Title", book.Title));
 
                 // Clear existing relationships
                 _db.ExecuteNonQuery("DELETE FROM BookAuthors WHERE BookID = @BookID",
@@ -135,7 +145,7 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Add multiple books in batch - optimized for performance with detailed result
+        /// Add multiple books in batch with FTS5 synchronization
         /// </summary>
         public BatchResult AddBooksBatch(List<Book> books)
         {
@@ -190,6 +200,16 @@ namespace TinyOPDS.Data
                             DatabaseManager.CreateParameter("@AddedDate", book.AddedDate)
                         };
                         _db.ExecuteNonQuery(DatabaseSchema.InsertBook, bookParams);
+
+                        // Get rowid for FTS synchronization
+                        var bookRowIdResult = _db.ExecuteScalar("SELECT rowid FROM Books WHERE ID = @ID",
+                            DatabaseManager.CreateParameter("@ID", book.ID));
+                        long bookRowId = Convert.ToInt64(bookRowIdResult);
+
+                        // Sync with FTS table
+                        _db.ExecuteNonQuery(DatabaseSchema.InsertBookTitleFTS,
+                            DatabaseManager.CreateParameter("@rowid", bookRowId),
+                            DatabaseManager.CreateParameter("@Title", book.Title));
 
                         // Insert authors and relationships
                         foreach (var authorName in book.Authors)
@@ -317,8 +337,21 @@ namespace TinyOPDS.Data
             {
                 _db.BeginTransaction();
 
+                // Get rowid before deletion for FTS cleanup
+                var bookRowIdResult = _db.ExecuteScalar("SELECT rowid FROM Books WHERE ID = @ID",
+                    DatabaseManager.CreateParameter("@ID", id));
+                long bookRowId = Convert.ToInt64(bookRowIdResult);
+
+                // Delete from main table
                 var result = _db.ExecuteNonQuery(DatabaseSchema.DeleteBook,
                     DatabaseManager.CreateParameter("@ID", id));
+
+                // Delete from FTS table
+                if (result > 0)
+                {
+                    _db.ExecuteNonQuery(DatabaseSchema.DeleteBookTitleFTS,
+                        DatabaseManager.CreateParameter("@rowid", bookRowId));
+                }
 
                 _db.CommitTransaction();
                 return result > 0;
@@ -337,8 +370,21 @@ namespace TinyOPDS.Data
             {
                 _db.BeginTransaction();
 
+                // Get rowid before deletion for FTS cleanup
+                var bookRowIdResult = _db.ExecuteScalar("SELECT rowid FROM Books WHERE FileName = @FileName",
+                    DatabaseManager.CreateParameter("@FileName", fileName));
+                long bookRowId = Convert.ToInt64(bookRowIdResult);
+
+                // Delete from main table
                 var result = _db.ExecuteNonQuery(DatabaseSchema.DeleteBookByFileName,
                     DatabaseManager.CreateParameter("@FileName", fileName));
+
+                // Delete from FTS table
+                if (result > 0)
+                {
+                    _db.ExecuteNonQuery(DatabaseSchema.DeleteBookTitleFTS,
+                        DatabaseManager.CreateParameter("@rowid", bookRowId));
+                }
 
                 _db.CommitTransaction();
                 return result > 0;
@@ -429,6 +475,81 @@ namespace TinyOPDS.Data
         public List<Book> GetBooksByTitle(string title, bool isOpenSearch)
         {
             return GetBooksByTitle(title);
+        }
+
+        /// <summary>
+        /// NEW: Get books for OpenSearch using FTS5 with transliteration fallback
+        /// </summary>
+        /// <param name="searchPattern">Search pattern</param>
+        /// <returns>List of matching books with priority ordering</returns>
+        public List<Book> GetBooksForOpenSearch(string searchPattern)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(searchPattern))
+                {
+                    return new List<Book>();
+                }
+
+                Log.WriteLine(LogLevel.Info, "GetBooksForOpenSearch: searching for '{0}'", searchPattern);
+
+                // First try FTS5 search
+                var books = _db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksByTitleFTS, MapBook,
+                    DatabaseManager.CreateParameter("@SearchPattern", searchPattern));
+
+                // If no results and contains Latin letters, try transliteration
+                if (books.Count == 0 && ContainsLatinLetters(searchPattern))
+                {
+                    Log.WriteLine(LogLevel.Info, "GetBooksForOpenSearch: trying transliteration fallback for '{0}'", searchPattern);
+
+                    // Try GOST transliteration first
+                    string transliteratedGOST = Transliteration.Back(searchPattern, TransliterationType.GOST);
+                    if (!string.IsNullOrEmpty(transliteratedGOST) && transliteratedGOST != searchPattern)
+                    {
+                        var gostBooks = _db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksByTitleFTS, MapBook,
+                            DatabaseManager.CreateParameter("@SearchPattern", transliteratedGOST));
+
+                        if (gostBooks.Count > 0)
+                        {
+                            Log.WriteLine(LogLevel.Info, "GetBooksForOpenSearch: GOST transliteration '{0}' -> '{1}' found {2} books",
+                                        searchPattern, transliteratedGOST, gostBooks.Count);
+                            books.AddRange(gostBooks);
+                        }
+                    }
+
+                    // Try ISO transliteration if GOST didn't work
+                    if (books.Count == 0)
+                    {
+                        string transliteratedISO = Transliteration.Back(searchPattern, TransliterationType.ISO);
+                        if (!string.IsNullOrEmpty(transliteratedISO) && transliteratedISO != searchPattern && transliteratedISO != transliteratedGOST)
+                        {
+                            var isoBooks = _db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksByTitleFTS, MapBook,
+                                DatabaseManager.CreateParameter("@SearchPattern", transliteratedISO));
+
+                            if (isoBooks.Count > 0)
+                            {
+                                Log.WriteLine(LogLevel.Info, "GetBooksForOpenSearch: ISO transliteration '{0}' -> '{1}' found {2} books",
+                                            searchPattern, transliteratedISO, isoBooks.Count);
+                                books.AddRange(isoBooks);
+                            }
+                        }
+                    }
+                }
+
+                // Load book relations
+                foreach (var book in books)
+                {
+                    LoadBookRelations(book);
+                }
+
+                Log.WriteLine(LogLevel.Info, "GetBooksForOpenSearch: found {0} books", books.Count);
+                return books.Distinct().ToList();
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error in GetBooksForOpenSearch {0}: {1}", searchPattern, ex.Message);
+                return new List<Book>();
+            }
         }
 
         public List<Book> GetNewBooks(DateTime fromDate)
@@ -544,7 +665,7 @@ namespace TinyOPDS.Data
                             authors.AddRange(soundexAuthors);
                         }
 
-                        // NEW: Transliteration fallback if still no results and input contains Latin letters
+                        // Transliteration fallback if still no results and input contains Latin letters
                         if (authors.Count == 0 && ContainsLatinLetters(capitalizedWord))
                         {
                             Log.WriteLine(LogLevel.Info, "GetAuthorsForOpenSearch: trying transliteration fallback for '{0}'", capitalizedWord);
@@ -645,7 +766,7 @@ namespace TinyOPDS.Data
                         authors.AddRange(reverseAuthors);
                     }
 
-                    // NEW: Transliteration fallback for two words if still no results
+                    // Transliteration fallback for two words if still no results
                     if (authors.Count == 0 && (ContainsLatinLetters(word1Capitalized) || ContainsLatinLetters(word2Capitalized)))
                     {
                         Log.WriteLine(LogLevel.Info, "GetAuthorsForOpenSearch: trying transliteration fallback for two words '{0} {1}'", word1Capitalized, word2Capitalized);
@@ -681,7 +802,7 @@ namespace TinyOPDS.Data
                         reader => reader.GetString(0),
                         DatabaseManager.CreateParameter("@Pattern", namePattern));
 
-                    // NEW: Transliteration fallback for multiple words
+                    // Transliteration fallback for multiple words
                     if (authors.Count == 0 && ContainsLatinLetters(searchPattern))
                     {
                         Log.WriteLine(LogLevel.Info, "GetAuthorsForOpenSearch: trying transliteration fallback for multiple words '{0}'", searchPattern);

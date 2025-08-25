@@ -70,7 +70,7 @@ namespace TinyOPDS.OPDS
                         new XElement("id", "tag:search:" + searchPattern),
                         new XElement("title", Localizer.Text("Search results")),
                         new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                        new XElement("icon", "/series.ico"),
+                        new XElement("icon", "/favicon.ico"),
                         Links.opensearch, Links.search, Links.start, Links.self)
                     );
 
@@ -114,7 +114,7 @@ namespace TinyOPDS.OPDS
                     new XElement("id", "tag:search:" + searchPattern),
                     new XElement("title", Localizer.Text("Search results")),
                     new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                    new XElement("icon", "/authors.ico"),
+                    new XElement("icon", "/favicon.ico"),
                     Links.opensearch, Links.search, Links.start, Links.self)
                 );
 

@@ -1,18 +1,7 @@
-﻿/*
- * This file is part of TinyOPDS server project
- * https://github.com/sensboston/tinyopds
- *
- * Copyright (c) 2013-2025 SeNSSoFT
- * SPDX-License-Identifier: MIT
- *
- * This module defines some specific String extensions classes:
- * Soundex and Transliteration
- *
- */
-
-using System;
-using System.Text;
+﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Text;
 using System.Xml;
 using System.Xml.Linq;
 
@@ -82,109 +71,182 @@ namespace TinyOPDS
             {
                 if (!string.IsNullOrWhiteSpace(str))
                 {
-                    soundexes.Add(Soundex(str));
+                    soundexes.Add(SoundexRuEn.Compute(str, 6));
                 }
             }
             return string.Join(" ", soundexes);
         }
 
-        private static readonly Dictionary<char, char> RussianSoundexGroups = new Dictionary<char, char>
-        {
-            {'Б', '1'}, {'П', '1'}, {'В', '1'}, {'Ф', '1'},
-            {'Г', '2'}, {'К', '2'}, {'Х', '2'},
-            {'Д', '3'}, {'Т', '3'},
-            {'Л', '4'}, {'Р', '4'},
-            {'М', '5'}, {'Н', '5'},
-            {'З', '6'}, {'С', '6'}, {'Ж', '6'}, {'Ш', '6'}, {'Щ', '6'}, {'Ч', '6'}, {'Ц', '6'}
-        };
-
-        private static readonly Dictionary<char, char> EnglishSoundexGroups = new Dictionary<char, char>
-        {
-            {'B', '1'}, {'F', '1'}, {'P', '1'}, {'V', '1'},
-            {'C', '2'}, {'G', '2'}, {'J', '2'}, {'K', '2'}, {'Q', '2'}, {'S', '2'}, {'X', '2'}, {'Z', '2'},
-            {'D', '3'}, {'T', '3'},
-            {'L', '4'},
-            {'M', '5'}, {'N', '5'},
-            {'R', '6'}
-        };
-
-        private static readonly HashSet<char> RussianVowels = new HashSet<char>
-        {
-            'А', 'Е', 'Ё', 'И', 'О', 'У', 'Ы', 'Э', 'Ю', 'Я', 'Й', 'Ь', 'Ъ'
-        };
-
-        private static readonly HashSet<char> EnglishVowels = new HashSet<char>
-        {
-            'A', 'E', 'I', 'O', 'U', 'Y', 'H', 'W'
-        };
-
-        /// <summary>
-        /// Universal Soundex algorithm for Russian and English languages
-        /// </summary>
-        /// <param name="word">Input word in Russian or English</param>
-        /// <returns>4-character Soundex code</returns>
         public static string Soundex(string word)
         {
-            if (string.IsNullOrEmpty(word))
-                return "0000";
+            return SoundexRuEn.Compute(word, 6);
+        }
+    }
 
-            word = word.Trim().ToUpper();
-            if (word.Length == 0)
-                return "0000";
+    public static class SoundexRuEn
+    {
+        public static string Compute(string input, int length = 6)
+        {
+            if (string.IsNullOrWhiteSpace(input) || length < 1) return string.Empty;
 
-            char firstChar = word[0];
-            bool isRussian = IsRussianChar(firstChar);
+            string s = input.Trim();
+            int firstIdx = IndexOfLetter(s);
+            if (firstIdx < 0) return string.Empty;
 
-            var soundexGroups = isRussian ? RussianSoundexGroups : EnglishSoundexGroups;
-            var vowels = isRussian ? RussianVowels : EnglishVowels;
+            bool isCyr = IsCyrillic(s[firstIdx]);
+            s = isCyr ? s.ToUpperInvariant() : RemoveDiacritics(s).ToUpperInvariant();
 
-            StringBuilder result = new StringBuilder();
-            result.Append(firstChar);
+            firstIdx = IndexOfLetter(s);
+            if (firstIdx < 0) return string.Empty;
 
-            char prevCode = GetSoundexCode(firstChar, soundexGroups);
+            char firstLetter = s[firstIdx];
+            var consonantMap = isCyr ? CyrillicConsonantMap : LatinConsonantMap;
+            var vowelMap = isCyr ? CyrillicVowelMap : LatinVowelMap;
 
-            for (int i = 1; i < word.Length && result.Length < 4; i++)
+            var sb = new StringBuilder(length);
+            sb.Append(firstLetter);
+
+            char prevCode = '0';
+            bool isFirstChar = true;
+
+            for (int i = firstIdx + 1; i < s.Length && sb.Length < length; i++)
             {
-                char currentChar = word[i];
+                char c = s[i];
+                if (!char.IsLetter(c)) continue;
 
-                if (!IsValidChar(currentChar, isRussian))
-                    continue;
+                char code = '0';
 
-                char currentCode = GetSoundexCode(currentChar, soundexGroups);
-
-                if (currentCode != '0' && currentCode != prevCode)
+                // Try consonant first
+                if (consonantMap.TryGetValue(c, out code))
                 {
-                    result.Append(currentCode);
-                    prevCode = currentCode;
+                    if (code != prevCode || isFirstChar)
+                    {
+                        sb.Append(code);
+                        prevCode = code;
+                        isFirstChar = false;
+                    }
                 }
-                else if (vowels.Contains(currentChar))
+                // Then try vowel (only for first 4 positions to avoid over-emphasis)
+                else if (sb.Length <= 4 && vowelMap.TryGetValue(c, out code))
+                {
+                    if (code != prevCode || isFirstChar)
+                    {
+                        sb.Append(code);
+                        prevCode = code;
+                        isFirstChar = false;
+                    }
+                }
+                // Reset previous code for ignored letters to prevent blocking
+                else
                 {
                     prevCode = '0';
                 }
             }
 
-            while (result.Length < 4)
-                result.Append('0');
-
-            return result.ToString();
+            while (sb.Length < length) sb.Append('0');
+            if (sb.Length > length) sb.Length = length;
+            return sb.ToString();
         }
 
-        private static bool IsRussianChar(char c)
+        private static readonly Dictionary<char, char> LatinConsonantMap = new Dictionary<char, char>
         {
-            return (c >= 'А' && c <= 'Я') || (c >= 'а' && c <= 'я') || c == 'Ё' || c == 'ё';
+            ['B'] = '1',
+            ['F'] = '1',
+            ['P'] = '1',
+            ['V'] = '1',
+            ['C'] = '2',
+            ['G'] = '2',
+            ['J'] = '2',
+            ['K'] = '2',
+            ['Q'] = '2',
+            ['S'] = '2',
+            ['X'] = '2',
+            ['Z'] = '2',
+            ['D'] = '3',
+            ['T'] = '3',
+            ['L'] = '4',
+            ['M'] = '5',
+            ['N'] = '5',
+            ['R'] = '6'
+        };
+
+        private static readonly Dictionary<char, char> CyrillicConsonantMap = new Dictionary<char, char>
+        {
+            ['Б'] = '1',
+            ['П'] = '1',
+            ['Ф'] = '1',
+            ['В'] = '1',
+            ['Г'] = '2',
+            ['К'] = '2',
+            ['Х'] = '2',
+            ['Ж'] = '2',
+            ['З'] = '2',
+            ['С'] = '2',
+            ['Ц'] = '2',
+            ['Ч'] = '2',
+            ['Ш'] = '2',
+            ['Щ'] = '2',
+            ['Д'] = '3',
+            ['Т'] = '3',
+            ['Л'] = '4',
+            ['М'] = '5',
+            ['Н'] = '5',
+            ['Р'] = '6'
+        };
+
+        // Vowel groups for better phonetic matching
+        private static readonly Dictionary<char, char> LatinVowelMap = new Dictionary<char, char>
+        {
+            ['A'] = '7',
+            ['O'] = '7',  // A-O group (similar in some accents)
+            ['E'] = '8',
+            ['I'] = '8',  // E-I group (often confused)
+            ['U'] = '9',
+            ['Y'] = '9',  // U-Y group 
+            ['H'] = '0',
+            ['W'] = '0'   // Ignored consonants in English Soundex
+        };
+
+        private static readonly Dictionary<char, char> CyrillicVowelMap = new Dictionary<char, char>
+        {
+            ['А'] = '7',
+            ['О'] = '7',           // А-О group (аканье)
+            ['И'] = '8',
+            ['Е'] = '8',
+            ['Ы'] = '8', // И-Е-Ы group (common confusion)
+            ['У'] = '9',
+            ['Ю'] = '9',           // У-Ю group
+            ['Э'] = '8',                      // Э similar to Е
+            ['Я'] = '7',                      // Я can sound like А
+            ['Ё'] = '8',                      // Ё similar to Е
+            ['Й'] = '0',
+            ['Ь'] = '0',
+            ['Ъ'] = '0' // Soft/hard signs and Й - ignored
+        };
+
+        private static char CodeOf(char c, Dictionary<char, char> map)
+            => map.TryGetValue(c, out var code) ? code : '0';
+
+        private static bool IsCyrillic(char c)
+            => (c >= '\u0400' && c <= '\u04FF') || (c >= '\u0500' && c <= '\u052F');
+
+        private static int IndexOfLetter(string s)
+        {
+            for (int i = 0; i < s.Length; i++)
+                if (char.IsLetter(s[i])) return i;
+            return -1;
         }
 
-        private static bool IsValidChar(char c, bool isRussian)
+        private static string RemoveDiacritics(string text)
         {
-            if (isRussian)
-                return IsRussianChar(c);
-            else
-                return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
-        }
-
-        private static char GetSoundexCode(char c, Dictionary<char, char> soundexGroups)
-        {
-            return soundexGroups.ContainsKey(c) ? soundexGroups[c] : '0';
+            var norm = text.Normalize(NormalizationForm.FormD);
+            var sb = new StringBuilder(norm.Length);
+            foreach (var ch in norm)
+            {
+                var uc = CharUnicodeInfo.GetUnicodeCategory(ch);
+                if (uc != UnicodeCategory.NonSpacingMark) sb.Append(ch);
+            }
+            return sb.ToString().Normalize(NormalizationForm.FormC);
         }
     }
 
@@ -198,7 +260,6 @@ namespace TinyOPDS
 
     public static class Transliteration
     {
-        //ГОСТ 16876-71
         private static Dictionary<char, string> gostFront = new Dictionary<char, string>() {
             {'Є', "Eh"}, {'І', "I"},  {'і', "i"}, {'№', "#"},  {'є', "eh"}, {'А', "A"}, {'Б', "B"}, {'В', "V"}, {'Г', "G"}, {'Д', "D"}, {'Е', "E"}, {'Ё', "Jo"},
             {'Ж', "Zh"}, {'З', "Z"},  {'И', "I"}, {'Й', "JJ"}, {'К', "K"}, {'Л', "L"}, {'М', "M"}, {'Н', "N"}, {'О', "O"}, {'П', "P"}, {'Р', "R"}, {'С', "S"},
@@ -211,7 +272,6 @@ namespace TinyOPDS
 
         private static Dictionary<string, char> gostBack = new Dictionary<string, char>();
 
-        //ISO 9-95
         private static Dictionary<char, string> isoFront = new Dictionary<char, string>() {
             { 'Є', "Ye" }, { 'І', "I" }, { 'Ѓ', "G" }, { 'і', "i" }, { '№', "#" }, { 'є', "ye" }, { 'ѓ', "g" }, { 'А', "A" }, { 'Б', "B" }, { 'В', "V" }, { 'Г', "G" },
             { 'Д', "D" }, { 'Е', "E" }, { 'Ё', "Yo" }, { 'Ж', "Zh" }, { 'З', "Z" }, { 'И', "I" }, { 'Й', "J" }, { 'К', "K" }, { 'Л', "L" }, { 'М', "M" }, { 'Н', "N" },
@@ -265,104 +325,9 @@ namespace TinyOPDS
 
     public static class StringUtils
     {
-        private static readonly Dictionary<char, char> RussianSoundexGroups = new Dictionary<char, char>
-        {
-            {'Б', '1'}, {'П', '1'}, {'В', '1'}, {'Ф', '1'},
-            {'Г', '2'}, {'К', '2'}, {'Х', '2'},
-            {'Д', '3'}, {'Т', '3'},
-            {'Л', '4'}, {'Р', '4'},
-            {'М', '5'}, {'Н', '5'},
-            {'З', '6'}, {'С', '6'}, {'Ж', '6'}, {'Ш', '6'}, {'Щ', '6'}, {'Ч', '6'}, {'Ц', '6'}
-        };
-
-        private static readonly Dictionary<char, char> EnglishSoundexGroups = new Dictionary<char, char>
-        {
-            {'B', '1'}, {'F', '1'}, {'P', '1'}, {'V', '1'},
-            {'C', '2'}, {'G', '2'}, {'J', '2'}, {'K', '2'}, {'Q', '2'}, {'S', '2'}, {'X', '2'}, {'Z', '2'},
-            {'D', '3'}, {'T', '3'},
-            {'L', '4'},
-            {'M', '5'}, {'N', '5'},
-            {'R', '6'}
-        };
-
-        private static readonly HashSet<char> RussianVowels = new HashSet<char>
-        {
-            'А', 'Е', 'Ё', 'И', 'О', 'У', 'Ы', 'Э', 'Ю', 'Я', 'Й', 'Ь', 'Ъ'
-        };
-
-        private static readonly HashSet<char> EnglishVowels = new HashSet<char>
-        {
-            'A', 'E', 'I', 'O', 'U', 'Y', 'H', 'W'
-        };
-
-        /// <summary>
-        /// Universal Soundex algorithm for Russian and English languages
-        /// Auto-detects language by first character and applies appropriate phonetic rules
-        /// </summary>
-        /// <param name="word">Input word in Russian or English</param>
-        /// <returns>4-character Soundex code (first char + 3 digits)</returns>
         public static string Soundex(string word)
         {
-            if (string.IsNullOrEmpty(word))
-                return "0000";
-
-            word = word.Trim().ToUpper();
-            if (word.Length == 0)
-                return "0000";
-
-            char firstChar = word[0];
-            bool isRussian = IsRussianChar(firstChar);
-
-            var soundexGroups = isRussian ? RussianSoundexGroups : EnglishSoundexGroups;
-            var vowels = isRussian ? RussianVowels : EnglishVowels;
-
-            StringBuilder result = new StringBuilder();
-            result.Append(firstChar);
-
-            char prevCode = GetSoundexCode(firstChar, soundexGroups);
-
-            for (int i = 1; i < word.Length && result.Length < 4; i++)
-            {
-                char currentChar = word[i];
-
-                if (!IsValidChar(currentChar, isRussian))
-                    continue;
-
-                char currentCode = GetSoundexCode(currentChar, soundexGroups);
-
-                if (currentCode != '0' && currentCode != prevCode)
-                {
-                    result.Append(currentCode);
-                    prevCode = currentCode;
-                }
-                else if (vowels.Contains(currentChar))
-                {
-                    prevCode = '0';
-                }
-            }
-
-            while (result.Length < 4)
-                result.Append('0');
-
-            return result.ToString();
-        }
-
-        private static bool IsRussianChar(char c)
-        {
-            return (c >= 'А' && c <= 'Я') || (c >= 'а' && c <= 'я') || c == 'Ё' || c == 'ё';
-        }
-
-        private static bool IsValidChar(char c, bool isRussian)
-        {
-            if (isRussian)
-                return IsRussianChar(c);
-            else
-                return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
-        }
-
-        private static char GetSoundexCode(char c, Dictionary<char, char> soundexGroups)
-        {
-            return soundexGroups.ContainsKey(c) ? soundexGroups[c] : '0';
+            return SoundexRuEn.Compute(word, 6);
         }
     }
 

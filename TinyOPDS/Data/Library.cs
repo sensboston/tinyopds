@@ -773,7 +773,7 @@ namespace TinyOPDS.Data
                 }
 
                 // Remove duplicates and sort
-                var comparer = new OPDSComparer(TinyOPDS.Properties.Settings.Default.SortOrder > 0);
+                var comparer = new OPDSComparer(Properties.Settings.Default.SortOrder > 0);
                 var result = authors.Where(a => a.Length > 1).Distinct().OrderBy(a => a, comparer).ToList();
 
                 Log.WriteLine(LogLevel.Info, "Found {0} authors for pattern '{1}'", result.Count, name);

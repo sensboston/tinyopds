@@ -522,6 +522,28 @@ namespace TinyOPDS.Data
                         ORDER BY a.Name",
                         reader => reader.GetString(0),
                         DatabaseManager.CreateParameter("@Pattern", wordPattern));
+
+                    // Soundex fallback if no exact results found
+                    if (authors.Count == 0 && words[0].Length >= 3)
+                    {
+                        Log.WriteLine(LogLevel.Info, "GetAuthorsForOpenSearch: trying Soundex fallback for '{0}'", words[0]);
+                        string wordSoundex = StringUtils.Soundex(capitalizedWord);
+
+                        var soundexAuthors = _db.ExecuteQuery<string>(@"
+                            SELECT DISTINCT a.Name
+                            FROM Authors a
+                            INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
+                            WHERE a.LastNameSoundex = @Soundex
+                            ORDER BY a.Name",
+                            reader => reader.GetString(0),
+                            DatabaseManager.CreateParameter("@Soundex", wordSoundex));
+
+                        if (soundexAuthors.Count > 0)
+                        {
+                            Log.WriteLine(LogLevel.Info, "GetAuthorsForOpenSearch: Soundex found {0} authors", soundexAuthors.Count);
+                            authors.AddRange(soundexAuthors);
+                        }
+                    }
                 }
                 else if (words.Length == 2)
                 {

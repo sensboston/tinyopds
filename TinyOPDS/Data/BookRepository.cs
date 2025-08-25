@@ -491,7 +491,7 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Get authors for OpenSearch (smart search without Soundex for now)
+        /// Get authors for OpenSearch with transliteration fallback for Latin input
         /// </summary>
         /// <param name="searchPattern">Search pattern</param>
         /// <returns>List of matching author names</returns>
@@ -515,11 +515,11 @@ namespace TinyOPDS.Data
                     string capitalizedWord = char.ToUpper(words[0][0]) + words[0].Substring(1).ToLower();
                     string wordPattern = $"{capitalizedWord}%";
                     authors = _db.ExecuteQuery<string>(@"
-                        SELECT DISTINCT a.Name
-                        FROM Authors a
-                        INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
-                        WHERE a.LastName LIKE @Pattern
-                        ORDER BY a.Name",
+                            SELECT DISTINCT a.Name
+                            FROM Authors a
+                            INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
+                            WHERE a.LastName LIKE @Pattern
+                            ORDER BY a.Name",
                         reader => reader.GetString(0),
                         DatabaseManager.CreateParameter("@Pattern", wordPattern));
 
@@ -530,11 +530,11 @@ namespace TinyOPDS.Data
                         string wordSoundex = StringUtils.Soundex(capitalizedWord);
 
                         var soundexAuthors = _db.ExecuteQuery<string>(@"
-                            SELECT DISTINCT a.Name
-                            FROM Authors a
-                            INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
-                            WHERE a.LastNameSoundex = @Soundex
-                            ORDER BY a.Name",
+                                SELECT DISTINCT a.Name
+                                FROM Authors a
+                                INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
+                                WHERE a.LastNameSoundex = @Soundex
+                                ORDER BY a.Name",
                             reader => reader.GetString(0),
                             DatabaseManager.CreateParameter("@Soundex", wordSoundex));
 
@@ -542,6 +542,59 @@ namespace TinyOPDS.Data
                         {
                             Log.WriteLine(LogLevel.Info, "GetAuthorsForOpenSearch: Soundex found {0} authors", soundexAuthors.Count);
                             authors.AddRange(soundexAuthors);
+                        }
+
+                        // NEW: Transliteration fallback if still no results and input contains Latin letters
+                        if (authors.Count == 0 && ContainsLatinLetters(capitalizedWord))
+                        {
+                            Log.WriteLine(LogLevel.Info, "GetAuthorsForOpenSearch: trying transliteration fallback for '{0}'", capitalizedWord);
+
+                            // Try GOST transliteration first
+                            string transliteratedGOST = Transliteration.Back(capitalizedWord, TransliterationType.GOST);
+                            if (!string.IsNullOrEmpty(transliteratedGOST) && transliteratedGOST != capitalizedWord)
+                            {
+                                string gostSoundex = StringUtils.Soundex(transliteratedGOST);
+                                var gostAuthors = _db.ExecuteQuery<string>(@"
+                                        SELECT DISTINCT a.Name
+                                        FROM Authors a
+                                        INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
+                                        WHERE a.LastNameSoundex = @Soundex
+                                        ORDER BY a.Name",
+                                    reader => reader.GetString(0),
+                                    DatabaseManager.CreateParameter("@Soundex", gostSoundex));
+
+                                if (gostAuthors.Count > 0)
+                                {
+                                    Log.WriteLine(LogLevel.Info, "GetAuthorsForOpenSearch: GOST transliteration '{0}' -> '{1}' found {2} authors",
+                                                capitalizedWord, transliteratedGOST, gostAuthors.Count);
+                                    authors.AddRange(gostAuthors);
+                                }
+                            }
+
+                            // Try ISO transliteration if GOST didn't work
+                            if (authors.Count == 0)
+                            {
+                                string transliteratedISO = Transliteration.Back(capitalizedWord, TransliterationType.ISO);
+                                if (!string.IsNullOrEmpty(transliteratedISO) && transliteratedISO != capitalizedWord && transliteratedISO != transliteratedGOST)
+                                {
+                                    string isoSoundex = StringUtils.Soundex(transliteratedISO);
+                                    var isoAuthors = _db.ExecuteQuery<string>(@"
+                                            SELECT DISTINCT a.Name
+                                            FROM Authors a
+                                            INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
+                                            WHERE a.LastNameSoundex = @Soundex
+                                            ORDER BY a.Name",
+                                        reader => reader.GetString(0),
+                                        DatabaseManager.CreateParameter("@Soundex", isoSoundex));
+
+                                    if (isoAuthors.Count > 0)
+                                    {
+                                        Log.WriteLine(LogLevel.Info, "GetAuthorsForOpenSearch: ISO transliteration '{0}' -> '{1}' found {2} authors",
+                                                    capitalizedWord, transliteratedISO, isoAuthors.Count);
+                                        authors.AddRange(isoAuthors);
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -555,25 +608,6 @@ namespace TinyOPDS.Data
                     string word2Pattern = $"{word2Capitalized}%";
 
                     authors = _db.ExecuteQuery<string>(@"
-                        SELECT DISTINCT a.Name
-                        FROM Authors a
-                        INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
-                        WHERE (
-                            (a.FirstName LIKE @FirstNamePattern OR a.FirstName IS NULL OR a.FirstName = '') AND
-                            (a.LastName LIKE @LastNamePattern OR a.LastName IS NULL OR a.LastName = '')
-                        ) OR (
-                            (a.MiddleName LIKE @FirstNamePattern OR a.MiddleName IS NULL OR a.MiddleName = '') AND
-                            (a.LastName LIKE @LastNamePattern OR a.LastName IS NULL OR a.LastName = '')
-                        )
-                        ORDER BY a.Name",
-                        reader => reader.GetString(0),
-                        DatabaseManager.CreateParameter("@FirstNamePattern", word1Pattern),
-                        DatabaseManager.CreateParameter("@LastNamePattern", word2Pattern));
-
-                    // Try reverse order if nothing found
-                    if (authors.Count == 0)
-                    {
-                        var reverseAuthors = _db.ExecuteQuery<string>(@"
                             SELECT DISTINCT a.Name
                             FROM Authors a
                             INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
@@ -585,11 +619,53 @@ namespace TinyOPDS.Data
                                 (a.LastName LIKE @LastNamePattern OR a.LastName IS NULL OR a.LastName = '')
                             )
                             ORDER BY a.Name",
+                        reader => reader.GetString(0),
+                        DatabaseManager.CreateParameter("@FirstNamePattern", word1Pattern),
+                        DatabaseManager.CreateParameter("@LastNamePattern", word2Pattern));
+
+                    // Try reverse order if nothing found
+                    if (authors.Count == 0)
+                    {
+                        var reverseAuthors = _db.ExecuteQuery<string>(@"
+                                SELECT DISTINCT a.Name
+                                FROM Authors a
+                                INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
+                                WHERE (
+                                    (a.FirstName LIKE @FirstNamePattern OR a.FirstName IS NULL OR a.FirstName = '') AND
+                                    (a.LastName LIKE @LastNamePattern OR a.LastName IS NULL OR a.LastName = '')
+                                ) OR (
+                                    (a.MiddleName LIKE @FirstNamePattern OR a.MiddleName IS NULL OR a.MiddleName = '') AND
+                                    (a.LastName LIKE @LastNamePattern OR a.LastName IS NULL OR a.LastName = '')
+                                )
+                                ORDER BY a.Name",
                             reader => reader.GetString(0),
                             DatabaseManager.CreateParameter("@FirstNamePattern", word2Pattern),
                             DatabaseManager.CreateParameter("@LastNamePattern", word1Pattern));
 
                         authors.AddRange(reverseAuthors);
+                    }
+
+                    // NEW: Transliteration fallback for two words if still no results
+                    if (authors.Count == 0 && (ContainsLatinLetters(word1Capitalized) || ContainsLatinLetters(word2Capitalized)))
+                    {
+                        Log.WriteLine(LogLevel.Info, "GetAuthorsForOpenSearch: trying transliteration fallback for two words '{0} {1}'", word1Capitalized, word2Capitalized);
+
+                        // Try GOST transliteration
+                        string transliterated1GOST = ContainsLatinLetters(word1Capitalized) ? Transliteration.Back(word1Capitalized, TransliterationType.GOST) : word1Capitalized;
+                        string transliterated2GOST = ContainsLatinLetters(word2Capitalized) ? Transliteration.Back(word2Capitalized, TransliterationType.GOST) : word2Capitalized;
+
+                        if ((transliterated1GOST != word1Capitalized || transliterated2GOST != word2Capitalized))
+                        {
+                            string transliteratedFullGOST = $"{transliterated1GOST} {transliterated2GOST}";
+                            var gostAuthors = GetAuthorsForOpenSearch(transliteratedFullGOST); // Recursive call with transliterated text
+
+                            if (gostAuthors.Count > 0)
+                            {
+                                Log.WriteLine(LogLevel.Info, "GetAuthorsForOpenSearch: GOST transliteration '{0}' -> '{1}' found {2} authors",
+                                            searchPattern, transliteratedFullGOST, gostAuthors.Count);
+                                authors.AddRange(gostAuthors);
+                            }
+                        }
                     }
                 }
                 else
@@ -597,13 +673,31 @@ namespace TinyOPDS.Data
                     // Multiple words: fallback to name contains search
                     string namePattern = $"%{searchPattern}%";
                     authors = _db.ExecuteQuery<string>(@"
-                        SELECT DISTINCT a.Name
-                        FROM Authors a
-                        INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
-                        WHERE a.Name LIKE @Pattern COLLATE NOCASE
-                        ORDER BY a.Name",
+                            SELECT DISTINCT a.Name
+                            FROM Authors a
+                            INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
+                            WHERE a.Name LIKE @Pattern COLLATE NOCASE
+                            ORDER BY a.Name",
                         reader => reader.GetString(0),
                         DatabaseManager.CreateParameter("@Pattern", namePattern));
+
+                    // NEW: Transliteration fallback for multiple words
+                    if (authors.Count == 0 && ContainsLatinLetters(searchPattern))
+                    {
+                        Log.WriteLine(LogLevel.Info, "GetAuthorsForOpenSearch: trying transliteration fallback for multiple words '{0}'", searchPattern);
+
+                        string transliteratedGOST = Transliteration.Back(searchPattern, TransliterationType.GOST);
+                        if (!string.IsNullOrEmpty(transliteratedGOST) && transliteratedGOST != searchPattern)
+                        {
+                            var gostAuthors = GetAuthorsForOpenSearch(transliteratedGOST); // Recursive call
+                            if (gostAuthors.Count > 0)
+                            {
+                                Log.WriteLine(LogLevel.Info, "GetAuthorsForOpenSearch: GOST transliteration '{0}' -> '{1}' found {2} authors",
+                                            searchPattern, transliteratedGOST, gostAuthors.Count);
+                                authors.AddRange(gostAuthors);
+                            }
+                        }
+                    }
                 }
 
                 Log.WriteLine(LogLevel.Info, "GetAuthorsForOpenSearch: found {0} authors", authors.Count);
@@ -614,6 +708,23 @@ namespace TinyOPDS.Data
                 Log.WriteLine(LogLevel.Error, "Error in GetAuthorsForOpenSearch {0}: {1}", searchPattern, ex.Message);
                 return new List<string>();
             }
+        }
+
+        /// <summary>
+        /// Check if string contains Latin letters (for transliteration detection)
+        /// </summary>
+        /// <param name="text">Text to check</param>
+        /// <returns>True if contains Latin letters</returns>
+        private bool ContainsLatinLetters(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return false;
+
+            foreach (char c in text)
+            {
+                if (char.IsLetter(c) && (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))
+                    return true;
+            }
+            return false;
         }
 
         /// <summary>

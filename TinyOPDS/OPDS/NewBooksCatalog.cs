@@ -112,8 +112,6 @@ namespace TinyOPDS.OPDS
             // Add book entries
             foreach (Book book in paginatedResult.Books)
             {
-                if (!acceptFB2 && book.BookType == BookType.FB2) continue;
-
                 string id = "tag:book:" + book.ID;
                 // Construct book title, with volume/title
                 string bookTitle = book.Title;
@@ -124,8 +122,17 @@ namespace TinyOPDS.OPDS
                     new XElement("updated", book.DocumentDate != DateTime.MinValue ? book.DocumentDate.ToUniversalTime() : book.AddedDate.ToUniversalTime()),
                     new XElement("id", id),
                     new XElement("title", bookTitle),
-                    new XElement("author", new XElement("name", string.Join(", ", book.Authors))),
                     new XElement(Namespaces.dc + "issued", book.BookDate != DateTime.MinValue ? book.BookDate.Year.ToString() : book.AddedDate.Year.ToString()));
+
+                // Add authors with links
+                foreach (string authorName in book.Authors)
+                {
+                    entry.Add(
+                        new XElement("author",
+                            new XElement("name", authorName),
+                            new XElement("uri", "/author-details/" + Uri.EscapeDataString(authorName))
+                    ));
+                }
 
                 // Add genres
                 if (book.Genres != null && book.Genres.Count > 0)

@@ -1,120 +1,261 @@
 <?xml version="1.0" encoding="utf-8"?>
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
 xmlns:x="http://www.w3.org/2005/Atom">
+	<xsl:param name="serverVersion" select="'TinyOPDS server'"/>
+
 	<xsl:template match="/">
+		<xsl:variable name="id">
+			<xsl:value-of select="x:feed/x:id"/>
+		</xsl:variable>
+		<xsl:variable name="title">
+			<xsl:value-of select="x:feed/x:title"/>
+		</xsl:variable>
+		<xsl:variable name="icon">
+			<xsl:value-of select="x:feed/x:icon"/>
+		</xsl:variable>
+
 		<html>
 			<head>
 				<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-				<!--<link rel="stylesheet" type="text/css" href="Stylesheet1.css" />-->
+				<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 				<style>
-					body{
+					body {
 					margin: 0 auto;
 					max-width: 700px;
-					font-family: Century Gothic;
-					padding-top: 40px;
+					font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+					padding: 20px;
+					background-color: #fafafa;
+					line-height: 1.4;
 					}
-					ul
-					{
+
+					@media (max-width: 768px) {
+					body {
+					padding: 10px;
+					max-width: 100%;
+					}
+					}
+
+					ul {
 					list-style-type: none;
+					padding-left: 0;
 					}
 
-					.right
-					{
-					float:right;
-					margin-right: 20px
+					.header {
+					text-align: center;
+					margin-bottom: 30px;
+					padding-bottom: 20px;
+					border-bottom: 2px solid #e0e0e0;
 					}
 
-					.category-descr
-					{
-					margin-left:20px;
-					font-size:8pt
+					.server-title {
+					color: #333;
+					margin-bottom: 10px;
+					font-size: 28px;
 					}
 
-					.book-descr
-					{
-					margin-top:10px; font-size:8pt;
-					}
-
-					.download-link
-					{
-					font-size: 8pt;margin-top:10px
-					}
-
-					.cover
-					{
-					width: 192px;float:left;margin-right:20px;
-					}
-
-					.search-box
-					{
+					.library-name {
+					color: #666;
+					font-size: 18px;
 					margin-bottom: 20px;
-					padding: 15px;
-					background-color: #f5f5f5;
-					border-radius: 5px;
 					}
 
-					.search-input
-					{
-					width: 300px;
-					padding: 8px;
+					.search-box {
+					margin-bottom: 20px;
+					text-align: center;
+					}
+
+					.search-form {
+					display: inline-block;
+					}
+
+					.search-input {
+					width: 280px;
+					max-width: calc(100vw - 120px);
+					padding: 10px;
 					font-size: 14px;
-					border: 1px solid #ccc;
-					border-radius: 3px;
+					border: 1px solid #ddd;
+					border-radius: 4px;
+					box-sizing: border-box;
 					}
 
-					.search-button
-					{
-					padding: 8px 15px;
+					.search-button {
+					padding: 10px 20px;
 					font-size: 14px;
 					background-color: #007cba;
 					color: white;
 					border: none;
-					border-radius: 3px;
+					border-radius: 4px;
 					cursor: pointer;
-					margin-left: 10px;
+					margin-left: 8px;
 					}
 
-					.search-button:hover
-					{
+					.search-button:hover {
 					background-color: #005a87;
+					}
+
+					@media (max-width: 480px) {
+					.search-input {
+					width: calc(100vw - 40px);
+					margin-bottom: 10px;
+					}
+					.search-button {
+					margin-left: 0;
+					width: 100px;
+					}
+					}
+
+					.right {
+					float: right;
+					margin-right: 20px;
+					}
+
+					.category-descr {
+					margin-left: 20px;
+					font-size: 12px;
+					color: #666;
+					}
+
+					.book-descr {
+					margin-top: 10px;
+					font-size: 13px;
+					line-height: 1.3;
+					}
+
+					.download-link {
+					font-size: 12px;
+					margin-top: 10px;
+					padding: 5px 10px;
+					background-color: #28a745;
+					color: white;
+					text-decoration: none;
+					border-radius: 3px;
+					display: inline-block;
+					}
+
+					.download-link:hover {
+					background-color: #218838;
+					color: white;
+					text-decoration: none;
+					}
+
+					.cover {
+					width: 120px;
+					max-width: 120px;
+					float: left;
+					margin-right: 20px;
+					border-radius: 4px;
+					}
+
+					@media (max-width: 480px) {
+					.cover {
+					width: 80px;
+					margin-right: 15px;
+					}
+					}
+
+					.book-item {
+					margin-bottom: 30px;
+					overflow: hidden;
+					background: white;
+					padding: 15px;
+					border-radius: 8px;
+					box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+					}
+
+					.book-content {
+					overflow: hidden;
+					}
+
+					.book-title {
+					font-weight: bold;
+					color: #333;
+					margin-bottom: 5px;
+					font-size: 16px;
+					}
+
+					.book-author {
+					font-size: 13px;
+					color: #007cba;
+					text-decoration: none;
+					margin-bottom: 10px;
+					display: block;
+					}
+
+					.book-author:hover {
+					text-decoration: underline;
+					}
+
+					.book-info {
+					font-size: 12px;
+					color: #666;
+					margin-top: 10px;
+					}
+
+					.category-item {
+					padding: 10px 0;
+					border-bottom: 1px solid #eee;
+					}
+
+					.category-item:last-child {
+					border-bottom: none;
+					}
+
+					.category-link {
+					color: #007cba;
+					text-decoration: none;
+					font-weight: 500;
+					}
+
+					.category-link:hover {
+					text-decoration: underline;
+					}
+
+					h4 {
+					color: #333;
+					margin-top: 0;
+					margin-bottom: 20px;
 					}
 				</style>
 			</head>
 			<body>
-				<h1>TinyOPDS</h1>
-				<xsl:variable name="title">
-					<xsl:value-of select="x:feed/x:title"/>
-				</xsl:variable>
-				<xsl:variable name="id">
-					<xsl:value-of select="x:feed/x:id"/>
-				</xsl:variable>
-				<xsl:variable name="icon">
-					<xsl:value-of select="x:feed/x:icon"/>
-				</xsl:variable>
+				<div class="header">
+					<h1 class="server-title">
+						<xsl:choose>
+							<xsl:when test="contains($serverVersion, 'version ')">
+								<xsl:value-of select="concat(substring-before($serverVersion, 'version '), 'v. ', substring-after($serverVersion, 'version '))"/>
+							</xsl:when>
+							<xsl:otherwise>
+								<xsl:value-of select="$serverVersion"/>
+							</xsl:otherwise>
+						</xsl:choose>
+					</h1>
+					<xsl:if test="$id = 'tag:root'">
+						<div class="library-name">
+							<xsl:value-of select="$title"/>
+						</div>
+					</xsl:if>
+				</div>
 
-				<!--home-->
+				<!-- Search box for all pages -->
+				<div class="search-box">
+					<form method="get" action="/search" class="search-form">
+						<input type="text" name="searchTerm" placeholder="Поиск авторов или книг..." class="search-input" />
+						<input type="submit" value="Поиск" class="search-button" />
+					</form>
+				</div>
+
+				<!--home page-->
 				<xsl:if test="$id = 'tag:root'">
-					<!-- OpenSearch box only on root page -->
-					<div class="search-box">
-						<form method="get" action="/search">
-							<input type="text" name="searchTerm" placeholder="Search authors or books..." class="search-input" />
-							<input type="submit" value="Search" class="search-button" />
-						</form>
-					</div>
-
-					<h4>
-						<xsl:copy-of select="$title" />
-					</h4>
 					<ul>
 						<xsl:for-each select="x:feed/x:entry">
-							<li>
-								<a>
+							<li class="category-item">
+								<a class="category-link">
 									<xsl:attribute name="href">
 										<xsl:value-of select="x:link/@href" />
 									</xsl:attribute>
 									<xsl:value-of select="x:title" />
 								</a>
-								<span  style="margin-left:20px;font-size:8pt">
+								<span class="category-descr">
 									<xsl:value-of select="x:content"/>
 								</span>
 							</li>
@@ -123,20 +264,20 @@ xmlns:x="http://www.w3.org/2005/Atom">
 				</xsl:if>
 
 				<!--by authors, series, genres etc.-->
-				<xsl:if test="($icon='/genres.ico') or ($icon='/series.ico')  or ($icon='/authors.ico') ">
+				<xsl:if test="$id != 'tag:root' and (($icon='/genres.ico') or ($icon='/series.ico') or ($icon='/authors.ico') or ($icon='/favicon.ico'))">
 					<h4>
-						<xsl:copy-of select="$title" />
+						<xsl:value-of select="$title" />
 					</h4>
 					<ul>
 						<xsl:for-each select="x:feed/x:entry">
-							<li>
-								<a>
+							<li class="category-item">
+								<a class="category-link">
 									<xsl:attribute name="href">
 										<xsl:value-of select="x:link/@href" />
 									</xsl:attribute>
 									<xsl:value-of select="x:title" />
 								</a>
-								<span  class="category-descr">
+								<span class="category-descr">
 									<xsl:value-of select="x:content"/>
 								</span>
 							</li>
@@ -147,63 +288,55 @@ xmlns:x="http://www.w3.org/2005/Atom">
 				<!--book list-->
 				<xsl:if test="$icon = '/icons/books.ico'">
 					<h4>
-						<xsl:value-of select="x:feed/x:title" />
+						<xsl:value-of select="$title" />
 					</h4>
-					<ul style="list-style-type: none;">
+					<ul>
 						<xsl:for-each select="x:feed/x:entry">
-							<li>
-								<div>
+							<li class="book-item">
+								<div class="book-content">
 									<img class="cover">
-										<xsl:attribute name="src" >
+										<xsl:attribute name="src">
 											<xsl:value-of select="x:link[attribute::type='image/jpeg']/@href"/>
 										</xsl:attribute>
 									</img>
 
-									<div style="clear:right">
-										<div>
-											<div>
-												<b>
-													<xsl:value-of select="x:title" />
-												</b>
-											</div>
-											<div>
-												<a style="font-size: 9pt">
-													<xsl:attribute name="href">
-														<xsl:value-of select="concat('/lib', x:author/x:uri)" />
-													</xsl:attribute>
-													<xsl:value-of select="x:author/x:name"/>
-												</a>
-											</div>
-
+									<div>
+										<div class="book-title">
+											<xsl:value-of select="x:title" />
 										</div>
+										<a class="book-author">
+											<xsl:attribute name="href">
+												<xsl:value-of select="x:author/x:uri" />
+											</xsl:attribute>
+											<xsl:value-of select="x:author/x:name"/>
+										</a>
 
-										<div  class="book-descr">
+										<div class="book-descr">
 											<xsl:value-of select="x:content"/>
 										</div>
 
-										<p>
-											<div>
-												<a style="font-size: 9pt">
-													<b>Format: </b>
-													<xsl:value-of select="x:format"/>
-													<br/>
-													<b>Size: </b>
-													<xsl:value-of select="x:size"/>
-												</a>
-											</div>
-										</p>
+										<div class="book-info">
+											<strong>Формат: </strong>
+											<xsl:value-of select="x:format"/>
+											<br/>
+											<strong>Размер: </strong>
+											<xsl:value-of select="x:size"/>
+										</div>
 
-										<a class="right download-link">
+										<a class="download-link">
 											<xsl:attribute name="href">
-												<xsl:value-of select="x:link[attribute::type='application/fb2+zip']/@href" />
+												<xsl:choose>
+													<xsl:when test="x:link[attribute::type='application/epub+zip']">
+														<xsl:value-of select="x:link[attribute::type='application/epub+zip']/@href" />
+													</xsl:when>
+													<xsl:otherwise>
+														<xsl:value-of select="x:link[attribute::type='application/fb2+zip']/@href" />
+													</xsl:otherwise>
+												</xsl:choose>
 											</xsl:attribute>
-											Download
+											Скачать
 										</a>
 									</div>
-									<div style="clear:left">
-									</div>
-									<br/>
-									<br/>
 								</div>
 							</li>
 						</xsl:for-each>
@@ -212,5 +345,4 @@ xmlns:x="http://www.w3.org/2005/Atom">
 			</body>
 		</html>
 	</xsl:template>
-
 </xsl:stylesheet>

@@ -287,16 +287,17 @@ namespace TinyOPDS.Server
 
         private bool IsWebRequest(string httpUrl, HttpProcessor processor)
         {
-            // Original URL prefix check
-            bool prefixCheck = httpUrl.StartsWith("/" + Properties.Settings.Default.HttpPrefix) &&
-                              !httpUrl.StartsWith("/" + Properties.Settings.Default.RootPrefix);
+            // If URL contains OPDS prefix, it's an OPDS request, not web
+            if (httpUrl.StartsWith("/" + Properties.Settings.Default.RootPrefix)) return false;
 
-            // Accept header check for browser vs OPDS client
+            // If URL contains web prefix (HttpPrefix), it's a web request
+            if (httpUrl.StartsWith("/" + Properties.Settings.Default.HttpPrefix)) return true;
+
+            // Accept header check for browser vs OPDS client (for OpenSearch results)
             string acceptHeader = processor.HttpHeaders["Accept"] as string;
-            bool acceptCheck = !string.IsNullOrEmpty(acceptHeader) &&
-                             acceptHeader.Contains("text/html");
+            bool acceptCheck = !string.IsNullOrEmpty(acceptHeader) && acceptHeader.Contains("text/html");
 
-            return prefixCheck || acceptCheck;
+            return acceptCheck;
         }
 
         private bool DetectFB2Support(string userAgent)
@@ -558,7 +559,10 @@ namespace TinyOPDS.Server
                         var xPathDoc = new XPathDocument(stringReader);
                         var writer = new XmlTextWriter(htmlStream, null);
 
-                        _xslTransform.Transform(xPathDoc, null, writer);
+                        XsltArgumentList args = new XsltArgumentList();
+                        args.AddParam("serverVersion", "", Utils.ServerVersionName.Replace("running on ", ""));
+                        _xslTransform.Transform(xPathDoc, args, writer);
+
                         htmlStream.Position = 0;
 
                         using (var streamReader = new StreamReader(htmlStream))

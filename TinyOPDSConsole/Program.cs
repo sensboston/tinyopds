@@ -45,6 +45,8 @@ namespace TinyOPDSConsole
         private static readonly UPnPController _upnpController = new UPnPController();
         private static Timer _upnpRefreshTimer = null;
 
+        private static readonly Mutex _mutex = new Mutex(false, "tiny_opds_console_mutex");
+
         #region Statistical information
         private static int _fb2Count, _epubCount, _skippedFiles, _invalidFiles, _duplicates;
         #endregion
@@ -56,6 +58,45 @@ namespace TinyOPDSConsole
         #endregion
 
         #region Startup, command line processing and service overrides
+
+        /// <summary>
+        /// Check if another instance is running on Mono/Linux
+        /// </summary>
+        /// <param name="processName"></param>
+        /// <returns></returns>
+        private static bool IsApplicationRunningOnMono(string processName)
+        {
+            var processFound = 0;
+
+            Process[] monoProcesses;
+            ProcessModuleCollection processModuleCollection;
+
+            // Find all processes called 'mono', that's necessary because our app runs under the mono process
+            monoProcesses = Process.GetProcessesByName("mono");
+
+            for (var i = 0; i <= monoProcesses.GetUpperBound(0); ++i)
+            {
+                try
+                {
+                    processModuleCollection = monoProcesses[i].Modules;
+
+                    for (var j = 0; j < processModuleCollection.Count; ++j)
+                    {
+                        if (processModuleCollection[j].FileName.EndsWith(processName))
+                        {
+                            processFound++;
+                        }
+                    }
+                }
+                catch
+                {
+                    // Skip processes we can't access
+                }
+            }
+
+            // We don't find the current process, but if there is already another one running, return true
+            return (processFound == 1);
+        }
 
         /// <summary>
         /// Process unhandled exceptions
@@ -98,225 +139,257 @@ namespace TinyOPDSConsole
             // Initialize batch size from settings
             _batchSize = Settings.Default.BatchSize > 0 ? Settings.Default.BatchSize : 500;
 
-            if (Utils.IsLinux || Environment.UserInteractive)
+            // Check for single instance only if enabled in settings
+            if (Settings.Default.OnlyOneInstance)
             {
-                // Add Ctrl+c handler with proper cleanup
-                Console.CancelKeyPress += (sender, eventArgs) =>
+                if (Utils.IsLinux)
                 {
-                    eventArgs.Cancel = true;
-                    StopServer();
-
-                    if (_scanner != null)
+                    if (IsApplicationRunningOnMono("TinyOPDSConsole.exe"))
                     {
-                        _scanner.Stop();
-                        FlushRemainingBooks();
-                        SaveLibrary();
-                        Console.WriteLine("\nScanner interruped by user.");
-                        Log.WriteLine("Directory scanner stopped");
+                        Console.WriteLine("TinyOPDS Console is already running.");
+                        return -1;
                     }
-
-                    CleanupAndExit(0);
-                };
-
-                // On Linux, we need clear console (terminal) window first
-                if (Utils.IsLinux) Console.Write("\u001b[1J\u001b[0;0H");
-                Console.WriteLine("TinyOPDS console, {0}, copyright (c) 2013-2025 SeNSSoFT", string.Format(Localizer.Text("version {0}.{1} {2}"), Utils.Version.Major, Utils.Version.Minor, Utils.Version.Major == 0 ? " (beta)" : ""));
-
-                if (args.Length > 0)
+                }
+                else
                 {
-                    switch (args[0].ToLower())
+                    if (!_mutex.WaitOne(TimeSpan.FromSeconds(1), false))
                     {
-                        // Install & run service command
-                        case "install":
-                            {
-                                if (Utils.IsElevated)
-                                {
-                                    try
-                                    {
-                                        TinyOPDS.ServiceInstaller.InstallAndStart(SERVICE_NAME, SERVICE_DISPLAY_NAME, _exePath, SERVICE_DESCRIPTION);
-                                        Console.WriteLine(SERVICE_DISPLAY_NAME + " installed");
-                                    }
-                                    catch (Exception e)
-                                    {
-                                        Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to install with exception: \"{0}\"", e.Message);
-                                        CleanupAndExit(-1);
-                                    }
-                                }
-                                else
-                                {
-                                    // Re-run app with elevated privileges 
-                                    if (RunElevated("install")) Console.WriteLine(SERVICE_DISPLAY_NAME + " installed");
-                                    else Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to install");
-                                }
-                                CleanupAndExit(0);
-                            }
-                            break;
+                        Console.WriteLine("TinyOPDS Console is already running.");
+                        return -1;
+                    }
+                }
+            }
 
-                        // Uninstall service command
-                        case "uninstall":
-                            {
-                                if (!TinyOPDS.ServiceInstaller.ServiceIsInstalled(SERVICE_NAME))
-                                {
-                                    Console.WriteLine(SERVICE_DISPLAY_NAME + " is not installed");
-                                    CleanupAndExit(-1);
-                                }
+            try
+            {
+                if (Utils.IsLinux || Environment.UserInteractive)
+                {
+                    // Add Ctrl+c handler with proper cleanup
+                    Console.CancelKeyPress += (sender, eventArgs) =>
+                    {
+                        eventArgs.Cancel = true;
+                        StopServer();
 
-                                if (Utils.IsElevated)
-                                {
-                                    try
-                                    {
-                                        TinyOPDS.ServiceInstaller.Uninstall(SERVICE_NAME);
-                                        Console.WriteLine(SERVICE_DISPLAY_NAME + " uninstalled");
+                        if (_scanner != null)
+                        {
+                            _scanner.Stop();
+                            FlushRemainingBooks();
+                            SaveLibrary();
+                            Console.WriteLine("\nScanner interruped by user.");
+                            Log.WriteLine("Directory scanner stopped");
+                        }
 
-                                        // Let's close service process (except ourselves)
-                                        Process[] localByName = Process.GetProcessesByName("TinyOPDSConsole");
-                                        foreach (Process p in localByName)
-                                        {
-                                            // Don't kill ourselves!
-                                            if (!p.StartInfo.Arguments.Contains("uninstall")) p.Kill();
-                                        }
-                                    }
-                                    catch (Exception e)
-                                    {
-                                        Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to uninstall with exception: \"{0}\"", e.Message);
-                                        CleanupAndExit(-1);
-                                    }
-                                }
-                                else
-                                {
-                                    // Re-run app with elevated privileges 
-                                    if (RunElevated("uninstall")) Console.WriteLine(SERVICE_DISPLAY_NAME + " uninstalled");
-                                    else Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to uninstall");
-                                }
-                                CleanupAndExit(0);
-                            }
-                            break;
+                        CleanupAndExit(0);
+                    };
 
-                        // Start service command
-                        case "start":
-                            {
-                                if (!Utils.IsLinux && TinyOPDS.ServiceInstaller.ServiceIsInstalled(SERVICE_NAME))
+                    // On Linux, we need clear console (terminal) window first
+                    if (Utils.IsLinux) Console.Write("\u001b[1J\u001b[0;0H");
+                    Console.WriteLine("TinyOPDS console, {0}, copyright (c) 2013-2025 SeNSSoFT", string.Format(Localizer.Text("version {0}.{1} {2}"), Utils.Version.Major, Utils.Version.Minor, Utils.Version.Major == 0 ? " (beta)" : ""));
+
+                    if (args.Length > 0)
+                    {
+                        switch (args[0].ToLower())
+                        {
+                            // Install & run service command
+                            case "install":
                                 {
                                     if (Utils.IsElevated)
                                     {
                                         try
                                         {
-                                            TinyOPDS.ServiceInstaller.StartService(SERVICE_NAME);
-                                            Console.WriteLine(SERVICE_DISPLAY_NAME + " started");
+                                            TinyOPDS.ServiceInstaller.InstallAndStart(SERVICE_NAME, SERVICE_DISPLAY_NAME, _exePath, SERVICE_DESCRIPTION);
+                                            Console.WriteLine(SERVICE_DISPLAY_NAME + " installed");
                                         }
                                         catch (Exception e)
                                         {
-                                            Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to start with exception: \"{0}\"", e.Message);
+                                            Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to install with exception: \"{0}\"", e.Message);
                                             CleanupAndExit(-1);
                                         }
                                     }
                                     else
                                     {
                                         // Re-run app with elevated privileges 
-                                        if (RunElevated("start")) Console.WriteLine(SERVICE_DISPLAY_NAME + " started");
-                                        else Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to start");
+                                        if (RunElevated("install")) Console.WriteLine(SERVICE_DISPLAY_NAME + " installed");
+                                        else Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to install");
                                     }
+                                    CleanupAndExit(0);
                                 }
-                                else StartServer();
-                                CleanupAndExit(0);
-                            }
-                            break;
+                                break;
 
-                        // Stop service command
-                        case "stop":
-                            {
-                                if (!TinyOPDS.ServiceInstaller.ServiceIsInstalled(SERVICE_NAME))
+                            // Uninstall service command
+                            case "uninstall":
                                 {
-                                    Console.WriteLine(SERVICE_DISPLAY_NAME + " is not installed");
-                                    CleanupAndExit(-1);
-                                }
-
-                                if (Utils.IsElevated)
-                                {
-                                    try
+                                    if (!TinyOPDS.ServiceInstaller.ServiceIsInstalled(SERVICE_NAME))
                                     {
-                                        TinyOPDS.ServiceInstaller.StopService(SERVICE_NAME);
-                                        Console.WriteLine(SERVICE_DISPLAY_NAME + " stopped");
-                                    }
-                                    catch (Exception e)
-                                    {
-                                        Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to stop with exception: \"{0}\"", e.Message);
+                                        Console.WriteLine(SERVICE_DISPLAY_NAME + " is not installed");
                                         CleanupAndExit(-1);
                                     }
-                                }
-                                else
-                                {
-                                    // Re-run app with elevated privileges 
-                                    if (RunElevated("stop")) Console.WriteLine(SERVICE_DISPLAY_NAME + " stopped");
-                                    else Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to stop");
-                                }
-                                CleanupAndExit(0);
-                            }
-                            break;
 
-                        case "scan":
-                            {
-                                ScanFolder();
-                                CleanupAndExit(0);
-                            }
-                            break;
+                                    if (Utils.IsElevated)
+                                    {
+                                        try
+                                        {
+                                            TinyOPDS.ServiceInstaller.Uninstall(SERVICE_NAME);
+                                            Console.WriteLine(SERVICE_DISPLAY_NAME + " uninstalled");
 
-                        case "encred":
-                            {
-                                if ((args.Length - 1) % 2 == 0)
-                                {
-                                    string s = string.Empty;
-                                    for (int i = 0; i < (args.Length - 1) / 2; i++) s += args[(i * 2) + 1] + ":" + args[(i * 2) + 2] + ";";
-                                    Console.WriteLine(Crypt.EncryptStringAES(s, _urlTemplate));
+                                            // Let's close service process (except ourselves)
+                                            Process[] localByName = Process.GetProcessesByName("TinyOPDSConsole");
+                                            foreach (Process p in localByName)
+                                            {
+                                                // Don't kill ourselves!
+                                                if (!p.StartInfo.Arguments.Contains("uninstall")) p.Kill();
+                                            }
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to uninstall with exception: \"{0}\"", e.Message);
+                                            CleanupAndExit(-1);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        // Re-run app with elevated privileges 
+                                        if (RunElevated("uninstall")) Console.WriteLine(SERVICE_DISPLAY_NAME + " uninstalled");
+                                        else Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to uninstall");
+                                    }
+                                    CleanupAndExit(0);
                                 }
-                                else
-                                {
-                                    Console.WriteLine("To encode credentials, please provide additional parameters: user1 password1 user2 password2 ...");
-                                }
-                                CleanupAndExit(0);
-                            }
-                            break;
+                                break;
 
-                        case "encpath":
-                            {
-                                if (args.Length > 1)
+                            // Start service command
+                            case "start":
                                 {
-                                    string libName = Utils.CreateGuid(Utils.IsoOidNamespace, args[1].SanitizePathName()).ToString() + ".db";
-                                    Console.WriteLine("Library name for the path \"{0}\" is: {1}", args[1], libName);
+                                    if (!Utils.IsLinux && TinyOPDS.ServiceInstaller.ServiceIsInstalled(SERVICE_NAME))
+                                    {
+                                        if (Utils.IsElevated)
+                                        {
+                                            try
+                                            {
+                                                TinyOPDS.ServiceInstaller.StartService(SERVICE_NAME);
+                                                Console.WriteLine(SERVICE_DISPLAY_NAME + " started");
+                                            }
+                                            catch (Exception e)
+                                            {
+                                                Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to start with exception: \"{0}\"", e.Message);
+                                                CleanupAndExit(-1);
+                                            }
+                                        }
+                                        else
+                                        {
+                                            // Re-run app with elevated privileges 
+                                            if (RunElevated("start")) Console.WriteLine(SERVICE_DISPLAY_NAME + " started");
+                                            else Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to start");
+                                        }
+                                    }
+                                    else StartServer();
+                                    CleanupAndExit(0);
                                 }
-                                else
+                                break;
+
+                            // Stop service command
+                            case "stop":
                                 {
-                                    Console.WriteLine("Please provide a path to the library files (without closing slash), for example: TinyOPDSConsole.exe \"C:\\My Documents\\My ebooks\"");
+                                    if (!TinyOPDS.ServiceInstaller.ServiceIsInstalled(SERVICE_NAME))
+                                    {
+                                        Console.WriteLine(SERVICE_DISPLAY_NAME + " is not installed");
+                                        CleanupAndExit(-1);
+                                    }
+
+                                    if (Utils.IsElevated)
+                                    {
+                                        try
+                                        {
+                                            TinyOPDS.ServiceInstaller.StopService(SERVICE_NAME);
+                                            Console.WriteLine(SERVICE_DISPLAY_NAME + " stopped");
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to stop with exception: \"{0}\"", e.Message);
+                                            CleanupAndExit(-1);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        // Re-run app with elevated privileges 
+                                        if (RunElevated("stop")) Console.WriteLine(SERVICE_DISPLAY_NAME + " stopped");
+                                        else Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to stop");
+                                    }
+                                    CleanupAndExit(0);
                                 }
-                                CleanupAndExit(0);
-                            }
-                            break;
+                                break;
+
+                            case "scan":
+                                {
+                                    ScanFolder();
+                                    CleanupAndExit(0);
+                                }
+                                break;
+
+                            case "encred":
+                                {
+                                    if ((args.Length - 1) % 2 == 0)
+                                    {
+                                        string s = string.Empty;
+                                        for (int i = 0; i < (args.Length - 1) / 2; i++) s += args[(i * 2) + 1] + ":" + args[(i * 2) + 2] + ";";
+                                        Console.WriteLine(Crypt.EncryptStringAES(s, _urlTemplate));
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine("To encode credentials, please provide additional parameters: user1 password1 user2 password2 ...");
+                                    }
+                                    CleanupAndExit(0);
+                                }
+                                break;
+
+                            case "encpath":
+                                {
+                                    if (args.Length > 1)
+                                    {
+                                        string libName = Utils.CreateGuid(Utils.IsoOidNamespace, args[1].SanitizePathName()).ToString() + ".db";
+                                        Console.WriteLine("Library name for the path \"{0}\" is: {1}", args[1], libName);
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine("Please provide a path to the library files (without closing slash), for example: TinyOPDSConsole.exe \"C:\\My Documents\\My ebooks\"");
+                                    }
+                                    CleanupAndExit(0);
+                                }
+                                break;
+                        }
+                    }
+
+                    bool l = Utils.IsLinux;
+                    Console.WriteLine("Use: TinyOPDSConsole.exe [command], where [command] is \n\n" +
+                                  (l ? "" : "\t install \t - install and run TinyOPDS service\n") +
+                                  (l ? "" : "\t uninstall \t - uninstall TinyOPDS service\n") +
+                                            "\t start \t\t - start service\n" +
+                                  (l ? "" : "\t stop \t\t - stop service\n") +
+                                            "\t scan \t\t - scan book directory\n" +
+                                            "\t encred usr pwd\t - encode credentials\n" +
+                                            "\t encpath path\t - get library file name from path\n\n" +
+                                            "For more info please visit https://tinyopds.codeplex.com");
+                }
+                else
+                {
+                    if (!Utils.IsLinux)
+                    {
+                        ServiceBase[] ServicesToRun;
+                        ServicesToRun = new ServiceBase[] { new Program() };
+                        ServiceBase.Run(ServicesToRun);
                     }
                 }
 
-                bool l = Utils.IsLinux;
-                Console.WriteLine("Use: TinyOPDSConsole.exe [command], where [command] is \n\n" +
-                              (l ? "" : "\t install \t - install and run TinyOPDS service\n") +
-                              (l ? "" : "\t uninstall \t - uninstall TinyOPDS service\n") +
-                                        "\t start \t\t - start service\n" +
-                              (l ? "" : "\t stop \t\t - stop service\n") +
-                                        "\t scan \t\t - scan book directory\n" +
-                                        "\t encred usr pwd\t - encode credentials\n" +
-                                        "\t encpath path\t - get library file name from path\n\n" +
-                                        "For more info please visit https://tinyopds.codeplex.com");
+                CleanupAndExit(0);
+                return 0; // This line will never be reached, but satisfies compiler
             }
-            else
+            finally
             {
-                if (!Utils.IsLinux)
+                // Release mutex only if we're checking for single instance and not on Linux
+                if (Settings.Default.OnlyOneInstance && !Utils.IsLinux)
                 {
-                    ServiceBase[] ServicesToRun;
-                    ServicesToRun = new ServiceBase[] { new Program() };
-                    ServiceBase.Run(ServicesToRun);
+                    try { _mutex.ReleaseMutex(); } catch { }
                 }
             }
-
-            CleanupAndExit(0);
-            return 0; // This line will never be reached, but satisfies compiler
         }
 
         /// <summary>
@@ -336,6 +409,8 @@ namespace TinyOPDSConsole
             {
                 Log.WriteLine(LogLevel.Error, "Error during cleanup: {0}", ex.Message);
             }
+
+            Environment.Exit(exitCode);
         }
 
         private static bool RunElevated(string param)

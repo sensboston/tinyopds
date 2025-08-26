@@ -101,5 +101,8 @@
     <Setting Name="MaxRAMImageCacheSizeMB" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">256</Value>
     </Setting>
+    <Setting Name="OnlyOneInstance" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

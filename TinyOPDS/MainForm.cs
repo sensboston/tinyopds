@@ -450,9 +450,9 @@ namespace TinyOPDS
         private void LoadSettings()
         {
             // Setup link labels
-            linkLabel3.Links.Add(0, linkLabel3.Text.Length, "https://code.google.com/p/fb2librarynet/");
-            linkLabel5.Links.Add(0, linkLabel5.Text.Length, "http://epubreader.codeplex.com/");
-            linkLabel4.Links.Add(0, linkLabel4.Text.Length, "http://dotnetzip.codeplex.com/");
+            linkLabel3.Links.Add(0, linkLabel3.Text.Length, "https://github.com/wcoder/FB2Library");
+            linkLabel5.Links.Add(0, linkLabel5.Text.Length, "https://github.com/lsmithmier/ePubReader.Portable");
+            linkLabel4.Links.Add(0, linkLabel4.Text.Length, "https://github.com/DinoChiesa/DotNetZip-2025");
             linkLabel6.Links.Add(0, linkLabel6.Text.Length, "http://www.fb2library.net/projects/fb2fix");
 
             // Setup settings controls
@@ -461,6 +461,8 @@ namespace TinyOPDS
             {
                 databaseFileName.Text = "books.sqlite";
             }
+
+            oneInstance.Checked = Properties.Settings.Default.OnlyOneInstance;
 
             if (Utils.IsLinux) startWithWindows.Enabled = false;
 
@@ -896,6 +898,16 @@ namespace TinyOPDS
 
         #region Form controls handling
 
+        private void oneInstance_CheckedChanged(object sender, EventArgs e)
+        {
+            if (sender != null)
+            {
+                Properties.Settings.Default.OnlyOneInstance = oneInstance.Checked;
+                Properties.Settings.Default.Save();
+            }
+        }
+
+
         private void cacheType_CheckedChanged(object sender, EventArgs e)
         {
             if (sender != null)
@@ -919,10 +931,6 @@ namespace TinyOPDS
             }
         }
 
-
-        private void convertorPath_Validated(object sender, EventArgs e)
-        {
-        }
 
         private void useWatcher_CheckedChanged(object sender, EventArgs e)
         {
@@ -1441,11 +1449,6 @@ namespace TinyOPDS
 
             // Update visual styles
             UpdateTreeNodeStyles();
-        }
-
-        private void label32_Click(object sender, EventArgs e)
-        {
-
         }
 
         private void HandleNodeDependencies(string tag, bool isChecked)

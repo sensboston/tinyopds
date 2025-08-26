@@ -45,14 +45,17 @@ namespace TinyOPDS
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            // Check for single instance 
-            if (Utils.IsLinux)
+            // Check for single instance only if enabled in settings
+            if (Settings.Default.OnlyOneInstance)
             {
-                if (IsApplicationRunningOnMono("TinyOPDS.exe")) return;
-            }
-            else
-            {
-                if (!mutex.WaitOne(TimeSpan.FromSeconds(1), false)) return;
+                if (Utils.IsLinux)
+                {
+                    if (IsApplicationRunningOnMono("TinyOPDS.exe")) return;
+                }
+                else
+                {
+                    if (!mutex.WaitOne(TimeSpan.FromSeconds(1), false)) return;
+                }
             }
 
             try
@@ -66,7 +69,11 @@ namespace TinyOPDS
             }
             finally
             {
-                if (!Utils.IsLinux) mutex.ReleaseMutex();
+                // Release mutex only if we're checking for single instance and not on Linux
+                if (Settings.Default.OnlyOneInstance && !Utils.IsLinux)
+                {
+                    try { mutex.ReleaseMutex(); } catch { }
+                }
             }
         }
 
@@ -106,6 +113,6 @@ namespace TinyOPDS
 
             //we don't find the current process, but if there is already another one running, return true! 
             return (processFound == 1);
-        } 
+        }
     }
 }

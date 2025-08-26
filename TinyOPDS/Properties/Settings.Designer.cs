@@ -419,5 +419,17 @@ namespace TinyOPDS.Properties {
                 this["MaxRAMImageCacheSizeMB"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool OnlyOneInstance {
+            get {
+                return ((bool)(this["OnlyOneInstance"]));
+            }
+            set {
+                this["OnlyOneInstance"] = value;
+            }
+        }
     }
 }

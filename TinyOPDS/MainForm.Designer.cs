@@ -153,6 +153,7 @@
             this.serverMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripSeparator();
             this.exitMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.oneInstance = new System.Windows.Forms.CheckBox();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.tabPage2.SuspendLayout();
@@ -1266,6 +1267,7 @@
             // tabPage3
             // 
             this.tabPage3.BackColor = System.Drawing.SystemColors.Control;
+            this.tabPage3.Controls.Add(this.oneInstance);
             this.tabPage3.Controls.Add(this.viewLogFile);
             this.tabPage3.Controls.Add(this.label32);
             this.tabPage3.Controls.Add(this.updateCombo);
@@ -1287,7 +1289,7 @@
             // 
             // viewLogFile
             // 
-            this.viewLogFile.Location = new System.Drawing.Point(811, 448);
+            this.viewLogFile.Location = new System.Drawing.Point(811, 528);
             this.viewLogFile.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.viewLogFile.Name = "viewLogFile";
             this.viewLogFile.Size = new System.Drawing.Size(347, 55);
@@ -1299,13 +1301,12 @@
             // label32
             // 
             this.label32.AutoSize = true;
-            this.label32.Location = new System.Drawing.Point(811, 256);
+            this.label32.Location = new System.Drawing.Point(811, 244);
             this.label32.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label32.Name = "label32";
             this.label32.Size = new System.Drawing.Size(237, 32);
             this.label32.TabIndex = 38;
             this.label32.Text = "Check for update:";
-            this.label32.Click += new System.EventHandler(this.label32_Click);
             // 
             // updateCombo
             // 
@@ -1315,7 +1316,7 @@
             "Never",
             "Once a week",
             "Once a month"});
-            this.updateCombo.Location = new System.Drawing.Point(811, 303);
+            this.updateCombo.Location = new System.Drawing.Point(811, 283);
             this.updateCombo.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.updateCombo.Name = "updateCombo";
             this.updateCombo.Size = new System.Drawing.Size(347, 39);
@@ -1325,7 +1326,7 @@
             // label22
             // 
             this.label22.AutoSize = true;
-            this.label22.Location = new System.Drawing.Point(41, 409);
+            this.label22.Location = new System.Drawing.Point(41, 486);
             this.label22.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label22.Name = "label22";
             this.label22.Size = new System.Drawing.Size(250, 32);
@@ -1340,7 +1341,7 @@
             "Info, warnings and errors",
             "Warnings and errors",
             "Errors only"});
-            this.logVerbosity.Location = new System.Drawing.Point(41, 462);
+            this.logVerbosity.Location = new System.Drawing.Point(41, 542);
             this.logVerbosity.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.logVerbosity.Name = "logVerbosity";
             this.logVerbosity.Size = new System.Drawing.Size(649, 39);
@@ -1350,7 +1351,7 @@
             // label11
             // 
             this.label11.AutoSize = true;
-            this.label11.Location = new System.Drawing.Point(811, 41);
+            this.label11.Location = new System.Drawing.Point(811, 34);
             this.label11.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label11.Name = "label11";
             this.label11.Size = new System.Drawing.Size(339, 32);
@@ -1362,7 +1363,7 @@
             this.langCombo.DisplayMember = "Value";
             this.langCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.langCombo.FormattingEnabled = true;
-            this.langCombo.Location = new System.Drawing.Point(811, 95);
+            this.langCombo.Location = new System.Drawing.Point(811, 88);
             this.langCombo.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.langCombo.Name = "langCombo";
             this.langCombo.Size = new System.Drawing.Size(347, 39);
@@ -1375,7 +1376,7 @@
             this.saveLog.AutoSize = true;
             this.saveLog.Checked = global::TinyOPDS.Properties.Settings.Default.SaveLogToDisk;
             this.saveLog.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "SaveLogToDisk", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.saveLog.Location = new System.Drawing.Point(41, 303);
+            this.saveLog.Location = new System.Drawing.Point(41, 380);
             this.saveLog.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.saveLog.Name = "saveLog";
             this.saveLog.Size = new System.Drawing.Size(239, 36);
@@ -1389,7 +1390,7 @@
             this.closeToTray.AutoSize = true;
             this.closeToTray.Checked = global::TinyOPDS.Properties.Settings.Default.CloseToTray;
             this.closeToTray.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "CloseToTray", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.closeToTray.Location = new System.Drawing.Point(811, 182);
+            this.closeToTray.Location = new System.Drawing.Point(811, 168);
             this.closeToTray.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.closeToTray.Name = "closeToTray";
             this.closeToTray.Size = new System.Drawing.Size(362, 36);
@@ -1403,7 +1404,7 @@
             this.startMinimized.AutoSize = true;
             this.startMinimized.Checked = global::TinyOPDS.Properties.Settings.Default.StartMinimized;
             this.startMinimized.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "StartMinimized", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.startMinimized.Location = new System.Drawing.Point(41, 182);
+            this.startMinimized.Location = new System.Drawing.Point(41, 168);
             this.startMinimized.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.startMinimized.Name = "startMinimized";
             this.startMinimized.Size = new System.Drawing.Size(248, 36);
@@ -1646,6 +1647,17 @@
             this.exitMenuItem.Text = "Exit";
             this.exitMenuItem.Click += new System.EventHandler(this.exitMenuItem_Click);
             // 
+            // oneInstance
+            // 
+            this.oneInstance.AutoSize = true;
+            this.oneInstance.Location = new System.Drawing.Point(41, 274);
+            this.oneInstance.Name = "oneInstance";
+            this.oneInstance.Size = new System.Drawing.Size(280, 36);
+            this.oneInstance.TabIndex = 40;
+            this.oneInstance.Text = "Only one instance";
+            this.oneInstance.UseVisualStyleBackColor = true;
+            this.oneInstance.CheckedChanged += new System.EventHandler(this.oneInstance_CheckedChanged);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(16F, 31F);
@@ -1813,6 +1825,7 @@
         private System.Windows.Forms.GroupBox groupBox1;
         private System.Windows.Forms.RadioButton radioButton2;
         private System.Windows.Forms.RadioButton radioButton1;
+        private System.Windows.Forms.CheckBox oneInstance;
     }
 }
 

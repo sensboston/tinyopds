@@ -127,12 +127,8 @@
             this.updateCombo = new System.Windows.Forms.ComboBox();
             this.label22 = new System.Windows.Forms.Label();
             this.logVerbosity = new System.Windows.Forms.ComboBox();
-            this.converterLinkLabel = new System.Windows.Forms.LinkLabel();
             this.label11 = new System.Windows.Forms.Label();
             this.langCombo = new System.Windows.Forms.ComboBox();
-            this.label8 = new System.Windows.Forms.Label();
-            this.convertorFolder = new System.Windows.Forms.Button();
-            this.convertorPath = new System.Windows.Forms.TextBox();
             this.saveLog = new System.Windows.Forms.CheckBox();
             this.closeToTray = new System.Windows.Forms.CheckBox();
             this.startMinimized = new System.Windows.Forms.CheckBox();
@@ -257,19 +253,19 @@
             this.useWatcher.AutoSize = true;
             this.useWatcher.Checked = global::TinyOPDS.Properties.Settings.Default.WatchLibrary;
             this.useWatcher.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "WatchLibrary", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.useWatcher.Location = new System.Drawing.Point(874, 81);
+            this.useWatcher.Location = new System.Drawing.Point(952, 85);
             this.useWatcher.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.useWatcher.Name = "useWatcher";
-            this.useWatcher.Size = new System.Drawing.Size(347, 36);
+            this.useWatcher.Size = new System.Drawing.Size(262, 36);
             this.useWatcher.TabIndex = 30;
-            this.useWatcher.Text = "Monitor library changes";
+            this.useWatcher.Text = "Monitor changes";
             this.useWatcher.UseVisualStyleBackColor = true;
             this.useWatcher.CheckedChanged += new System.EventHandler(this.useWatcher_CheckedChanged);
             // 
             // duplicates
             // 
             this.duplicates.AutoSize = true;
-            this.duplicates.Location = new System.Drawing.Point(325, 527);
+            this.duplicates.Location = new System.Drawing.Point(328, 517);
             this.duplicates.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.duplicates.MinimumSize = new System.Drawing.Size(133, 0);
             this.duplicates.Name = "duplicates";
@@ -280,7 +276,7 @@
             // label16
             // 
             this.label16.AutoSize = true;
-            this.label16.Location = new System.Drawing.Point(40, 527);
+            this.label16.Location = new System.Drawing.Point(40, 517);
             this.label16.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label16.Name = "label16";
             this.label16.Size = new System.Drawing.Size(156, 32);
@@ -300,7 +296,7 @@
             // status
             // 
             this.status.AutoSize = true;
-            this.status.Location = new System.Drawing.Point(960, 527);
+            this.status.Location = new System.Drawing.Point(960, 517);
             this.status.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.status.MinimumSize = new System.Drawing.Size(133, 0);
             this.status.Name = "status";
@@ -311,7 +307,7 @@
             // label14
             // 
             this.label14.AutoSize = true;
-            this.label14.Location = new System.Drawing.Point(675, 527);
+            this.label14.Location = new System.Drawing.Point(675, 517);
             this.label14.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label14.Name = "label14";
             this.label14.Size = new System.Drawing.Size(103, 32);
@@ -321,7 +317,7 @@
             // rate
             // 
             this.rate.AutoSize = true;
-            this.rate.Location = new System.Drawing.Point(960, 465);
+            this.rate.Location = new System.Drawing.Point(960, 445);
             this.rate.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.rate.MinimumSize = new System.Drawing.Size(133, 0);
             this.rate.Name = "rate";
@@ -332,7 +328,7 @@
             // label12
             // 
             this.label12.AutoSize = true;
-            this.label12.Location = new System.Drawing.Point(675, 465);
+            this.label12.Location = new System.Drawing.Point(675, 445);
             this.label12.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label12.Name = "label12";
             this.label12.Size = new System.Drawing.Size(82, 32);
@@ -342,7 +338,7 @@
             // elapsedTime
             // 
             this.elapsedTime.AutoSize = true;
-            this.elapsedTime.Location = new System.Drawing.Point(960, 403);
+            this.elapsedTime.Location = new System.Drawing.Point(960, 373);
             this.elapsedTime.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.elapsedTime.MinimumSize = new System.Drawing.Size(133, 0);
             this.elapsedTime.Name = "elapsedTime";
@@ -353,7 +349,7 @@
             // label10
             // 
             this.label10.AutoSize = true;
-            this.label10.Location = new System.Drawing.Point(675, 403);
+            this.label10.Location = new System.Drawing.Point(675, 373);
             this.label10.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label10.Name = "label10";
             this.label10.Size = new System.Drawing.Size(187, 32);
@@ -363,7 +359,7 @@
             // startTime
             // 
             this.startTime.AutoSize = true;
-            this.startTime.Location = new System.Drawing.Point(960, 341);
+            this.startTime.Location = new System.Drawing.Point(960, 301);
             this.startTime.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.startTime.MinimumSize = new System.Drawing.Size(133, 0);
             this.startTime.Name = "startTime";
@@ -374,7 +370,7 @@
             // label6
             // 
             this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(675, 341);
+            this.label6.Location = new System.Drawing.Point(675, 301);
             this.label6.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(143, 32);
@@ -405,7 +401,7 @@
             // invalidBooks
             // 
             this.invalidBooks.AutoSize = true;
-            this.invalidBooks.Location = new System.Drawing.Point(328, 403);
+            this.invalidBooks.Location = new System.Drawing.Point(328, 373);
             this.invalidBooks.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.invalidBooks.MinimumSize = new System.Drawing.Size(133, 0);
             this.invalidBooks.Name = "invalidBooks";
@@ -416,7 +412,7 @@
             // label9
             // 
             this.label9.AutoSize = true;
-            this.label9.Location = new System.Drawing.Point(40, 403);
+            this.label9.Location = new System.Drawing.Point(40, 373);
             this.label9.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label9.Name = "label9";
             this.label9.Size = new System.Drawing.Size(188, 32);
@@ -426,7 +422,7 @@
             // skippedBooks
             // 
             this.skippedBooks.AutoSize = true;
-            this.skippedBooks.Location = new System.Drawing.Point(328, 465);
+            this.skippedBooks.Location = new System.Drawing.Point(328, 445);
             this.skippedBooks.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.skippedBooks.MinimumSize = new System.Drawing.Size(133, 0);
             this.skippedBooks.Name = "skippedBooks";
@@ -437,7 +433,7 @@
             // label7
             // 
             this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(40, 465);
+            this.label7.Location = new System.Drawing.Point(40, 445);
             this.label7.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(209, 32);
@@ -447,7 +443,7 @@
             // booksFound
             // 
             this.booksFound.AutoSize = true;
-            this.booksFound.Location = new System.Drawing.Point(328, 341);
+            this.booksFound.Location = new System.Drawing.Point(328, 301);
             this.booksFound.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.booksFound.MinimumSize = new System.Drawing.Size(133, 0);
             this.booksFound.Name = "booksFound";
@@ -458,7 +454,7 @@
             // booksInDB
             // 
             this.booksInDB.AutoSize = true;
-            this.booksInDB.Location = new System.Drawing.Point(328, 243);
+            this.booksInDB.Location = new System.Drawing.Point(328, 229);
             this.booksInDB.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.booksInDB.MinimumSize = new System.Drawing.Size(133, 0);
             this.booksInDB.Name = "booksInDB";
@@ -469,10 +465,10 @@
             // folderButton
             // 
             this.folderButton.Image = global::TinyOPDS.Properties.Resources.folder;
-            this.folderButton.Location = new System.Drawing.Point(760, 71);
+            this.folderButton.Location = new System.Drawing.Point(863, 83);
             this.folderButton.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.folderButton.Name = "folderButton";
-            this.folderButton.Size = new System.Drawing.Size(77, 55);
+            this.folderButton.Size = new System.Drawing.Size(58, 41);
             this.folderButton.TabIndex = 10;
             this.folderButton.UseVisualStyleBackColor = true;
             this.folderButton.Click += new System.EventHandler(this.folderButton_Click);
@@ -480,7 +476,7 @@
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(40, 243);
+            this.label2.Location = new System.Drawing.Point(40, 229);
             this.label2.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(263, 32);
@@ -490,7 +486,7 @@
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(40, 341);
+            this.label1.Location = new System.Drawing.Point(40, 301);
             this.label1.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(180, 32);
@@ -511,10 +507,10 @@
             // 
             // libraryPath
             // 
-            this.libraryPath.Location = new System.Drawing.Point(45, 76);
+            this.libraryPath.Location = new System.Drawing.Point(45, 83);
             this.libraryPath.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.libraryPath.Name = "libraryPath";
-            this.libraryPath.Size = new System.Drawing.Size(700, 38);
+            this.libraryPath.Size = new System.Drawing.Size(802, 38);
             this.libraryPath.TabIndex = 6;
             this.libraryPath.TextChanged += new System.EventHandler(this.libraryPath_TextChanged);
             this.libraryPath.Validated += new System.EventHandler(this.libraryPath_Validated);
@@ -649,7 +645,7 @@
             // statUniqueClients
             // 
             this.statUniqueClients.AutoSize = true;
-            this.statUniqueClients.Location = new System.Drawing.Point(384, 594);
+            this.statUniqueClients.Location = new System.Drawing.Point(262, 524);
             this.statUniqueClients.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.statUniqueClients.Name = "statUniqueClients";
             this.statUniqueClients.Size = new System.Drawing.Size(30, 32);
@@ -659,7 +655,7 @@
             // label26
             // 
             this.label26.AutoSize = true;
-            this.label26.Location = new System.Drawing.Point(51, 594);
+            this.label26.Location = new System.Drawing.Point(53, 524);
             this.label26.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label26.Name = "label26";
             this.label26.Size = new System.Drawing.Size(202, 32);
@@ -669,7 +665,7 @@
             // statImages
             // 
             this.statImages.AutoSize = true;
-            this.statImages.Location = new System.Drawing.Point(1128, 527);
+            this.statImages.Location = new System.Drawing.Point(1120, 524);
             this.statImages.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.statImages.Name = "statImages";
             this.statImages.Size = new System.Drawing.Size(30, 32);
@@ -679,7 +675,7 @@
             // label27
             // 
             this.label27.AutoSize = true;
-            this.label27.Location = new System.Drawing.Point(909, 527);
+            this.label27.Location = new System.Drawing.Point(943, 524);
             this.label27.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label27.Name = "label27";
             this.label27.Size = new System.Drawing.Size(175, 32);
@@ -689,7 +685,7 @@
             // statBooks
             // 
             this.statBooks.AutoSize = true;
-            this.statBooks.Location = new System.Drawing.Point(747, 527);
+            this.statBooks.Location = new System.Drawing.Point(852, 524);
             this.statBooks.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.statBooks.Name = "statBooks";
             this.statBooks.Size = new System.Drawing.Size(30, 32);
@@ -699,7 +695,7 @@
             // label25
             // 
             this.label25.AutoSize = true;
-            this.label25.Location = new System.Drawing.Point(523, 527);
+            this.label25.Location = new System.Drawing.Point(674, 524);
             this.label25.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label25.Name = "label25";
             this.label25.Size = new System.Drawing.Size(162, 32);
@@ -709,7 +705,7 @@
             // statRequests
             // 
             this.statRequests.AutoSize = true;
-            this.statRequests.Location = new System.Drawing.Point(384, 527);
+            this.statRequests.Location = new System.Drawing.Point(558, 524);
             this.statRequests.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.statRequests.Name = "statRequests";
             this.statRequests.Size = new System.Drawing.Size(30, 32);
@@ -719,7 +715,7 @@
             // label23
             // 
             this.label23.AutoSize = true;
-            this.label23.Location = new System.Drawing.Point(51, 527);
+            this.label23.Location = new System.Drawing.Point(340, 524);
             this.label23.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label23.Name = "label23";
             this.label23.Size = new System.Drawing.Size(202, 32);
@@ -1275,12 +1271,8 @@
             this.tabPage3.Controls.Add(this.updateCombo);
             this.tabPage3.Controls.Add(this.label22);
             this.tabPage3.Controls.Add(this.logVerbosity);
-            this.tabPage3.Controls.Add(this.converterLinkLabel);
             this.tabPage3.Controls.Add(this.label11);
             this.tabPage3.Controls.Add(this.langCombo);
-            this.tabPage3.Controls.Add(this.label8);
-            this.tabPage3.Controls.Add(this.convertorFolder);
-            this.tabPage3.Controls.Add(this.convertorPath);
             this.tabPage3.Controls.Add(this.saveLog);
             this.tabPage3.Controls.Add(this.closeToTray);
             this.tabPage3.Controls.Add(this.startMinimized);
@@ -1295,7 +1287,7 @@
             // 
             // viewLogFile
             // 
-            this.viewLogFile.Location = new System.Drawing.Point(797, 513);
+            this.viewLogFile.Location = new System.Drawing.Point(811, 448);
             this.viewLogFile.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.viewLogFile.Name = "viewLogFile";
             this.viewLogFile.Size = new System.Drawing.Size(347, 55);
@@ -1307,12 +1299,13 @@
             // label32
             // 
             this.label32.AutoSize = true;
-            this.label32.Location = new System.Drawing.Point(795, 341);
+            this.label32.Location = new System.Drawing.Point(811, 256);
             this.label32.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label32.Name = "label32";
             this.label32.Size = new System.Drawing.Size(237, 32);
             this.label32.TabIndex = 38;
             this.label32.Text = "Check for update:";
+            this.label32.Click += new System.EventHandler(this.label32_Click);
             // 
             // updateCombo
             // 
@@ -1322,17 +1315,17 @@
             "Never",
             "Once a week",
             "Once a month"});
-            this.updateCombo.Location = new System.Drawing.Point(797, 396);
+            this.updateCombo.Location = new System.Drawing.Point(811, 303);
             this.updateCombo.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.updateCombo.Name = "updateCombo";
-            this.updateCombo.Size = new System.Drawing.Size(332, 39);
+            this.updateCombo.Size = new System.Drawing.Size(347, 39);
             this.updateCombo.TabIndex = 37;
             this.updateCombo.SelectedIndexChanged += new System.EventHandler(this.updateCombo_SelectedIndexChanged);
             // 
             // label22
             // 
             this.label22.AutoSize = true;
-            this.label22.Location = new System.Drawing.Point(35, 465);
+            this.label22.Location = new System.Drawing.Point(41, 409);
             this.label22.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label22.Name = "label22";
             this.label22.Size = new System.Drawing.Size(250, 32);
@@ -1347,30 +1340,17 @@
             "Info, warnings and errors",
             "Warnings and errors",
             "Errors only"});
-            this.logVerbosity.Location = new System.Drawing.Point(37, 520);
+            this.logVerbosity.Location = new System.Drawing.Point(41, 462);
             this.logVerbosity.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.logVerbosity.Name = "logVerbosity";
             this.logVerbosity.Size = new System.Drawing.Size(649, 39);
             this.logVerbosity.TabIndex = 35;
             this.logVerbosity.SelectedIndexChanged += new System.EventHandler(this.logVerbosity_SelectedIndexChanged);
             // 
-            // converterLinkLabel
-            // 
-            this.converterLinkLabel.AutoSize = true;
-            this.converterLinkLabel.Location = new System.Drawing.Point(32, 131);
-            this.converterLinkLabel.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
-            this.converterLinkLabel.Name = "converterLinkLabel";
-            this.converterLinkLabel.Size = new System.Drawing.Size(706, 32);
-            this.converterLinkLabel.TabIndex = 34;
-            this.converterLinkLabel.TabStop = true;
-            this.converterLinkLabel.Text = "Click here to download latest version of ePub converter";
-            this.converterLinkLabel.Visible = false;
-            this.converterLinkLabel.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel3_LinkClicked);
-            // 
             // label11
             // 
             this.label11.AutoSize = true;
-            this.label11.Location = new System.Drawing.Point(789, 196);
+            this.label11.Location = new System.Drawing.Point(811, 41);
             this.label11.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label11.Name = "label11";
             this.label11.Size = new System.Drawing.Size(339, 32);
@@ -1382,53 +1362,20 @@
             this.langCombo.DisplayMember = "Value";
             this.langCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.langCombo.FormattingEnabled = true;
-            this.langCombo.Location = new System.Drawing.Point(797, 255);
+            this.langCombo.Location = new System.Drawing.Point(811, 95);
             this.langCombo.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.langCombo.Name = "langCombo";
-            this.langCombo.Size = new System.Drawing.Size(332, 39);
+            this.langCombo.Size = new System.Drawing.Size(347, 39);
             this.langCombo.TabIndex = 31;
             this.langCombo.ValueMember = "Key";
             this.langCombo.SelectedValueChanged += new System.EventHandler(this.langCombo_SelectedValueChanged);
-            // 
-            // label8
-            // 
-            this.label8.AutoSize = true;
-            this.label8.Location = new System.Drawing.Point(21, 29);
-            this.label8.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
-            this.label8.Name = "label8";
-            this.label8.Size = new System.Drawing.Size(358, 32);
-            this.label8.TabIndex = 30;
-            this.label8.Text = "Path to the ePub converter:";
-            // 
-            // convertorFolder
-            // 
-            this.convertorFolder.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.convertorFolder.Image = global::TinyOPDS.Properties.Resources.folder;
-            this.convertorFolder.Location = new System.Drawing.Point(1056, 62);
-            this.convertorFolder.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.convertorFolder.Name = "convertorFolder";
-            this.convertorFolder.Size = new System.Drawing.Size(77, 55);
-            this.convertorFolder.TabIndex = 29;
-            this.convertorFolder.UseVisualStyleBackColor = true;
-            this.convertorFolder.Click += new System.EventHandler(this.folderButton_Click);
-            // 
-            // convertorPath
-            // 
-            this.convertorPath.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.convertorPath.Location = new System.Drawing.Point(29, 67);
-            this.convertorPath.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.convertorPath.Name = "convertorPath";
-            this.convertorPath.Size = new System.Drawing.Size(1004, 38);
-            this.convertorPath.TabIndex = 28;
-            this.convertorPath.Validated += new System.EventHandler(this.convertorPath_Validated);
             // 
             // saveLog
             // 
             this.saveLog.AutoSize = true;
             this.saveLog.Checked = global::TinyOPDS.Properties.Settings.Default.SaveLogToDisk;
             this.saveLog.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "SaveLogToDisk", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.saveLog.Location = new System.Drawing.Point(37, 396);
+            this.saveLog.Location = new System.Drawing.Point(41, 303);
             this.saveLog.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.saveLog.Name = "saveLog";
             this.saveLog.Size = new System.Drawing.Size(239, 36);
@@ -1442,7 +1389,7 @@
             this.closeToTray.AutoSize = true;
             this.closeToTray.Checked = global::TinyOPDS.Properties.Settings.Default.CloseToTray;
             this.closeToTray.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "CloseToTray", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.closeToTray.Location = new System.Drawing.Point(37, 329);
+            this.closeToTray.Location = new System.Drawing.Point(811, 182);
             this.closeToTray.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.closeToTray.Name = "closeToTray";
             this.closeToTray.Size = new System.Drawing.Size(362, 36);
@@ -1456,7 +1403,7 @@
             this.startMinimized.AutoSize = true;
             this.startMinimized.Checked = global::TinyOPDS.Properties.Settings.Default.StartMinimized;
             this.startMinimized.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "StartMinimized", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.startMinimized.Location = new System.Drawing.Point(37, 262);
+            this.startMinimized.Location = new System.Drawing.Point(41, 182);
             this.startMinimized.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.startMinimized.Name = "startMinimized";
             this.startMinimized.Size = new System.Drawing.Size(248, 36);
@@ -1469,7 +1416,7 @@
             this.startWithWindows.AutoSize = true;
             this.startWithWindows.Checked = global::TinyOPDS.Properties.Settings.Default.StartWithWindows;
             this.startWithWindows.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "StartWithWindows", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.startWithWindows.Location = new System.Drawing.Point(37, 196);
+            this.startWithWindows.Location = new System.Drawing.Point(41, 62);
             this.startWithWindows.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.startWithWindows.Name = "startWithWindows";
             this.startWithWindows.Size = new System.Drawing.Size(292, 36);
@@ -1545,10 +1492,10 @@
             this.linkLabel3.Location = new System.Drawing.Point(515, 453);
             this.linkLabel3.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.linkLabel3.Name = "linkLabel3";
-            this.linkLabel3.Size = new System.Drawing.Size(713, 32);
+            this.linkLabel3.Size = new System.Drawing.Size(275, 32);
             this.linkLabel3.TabIndex = 10;
             this.linkLabel3.TabStop = true;
-            this.linkLabel3.Text = "Lord KiRon, author of fb2librarynet library and converter";
+            this.linkLabel3.Text = "Authors of fb2library ";
             this.linkLabel3.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel3_LinkClicked);
             // 
             // label20
@@ -1779,9 +1726,6 @@
         private System.Windows.Forms.CheckBox closeToTray;
         private System.Windows.Forms.CheckBox startMinimized;
         private System.Windows.Forms.CheckBox startWithWindows;
-        private System.Windows.Forms.Label label8;
-        private System.Windows.Forms.Button convertorFolder;
-        private System.Windows.Forms.TextBox convertorPath;
         private System.Windows.Forms.Label label11;
         private System.Windows.Forms.ComboBox langCombo;
         private System.Windows.Forms.CheckBox openPort;
@@ -1800,7 +1744,6 @@
         private System.Windows.Forms.CheckBox useWatcher;
         private System.Windows.Forms.TabPage tabPage4;
         private System.Windows.Forms.CheckBox useUPnP;
-        private System.Windows.Forms.LinkLabel converterLinkLabel;
         private System.Windows.Forms.Button donateButton;
         private System.Windows.Forms.PictureBox pictureBox1;
         private System.Windows.Forms.Label label19;

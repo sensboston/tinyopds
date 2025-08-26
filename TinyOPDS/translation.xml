@@ -50,12 +50,12 @@
 			<text lang="fr">Chemin vers le dossier de livres:</text>
 		</property>
 		<property form="MainForm" ctrl="useWatcher">
-			<text lang="en">Monitor library changes</text>
-			<text lang="ru">Следить за каталогом</text>
-			<text lang="uk">Стежити за каталогом</text>
-			<text lang="de">Bibliotheksänderungen überwachen</text>
-			<text lang="es">Monitorear cambios en la biblioteca</text>
-			<text lang="fr">Surveiller les changements de bibliothèque</text>
+			<text lang="en">Monitor changes</text>
+			<text lang="ru">Отслеживать изменения</text>
+			<text lang="uk">Відстежувати зміни</text>
+			<text lang="de">Änderungen überwachen</text>
+			<text lang="es">Monitorear cambios</text>
+			<text lang="fr">Surveiller</text>
 		</property>
 		<property form="MainForm" ctrl="label16">
 			<text lang="en">Duplicates:</text>
@@ -224,14 +224,6 @@
 			<text lang="de">Server stoppen</text>
 			<text lang="es">Detener servidor</text>
 			<text lang="fr">Arrêter le serveur</text>
-		</property>
-		<property form="MainForm" ctrl="label8">
-			<text lang="en">Path to the ePub converter:</text>
-			<text lang="ru">Путь к ePub конвертору:</text>
-			<text lang="uk">Шлях до ePub конвертера:</text>
-			<text lang="de">Pfad zum ePub-Konverter:</text>
-			<text lang="es">Ruta al convertidor ePub:</text>
-			<text lang="fr">Chemin vers le convertisseur ePub:</text>
 		</property>
 		<property form="MainForm" ctrl="label11">
 			<text lang="en">GUI and OPDS language:</text>
@@ -457,6 +449,160 @@
 			<text lang="es">Nombre del archivo de base de datos:</text>
 			<text lang="fr">Nom du fichier de base de données:</text>
 		</property>
+		<property form="MainForm" ctrl="useHTTPAuth">
+			<text lang="en">Use HTTP basic authentication</text>
+			<text lang="ru">Использовать базовую авторизацию HTTP</text>
+			<text lang="uk">Використовувати базову авторизацію HTTP</text>
+			<text lang="de">HTTP-Basisauthentifizierung verwenden</text>
+			<text lang="es">Usar autenticación básica HTTP</text>
+			<text lang="fr">Utiliser l'authentification HTTP de base</text>
+		</property>
+		<property form="MainForm" ctrl="rememberClients">
+			<text lang="en">Remember authorized clients</text>
+			<text lang="ru">Помнить авторизованных клиентов</text>
+			<text lang="uk">Запам'ятовувати авторизованих клієнтів</text>
+			<text lang="de">Autorisierte Clients merken</text>
+			<text lang="es">Recordar clientes autorizados</text>
+			<text lang="fr">Se souvenir des clients autorisés</text>
+		</property>
+		<property form="MainForm" ctrl="label22">
+			<text lang="en">Log verbosity level</text>
+			<text lang="ru">Детализация лог-файла</text>
+			<text lang="uk">Деталізація лог-файлу</text>
+			<text lang="de">Log-Detailgrad</text>
+			<text lang="es">Nivel de detalle del log</text>
+			<text lang="fr">Niveau de détail du log</text>
+		</property>
+		<property form="MainForm" ctrl="label23">
+			<text lang="en">Total requests:</text>
+			<text lang="ru">Всего запросов:</text>
+			<text lang="uk">Всього запитів:</text>
+			<text lang="de">Anfragen gesamt:</text>
+			<text lang="es">Total de solicitudes:</text>
+			<text lang="fr">Total des requêtes:</text>
+		</property>
+		<property form="MainForm" ctrl="label25">
+			<text lang="en">Books sent:</text>
+			<text lang="ru">Отдано книг:</text>
+			<text lang="uk">Віддано книг:</text>
+			<text lang="de">Bücher gesendet:</text>
+			<text lang="es">Libros enviados:</text>
+			<text lang="fr">Livres envoyés:</text>
+		</property>
+		<property form="MainForm" ctrl="label27">
+			<text lang="en">Images sent:</text>
+			<text lang="ru">Отдано картинок:</text>
+			<text lang="uk">Віддано зображень:</text>
+			<text lang="de">Bilder gesendet:</text>
+			<text lang="es">Imágenes enviadas:</text>
+			<text lang="fr">Images envoyées:</text>
+		</property>
+		<property form="MainForm" ctrl="label26">
+			<text lang="en">Unique clients:</text>
+			<text lang="ru">Уникальных клиентов:</text>
+			<text lang="uk">Унікальних клієнтів:</text>
+			<text lang="de">Eindeutige Clients:</text>
+			<text lang="es">Clientes únicos:</text>
+			<text lang="fr">Clients uniques:</text>
+		</property>
+		<property form="MainForm" ctrl="label28">
+			<text lang="en">Successful logins:</text>
+			<text lang="ru">Успешных входов:</text>
+			<text lang="uk">Успішних входів:</text>
+			<text lang="de">Erfolgreiche Anmeldungen:</text>
+			<text lang="es">Inicios de sesión exitosos:</text>
+			<text lang="fr">Connexions réussies:</text>
+		</property>
+		<property form="MainForm" ctrl="label30">
+			<text lang="en">Failed logins:</text>
+			<text lang="ru">Неверных входов:</text>
+			<text lang="uk">Невірних входів:</text>
+			<text lang="de">Fehlgeschlagene Anmeldungen:</text>
+			<text lang="es">Inicios de sesión fallidos:</text>
+			<text lang="fr">Connexions échouées:</text>
+		</property>
+		<property form="MainForm" ctrl="label31">
+			<text lang="en">Banned clients:</text>
+			<text lang="ru">Заблокировано:</text>
+			<text lang="uk">Заблоковано:</text>
+			<text lang="de">Gesperrte Clients:</text>
+			<text lang="es">Clientes bloqueados:</text>
+			<text lang="fr">Clients bloqués:</text>
+		</property>
+		<property form="MainForm" ctrl="banClients">
+			<text lang="en">Ban clients after</text>
+			<text lang="ru">Блокировать клиентов после</text>
+			<text lang="uk">Блокувати клієнтів після</text>
+			<text lang="de">Clients sperren nach</text>
+			<text lang="es">Bloquear clientes después de</text>
+			<text lang="fr">Bloquer les clients après</text>
+		</property>
+		<property form="MainForm" ctrl="label24">
+			<text lang="en">failed attempts</text>
+			<text lang="ru">неверных попыток</text>
+			<text lang="uk">невірних спроб</text>
+			<text lang="de">fehlgeschlagenen Versuchen</text>
+			<text lang="es">intentos fallidos</text>
+			<text lang="fr">tentatives échouées</text>
+		</property>
+		<property form="MainForm" ctrl="label32">
+			<text lang="en">Check for update:</text>
+			<text lang="ru">Проверять обновление:</text>
+			<text lang="uk">Перевіряти оновлення:</text>
+			<text lang="de">Nach Updates suchen:</text>
+			<text lang="es">Buscar actualizaciones:</text>
+			<text lang="fr">Vérifier les mises à jour:</text>
+		</property>
+		<property form="MainForm" ctrl="viewLogFile">
+			<text lang="en">View log file</text>
+			<text lang="ru">Открыть лог-файл</text>
+			<text lang="uk">Відкрити лог-файл</text>
+			<text lang="de">Log-Datei anzeigen</text>
+			<text lang="es">Ver archivo de log</text>
+			<text lang="fr">Voir le fichier de log</text>
+		</property>
+		<property form="MainForm" ctrl="label36">
+			<text lang="en">Items per OPDS page:</text>
+			<text lang="ru">Число элементов на странице OPDS:</text>
+			<text lang="uk">Кількість елементів на сторінці OPDS:</text>
+			<text lang="de">Elemente pro OPDS-Seite:</text>
+			<text lang="es">Elementos por página OPDS:</text>
+			<text lang="fr">Éléments par page OPDS:</text>
+		</property>
+		<property form="MainForm" ctrl="label37">
+			<text lang="en">Items per web page:</text>
+			<text lang="ru">Число элементов на web-странице:</text>
+			<text lang="uk">Кількість елементів на web-сторінці:</text>
+			<text lang="de">Elemente pro Web-Seite:</text>
+			<text lang="es">Elementos por página web:</text>
+			<text lang="fr">Éléments par page web:</text>
+		</property>
+		<property form="MainForm" ctrl="label38">
+			<text lang="en">Items sort order:</text>
+			<text lang="ru">Порядок сортировки:</text>
+			<text lang="uk">Порядок сортування:</text>
+			<text lang="de">Sortierreihenfolge:</text>
+			<text lang="es">Orden de clasificación:</text>
+			<text lang="fr">Ordre de tri:</text>
+		</property>
+		<property form="MainForm" ctrl="label39">
+			<text lang="en">"New books" check time:</text>
+			<text lang="ru">Период для "новых книг":</text>
+			<text lang="uk">Період для "нових книг":</text>
+			<text lang="de">Zeitraum für "neue Bücher":</text>
+			<text lang="es">Período de verificación de "libros nuevos":</text>
+			<text lang="fr">Période de vérification des "nouveaux livres":</text>
+		</property>
+		<property form="MainForm" ctrl="checkBox2">
+			<text lang="en">Use authors aliases</text>
+			<text lang="ru">Использовать алиасы для авторов</text>
+			<text lang="uk">Використовувати псевдоніми для авторів</text>
+			<text lang="de">Autoren-Aliasse verwenden</text>
+			<text lang="es">Usar alias de autores</text>
+			<text lang="fr">Utiliser les alias d'auteurs</text>
+		</property>
+
+		<!-- General translations (not bound to specific controls) -->
 		<property>
 			<text lang="en">Books by authors</text>
 			<text lang="ru">Книги по авторам</text>
@@ -721,22 +867,6 @@
 			<text lang="es">Todos los libros de la serie {0}</text>
 			<text lang="fr">Tous les livres de la série {0}</text>
 		</property>
-		<property form="MainForm" ctrl="useHTTPAuth">
-			<text lang="en">Use HTTP basic authentication</text>
-			<text lang="ru">Использовать базовую авторизацию HTTP</text>
-			<text lang="uk">Використовувати базову авторизацію HTTP</text>
-			<text lang="de">HTTP-Basisauthentifizierung verwenden</text>
-			<text lang="es">Usar autenticación básica HTTP</text>
-			<text lang="fr">Utiliser l'authentification HTTP de base</text>
-		</property>
-		<property form="MainForm" ctrl="rememberClients">
-			<text lang="en">Remember authorized clients</text>
-			<text lang="ru">Помнить авторизованных клиентов</text>
-			<text lang="uk">Запам'ятовувати авторизованих клієнтів</text>
-			<text lang="de">Autorisierte Clients merken</text>
-			<text lang="es">Recordar clientes autorizados</text>
-			<text lang="fr">Se souvenir des clients autorisés</text>
-		</property>
 		<property>
 			<text lang="en">Probably, port {0} is already in use. Please try different port value.</text>
 			<text lang="ru">Вероятно, порт {0} уже используется. Попробуйте другое значение.</text>
@@ -744,14 +874,6 @@
 			<text lang="de">Port {0} wird wahrscheinlich bereits verwendet. Bitte versuchen Sie einen anderen Port-Wert.</text>
 			<text lang="es">Probablemente el puerto {0} ya esté en uso. Intente con un valor de puerto diferente.</text>
 			<text lang="fr">Le port {0} est probablement déjà utilisé. Veuillez essayer une valeur de port différente.</text>
-		</property>
-		<property form="MainForm" ctrl="label22">
-			<text lang="en">Log verbosity level</text>
-			<text lang="ru">Детализация лог-файла</text>
-			<text lang="uk">Деталізація лог-файлу</text>
-			<text lang="de">Log-Detailgrad</text>
-			<text lang="es">Nivel de detalle del log</text>
-			<text lang="fr">Niveau de détail du log</text>
 		</property>
 		<property>
 			<text lang="en">Info, warnings and errors</text>
@@ -777,86 +899,6 @@
 			<text lang="es">Solo errores</text>
 			<text lang="fr">Erreurs seulement</text>
 		</property>
-		<property form="MainForm" ctrl="label23">
-			<text lang="en">Total requests:</text>
-			<text lang="ru">Всего запросов:</text>
-			<text lang="uk">Всього запитів:</text>
-			<text lang="de">Anfragen gesamt:</text>
-			<text lang="es">Total de solicitudes:</text>
-			<text lang="fr">Total des requêtes:</text>
-		</property>
-		<property form="MainForm" ctrl="label25">
-			<text lang="en">Books sent:</text>
-			<text lang="ru">Отдано книг:</text>
-			<text lang="uk">Віддано книг:</text>
-			<text lang="de">Bücher gesendet:</text>
-			<text lang="es">Libros enviados:</text>
-			<text lang="fr">Livres envoyés:</text>
-		</property>
-		<property form="MainForm" ctrl="label27">
-			<text lang="en">Images sent:</text>
-			<text lang="ru">Отдано картинок:</text>
-			<text lang="uk">Віддано зображень:</text>
-			<text lang="de">Bilder gesendet:</text>
-			<text lang="es">Imágenes enviadas:</text>
-			<text lang="fr">Images envoyées:</text>
-		</property>
-		<property form="MainForm" ctrl="label26">
-			<text lang="en">Unique clients:</text>
-			<text lang="ru">Уникальных клиентов:</text>
-			<text lang="uk">Унікальних клієнтів:</text>
-			<text lang="de">Eindeutige Clients:</text>
-			<text lang="es">Clientes únicos:</text>
-			<text lang="fr">Clients uniques:</text>
-		</property>
-		<property form="MainForm" ctrl="label28">
-			<text lang="en">Successful logins:</text>
-			<text lang="ru">Успешных входов:</text>
-			<text lang="uk">Успішних входів:</text>
-			<text lang="de">Erfolgreiche Anmeldungen:</text>
-			<text lang="es">Inicios de sesión exitosos:</text>
-			<text lang="fr">Connexions réussies:</text>
-		</property>
-		<property form="MainForm" ctrl="label30">
-			<text lang="en">Failed logins:</text>
-			<text lang="ru">Неверных входов:</text>
-			<text lang="uk">Невірних входів:</text>
-			<text lang="de">Fehlgeschlagene Anmeldungen:</text>
-			<text lang="es">Inicios de sesión fallidos:</text>
-			<text lang="fr">Connexions échouées:</text>
-		</property>
-		<property form="MainForm" ctrl="label31">
-			<text lang="en">Banned clients:</text>
-			<text lang="ru">Заблокировано:</text>
-			<text lang="uk">Заблоковано:</text>
-			<text lang="de">Gesperrte Clients:</text>
-			<text lang="es">Clientes bloqueados:</text>
-			<text lang="fr">Clients bloqués:</text>
-		</property>
-		<property form="MainForm" ctrl="banClients">
-			<text lang="en">Ban clients after</text>
-			<text lang="ru">Блокировать клиентов после</text>
-			<text lang="uk">Блокувати клієнтів після</text>
-			<text lang="de">Clients sperren nach</text>
-			<text lang="es">Bloquear clientes después de</text>
-			<text lang="fr">Bloquer les clients après</text>
-		</property>
-		<property form="MainForm" ctrl="label24">
-			<text lang="en">failed attempts</text>
-			<text lang="ru">неверных попыток</text>
-			<text lang="uk">невірних спроб</text>
-			<text lang="de">fehlgeschlagenen Versuchen</text>
-			<text lang="es">intentos fallidos</text>
-			<text lang="fr">tentatives échouées</text>
-		</property>
-		<property form="MainForm" ctrl="label32">
-			<text lang="en">Check for update:</text>
-			<text lang="ru">Проверять обновление:</text>
-			<text lang="uk">Перевіряти оновлення:</text>
-			<text lang="de">Nach Updates suchen:</text>
-			<text lang="es">Buscar actualizaciones:</text>
-			<text lang="fr">Vérifier les mises à jour:</text>
-		</property>
 		<property>
 			<text lang="en">Never</text>
 			<text lang="ru">Никогда</text>
@@ -880,14 +922,6 @@
 			<text lang="de">Einmal pro Monat</text>
 			<text lang="es">Una vez al mes</text>
 			<text lang="fr">Une fois par mois</text>
-		</property>
-		<property form="MainForm" ctrl="viewLogFile">
-			<text lang="en">View log file</text>
-			<text lang="ru">Открыть лог-файл</text>
-			<text lang="uk">Відкрити лог-файл</text>
-			<text lang="de">Log-Datei anzeigen</text>
-			<text lang="es">Ver archivo de log</text>
-			<text lang="fr">Voir le fichier de log</text>
 		</property>
 		<property>
 			<text lang="en">TinyOPDS: update found</text>
@@ -937,30 +971,6 @@
 			<text lang="es">Advertencia</text>
 			<text lang="fr">Avertissement</text>
 		</property>
-		<property form="MainForm" ctrl="label36">
-			<text lang="en">Items per OPDS page:</text>
-			<text lang="ru">Число элементов на странице OPDS:</text>
-			<text lang="uk">Кількість елементів на сторінці OPDS:</text>
-			<text lang="de">Elemente pro OPDS-Seite:</text>
-			<text lang="es">Elementos por página OPDS:</text>
-			<text lang="fr">Éléments par page OPDS:</text>
-		</property>
-		<property form="MainForm" ctrl="label37">
-			<text lang="en">Items per web page:</text>
-			<text lang="ru">Число элементов на web-странице:</text>
-			<text lang="uk">Кількість елементів на web-сторінці:</text>
-			<text lang="de">Elemente pro Web-Seite:</text>
-			<text lang="es">Elementos por página web:</text>
-			<text lang="fr">Éléments par page web:</text>
-		</property>
-		<property form="MainForm" ctrl="label38">
-			<text lang="en">Items sort order:</text>
-			<text lang="ru">Порядок сортировки:</text>
-			<text lang="uk">Порядок сортування:</text>
-			<text lang="de">Sortierreihenfolge:</text>
-			<text lang="es">Orden de clasificación:</text>
-			<text lang="fr">Ordre de tri:</text>
-		</property>
 		<property>
 			<text lang="en">Latin first</text>
 			<text lang="ru">Сначала латинские</text>
@@ -976,14 +986,6 @@
 			<text lang="de">Kyrillisch zuerst</text>
 			<text lang="es">Cirílico primero</text>
 			<text lang="fr">Cyrillique en premier</text>
-		</property>
-		<property form="MainForm" ctrl="label39">
-			<text lang="en">"New books" check time:</text>
-			<text lang="ru">Период для "новых книг":</text>
-			<text lang="uk">Період для "нових книг":</text>
-			<text lang="de">Zeitraum für "neue Bücher":</text>
-			<text lang="es">Período de verificación de "libros nuevos":</text>
-			<text lang="fr">Période de vérification des "nouveaux livres":</text>
 		</property>
 		<property>
 			<text lang="en">one week</text>
@@ -1073,16 +1075,8 @@
 			<text lang="es">{0} libros nuevos ordenados alfabéticamente</text>
 			<text lang="fr">{0} nouveaux livres triés par ordre alphabétique</text>
 		</property>
-		<property form="MainForm" ctrl="checkBox2">
-			<text lang="en">Use authors aliases</text>
-			<text lang="ru">Использовать алиасы для авторов</text>
-			<text lang="uk">Використовувати псевдоніми для авторів</text>
-			<text lang="de">Autoren-Aliasse verwenden</text>
-			<text lang="es">Usar alias de autores</text>
-			<text lang="fr">Utiliser les alias d'auteurs</text>
-		</property>
 
-		<!-- NEW TRANSLATIONS FOR INTERMEDIATE AUTHOR CATALOG -->
+		<!-- Intermediate author catalog translations -->
 		<property>
 			<text lang="en">Books by author {0}</text>
 			<text lang="ru">Книги автора {0}</text>
@@ -1203,6 +1197,37 @@
 			<text lang="es">Resultados de búsqueda</text>
 			<text lang="fr">Résultats de recherche</text>
 		</property>
-
+		<property>
+			<text lang="en">Download</text>
+			<text lang="ru">Скачать</text>
+			<text lang="uk">Завантажити</text>
+			<text lang="de">Herunterladen</text>
+			<text lang="es">Descargar</text>
+			<text lang="fr">Télécharger</text>
+		</property>
+		<property>
+			<text lang="en">Download EPUB</text>
+			<text lang="ru">Скачать EPUB</text>
+			<text lang="uk">Завантажити EPUB</text>
+			<text lang="de">EPUB herunterladen</text>
+			<text lang="es">Descargar EPUB</text>
+			<text lang="fr">Télécharger EPUB</text>
+		</property>
+		<property>
+			<text lang="en">Search authors or books...</text>
+			<text lang="ru">Поиск авторов или книг...</text>
+			<text lang="uk">Пошук авторів або книг...</text>
+			<text lang="de">Autoren oder Bücher suchen...</text>
+			<text lang="es">Buscar autores o libros...</text>
+			<text lang="fr">Rechercher des auteurs ou des livres...</text>
+		</property>
+		<property>
+			<text lang="en">Search</text>
+			<text lang="ru">Поиск</text>
+			<text lang="uk">Пошук</text>
+			<text lang="de">Suchen</text>
+			<text lang="es">Buscar</text>
+			<text lang="fr">Rechercher</text>
+		</property>
 	</properties>
 </root>

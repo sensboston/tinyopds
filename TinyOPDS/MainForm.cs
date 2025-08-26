@@ -450,7 +450,6 @@ namespace TinyOPDS
         private void LoadSettings()
         {
             // Setup link labels
-            converterLinkLabel.Links.Add(0, converterLinkLabel.Text.Length, "http://fb2epub.net/files/Fb2ePubSetup_1_1_3.zip");
             linkLabel3.Links.Add(0, linkLabel3.Text.Length, "https://code.google.com/p/fb2librarynet/");
             linkLabel5.Links.Add(0, linkLabel5.Text.Length, "http://epubreader.codeplex.com/");
             linkLabel4.Links.Add(0, linkLabel4.Text.Length, "http://dotnetzip.codeplex.com/");
@@ -464,18 +463,6 @@ namespace TinyOPDS
             }
 
             if (Utils.IsLinux) startWithWindows.Enabled = false;
-            if (string.IsNullOrEmpty(Properties.Settings.Default.ConvertorPath))
-            {
-                if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ProgramFiles")))
-                {
-                    if (File.Exists(Path.Combine(Environment.GetEnvironmentVariable("ProgramFiles"), "FB2ePub\\Fb2ePub.exe")))
-                    {
-                        convertorPath.Text = Properties.Settings.Default.ConvertorPath = Path.Combine(Environment.GetEnvironmentVariable("ProgramFiles"), "FB2ePub");
-                    }
-                }
-            }
-            else convertorPath.Text = Properties.Settings.Default.ConvertorPath;
-            converterLinkLabel.Visible = string.IsNullOrEmpty(convertorPath.Text);
 
             // We should update all invisible controls
             interfaceCombo.SelectedIndex = Math.Min(UPnPController.LocalInterfaces.Count - 1, Properties.Settings.Default.LocalInterfaceIndex);
@@ -614,19 +601,11 @@ namespace TinyOPDS
         {
             using (FolderBrowserDialog dialog = new FolderBrowserDialog())
             {
-                dialog.SelectedPath = (sender as Button == folderButton) ? libraryPath.Text : convertorPath.Text;
+                dialog.SelectedPath = libraryPath.Text;
                 if (dialog.ShowDialog() == DialogResult.OK)
                 {
-                    if (sender as Button == folderButton)
-                    {
-                        libraryPath.Text = dialog.SelectedPath.SanitizePathName();
-                        libraryPath_Validated(sender, e);
-                    }
-                    else
-                    {
-                        convertorPath.Text = dialog.SelectedPath;
-                        convertorPath_Validated(sender, e);
-                    }
+                    libraryPath.Text = dialog.SelectedPath.SanitizePathName();
+                    libraryPath_Validated(sender, e);
                 }
             }
         }
@@ -943,14 +922,6 @@ namespace TinyOPDS
 
         private void convertorPath_Validated(object sender, EventArgs e)
         {
-            if (!string.IsNullOrEmpty(convertorPath.Text) && Directory.Exists(convertorPath.Text) && File.Exists(Path.Combine(convertorPath.Text, Utils.IsLinux ? "fb2toepub" : "Fb2ePub.exe")))
-            {
-                Properties.Settings.Default.ConvertorPath = convertorPath.Text;
-            }
-            else
-            {
-                convertorPath.Text = Properties.Settings.Default.ConvertorPath;
-            }
         }
 
         private void useWatcher_CheckedChanged(object sender, EventArgs e)
@@ -1470,6 +1441,11 @@ namespace TinyOPDS
 
             // Update visual styles
             UpdateTreeNodeStyles();
+        }
+
+        private void label32_Click(object sender, EventArgs e)
+        {
+
         }
 
         private void HandleNodeDependencies(string tag, bool isChecked)

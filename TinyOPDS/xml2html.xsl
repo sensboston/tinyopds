@@ -2,6 +2,12 @@
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
 xmlns:x="http://www.w3.org/2005/Atom">
 	<xsl:param name="serverVersion" select="'TinyOPDS server'"/>
+	<xsl:param name="searchPlaceholder" select="'Search authors or books...'"/>
+	<xsl:param name="searchButtonText" select="'Search'"/>
+	<xsl:param name="formatText" select="'Format:'"/>
+	<xsl:param name="sizeText" select="'Size:'"/>
+	<xsl:param name="downloadText" select="'Download'"/>
+	<xsl:param name="downloadEpubText" select="'Download EPUB'"/>
 
 	<xsl:template match="/">
 		<xsl:variable name="id">
@@ -121,19 +127,38 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					line-height: 1.3;
 					}
 
+					.download-links {
+					margin-top: 15px;
+					}
+
 					.download-link {
 					font-size: 12px;
-					margin-top: 10px;
-					padding: 5px 10px;
-					background-color: #28a745;
-					color: white;
+					margin-top: 5px;
+					margin-right: 10px;
+					padding: 5px 12px;
 					text-decoration: none;
 					border-radius: 3px;
 					display: inline-block;
 					}
 
-					.download-link:hover {
+					.download-fb2 {
+					background-color: #28a745;
+					color: white;
+					}
+
+					.download-fb2:hover {
 					background-color: #218838;
+					color: white;
+					text-decoration: none;
+					}
+
+					.download-epub {
+					background-color: #007cba;
+					color: white;
+					}
+
+					.download-epub:hover {
+					background-color: #005a87;
 					color: white;
 					text-decoration: none;
 					}
@@ -236,15 +261,21 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					</xsl:if>
 				</div>
 
-				<!-- Search box for all pages -->
 				<div class="search-box">
 					<form method="get" action="/search" class="search-form">
-						<input type="text" name="searchTerm" placeholder="Поиск авторов или книг..." class="search-input" />
-						<input type="submit" value="Поиск" class="search-button" />
+						<input type="text" name="searchTerm" class="search-input">
+							<xsl:attribute name="placeholder">
+								<xsl:value-of select="$searchPlaceholder"/>
+							</xsl:attribute>
+						</input>
+						<input type="submit" class="search-button">
+							<xsl:attribute name="value">
+								<xsl:value-of select="$searchButtonText"/>
+							</xsl:attribute>
+						</input>
 					</form>
 				</div>
 
-				<!--home page-->
 				<xsl:if test="$id = 'tag:root'">
 					<ul>
 						<xsl:for-each select="x:feed/x:entry">
@@ -263,7 +294,6 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					</ul>
 				</xsl:if>
 
-				<!--by authors, series, genres etc.-->
 				<xsl:if test="$id != 'tag:root' and (($icon='/genres.ico') or ($icon='/series.ico') or ($icon='/authors.ico') or ($icon='/favicon.ico'))">
 					<h4>
 						<xsl:value-of select="$title" />
@@ -285,7 +315,6 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					</ul>
 				</xsl:if>
 
-				<!--book list-->
 				<xsl:if test="$icon = '/icons/books.ico'">
 					<h4>
 						<xsl:value-of select="$title" />
@@ -316,26 +345,56 @@ xmlns:x="http://www.w3.org/2005/Atom">
 										</div>
 
 										<div class="book-info">
-											<strong>Формат: </strong>
+											<strong>
+												<xsl:value-of select="$formatText"/>
+											</strong>
 											<xsl:value-of select="x:format"/>
 											<br/>
-											<strong>Размер: </strong>
+											<strong>
+												<xsl:value-of select="$sizeText"/>
+											</strong>
 											<xsl:value-of select="x:size"/>
 										</div>
 
-										<a class="download-link">
-											<xsl:attribute name="href">
+										<div class="download-links">
+											<!-- Extract book ID from download links -->
+											<xsl:variable name="bookId">
 												<xsl:choose>
-													<xsl:when test="x:link[attribute::type='application/epub+zip']">
-														<xsl:value-of select="x:link[attribute::type='application/epub+zip']/@href" />
+													<xsl:when test="x:link[attribute::type='application/fb2+zip']">
+														<xsl:call-template name="extract-book-id">
+															<xsl:with-param name="href" select="x:link[attribute::type='application/fb2+zip']/@href"/>
+														</xsl:call-template>
 													</xsl:when>
-													<xsl:otherwise>
-														<xsl:value-of select="x:link[attribute::type='application/fb2+zip']/@href" />
-													</xsl:otherwise>
+													<xsl:when test="x:link[attribute::type='application/epub+zip']">
+														<xsl:call-template name="extract-book-id">
+															<xsl:with-param name="href" select="x:link[attribute::type='application/epub+zip']/@href"/>
+														</xsl:call-template>
+													</xsl:when>
 												</xsl:choose>
-											</xsl:attribute>
-											Скачать
-										</a>
+											</xsl:variable>
+
+											<!-- FB2 Download button -->
+											<xsl:if test="x:link[attribute::type='application/fb2+zip'] or x:format = 'fb2'">
+												<a class="download-link download-fb2">
+													<xsl:attribute name="href">
+														<xsl:text>/download/</xsl:text>
+														<xsl:value-of select="$bookId"/>
+														<xsl:text>/fb2</xsl:text>
+													</xsl:attribute>
+													FB2
+												</a>
+											</xsl:if>
+
+											<!-- EPUB Download button -->
+											<a class="download-link download-epub">
+												<xsl:attribute name="href">
+													<xsl:text>/download/</xsl:text>
+													<xsl:value-of select="$bookId"/>
+													<xsl:text>/epub</xsl:text>
+												</xsl:attribute>
+												ePub
+											</a>
+										</div>
 									</div>
 								</div>
 							</li>
@@ -344,5 +403,51 @@ xmlns:x="http://www.w3.org/2005/Atom">
 				</xsl:if>
 			</body>
 		</html>
+	</xsl:template>
+
+	<!-- Template to extract book ID from existing download links -->
+	<xsl:template name="extract-book-id">
+		<xsl:param name="href"/>
+		<xsl:choose>
+			<!-- Handle old format: /fb2/{guid}/filename.fb2.zip -->
+			<xsl:when test="contains($href, '/fb2/')">
+				<xsl:variable name="afterFb2" select="substring-after($href, '/fb2/')"/>
+				<xsl:choose>
+					<xsl:when test="contains($afterFb2, '/')">
+						<xsl:value-of select="substring-before($afterFb2, '/')"/>
+					</xsl:when>
+					<xsl:otherwise>
+						<xsl:value-of select="$afterFb2"/>
+					</xsl:otherwise>
+				</xsl:choose>
+			</xsl:when>
+			<!-- Handle old format: /epub/{guid}/filename.epub -->
+			<xsl:when test="contains($href, '/epub/')">
+				<xsl:variable name="afterEpub" select="substring-after($href, '/epub/')"/>
+				<xsl:choose>
+					<xsl:when test="contains($afterEpub, '/')">
+						<xsl:value-of select="substring-before($afterEpub, '/')"/>
+					</xsl:when>
+					<xsl:otherwise>
+						<xsl:value-of select="$afterEpub"/>
+					</xsl:otherwise>
+				</xsl:choose>
+			</xsl:when>
+			<!-- Handle new format: /download/{guid}/fb2 or /download/{guid}/epub -->
+			<xsl:when test="contains($href, '/download/')">
+				<xsl:variable name="afterDownload" select="substring-after($href, '/download/')"/>
+				<xsl:choose>
+					<xsl:when test="contains($afterDownload, '/')">
+						<xsl:value-of select="substring-before($afterDownload, '/')"/>
+					</xsl:when>
+					<xsl:otherwise>
+						<xsl:value-of select="$afterDownload"/>
+					</xsl:otherwise>
+				</xsl:choose>
+			</xsl:when>
+			<xsl:otherwise>
+				<xsl:value-of select="$href"/>
+			</xsl:otherwise>
+		</xsl:choose>
 	</xsl:template>
 </xsl:stylesheet>

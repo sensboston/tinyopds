@@ -228,7 +228,9 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="xml2html.xsl" />
+    <EmbeddedResource Include="xml2html.xsl">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
     <EmbeddedResource Include="Resources\fb2.dtd" />
     <None Include="TinyOPDS.png" />
     <EmbeddedResource Include="translation.xml" />

@@ -561,6 +561,15 @@ namespace TinyOPDS.Server
 
                         XsltArgumentList args = new XsltArgumentList();
                         args.AddParam("serverVersion", "", Utils.ServerVersionName.Replace("running on ", ""));
+
+                        // Add localized parameters
+                        args.AddParam("searchPlaceholder", "", Localizer.Text("Search authors or books..."));
+                        args.AddParam("searchButtonText", "", Localizer.Text("Search"));
+                        args.AddParam("formatText", "", Localizer.Text("Format:"));
+                        args.AddParam("sizeText", "", Localizer.Text("Size:"));
+                        args.AddParam("downloadText", "", Localizer.Text("Download"));
+                        args.AddParam("downloadEpubText", "", Localizer.Text("Download EPUB"));
+
                         _xslTransform.Transform(xPathDoc, args, writer);
 
                         htmlStream.Position = 0;

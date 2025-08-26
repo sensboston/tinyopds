@@ -65,6 +65,9 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\TinyOPDS\Libs\eBdb.EpubReader.dll</HintPath>
     </Reference>
+    <Reference Include="EpubSharp, Version=1.1.5.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\TinyOPDS\packages\EpubSharp.dll.1.1.5\lib\net451\EpubSharp.dll</HintPath>
+    </Reference>
     <Reference Include="FB2Library, Version=1.0.22.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\TinyOPDS\Libs\FB2Library.dll</HintPath>
@@ -88,6 +91,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\TinyOPDS\Converters\FB2EpubConverter.cs">
+      <Link>Converters\FB2EpubConverter.cs</Link>
+    </Compile>
     <Compile Include="..\TinyOPDS\Data\Book.cs">
       <Link>Data\Book.cs</Link>
     </Compile>
@@ -193,22 +199,22 @@
     <Compile Include="..\TinyOPDS\Parsers\FB2Parser.cs">
       <Link>Parsers\FB2Parser.cs</Link>
     </Compile>
-    <Compile Include="..\TinyOPDS\Scanner\FileScanner.cs">
+    <Compile Include="..\TinyOPDS\Scanners\FileScanner.cs">
       <Link>Scanner\FileScanner.cs</Link>
     </Compile>
-    <Compile Include="..\TinyOPDS\Scanner\ScannerEvents.cs">
+    <Compile Include="..\TinyOPDS\Scanners\ScannerEvents.cs">
       <Link>Scanner\ScannerEvents.cs</Link>
     </Compile>
-    <Compile Include="..\TinyOPDS\Scanner\Watcher.cs">
+    <Compile Include="..\TinyOPDS\Scanners\Watcher.cs">
       <Link>Scanner\Watcher.cs</Link>
     </Compile>
-    <Compile Include="..\TinyOPDS\Scanner\ZipScanner.cs">
+    <Compile Include="..\TinyOPDS\Scanners\ZipScanner.cs">
       <Link>Scanner\ZipScanner.cs</Link>
     </Compile>
-    <Compile Include="..\TinyOPDS\Server\HttpServer.cs">
+    <Compile Include="..\TinyOPDS\Servers\HttpServer.cs">
       <Link>Server\HttpServer.cs</Link>
     </Compile>
-    <Compile Include="..\TinyOPDS\Server\OPDSServer.cs">
+    <Compile Include="..\TinyOPDS\Servers\OPDSServer.cs">
       <Link>Server\OPDSServer.cs</Link>
     </Compile>
     <Compile Include="..\TinyOPDS\SgmlReader\SgmlParser.cs">
@@ -291,6 +297,11 @@
       <ProductName>.NET Framework 3.5 SP1</ProductName>
       <Install>false</Install>
     </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\TinyOPDS\Libs\EpubSharp.dll">
+      <Link>Libs\EpubSharp.dll</Link>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

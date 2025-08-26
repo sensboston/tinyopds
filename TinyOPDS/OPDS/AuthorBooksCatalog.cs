@@ -311,7 +311,7 @@ namespace TinyOPDS.OPDS
                 );
 
                 // Add download links - NEW FORMAT WITHOUT FILENAME
-                if (book.BookType == BookType.EPUB || (book.BookType == BookType.FB2 && !acceptFB2 && !string.IsNullOrEmpty(Properties.Settings.Default.ConvertorPath)))
+                if (book.BookType == BookType.EPUB || (book.BookType == BookType.FB2 && !acceptFB2))
                 {
                     entry.Add(new XElement("link",
                         new XAttribute("href", "/download/" + book.ID + "/epub"),

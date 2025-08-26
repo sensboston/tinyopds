@@ -101,6 +101,9 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>Libs\eBdb.EpubReader.dll</HintPath>
     </Reference>
+    <Reference Include="EpubSharp, Version=1.1.5.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\EpubSharp.dll.1.1.5\lib\net451\EpubSharp.dll</HintPath>
+    </Reference>
     <Reference Include="FB2Library, Version=1.0.22.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>Libs\FB2Library.dll</HintPath>
@@ -122,6 +125,7 @@
     <Reference Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Converters\FB2EpubConverter.cs" />
     <Compile Include="Data\Book.cs" />
     <Compile Include="Data\BookRepository.cs" />
     <Compile Include="Data\CoverImage.cs" />
@@ -167,12 +171,12 @@
     <Compile Include="Misc\ProcessHelper.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Scanner\FileScanner.cs" />
-    <Compile Include="Scanner\ScannerEvents.cs" />
-    <Compile Include="Scanner\Watcher.cs" />
-    <Compile Include="Scanner\ZipScanner.cs" />
-    <Compile Include="Server\HttpServer.cs" />
-    <Compile Include="Server\OPDSServer.cs" />
+    <Compile Include="Scanners\FileScanner.cs" />
+    <Compile Include="Scanners\ScannerEvents.cs" />
+    <Compile Include="Scanners\Watcher.cs" />
+    <Compile Include="Scanners\ZipScanner.cs" />
+    <Compile Include="Servers\HttpServer.cs" />
+    <Compile Include="Servers\OPDSServer.cs" />
     <Compile Include="Misc\Utils.cs" />
     <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
@@ -244,6 +248,7 @@
     <EmbeddedResource Include="Libs\System.Data.SQLite.dll" />
     <EmbeddedResource Include="Libs\x64\SQLite.Interop.dll" />
     <EmbeddedResource Include="Libs\x86\SQLite.Interop.dll" />
+    <EmbeddedResource Include="Libs\EpubSharp.dll" />
     <Content Include="License.txt" />
     <None Include="Resources\trayIcon.ico" />
     <Content Include="TinyOPDS.ico" />

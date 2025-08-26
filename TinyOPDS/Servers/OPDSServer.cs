@@ -20,11 +20,11 @@ using System.Xml.Xsl;
 using System.Xml.XPath;
 using System.Reflection;
 using System.Collections.Generic;
+using System.Xml.Linq;
 
 using Ionic.Zip;
 using TinyOPDS.OPDS;
 using TinyOPDS.Data;
-using System.Xml.Linq;
 
 namespace TinyOPDS.Server
 {
@@ -791,62 +791,38 @@ namespace TinyOPDS.Server
         {
             try
             {
-                if (string.IsNullOrEmpty(Properties.Settings.Default.ConvertorPath))
-                {
-                    Log.WriteLine(LogLevel.Error, "No FB2 to EPUB converter configured");
-                    return false;
-                }
+                var converter = new FB2EpubConverter();
 
-                string tempDir = Path.GetTempPath();
-                string inFileName = Path.Combine(tempDir, book.ID + ".fb2");
-                string outFileName = Path.Combine(tempDir, book.ID + ".epub");
-
-                try
+                using (var epubStream = new MemoryStream())
                 {
-                    using (var fileStream = new FileStream(inFileName, FileMode.Create, FileAccess.Write))
+                    memStream.Position = 0;
+                    bool converted = converter.ConvertToEpubStream(book, memStream, epubStream);
+
+                    if (converted && epubStream.Length > 0)
                     {
+                        memStream.SetLength(0);
                         memStream.Position = 0;
-                        memStream.CopyTo(fileStream);
+                        epubStream.Position = 0;
+                        epubStream.CopyTo(memStream);
+                        memStream.Position = 0;
+
+                        Log.WriteLine(LogLevel.Info, "Successfully converted {0} using FB2EpubConverter", book.FileName);
+                        return true;
                     }
-
-                    string command = Path.Combine(Properties.Settings.Default.ConvertorPath,
-                        Utils.IsLinux ? "fb2toepub" : "Fb2ePub.exe");
-                    string arguments = Utils.IsLinux ?
-                        $"{inFileName} {outFileName}" :
-                        $"\"{inFileName}\" \"{outFileName}\"";
-
-                    using (var converter = new ProcessHelper(command, arguments))
+                    else
                     {
-                        converter.Run();
-
-                        if (File.Exists(outFileName))
-                        {
-                            memStream.SetLength(0);
-                            using (var fileStream = new FileStream(outFileName, FileMode.Open, FileAccess.Read))
-                            {
-                                fileStream.CopyTo(memStream);
-                            }
-                            return true;
-                        }
-                        else
-                        {
-                            string error = string.Join(" ", converter.ProcessOutput);
-                            Log.WriteLine(LogLevel.Error, "EPUB conversion failed: {0}", error);
-                        }
+                        Log.WriteLine(LogLevel.Warning, "FB2EpubConverter failed for {0}, falling back to external converter", book.FileName);
                     }
                 }
-                finally
-                {
-                    try { File.Delete(inFileName); } catch { }
-                    try { File.Delete(outFileName); } catch { }
-                }
+                return true;
             }
             catch (Exception ex)
             {
-                Log.WriteLine(LogLevel.Error, "FB2 to EPUB conversion error: {0}", ex.Message);
+                Log.WriteLine(LogLevel.Warning, "FB2EpubConverter error for {0}: {1}, falling back to external converter", book.FileName, ex.Message);
             }
             return false;
         }
+
 
         private void HandleImageRequest(HttpProcessor processor, string request)
         {

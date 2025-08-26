@@ -122,6 +122,7 @@
             this.rememberClients = new System.Windows.Forms.CheckBox();
             this.useHTTPAuth = new System.Windows.Forms.CheckBox();
             this.tabPage3 = new System.Windows.Forms.TabPage();
+            this.oneInstance = new System.Windows.Forms.CheckBox();
             this.viewLogFile = new System.Windows.Forms.Button();
             this.label32 = new System.Windows.Forms.Label();
             this.updateCombo = new System.Windows.Forms.ComboBox();
@@ -153,7 +154,6 @@
             this.serverMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripSeparator();
             this.exitMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.oneInstance = new System.Windows.Forms.CheckBox();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.tabPage2.SuspendLayout();
@@ -189,7 +189,7 @@
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.Padding = new System.Drawing.Point(16, 3);
             this.tabControl1.SelectedIndex = 0;
-            this.tabControl1.Size = new System.Drawing.Size(1296, 823);
+            this.tabControl1.Size = new System.Drawing.Size(1287, 856);
             this.tabControl1.TabIndex = 8;
             // 
             // tabPage1
@@ -226,7 +226,7 @@
             this.tabPage1.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.tabPage1.Name = "tabPage1";
             this.tabPage1.Padding = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.tabPage1.Size = new System.Drawing.Size(1276, 773);
+            this.tabPage1.Size = new System.Drawing.Size(1267, 806);
             this.tabPage1.TabIndex = 0;
             this.tabPage1.Text = "Scanner";
             // 
@@ -497,7 +497,7 @@
             // scannerButton
             // 
             this.scannerButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.scannerButton.Location = new System.Drawing.Point(681, 635);
+            this.scannerButton.Location = new System.Drawing.Point(670, 680);
             this.scannerButton.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.scannerButton.Name = "scannerButton";
             this.scannerButton.Size = new System.Drawing.Size(540, 95);
@@ -553,7 +553,7 @@
             this.tabPage2.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.tabPage2.Name = "tabPage2";
             this.tabPage2.Padding = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.tabPage2.Size = new System.Drawing.Size(1276, 773);
+            this.tabPage2.Size = new System.Drawing.Size(1267, 806);
             this.tabPage2.TabIndex = 1;
             this.tabPage2.Text = "Server";
             // 
@@ -562,7 +562,7 @@
             this.useAbsoluteUri.AutoSize = true;
             this.useAbsoluteUri.Checked = global::TinyOPDS.Properties.Settings.Default.UseAbsoluteUri;
             this.useAbsoluteUri.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "UseAbsoluteUri", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.useAbsoluteUri.Location = new System.Drawing.Point(907, 174);
+            this.useAbsoluteUri.Location = new System.Drawing.Point(956, 174);
             this.useAbsoluteUri.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.useAbsoluteUri.Name = "useAbsoluteUri";
             this.useAbsoluteUri.Size = new System.Drawing.Size(229, 36);
@@ -626,7 +626,7 @@
             // 
             this.interfaceCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.interfaceCombo.FormattingEnabled = true;
-            this.interfaceCombo.Location = new System.Drawing.Point(680, 83);
+            this.interfaceCombo.Location = new System.Drawing.Point(737, 83);
             this.interfaceCombo.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.interfaceCombo.Name = "interfaceCombo";
             this.interfaceCombo.Size = new System.Drawing.Size(316, 39);
@@ -636,7 +636,7 @@
             // label29
             // 
             this.label29.AutoSize = true;
-            this.label29.Location = new System.Drawing.Point(672, 38);
+            this.label29.Location = new System.Drawing.Point(729, 38);
             this.label29.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label29.Name = "label29";
             this.label29.Size = new System.Drawing.Size(242, 32);
@@ -646,7 +646,7 @@
             // statUniqueClients
             // 
             this.statUniqueClients.AutoSize = true;
-            this.statUniqueClients.Location = new System.Drawing.Point(262, 524);
+            this.statUniqueClients.Location = new System.Drawing.Point(315, 524);
             this.statUniqueClients.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.statUniqueClients.Name = "statUniqueClients";
             this.statUniqueClients.Size = new System.Drawing.Size(30, 32);
@@ -666,7 +666,7 @@
             // statImages
             // 
             this.statImages.AutoSize = true;
-            this.statImages.Location = new System.Drawing.Point(1120, 524);
+            this.statImages.Location = new System.Drawing.Point(920, 592);
             this.statImages.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.statImages.Name = "statImages";
             this.statImages.Size = new System.Drawing.Size(30, 32);
@@ -676,7 +676,7 @@
             // label27
             // 
             this.label27.AutoSize = true;
-            this.label27.Location = new System.Drawing.Point(943, 524);
+            this.label27.Location = new System.Drawing.Point(672, 592);
             this.label27.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label27.Name = "label27";
             this.label27.Size = new System.Drawing.Size(175, 32);
@@ -686,7 +686,7 @@
             // statBooks
             // 
             this.statBooks.AutoSize = true;
-            this.statBooks.Location = new System.Drawing.Point(852, 524);
+            this.statBooks.Location = new System.Drawing.Point(315, 592);
             this.statBooks.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.statBooks.Name = "statBooks";
             this.statBooks.Size = new System.Drawing.Size(30, 32);
@@ -696,7 +696,7 @@
             // label25
             // 
             this.label25.AutoSize = true;
-            this.label25.Location = new System.Drawing.Point(674, 524);
+            this.label25.Location = new System.Drawing.Point(53, 592);
             this.label25.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label25.Name = "label25";
             this.label25.Size = new System.Drawing.Size(162, 32);
@@ -706,7 +706,7 @@
             // statRequests
             // 
             this.statRequests.AutoSize = true;
-            this.statRequests.Location = new System.Drawing.Point(558, 524);
+            this.statRequests.Location = new System.Drawing.Point(920, 524);
             this.statRequests.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.statRequests.Name = "statRequests";
             this.statRequests.Size = new System.Drawing.Size(30, 32);
@@ -716,7 +716,7 @@
             // label23
             // 
             this.label23.AutoSize = true;
-            this.label23.Location = new System.Drawing.Point(340, 524);
+            this.label23.Location = new System.Drawing.Point(672, 524);
             this.label23.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label23.Name = "label23";
             this.label23.Size = new System.Drawing.Size(202, 32);
@@ -798,10 +798,10 @@
             // serverButton
             // 
             this.serverButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.serverButton.Location = new System.Drawing.Point(680, 635);
+            this.serverButton.Location = new System.Drawing.Point(670, 680);
             this.serverButton.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.serverButton.Name = "serverButton";
-            this.serverButton.Size = new System.Drawing.Size(541, 95);
+            this.serverButton.Size = new System.Drawing.Size(540, 95);
             this.serverButton.TabIndex = 8;
             this.serverButton.Text = "Start server";
             this.serverButton.Click += new System.EventHandler(this.serverButton_Click);
@@ -875,7 +875,7 @@
             this.serverName.Location = new System.Drawing.Point(59, 83);
             this.serverName.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.serverName.Name = "serverName";
-            this.serverName.Size = new System.Drawing.Size(556, 38);
+            this.serverName.Size = new System.Drawing.Size(635, 38);
             this.serverName.TabIndex = 12;
             this.serverName.Text = global::TinyOPDS.Properties.Settings.Default.ServerName;
             // 
@@ -896,7 +896,7 @@
             this.tabPage6.Location = new System.Drawing.Point(10, 40);
             this.tabPage6.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.tabPage6.Name = "tabPage6";
-            this.tabPage6.Size = new System.Drawing.Size(1276, 773);
+            this.tabPage6.Size = new System.Drawing.Size(1267, 796);
             this.tabPage6.TabIndex = 5;
             this.tabPage6.Text = "OPDS catalog";
             // 
@@ -1082,7 +1082,7 @@
             this.tabPage7.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.tabPage7.Name = "tabPage7";
             this.tabPage7.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.tabPage7.Size = new System.Drawing.Size(1276, 773);
+            this.tabPage7.Size = new System.Drawing.Size(1267, 796);
             this.tabPage7.TabIndex = 6;
             this.tabPage7.Text = "OPDS routes";
             this.tabPage7.UseVisualStyleBackColor = true;
@@ -1097,7 +1097,7 @@
             this.treeViewOPDS.Location = new System.Drawing.Point(24, 24);
             this.treeViewOPDS.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.treeViewOPDS.Name = "treeViewOPDS";
-            this.treeViewOPDS.Size = new System.Drawing.Size(1215, 723);
+            this.treeViewOPDS.Size = new System.Drawing.Size(1213, 746);
             this.treeViewOPDS.TabIndex = 2;
             this.treeViewOPDS.AfterCheck += new System.Windows.Forms.TreeViewEventHandler(this.treeViewOPDS_AfterCheck);
             // 
@@ -1120,7 +1120,7 @@
             this.tabPage5.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.tabPage5.Name = "tabPage5";
             this.tabPage5.Padding = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.tabPage5.Size = new System.Drawing.Size(1276, 773);
+            this.tabPage5.Size = new System.Drawing.Size(1267, 796);
             this.tabPage5.TabIndex = 4;
             this.tabPage5.Text = "Auth";
             // 
@@ -1283,9 +1283,20 @@
             this.tabPage3.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.tabPage3.Name = "tabPage3";
             this.tabPage3.Padding = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.tabPage3.Size = new System.Drawing.Size(1276, 773);
+            this.tabPage3.Size = new System.Drawing.Size(1267, 796);
             this.tabPage3.TabIndex = 2;
             this.tabPage3.Text = "Misc";
+            // 
+            // oneInstance
+            // 
+            this.oneInstance.AutoSize = true;
+            this.oneInstance.Location = new System.Drawing.Point(41, 274);
+            this.oneInstance.Name = "oneInstance";
+            this.oneInstance.Size = new System.Drawing.Size(280, 36);
+            this.oneInstance.TabIndex = 40;
+            this.oneInstance.Text = "Only one instance";
+            this.oneInstance.UseVisualStyleBackColor = true;
+            this.oneInstance.CheckedChanged += new System.EventHandler(this.oneInstance_CheckedChanged);
             // 
             // viewLogFile
             // 
@@ -1301,7 +1312,7 @@
             // label32
             // 
             this.label32.AutoSize = true;
-            this.label32.Location = new System.Drawing.Point(811, 244);
+            this.label32.Location = new System.Drawing.Point(811, 253);
             this.label32.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label32.Name = "label32";
             this.label32.Size = new System.Drawing.Size(237, 32);
@@ -1316,7 +1327,7 @@
             "Never",
             "Once a week",
             "Once a month"});
-            this.updateCombo.Location = new System.Drawing.Point(811, 283);
+            this.updateCombo.Location = new System.Drawing.Point(811, 300);
             this.updateCombo.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.updateCombo.Name = "updateCombo";
             this.updateCombo.Size = new System.Drawing.Size(347, 39);
@@ -1337,6 +1348,7 @@
             // 
             this.logVerbosity.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.logVerbosity.FormattingEnabled = true;
+            this.logVerbosity.ItemHeight = 31;
             this.logVerbosity.Items.AddRange(new object[] {
             "Info, warnings and errors",
             "Warnings and errors",
@@ -1344,7 +1356,7 @@
             this.logVerbosity.Location = new System.Drawing.Point(41, 542);
             this.logVerbosity.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.logVerbosity.Name = "logVerbosity";
-            this.logVerbosity.Size = new System.Drawing.Size(649, 39);
+            this.logVerbosity.Size = new System.Drawing.Size(529, 39);
             this.logVerbosity.TabIndex = 35;
             this.logVerbosity.SelectedIndexChanged += new System.EventHandler(this.logVerbosity_SelectedIndexChanged);
             // 
@@ -1363,7 +1375,7 @@
             this.langCombo.DisplayMember = "Value";
             this.langCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.langCombo.FormattingEnabled = true;
-            this.langCombo.Location = new System.Drawing.Point(811, 88);
+            this.langCombo.Location = new System.Drawing.Point(811, 84);
             this.langCombo.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.langCombo.Name = "langCombo";
             this.langCombo.Size = new System.Drawing.Size(347, 39);
@@ -1447,7 +1459,7 @@
             this.tabPage4.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.tabPage4.Name = "tabPage4";
             this.tabPage4.Padding = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.tabPage4.Size = new System.Drawing.Size(1276, 773);
+            this.tabPage4.Size = new System.Drawing.Size(1267, 806);
             this.tabPage4.TabIndex = 3;
             this.tabPage4.Text = "About program";
             // 
@@ -1602,10 +1614,10 @@
             // 
             this.donateButton.BackColor = System.Drawing.SystemColors.Control;
             this.donateButton.Image = global::TinyOPDS.Properties.Resources.donate;
-            this.donateButton.Location = new System.Drawing.Point(24, 572);
+            this.donateButton.Location = new System.Drawing.Point(27, 616);
             this.donateButton.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.donateButton.Name = "donateButton";
-            this.donateButton.Size = new System.Drawing.Size(419, 134);
+            this.donateButton.Size = new System.Drawing.Size(269, 134);
             this.donateButton.TabIndex = 0;
             this.donateButton.UseVisualStyleBackColor = false;
             this.donateButton.Click += new System.EventHandler(this.donateButton_Click);
@@ -1647,22 +1659,11 @@
             this.exitMenuItem.Text = "Exit";
             this.exitMenuItem.Click += new System.EventHandler(this.exitMenuItem_Click);
             // 
-            // oneInstance
-            // 
-            this.oneInstance.AutoSize = true;
-            this.oneInstance.Location = new System.Drawing.Point(41, 274);
-            this.oneInstance.Name = "oneInstance";
-            this.oneInstance.Size = new System.Drawing.Size(280, 36);
-            this.oneInstance.TabIndex = 40;
-            this.oneInstance.Text = "Only one instance";
-            this.oneInstance.UseVisualStyleBackColor = true;
-            this.oneInstance.CheckedChanged += new System.EventHandler(this.oneInstance_CheckedChanged);
-            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(16F, 31F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1277, 809);
+            this.ClientSize = new System.Drawing.Size(1268, 842);
             this.Controls.Add(this.tabControl1);
             this.DoubleBuffered = true;
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;

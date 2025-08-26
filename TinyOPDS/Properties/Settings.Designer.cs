@@ -37,7 +37,7 @@ namespace TinyOPDS.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("Моя домашняя библиотека")]
+        [global::System.Configuration.DefaultSettingValueAttribute("My home library")]
         public string ServerName {
             get {
                 return ((string)(this["ServerName"]));

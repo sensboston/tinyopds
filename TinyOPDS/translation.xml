@@ -25,6 +25,14 @@
 			<text lang="es">en memoria</text>
 			<text lang="fr">en mémoire</text>
 		</property>
+		<property form="MainForm" ctrl="oneInstance">
+			<text lang="en">Only one instance</text>
+			<text lang="ru">Только один экземпляр</text>
+			<text lang="uk">Тільки один примірник</text>
+			<text lang="de">Nur eine Instanz</text>
+			<text lang="es">Solo una instancia</text>
+			<text lang="fr">Une seule instance</text>
+		</property>
 		<property form="MainForm" ctrl="radioButton2">
 			<text lang="en">on disk</text>
 			<text lang="ru">на диске</text>

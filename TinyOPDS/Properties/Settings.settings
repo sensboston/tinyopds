@@ -6,7 +6,7 @@
       <Value Profile="(Default)" />
     </Setting>
     <Setting Name="ServerName" Type="System.String" Scope="User">
-      <Value Profile="(Default)">Моя домашняя библиотека</Value>
+      <Value Profile="(Default)">My home library</Value>
     </Setting>
     <Setting Name="ServerPort" Type="System.String" Scope="User">
       <Value Profile="(Default)">8080</Value>

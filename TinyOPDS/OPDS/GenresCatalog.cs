@@ -53,7 +53,7 @@ namespace TinyOPDS.OPDS
             );
 
             bool topLevel = true;
-            bool useCyrillic = TinyOPDS.Properties.Settings.Default.SortOrder > 0;
+            bool useCyrillic = Properties.Settings.Default.SortOrder > 0;
 
             // Get all genre statistics with single fast query
             Dictionary<string, int> genreStatistics;

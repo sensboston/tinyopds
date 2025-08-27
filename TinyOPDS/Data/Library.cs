@@ -170,7 +170,7 @@ namespace TinyOPDS.Data
             {
                 if (bookRepository == null) return 0;
 
-                var period = periods[TinyOPDS.Properties.Settings.Default.NewBooksPeriod];
+                var period = periods[Properties.Settings.Default.NewBooksPeriod];
                 var fromDate = DateTime.Now.Subtract(period);
                 return bookRepository.GetNewBooksCount(fromDate);
             }
@@ -210,7 +210,7 @@ namespace TinyOPDS.Data
                 if (bookRepository == null) return new List<string>();
 
                 var authors = bookRepository.GetAllAuthors();
-                var comparer = new OPDSComparer(TinyOPDS.Properties.Settings.Default.SortOrder > 0);
+                var comparer = new OPDSComparer(Properties.Settings.Default.SortOrder > 0);
                 return authors.Where(a => a.Length > 1).OrderBy(a => a, comparer).ToList();
             }
         }
@@ -225,7 +225,7 @@ namespace TinyOPDS.Data
                 if (bookRepository == null) return new List<string>();
 
                 var sequences = bookRepository.GetAllSequences();
-                var comparer = new OPDSComparer(TinyOPDS.Properties.Settings.Default.SortOrder > 0);
+                var comparer = new OPDSComparer(Properties.Settings.Default.SortOrder > 0);
                 return sequences.Where(s => s.Length > 1).OrderBy(s => s, comparer).ToList();
             }
         }
@@ -251,7 +251,7 @@ namespace TinyOPDS.Data
             get
             {
                 // Simply return all subgenres from the loaded XML genres
-                var useCyrillic = TinyOPDS.Properties.Settings.Default.SortOrder > 0;
+                var useCyrillic = Properties.Settings.Default.SortOrder > 0;
                 var comparer = new OPDSComparer(useCyrillic);
                 return genres.SelectMany(g => g.Subgenres).OrderBy(g => useCyrillic ? g.Translation : g.Name, comparer).ToList();
             }
@@ -266,7 +266,7 @@ namespace TinyOPDS.Data
             {
                 if (bookRepository == null) return new List<Book>();
 
-                var period = periods[TinyOPDS.Properties.Settings.Default.NewBooksPeriod];
+                var period = periods[Properties.Settings.Default.NewBooksPeriod];
                 var fromDate = DateTime.Now.Subtract(period);
                 return bookRepository.GetNewBooks(fromDate);
             }
@@ -282,7 +282,7 @@ namespace TinyOPDS.Data
                 if (bookRepository == null) return new List<string>();
 
                 var books = bookRepository.GetAllBooks();
-                var comparer = new OPDSComparer(TinyOPDS.Properties.Settings.Default.SortOrder > 0);
+                var comparer = new OPDSComparer(Properties.Settings.Default.SortOrder > 0);
                 return books.Select(b => b.Title).Distinct().OrderBy(t => t, comparer).ToList();
             }
         }
@@ -309,7 +309,7 @@ namespace TinyOPDS.Data
 
             try
             {
-                var period = periods[TinyOPDS.Properties.Settings.Default.NewBooksPeriod];
+                var period = periods[Properties.Settings.Default.NewBooksPeriod];
                 var fromDate = DateTime.Now.Subtract(period);
 
                 // Get total count for pagination
@@ -344,7 +344,7 @@ namespace TinyOPDS.Data
         {
             if (bookRepository == null) return 0;
 
-            var period = periods[TinyOPDS.Properties.Settings.Default.NewBooksPeriod];
+            var period = periods[Properties.Settings.Default.NewBooksPeriod];
             var fromDate = DateTime.Now.Subtract(period);
             return bookRepository.GetNewBooksCount(fromDate);
         }

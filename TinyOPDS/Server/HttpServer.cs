@@ -203,7 +203,7 @@ namespace TinyOPDS.Server
                     if (checkLogin)
                     {
                         // First, check authorized client list (if enabled)
-                        if (TinyOPDS.Properties.Settings.Default.RememberClients)
+                        if (Properties.Settings.Default.RememberClients)
                         {
                             if (AuthorizedClients.Contains(clientHash))
                             {
@@ -498,7 +498,7 @@ namespace TinyOPDS.Server
         public int SuccessfulLoginAttempts { get { return successfulLoginAttempts; } set { successfulLoginAttempts = value; StatisticsUpdated?.Invoke(this, null); } }
         public int WrongLoginAttempts { get { return wrongLoginAttempts; } set { wrongLoginAttempts = value; StatisticsUpdated?.Invoke(this, null); } }
         public int UniqueClientsCount { get { return uniqueClients.Count; } }
-        public int BannedClientsCount { get { lock (HttpProcessor.BannedClients) { return HttpProcessor.BannedClients.Count(client => client.Value >= TinyOPDS.Properties.Settings.Default.WrongAttemptsCount); } } }
+        public int BannedClientsCount { get { lock (HttpProcessor.BannedClients) { return HttpProcessor.BannedClients.Count(client => client.Value >=  Properties.Settings.Default.WrongAttemptsCount); } } }
 
         public void AddClient(string newClient)
         {

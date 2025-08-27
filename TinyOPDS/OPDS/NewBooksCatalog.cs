@@ -107,7 +107,7 @@ namespace TinyOPDS.OPDS
                 doc.Root.Element("title").Value += pageInfo;
             }
 
-            bool useCyrillic = TinyOPDS.Properties.Settings.Default.SortOrder > 0;
+            bool useCyrillic = Properties.Settings.Default.SortOrder > 0;
 
             // Add book entries
             foreach (Book book in paginatedResult.Books)

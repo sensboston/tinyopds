@@ -55,7 +55,7 @@ namespace TinyOPDS.Data
 
         private static void EnsureCacheDirectories()
         {
-            if (!TinyOPDS.Properties.Settings.Default.CacheImagesInMemory)
+            if (!Properties.Settings.Default.CacheImagesInMemory)
             {
                 try
                 {
@@ -313,7 +313,7 @@ namespace TinyOPDS.Data
                 {
                     stats.CoversCacheCount = ramCoversCache.Count;
                     stats.RamUsageMB = currentRamUsageBytes / (1024.0 * 1024.0);
-                    stats.RamLimitMB = TinyOPDS.Properties.Settings.Default.MaxRAMImageCacheSizeMB;
+                    stats.RamLimitMB = Properties.Settings.Default.MaxRAMImageCacheSizeMB;
                 }
                 else
                 {

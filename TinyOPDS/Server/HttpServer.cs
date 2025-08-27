@@ -89,21 +89,44 @@ namespace TinyOPDS.Server
 
         private string StreamReadLine(Stream inputStream)
         {
-            string data = string.Empty;
-            if (inputStream.CanRead)
+            if (!inputStream.CanRead) return string.Empty;
+
+            var buffer = new System.Text.StringBuilder(256);
+            int attempts = 0;
+            const int maxAttempts = 100; // 1 second total timeout
+
+            while (attempts < maxAttempts)
             {
-                while (true)
+                int next_char;
+                try
                 {
-                    int next_char;
-                    try { next_char = inputStream.ReadByte(); } catch { break; }
-                    if (next_char == '\n') { break; }
-                    if (next_char == '\r') { continue; }
-                    if (next_char == -1) { Thread.Sleep(10); continue; }
-                    ;
-                    data += Convert.ToChar(next_char);
+                    next_char = inputStream.ReadByte();
                 }
+                catch
+                {
+                    break;
+                }
+
+                if (next_char == -1)
+                {
+                    // No data available, wait briefly and retry
+                    Thread.Sleep(10);
+                    attempts++;
+                    continue;
+                }
+
+                attempts = 0; // Reset counter when we get data
+
+                if (next_char == '\n') break;
+                if (next_char == '\r') continue;
+
+                buffer.Append((char)next_char);
+
+                // Prevent extremely long lines (potential DoS protection)
+                if (buffer.Length > 8192) break;
             }
-            return data;
+
+            return buffer.ToString();
         }
 
         public void Process(object param)
@@ -416,40 +439,40 @@ namespace TinyOPDS.Server
     public class Statistics
     {
         public event EventHandler StatisticsUpdated;
-        private int _booksSent = 0;
-        private int _imagesSent = 0;
-        private int _getRequests = 0;
-        private int _postRequests = 0;
-        private int _successfulLoginAttempts = 0;
-        private int _wrongLoginAttempts = 0;
-        public int BooksSent { get { return _booksSent; } set { _booksSent = value; StatisticsUpdated?.Invoke(this, null); } }
-        public int ImagesSent { get { return _imagesSent; } set { _imagesSent = value; StatisticsUpdated?.Invoke(this, null); } }
-        public int GetRequests { get { return _getRequests; } set { _getRequests = value; StatisticsUpdated?.Invoke(this, null); } }
-        public int PostRequests { get { return _postRequests; } set { _postRequests = value; StatisticsUpdated?.Invoke(this, null); } }
-        public int SuccessfulLoginAttempts { get { return _successfulLoginAttempts; } set { _successfulLoginAttempts = value; StatisticsUpdated?.Invoke(this, null); } }
-        public int WrongLoginAttempts { get { return _wrongLoginAttempts; } set { _wrongLoginAttempts = value; StatisticsUpdated?.Invoke(this, null); } }
-        public int UniqueClientsCount { get { return _uniqueClients.Count; } }
+        private int booksSent = 0;
+        private int imagesSent = 0;
+        private int getRequests = 0;
+        private int postRequests = 0;
+        private int successfulLoginAttempts = 0;
+        private int wrongLoginAttempts = 0;
+        public int BooksSent { get { return booksSent; } set { booksSent = value; StatisticsUpdated?.Invoke(this, null); } }
+        public int ImagesSent { get { return imagesSent; } set { imagesSent = value; StatisticsUpdated?.Invoke(this, null); } }
+        public int GetRequests { get { return getRequests; } set { getRequests = value; StatisticsUpdated?.Invoke(this, null); } }
+        public int PostRequests { get { return postRequests; } set { postRequests = value; StatisticsUpdated?.Invoke(this, null); } }
+        public int SuccessfulLoginAttempts { get { return successfulLoginAttempts; } set { successfulLoginAttempts = value; StatisticsUpdated?.Invoke(this, null); } }
+        public int WrongLoginAttempts { get { return wrongLoginAttempts; } set { wrongLoginAttempts = value; StatisticsUpdated?.Invoke(this, null); } }
+        public int UniqueClientsCount { get { return uniqueClients.Count; } }
         public int BannedClientsCount { get { lock (HttpProcessor.BannedClients) { return HttpProcessor.BannedClients.Count(сlient => сlient.Value >= TinyOPDS.Properties.Settings.Default.WrongAttemptsCount); } } }
-        public void AddClient(string newClient) { _uniqueClients[newClient] = true; }
-        private readonly Dictionary<string, bool> _uniqueClients = new Dictionary<string, bool>();
+        public void AddClient(string newClient) { uniqueClients[newClient] = true; }
+        private readonly Dictionary<string, bool> uniqueClients = new Dictionary<string, bool>();
 
         public void Clear()
         {
-            _booksSent = _imagesSent = _getRequests = _postRequests = _successfulLoginAttempts = _wrongLoginAttempts = 0;
-            _uniqueClients.Clear();
+            booksSent = imagesSent = getRequests = postRequests = successfulLoginAttempts = wrongLoginAttempts = 0;
+            uniqueClients.Clear();
             StatisticsUpdated?.Invoke(this, null);
         }
 
         // Thread-safe increment methods for high-load scenarios
         public void IncrementBooksSent()
         {
-            Interlocked.Increment(ref _booksSent);
+            Interlocked.Increment(ref booksSent);
             StatisticsUpdated?.Invoke(this, null);
         }
 
         public void IncrementImagesSent()
         {
-            Interlocked.Increment(ref _imagesSent);
+            Interlocked.Increment(ref imagesSent);
             StatisticsUpdated?.Invoke(this, null);
         }
     }
@@ -459,33 +482,33 @@ namespace TinyOPDS.Server
     /// </summary>
     public abstract class HttpServer
     {
-        protected int _port;
-        protected int _timeout;
-        protected IPAddress _interfaceIP = IPAddress.Any;
-        TcpListener _listener;
-        internal bool _isActive = false;
-        public bool IsActive { get { return _isActive; } }
+        protected int port;
+        protected int timeout;
+        protected IPAddress interfaceIP = IPAddress.Any;
+        TcpListener listener;
+        internal bool isActive = false;
+        public bool IsActive { get { return isActive; } }
         public Exception ServerException = null;
         public AutoResetEvent ServerReady = null;
         public static Statistics ServerStatistics = new Statistics();
 
-        private bool _isIdle = true;
-        private TimeSpan _idleTimeout = TimeSpan.FromMinutes(10);
-        public bool IsIdle { get { return _isIdle; } }
+        private bool isIdle = true;
+        private TimeSpan idleTimeout = TimeSpan.FromMinutes(10);
+        public bool IsIdle { get { return isIdle; } }
 
         public HttpServer(int Port, int Timeout = 10000)
         {
-            _port = Port;
-            _timeout = Timeout;
+            port = Port;
+            timeout = Timeout;
             ServerReady = new AutoResetEvent(false);
             ServerStatistics.Clear();
         }
 
         public HttpServer(IPAddress InterfaceIP, int Port, int Timeout = 10000)
         {
-            _interfaceIP = InterfaceIP;
-            _port = Port;
-            _timeout = Timeout;
+            interfaceIP = InterfaceIP;
+            port = Port;
+            timeout = Timeout;
             ServerReady = new AutoResetEvent(false);
             ServerStatistics.Clear();
         }
@@ -497,11 +520,11 @@ namespace TinyOPDS.Server
 
         public virtual void StopServer()
         {
-            _isActive = false;
-            if (_listener != null)
+            isActive = false;
+            if (listener != null)
             {
-                _listener.Stop();
-                _listener = null;
+                listener.Stop();
+                listener = null;
             }
             if (ServerReady != null)
             {
@@ -520,21 +543,21 @@ namespace TinyOPDS.Server
             ServerException = null;
             try
             {
-                _listener = new TcpListener(_interfaceIP, _port);
-                _listener.Start();
-                _isActive = true;
+                listener = new TcpListener(interfaceIP, port);
+                listener.Start();
+                isActive = true;
                 ServerReady.Set();
-                while (_isActive)
+                while (isActive)
                 {
-                    if (_listener.Pending())
+                    if (listener.Pending())
                     {
-                        TcpClient socket = _listener.AcceptTcpClient();
-                        socket.SendTimeout = socket.ReceiveTimeout = _timeout;
+                        TcpClient socket = listener.AcceptTcpClient();
+                        socket.SendTimeout = socket.ReceiveTimeout = timeout;
                         socket.SendBufferSize = 1024 * 1024;
                         socket.NoDelay = true;
                         HttpProcessor processor = new HttpProcessor(socket, this);
                         // Reset idle state
-                        _isIdle = false;
+                        isIdle = false;
                         requestTime = DateTime.Now;
                         loopCount = 0;
                         ThreadPool.QueueUserWorkItem(new WaitCallback(processor.Process));
@@ -545,7 +568,7 @@ namespace TinyOPDS.Server
                     if (loopCount++ > 600)
                     {
                         loopCount = 0;
-                        if (DateTime.Now.Subtract(requestTime) > _idleTimeout) _isIdle = true;
+                        if (DateTime.Now.Subtract(requestTime) > idleTimeout) isIdle = true;
                     }
                 }
             }
@@ -553,12 +576,12 @@ namespace TinyOPDS.Server
             {
                 Log.WriteLine(LogLevel.Error, ".Listen() exception: {0}", e.Message);
                 ServerException = e;
-                _isActive = false;
+                isActive = false;
                 ServerReady.Set();
             }
             finally
             {
-                _isActive = false;
+                isActive = false;
             }
         }
 

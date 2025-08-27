@@ -25,6 +25,7 @@ using System.Xml.Linq;
 using Ionic.Zip;
 using TinyOPDS.OPDS;
 using TinyOPDS.Data;
+using System.Diagnostics;
 
 namespace TinyOPDS.Server
 {
@@ -160,10 +161,8 @@ namespace TinyOPDS.Server
                 }
 
                 bool isWWWRequest = IsWebRequest(processor.HttpUrl, processor);
-                bool acceptFB2 = DetectFB2Support(processor.HttpHeaders["User-Agent"] as string) || isWWWRequest;
-                int threshold = (int)(isWWWRequest ?
-                    Properties.Settings.Default.ItemsPerWebPage :
-                    Properties.Settings.Default.ItemsPerOPDSPage);
+                bool acceptFB2 = DetectFB2Support(processor.HttpHeaders["User-Agent"]) || isWWWRequest;
+                int threshold = isWWWRequest ? Properties.Settings.Default.ItemsPerWebPage : Properties.Settings.Default.ItemsPerOPDSPage;
 
                 // Check for download requests first, before checking extensions
                 if (request.StartsWith("/download/"))
@@ -186,6 +185,21 @@ namespace TinyOPDS.Server
                     }
                 }
 
+                if (request.Equals("/logo.png"))
+                {
+                    string resourceName = Assembly.GetExecutingAssembly().GetName().Name + ".Resources.logo.png";
+                    using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
+                    {
+                        if (stream != null && stream.Length > 0)
+                        {
+                            processor.WriteSuccess("image/png");
+                            stream.CopyTo(processor.OutputStream.BaseStream);
+                            processor.OutputStream.BaseStream.Flush();
+                            return;
+                        }
+                    }
+                }
+
                 if (string.IsNullOrEmpty(ext))
                 {
                     HandleOPDSRequest(processor, request, isWWWRequest, acceptFB2, threshold);
@@ -198,7 +212,7 @@ namespace TinyOPDS.Server
                 {
                     HandleBookDownloadRequest(processor, request, ext, acceptFB2);
                 }
-                else if (ext.Equals(".jpeg"))
+                else if (ext.Equals(".jpeg") || ext.Equals(".png"))
                 {
                     HandleImageRequest(processor, request);
                 }
@@ -561,6 +575,7 @@ namespace TinyOPDS.Server
 
                         XsltArgumentList args = new XsltArgumentList();
                         args.AddParam("serverVersion", "", Utils.ServerVersionName.Replace("running on ", ""));
+                        args.AddParam("libName", "", Properties.Settings.Default.ServerName);
 
                         // Add localized parameters
                         args.AddParam("searchPlaceholder", "", Localizer.Text("Search authors or books..."));
@@ -831,7 +846,6 @@ namespace TinyOPDS.Server
             }
             return false;
         }
-
 
         private void HandleImageRequest(HttpProcessor processor, string request)
         {

@@ -251,6 +251,7 @@
     <EmbeddedResource Include="Libs\EpubSharp.dll" />
     <Content Include="License.txt" />
     <None Include="Resources\trayIcon.ico" />
+    <EmbeddedResource Include="Resources\logo.png" />
     <Content Include="TinyOPDS.ico" />
   </ItemGroup>
   <ItemGroup />

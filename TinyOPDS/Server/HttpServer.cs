@@ -304,17 +304,14 @@ namespace TinyOPDS.Server
 
         private void CleanupConnection()
         {
-            try
+            try { Socket?.Close(); } catch { }
+            try { inputStream?.Dispose(); OutputStream?.Dispose(); } catch { }
+            finally 
             {
-                Socket?.Close();
+                inputStream = null;
+                OutputStream = null;
+                Socket = null;
             }
-            catch { }
-
-            inputStream?.Dispose();
-            inputStream = null;
-            OutputStream?.Dispose();
-            OutputStream = null;
-            Socket = null;
         }
 
         private bool ValidateCredentials(string user, string password)

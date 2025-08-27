@@ -19,28 +19,28 @@ namespace TinyOPDS.Data
 {
     public static class ImagesCache
     {
-        private static readonly object _lockObject = new object();
+        private static readonly object lockObject = new object();
 
         // RAM cache for covers (when CacheImagesInMemory = true)
-        private static readonly Dictionary<string, CoverImageData> _ramCoversCache = new Dictionary<string, CoverImageData>();
-        private static readonly Queue<string> _coversAccessOrder = new Queue<string>(); // FIFO for covers
+        private static readonly Dictionary<string, CoverImageData> ramCoversCache = new Dictionary<string, CoverImageData>();
+        private static readonly Queue<string> coversAccessOrder = new Queue<string>(); // FIFO for covers
 
         // RAM cache for thumbnails (always enabled)
-        private static readonly Dictionary<string, byte[]> _thumbnailsCache = new Dictionary<string, byte[]>();
+        private static readonly Dictionary<string, byte[]> thumbnailsCache = new Dictionary<string, byte[]>();
 
         // Disk cache paths
-        private static readonly string _cacheBasePath;
-        private static readonly string _coversPath;
-        private static readonly string _thumbsPath;
+        private static readonly string cacheBasePath;
+        private static readonly string coversPath;
+        private static readonly string thumbsPath;
 
         // Current RAM usage tracking
-        private static long _currentRamUsageBytes = 0;
+        private static long currentRamUsageBytes = 0;
 
         static ImagesCache()
         {
-            _cacheBasePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "cached_pics");
-            _coversPath = Path.Combine(_cacheBasePath, "covers");
-            _thumbsPath = Path.Combine(_cacheBasePath, "thumbs");
+            cacheBasePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "cached_pics");
+            coversPath = Path.Combine(cacheBasePath, "covers");
+            thumbsPath = Path.Combine(cacheBasePath, "thumbs");
 
             EnsureCacheDirectories();
         }
@@ -59,14 +59,14 @@ namespace TinyOPDS.Data
             {
                 try
                 {
-                    if (!Directory.Exists(_cacheBasePath))
-                        Directory.CreateDirectory(_cacheBasePath);
+                    if (!Directory.Exists(cacheBasePath))
+                        Directory.CreateDirectory(cacheBasePath);
 
-                    if (!Directory.Exists(_coversPath))
-                        Directory.CreateDirectory(_coversPath);
+                    if (!Directory.Exists(coversPath))
+                        Directory.CreateDirectory(coversPath);
 
-                    if (!Directory.Exists(_thumbsPath))
-                        Directory.CreateDirectory(_thumbsPath);
+                    if (!Directory.Exists(thumbsPath))
+                        Directory.CreateDirectory(thumbsPath);
                 }
                 catch (Exception ex)
                 {
@@ -79,7 +79,7 @@ namespace TinyOPDS.Data
         {
             if (image?.ID == null || !image.HasImages) return;
 
-            lock (_lockObject)
+            lock (lockObject)
             {
                 // Always cache thumbnails in RAM (they're tiny)
                 CacheThumbnailInRam(image);
@@ -100,12 +100,12 @@ namespace TinyOPDS.Data
         {
             try
             {
-                if (image.ThumbnailImageStream != null && !_thumbnailsCache.ContainsKey(image.ID))
+                if (image.ThumbnailImageStream != null && !thumbnailsCache.ContainsKey(image.ID))
                 {
                     image.ThumbnailImageStream.Position = 0;
                     byte[] thumbnailData = new byte[image.ThumbnailImageStream.Length];
                     image.ThumbnailImageStream.Read(thumbnailData, 0, thumbnailData.Length);
-                    _thumbnailsCache[image.ID] = thumbnailData;
+                    thumbnailsCache[image.ID] = thumbnailData;
                 }
             }
             catch (Exception ex)
@@ -118,7 +118,7 @@ namespace TinyOPDS.Data
         {
             try
             {
-                if (image.CoverImageStream != null && !_ramCoversCache.ContainsKey(image.ID))
+                if (image.CoverImageStream != null && !ramCoversCache.ContainsKey(image.ID))
                 {
                     image.CoverImageStream.Position = 0;
                     byte[] coverData = new byte[image.CoverImageStream.Length];
@@ -137,20 +137,20 @@ namespace TinyOPDS.Data
                     long neededSpace = coverImageData.SizeBytes;
 
                     // Remove oldest covers if needed (FIFO)
-                    while (_currentRamUsageBytes + neededSpace > maxBytes && _coversAccessOrder.Count > 0)
+                    while (currentRamUsageBytes + neededSpace > maxBytes && coversAccessOrder.Count > 0)
                     {
-                        string oldestId = _coversAccessOrder.Dequeue();
-                        if (_ramCoversCache.TryGetValue(oldestId, out var oldCover))
+                        string oldestId = coversAccessOrder.Dequeue();
+                        if (ramCoversCache.TryGetValue(oldestId, out var oldCover))
                         {
-                            _currentRamUsageBytes -= oldCover.SizeBytes;
-                            _ramCoversCache.Remove(oldestId);
+                            currentRamUsageBytes -= oldCover.SizeBytes;
+                            ramCoversCache.Remove(oldestId);
                         }
                     }
 
                     // Add new cover
-                    _ramCoversCache[image.ID] = coverImageData;
-                    _coversAccessOrder.Enqueue(image.ID);
-                    _currentRamUsageBytes += coverImageData.SizeBytes;
+                    ramCoversCache[image.ID] = coverImageData;
+                    coversAccessOrder.Enqueue(image.ID);
+                    currentRamUsageBytes += coverImageData.SizeBytes;
                 }
             }
             catch (Exception ex)
@@ -163,8 +163,8 @@ namespace TinyOPDS.Data
         {
             try
             {
-                string coverPath = Path.Combine(_coversPath, image.ID + ".jpg");
-                string thumbPath = Path.Combine(_thumbsPath, image.ID + ".jpg");
+                string coverPath = Path.Combine(coversPath, image.ID + ".jpg");
+                string thumbPath = Path.Combine(thumbsPath, image.ID + ".jpg");
 
                 if (image.CoverImageStream != null && !File.Exists(coverPath))
                 {
@@ -192,20 +192,20 @@ namespace TinyOPDS.Data
         {
             if (string.IsNullOrEmpty(id)) return false;
 
-            lock (_lockObject)
+            lock (lockObject)
             {
                 // Check thumbnails (always in RAM)
-                bool hasThumbnail = _thumbnailsCache.ContainsKey(id);
+                bool hasThumbnail = thumbnailsCache.ContainsKey(id);
 
                 // Check covers based on cache mode
                 bool hasCover = false;
                 if (Properties.Settings.Default.CacheImagesInMemory)
                 {
-                    hasCover = _ramCoversCache.ContainsKey(id);
+                    hasCover = ramCoversCache.ContainsKey(id);
                 }
                 else
                 {
-                    string coverPath = Path.Combine(_coversPath, id + ".jpg");
+                    string coverPath = Path.Combine(coversPath, id + ".jpg");
                     hasCover = File.Exists(coverPath);
                 }
 
@@ -217,7 +217,7 @@ namespace TinyOPDS.Data
         {
             if (string.IsNullOrEmpty(id)) return null;
 
-            lock (_lockObject)
+            lock (lockObject)
             {
                 try
                 {
@@ -225,19 +225,19 @@ namespace TinyOPDS.Data
                     byte[] thumbnailData = null;
 
                     // Get thumbnail data (always from RAM)
-                    _thumbnailsCache.TryGetValue(id, out thumbnailData);
+                    thumbnailsCache.TryGetValue(id, out thumbnailData);
 
                     // Get cover data based on cache mode
                     if (Properties.Settings.Default.CacheImagesInMemory)
                     {
-                        if (_ramCoversCache.TryGetValue(id, out var coverImageData))
+                        if (ramCoversCache.TryGetValue(id, out var coverImageData))
                         {
                             coverData = coverImageData.ImageData;
                         }
                     }
                     else
                     {
-                        string coverPath = Path.Combine(_coversPath, id + ".jpg");
+                        string coverPath = Path.Combine(coversPath, id + ".jpg");
                         if (File.Exists(coverPath))
                         {
                             coverData = File.ReadAllBytes(coverPath);
@@ -245,7 +245,7 @@ namespace TinyOPDS.Data
 
                         if (thumbnailData == null)
                         {
-                            string thumbPath = Path.Combine(_thumbsPath, id + ".jpg");
+                            string thumbPath = Path.Combine(thumbsPath, id + ".jpg");
                             if (File.Exists(thumbPath))
                             {
                                 thumbnailData = File.ReadAllBytes(thumbPath);
@@ -269,24 +269,24 @@ namespace TinyOPDS.Data
 
         public static void ClearCache()
         {
-            lock (_lockObject)
+            lock (lockObject)
             {
-                _ramCoversCache.Clear();
-                _thumbnailsCache.Clear();
-                _coversAccessOrder.Clear();
-                _currentRamUsageBytes = 0;
+                ramCoversCache.Clear();
+                thumbnailsCache.Clear();
+                coversAccessOrder.Clear();
+                currentRamUsageBytes = 0;
 
                 try
                 {
-                    if (Directory.Exists(_coversPath))
+                    if (Directory.Exists(coversPath))
                     {
-                        foreach (var file in Directory.GetFiles(_coversPath, "*.jpg"))
+                        foreach (var file in Directory.GetFiles(coversPath, "*.jpg"))
                             File.Delete(file);
                     }
 
-                    if (Directory.Exists(_thumbsPath))
+                    if (Directory.Exists(thumbsPath))
                     {
-                        foreach (var file in Directory.GetFiles(_thumbsPath, "*.jpg"))
+                        foreach (var file in Directory.GetFiles(thumbsPath, "*.jpg"))
                             File.Delete(file);
                     }
                 }
@@ -301,26 +301,26 @@ namespace TinyOPDS.Data
 
         public static CacheStats GetStats()
         {
-            lock (_lockObject)
+            lock (lockObject)
             {
                 var stats = new CacheStats
                 {
-                    ThumbnailsCacheCount = _thumbnailsCache.Count,
+                    ThumbnailsCacheCount = thumbnailsCache.Count,
                     CacheMode = Properties.Settings.Default.CacheImagesInMemory ? "RAM" : "Disk"
                 };
 
                 if (Properties.Settings.Default.CacheImagesInMemory)
                 {
-                    stats.CoversCacheCount = _ramCoversCache.Count;
-                    stats.RamUsageMB = _currentRamUsageBytes / (1024.0 * 1024.0);
+                    stats.CoversCacheCount = ramCoversCache.Count;
+                    stats.RamUsageMB = currentRamUsageBytes / (1024.0 * 1024.0);
                     stats.RamLimitMB = TinyOPDS.Properties.Settings.Default.MaxRAMImageCacheSizeMB;
                 }
                 else
                 {
                     try
                     {
-                        if (Directory.Exists(_coversPath))
-                            stats.CoversCacheCount = Directory.GetFiles(_coversPath, "*.jpg").Length;
+                        if (Directory.Exists(coversPath))
+                            stats.CoversCacheCount = Directory.GetFiles(coversPath, "*.jpg").Length;
                     }
                     catch { }
                 }

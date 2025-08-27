@@ -718,7 +718,7 @@ namespace TinyOPDS
         private void StartHttpServer()
         {
             // Create and start HTTP server
-            HttpProcessor.AuthorizedClients = new ConcurrentBag<string>();
+            HttpProcessor.AuthorizedClients = new List<string>();
             HttpProcessor.BannedClients.Clear();
             _server = new OPDSServer(IPAddress.Any, int.Parse(Properties.Settings.Default.ServerPort));
 

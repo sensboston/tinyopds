@@ -22,7 +22,6 @@ using System.Drawing;
 using System.Drawing.Imaging;
 
 using FB2Library;
-using FB2Library.HeaderItems;
 using FB2Library.Elements;
 using TinyOPDS.Data;
 using TinyOPDS.Sgml;

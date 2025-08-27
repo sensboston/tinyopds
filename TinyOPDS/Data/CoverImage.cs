@@ -31,16 +31,16 @@ namespace TinyOPDS.Data
         public static Size CoverSize = new Size(480, 800);
         public static Size ThumbnailSize = new Size(48, 80);
 
-        private readonly Image _cover;
-        private Image Thumbnail { get { return _cover?.Resize(ThumbnailSize); } }
-        public Stream CoverImageStream { get { return _cover.ToStream(ImageFormat.Jpeg); } }
+        private readonly Image cover;
+        private Image Thumbnail { get { return cover?.Resize(ThumbnailSize); } }
+        public Stream CoverImageStream { get { return cover.ToStream(ImageFormat.Jpeg); } }
         public Stream ThumbnailImageStream { get { return Thumbnail.ToStream(ImageFormat.Jpeg); } }
-        public bool HasImages { get { return _cover != null; } }
+        public bool HasImages { get { return cover != null; } }
         public string ID { get; set; }
 
         public CoverImage(Book book)
         {
-            _cover = null;
+            cover = null;
             ID = book.ID;
             Log.WriteLine(LogLevel.Info, "Creating cover for book: {0}, FilePath: {1}", book.Title, book.FilePath);
 
@@ -98,13 +98,13 @@ namespace TinyOPDS.Data
 
                     Log.WriteLine(LogLevel.Info, "Processing {0} book type", book.BookType);
 
-                    _cover = (book.BookType == BookType.EPUB) ?
+                    cover = (book.BookType == BookType.EPUB) ?
                         new ePubParser().GetCoverImage(memStream, book.FilePath)
                         : new FB2Parser().GetCoverImage(memStream, book.FilePath);
 
-                    if (_cover != null)
+                    if (cover != null)
                     {
-                        Log.WriteLine(LogLevel.Info, "Cover image extracted successfully, size: {0}x{1}", _cover.Width, _cover.Height);
+                        Log.WriteLine(LogLevel.Info, "Cover image extracted successfully, size: {0}x{1}", cover.Width, cover.Height);
                     }
                     else
                     {
@@ -116,18 +116,18 @@ namespace TinyOPDS.Data
             {
                 Log.WriteLine(LogLevel.Error, "Exception in CoverImage constructor for file {0}: {1}", book.FilePath, e.Message);
                 Log.WriteLine(LogLevel.Error, "Stack trace: {0}", e.StackTrace);
-                _cover = null;
+                cover = null;
             }
 
             // Generate default cover if no cover was found
-            if (_cover == null)
+            if (cover == null)
             {
                 Log.WriteLine(LogLevel.Info, "No cover found, generating default cover for: {0}", book.Title);
                 try
                 {
                     string author = book.Authors.FirstOrDefault() ?? "Unknown Author";
-                    _cover = GenerateDefaultCover(author, book.Title);
-                    if (_cover != null)
+                    cover = GenerateDefaultCover(author, book.Title);
+                    if (cover != null)
                     {
                         Log.WriteLine(LogLevel.Info, "Default cover generated successfully");
                     }

@@ -24,14 +24,14 @@ namespace TinyOPDS.Scanner
 {
     public class Watcher : IDisposable
     {
-        private FileSystemWatcher _fileWatcher;
-        private bool _disposed = false;
-        private readonly string[] _extensions = { ".zip", ".fb2", ".epub" };
+        private FileSystemWatcher fileWatcher;
+        private bool disposed = false;
+        private readonly string[] extensions = { ".zip", ".fb2", ".epub" };
 
-        private readonly List<string> _addedBooks = new List<string>();
-        private readonly List<string> _deletedBooks = new List<string>();
-        private readonly BackgroundWorker _booksManager;
-        private readonly FileScanner _scanner;
+        private readonly List<string> addedBooks = new List<string>();
+        private readonly List<string> deletedBooks = new List<string>();
+        private readonly BackgroundWorker booksManager;
+        private readonly FileScanner scanner;
 
         public event BookAddedEventHandler OnBookAdded;
         public event BookDeletedEventHandler OnBookDeleted;
@@ -42,10 +42,10 @@ namespace TinyOPDS.Scanner
         public Watcher(string path = "")
         {
             DirectoryToWatch = path;
-            _booksManager = new BackgroundWorker();
-            _booksManager.DoWork += BooksManager_DoWork;
-            _scanner = new FileScanner(false);
-            _scanner.OnBookFound += (object s, BookFoundEventArgs be) =>
+            booksManager = new BackgroundWorker();
+            booksManager.DoWork += BooksManager_DoWork;
+            scanner = new FileScanner(false);
+            scanner.OnBookFound += (object s, BookFoundEventArgs be) =>
             {
                 if (Library.Add(be.Book))
                 {
@@ -53,8 +53,8 @@ namespace TinyOPDS.Scanner
                     OnBookAdded?.Invoke(this, new BookAddedEventArgs(be.Book.FileName));
                 }
             };
-            _scanner.OnInvalidBook += (object _sender, InvalidBookEventArgs _e) => { OnInvalidBook?.Invoke(_sender, _e); };
-            _scanner.OnFileSkipped += (object _sender, FileSkippedEventArgs _e) => { OnFileSkipped?.Invoke(_sender, _e); };
+            scanner.OnInvalidBook += (object _sender, InvalidBookEventArgs _e) => { OnInvalidBook?.Invoke(_sender, _e); };
+            scanner.OnFileSkipped += (object _sender, FileSkippedEventArgs _e) => { OnFileSkipped?.Invoke(_sender, _e); };
         }
 
         public void Dispose()
@@ -66,18 +66,18 @@ namespace TinyOPDS.Scanner
         protected virtual void Dispose(bool disposing)
         {
             // Check to see if Dispose has already been called.
-            if (!this._disposed)
+            if (!this.disposed)
             {
                 if (disposing)
                 {
-                    if (_booksManager != null)
+                    if (booksManager != null)
                     {
                         _isEnabled = false;
-                        _booksManager.Dispose();
+                        booksManager.Dispose();
                     }
-                    _fileWatcher?.Dispose();
+                    fileWatcher?.Dispose();
                 }
-                _disposed = true;
+                disposed = true;
             }
         }
 
@@ -86,7 +86,7 @@ namespace TinyOPDS.Scanner
             [PermissionSetAttribute(SecurityAction.LinkDemand, Unrestricted=true)]
             get 
             { 
-                return (_fileWatcher == null) ? string.Empty : _fileWatcher.Path; 
+                return (fileWatcher == null) ? string.Empty : fileWatcher.Path; 
             }
 
             [PermissionSetAttribute(SecurityAction.LinkDemand, Unrestricted = true)]
@@ -94,23 +94,23 @@ namespace TinyOPDS.Scanner
             {
                 if (!string.IsNullOrEmpty(value) && Directory.Exists(value))
                 {
-                    if (_fileWatcher != null)
+                    if (fileWatcher != null)
                     {
-                        _fileWatcher.Created -= FileWatcher_Created;
-                        _fileWatcher.Deleted -= FileWatcher_Deleted;
-                        _fileWatcher.Renamed -= FileWatcher_Renamed;
-                        _fileWatcher.Dispose();
+                        fileWatcher.Created -= FileWatcher_Created;
+                        fileWatcher.Deleted -= FileWatcher_Deleted;
+                        fileWatcher.Renamed -= FileWatcher_Renamed;
+                        fileWatcher.Dispose();
                     }
-                    _fileWatcher = new FileSystemWatcher(value, "*")
+                    fileWatcher = new FileSystemWatcher(value, "*")
                     {
                         InternalBufferSize = 1024 * 64
                     };
-                    _fileWatcher.Created += new FileSystemEventHandler(FileWatcher_Created);
-                    _fileWatcher.Deleted += new FileSystemEventHandler(FileWatcher_Deleted);
-                    _fileWatcher.Renamed += new RenamedEventHandler(FileWatcher_Renamed);
-                    _fileWatcher.IncludeSubdirectories = true;
-                    _fileWatcher.NotifyFilter = NotifyFilters.FileName;
-                    _fileWatcher.EnableRaisingEvents = _isEnabled;
+                    fileWatcher.Created += new FileSystemEventHandler(FileWatcher_Created);
+                    fileWatcher.Deleted += new FileSystemEventHandler(FileWatcher_Deleted);
+                    fileWatcher.Renamed += new RenamedEventHandler(FileWatcher_Renamed);
+                    fileWatcher.IncludeSubdirectories = true;
+                    fileWatcher.NotifyFilter = NotifyFilters.FileName;
+                    fileWatcher.EnableRaisingEvents = _isEnabled;
                 }
             }
         }
@@ -121,17 +121,17 @@ namespace TinyOPDS.Scanner
             get { return _isEnabled; }
             set 
             {
-                if (_fileWatcher != null)
+                if (fileWatcher != null)
                 {
-                    _fileWatcher.EnableRaisingEvents = _isEnabled = value;
+                    fileWatcher.EnableRaisingEvents = _isEnabled = value;
                     if (_isEnabled)
                     {
-                        if (!_booksManager.IsBusy) _booksManager.RunWorkerAsync();
+                        if (!booksManager.IsBusy) booksManager.RunWorkerAsync();
                     }
                     else
                     {
-                        _addedBooks.Clear();
-                        _deletedBooks.Clear();
+                        addedBooks.Clear();
+                        deletedBooks.Clear();
                     }
                 }
             }
@@ -145,41 +145,41 @@ namespace TinyOPDS.Scanner
         void BooksManager_DoWork(object sender, DoWorkEventArgs e)
         {
             string fileName;
-            while (_isEnabled && !_disposed)
+            while (_isEnabled && !disposed)
             {
                 // First, check added books
-                if (_addedBooks.Count > 0)
+                if (addedBooks.Count > 0)
                 {
-                    fileName = _addedBooks.First();
+                    fileName = addedBooks.First();
                     // If book scheduled for deletion, do not add it
-                    if (_deletedBooks.Contains(fileName))
+                    if (deletedBooks.Contains(fileName))
                     {
-                        _deletedBooks.Remove(fileName);
-                        _addedBooks.Remove(fileName);
+                        deletedBooks.Remove(fileName);
+                        addedBooks.Remove(fileName);
                     }
                     else
                     {
                         if (!IsFileInUse(fileName))
                         {
-                            _scanner.ScanFile(fileName);
-                            _addedBooks.Remove(fileName);
+                            scanner.ScanFile(fileName);
+                            addedBooks.Remove(fileName);
                         }
                         else
                         {
-                            _addedBooks.Remove(fileName);
-                            _addedBooks.Add(fileName);
+                            addedBooks.Remove(fileName);
+                            addedBooks.Add(fileName);
                         }
                     }
                 }
                 // Delete book from library (we don't care about actual file existence)
-                else if (_deletedBooks.Count > 0)
+                else if (deletedBooks.Count > 0)
                 {
-                    fileName = _deletedBooks.First();
+                    fileName = deletedBooks.First();
                     if (Library.Delete(fileName))
                     {
                         OnBookDeleted?.Invoke(this, new BookDeletedEventArgs(fileName));
                     }
-                    _deletedBooks.Remove(fileName);
+                    deletedBooks.Remove(fileName);
                 }
                 // Get some rest for UI
                 else
@@ -196,9 +196,9 @@ namespace TinyOPDS.Scanner
         /// <param name="e"></param>
         private void FileWatcher_Created(object sender, FileSystemEventArgs e)
         {
-            if (_extensions.Contains(Path.GetExtension(e.FullPath).ToLower()))
+            if (extensions.Contains(Path.GetExtension(e.FullPath).ToLower()))
             {
-                lock (_addedBooks) _addedBooks.Add(e.FullPath);
+                lock (addedBooks) addedBooks.Add(e.FullPath);
             }
         }
 
@@ -209,9 +209,9 @@ namespace TinyOPDS.Scanner
         /// <param name="e"></param>
         private void FileWatcher_Renamed(object sender, RenamedEventArgs e)
         {
-            if (_extensions.Contains(Path.GetExtension(e.FullPath).ToLower()))
+            if (extensions.Contains(Path.GetExtension(e.FullPath).ToLower()))
             {
-                lock (_deletedBooks) _deletedBooks.Add(e.FullPath);
+                lock (deletedBooks) deletedBooks.Add(e.FullPath);
             }
         }
 
@@ -222,9 +222,9 @@ namespace TinyOPDS.Scanner
         /// <param name="e"></param>
         private void FileWatcher_Deleted(object sender, FileSystemEventArgs e)
         {
-            if (_extensions.Contains(Path.GetExtension(e.FullPath).ToLower()))
+            if (extensions.Contains(Path.GetExtension(e.FullPath).ToLower()))
             {
-                lock (_deletedBooks) _deletedBooks.Add(e.FullPath);
+                lock (deletedBooks) deletedBooks.Add(e.FullPath);
             }
         }
 

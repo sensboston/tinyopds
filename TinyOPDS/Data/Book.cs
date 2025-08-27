@@ -43,16 +43,16 @@ namespace TinyOPDS.Data
             Translators = new List<string>();
             Genres = new List<string>();
         }
-        private string _id = string.Empty;
+        private string id = string.Empty;
         public string ID 
         {
-            get {  return _id; }
+            get {  return id; }
             set
             {
                 // Book ID always must be in GUID form
                 Guid guid;
-                if (!string.IsNullOrEmpty(value) && Guid.TryParse(value, out guid)) _id = value; else _id = Utils.CreateGuid(Utils.IsoOidNamespace, FileName).ToString();
-                _id = _id.Replace("{", "").Replace("}", "");
+                if (!string.IsNullOrEmpty(value) && Guid.TryParse(value, out guid)) id = value; else id = Utils.CreateGuid(Utils.IsoOidNamespace, FileName).ToString();
+                id = id.Replace("{", "").Replace("}", "");
             }
         }
         public float Version { get; set; }

@@ -23,9 +23,9 @@ namespace TinyOPDS.Data
     /// </summary>
     public static class SqliteConnectionFactory
     {
-        private static Assembly _sqliteAssembly;
-        private static Type _connectionType;
-        private static Type _commandType;
+        private static Assembly sqliteAssembly;
+        private static Type connectionType;
+        private static Type commandType;
 
         static SqliteConnectionFactory()
         {
@@ -40,7 +40,7 @@ namespace TinyOPDS.Data
             try
             {
                 // Try to load Mono.Data.Sqlite from GAC first
-                _sqliteAssembly = Assembly.Load("Mono.Data.Sqlite");
+                sqliteAssembly = Assembly.Load("Mono.Data.Sqlite");
             }
             catch
             {
@@ -50,7 +50,7 @@ namespace TinyOPDS.Data
                     var monoSqlitePath = "/usr/lib/mono/4.5/Mono.Data.Sqlite.dll";
                     if (File.Exists(monoSqlitePath))
                     {
-                        _sqliteAssembly = Assembly.LoadFrom(monoSqlitePath);
+                        sqliteAssembly = Assembly.LoadFrom(monoSqlitePath);
                     }
                 }
                 catch
@@ -61,21 +61,19 @@ namespace TinyOPDS.Data
                         var localPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Mono.Data.Sqlite.dll");
                         if (File.Exists(localPath))
                         {
-                            _sqliteAssembly = Assembly.LoadFrom(localPath);
+                            sqliteAssembly = Assembly.LoadFrom(localPath);
                         }
                     }
                     catch
                     {
-                        // Last resort - try to load System.Data.SQLite even on Linux
-                        // This might work with newer Mono versions
                     }
                 }
             }
 
-            if (_sqliteAssembly != null)
+            if (sqliteAssembly != null)
             {
-                _connectionType = _sqliteAssembly.GetType("Mono.Data.Sqlite.SqliteConnection");
-                _commandType = _sqliteAssembly.GetType("Mono.Data.Sqlite.SqliteCommand");
+                connectionType = sqliteAssembly.GetType("Mono.Data.Sqlite.SqliteConnection");
+                commandType = sqliteAssembly.GetType("Mono.Data.Sqlite.SqliteCommand");
             }
         }
 
@@ -88,9 +86,9 @@ namespace TinyOPDS.Data
         {
             if (Utils.IsLinux)
             {
-                if (_connectionType != null)
+                if (connectionType != null)
                 {
-                    return (IDbConnection)Activator.CreateInstance(_connectionType, connectionString);
+                    return (IDbConnection)Activator.CreateInstance(connectionType, connectionString);
                 }
                 else
                 {
@@ -123,9 +121,9 @@ namespace TinyOPDS.Data
         {
             if (Utils.IsLinux)
             {
-                if (_commandType != null)
+                if (commandType != null)
                 {
-                    return (IDbCommand)Activator.CreateInstance(_commandType, sql, connection);
+                    return (IDbCommand)Activator.CreateInstance(commandType, sql, connection);
                 }
                 else
                 {
@@ -156,9 +154,9 @@ namespace TinyOPDS.Data
         {
             if (Utils.IsLinux)
             {
-                if (_commandType != null)
+                if (commandType != null)
                 {
-                    return (IDbCommand)Activator.CreateInstance(_commandType, sql);
+                    return (IDbCommand)Activator.CreateInstance(commandType, sql);
                 }
                 else
                 {

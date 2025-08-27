@@ -18,33 +18,33 @@ namespace TinyOPDS
     /// <summary>
     /// A lightweight logging class for Silverlight.
     /// </summary>
-    internal static class Log
+    public static class Log
     {
-        internal static string LogFileName = "TinyOPDS.log";
+        public static string LogFileName = "TinyOPDS.log";
 
         /// <summary>
         /// 
         /// </summary>
-        internal static LogLevel VerbosityLevel = LogLevel.Info;
+        public static LogLevel VerbosityLevel = LogLevel.Info;
 
         /// <summary>
         /// Enable or disable logging to file
         /// </summary>
-        private static bool _saveToFile = false;
-        internal static bool SaveToFile
+        private static bool saveToFile = false;
+        public static bool SaveToFile
         {
-            get { return _saveToFile; }
+            get { return saveToFile; }
             set 
             {
                 LogFileName = Path.Combine(Utils.ServiceFilesLocation, "TinyOPDS.log");
-                _saveToFile = value;
+                saveToFile = value;
             }
         }
 
         /// <summary>
         /// Writes the args to the default logging output using the format provided.
         /// </summary>
-        internal static void WriteLine(string format, params object[] args)
+        public static void WriteLine(string format, params object[] args)
         {
             WriteLine(LogLevel.Info, format, args);
         }
@@ -52,7 +52,7 @@ namespace TinyOPDS
         /// <summary>
         /// Writes the args to the default logging output using the format provided.
         /// </summary>
-        internal static void WriteLine(LogLevel level, string format, params object[] args)
+        public static void WriteLine(LogLevel level, string format, params object[] args)
         {
             if (level >= VerbosityLevel || level == LogLevel.Authentication)
             {

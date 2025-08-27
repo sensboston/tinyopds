@@ -115,9 +115,6 @@ namespace TinyOPDS
             {
                 writer.AddAuthor("Unknown Author");
             }
-
-            // Note: Advanced metadata methods might not exist in this version of EpubSharp
-            // Using only basic functionality that we know works from examples
         }
 
         private void AddCover(EpubWriter writer, FB2File fb2File)
@@ -285,13 +282,10 @@ namespace TinyOPDS
 
         private EpubSharp.ImageFormat GetImageFormat(string contentType)
         {
-            if (string.IsNullOrEmpty(contentType))
-                return ImageFormat.Jpeg;
+            if (string.IsNullOrEmpty(contentType)) return ImageFormat.Jpeg;
             contentType = contentType.ToLower();
-            if (contentType.Contains("png"))
-                return ImageFormat.Png;
-            if (contentType.Contains("gif"))
-                return ImageFormat.Gif;
+            if (contentType.Contains("png")) return ImageFormat.Png;
+            if (contentType.Contains("gif")) return ImageFormat.Gif;
             return ImageFormat.Jpeg;
         }
     }

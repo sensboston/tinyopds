@@ -142,9 +142,6 @@
     <Compile Include="..\TinyOPDS\Misc\PortableSettingsProviderBase.cs">
       <Link>Misc\PortableSettingsProviderBase.cs</Link>
     </Compile>
-    <Compile Include="..\TinyOPDS\Misc\ProcessHelper.cs">
-      <Link>Misc\ProcessHelper.cs</Link>
-    </Compile>
     <Compile Include="..\TinyOPDS\Misc\ServiceTools.cs">
       <Link>Misc\ServiceTools.cs</Link>
     </Compile>
@@ -211,10 +208,10 @@
     <Compile Include="..\TinyOPDS\Scanners\ZipScanner.cs">
       <Link>Scanner\ZipScanner.cs</Link>
     </Compile>
-    <Compile Include="..\TinyOPDS\Servers\HttpServer.cs">
+    <Compile Include="..\TinyOPDS\Server\HttpServer.cs">
       <Link>Server\HttpServer.cs</Link>
     </Compile>
-    <Compile Include="..\TinyOPDS\Servers\OPDSServer.cs">
+    <Compile Include="..\TinyOPDS\Server\OPDSServer.cs">
       <Link>Server\OPDSServer.cs</Link>
     </Compile>
     <Compile Include="..\TinyOPDS\SgmlReader\SgmlParser.cs">

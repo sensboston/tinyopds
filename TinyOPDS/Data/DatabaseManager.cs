@@ -18,13 +18,13 @@ namespace TinyOPDS.Data
 {
     public class DatabaseManager : IDisposable
     {
-        private IDbConnection _connection;
-        private readonly string _connectionString;
-        private bool _disposed = false;
+        private IDbConnection connection;
+        private readonly string connectionString;
+        private bool disposed = false;
 
         public DatabaseManager(string databasePath)
         {
-            _connectionString = $"Data Source={databasePath};Version=3;";
+            connectionString = $"Data Source={databasePath};Version=3;";
 
             // Create database file if it doesn't exist (only for System.Data.SQLite on Windows)
             if (!Utils.IsLinux && !File.Exists(databasePath))
@@ -42,8 +42,8 @@ namespace TinyOPDS.Data
                 }
             }
 
-            _connection = SqliteConnectionFactory.CreateConnection(_connectionString);
-            _connection.Open();
+            connection = SqliteConnectionFactory.CreateConnection(connectionString);
+            connection.Open();
 
             // Enable foreign keys
             ExecuteNonQuery("PRAGMA foreign_keys = ON");
@@ -80,7 +80,7 @@ namespace TinyOPDS.Data
         }
         public int ExecuteNonQuery(string sql, params IDbDataParameter[] parameters)
         {
-            var command = SqliteConnectionFactory.CreateCommand(sql, _connection);
+            var command = SqliteConnectionFactory.CreateCommand(sql, connection);
             try
             {
                 if (parameters != null)
@@ -100,7 +100,7 @@ namespace TinyOPDS.Data
 
         public object ExecuteScalar(string sql, params IDbDataParameter[] parameters)
         {
-            var command = SqliteConnectionFactory.CreateCommand(sql, _connection);
+            var command = SqliteConnectionFactory.CreateCommand(sql, connection);
             try
             {
                 if (parameters != null)
@@ -120,7 +120,7 @@ namespace TinyOPDS.Data
 
         public IDataReader ExecuteReader(string sql, params IDbDataParameter[] parameters)
         {
-            var command = SqliteConnectionFactory.CreateCommand(sql, _connection);
+            var command = SqliteConnectionFactory.CreateCommand(sql, connection);
             if (parameters != null)
             {
                 foreach (var param in parameters)
@@ -263,17 +263,17 @@ namespace TinyOPDS.Data
 
         protected virtual void Dispose(bool disposing)
         {
-            if (!_disposed)
+            if (!disposed)
             {
                 if (disposing)
                 {
-                    if (_connection != null)
+                    if (connection != null)
                     {
-                        _connection.Close();
-                        _connection.Dispose();
+                        connection.Close();
+                        connection.Dispose();
                     }
                 }
-                _disposed = true;
+                disposed = true;
             }
         }
 

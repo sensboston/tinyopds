@@ -31,7 +31,6 @@ namespace TinyOPDS.Scanner
         private IEnumerable<BookFoundEventHandler> BookFoundEventHandlers() { return from d in OnBookFound.GetInvocationList() select (BookFoundEventHandler)d; }
 
         public event InvalidBookEventHandler OnInvalidBook;
-        private IEnumerable<InvalidBookEventHandler> InvalidBookEventHandlers() { return from d in OnInvalidBook.GetInvocationList() select (InvalidBookEventHandler)d; }
 
         public event FileSkippedEventHandler OnFileSkipped;
         private IEnumerable<FileSkippedEventHandler> FileSkippedEventHandlers() { return from d in OnFileSkipped.GetInvocationList() select (FileSkippedEventHandler)d; }

@@ -30,10 +30,10 @@ namespace TinyOPDS.Server
 {
     public class OPDSServer : HttpServer
     {
-        private readonly string[] _extensions = { ".zip", ".epub", ".jpeg", ".ico", ".xml" };
-        private readonly XslCompiledTransform _xslTransform = new XslCompiledTransform();
-        private readonly object _xslLock = new object();
-        private Dictionary<string, bool> _opdsStructure;
+        private readonly string[] extensions = { ".zip", ".epub", ".jpeg", ".ico", ".xml" };
+        private readonly XslCompiledTransform xslTransform = new XslCompiledTransform();
+        private readonly object xslLock = new object();
+        private Dictionary<string, bool> opdsStructure;
 
         public OPDSServer(IPAddress interfaceIP, int port, int timeout = 5000) : base(interfaceIP, port, timeout)
         {
@@ -46,7 +46,7 @@ namespace TinyOPDS.Server
             try
             {
                 string structureString = Properties.Settings.Default.OPDSStructure;
-                _opdsStructure = new Dictionary<string, bool>();
+                opdsStructure = new Dictionary<string, bool>();
 
                 if (string.IsNullOrEmpty(structureString))
                 {
@@ -66,7 +66,7 @@ namespace TinyOPDS.Server
 
         private void InitializeDefaultOPDSStructure()
         {
-            _opdsStructure = new Dictionary<string, bool>
+            opdsStructure = new Dictionary<string, bool>
             {
                 {"newdate", true},
                 {"newtitle", true},
@@ -89,16 +89,16 @@ namespace TinyOPDS.Server
             foreach (string part in parts)
             {
                 string[] keyValue = part.Split(':');
-                if (keyValue.Length == 2 && _opdsStructure.ContainsKey(keyValue[0]))
+                if (keyValue.Length == 2 && opdsStructure.ContainsKey(keyValue[0]))
                 {
-                    _opdsStructure[keyValue[0]] = keyValue[1] == "1";
+                    opdsStructure[keyValue[0]] = keyValue[1] == "1";
                 }
             }
         }
 
         private bool IsRouteEnabled(string route)
         {
-            return _opdsStructure.ContainsKey(route) && _opdsStructure[route];
+            return opdsStructure.ContainsKey(route) && opdsStructure[route];
         }
 
         private void InitializeXslTransform()
@@ -109,7 +109,7 @@ namespace TinyOPDS.Server
 
                 if (File.Exists(xslFileName))
                 {
-                    _xslTransform.Load(xslFileName);
+                    xslTransform.Load(xslFileName);
                     Log.WriteLine(LogLevel.Info, "Loaded external XSL template: {0}", xslFileName);
                 }
                 else
@@ -120,7 +120,7 @@ namespace TinyOPDS.Server
                         if (resStream != null)
                         {
                             using (XmlReader reader = XmlReader.Create(resStream))
-                                _xslTransform.Load(reader);
+                                xslTransform.Load(reader);
                             Log.WriteLine(LogLevel.Info, "Loaded embedded XSL template");
                         }
                         else
@@ -277,7 +277,7 @@ namespace TinyOPDS.Server
         private string GetFileExtension(string request)
         {
             string ext = Path.GetExtension(request).ToLower();
-            return _extensions.Contains(ext) ? ext : string.Empty;
+            return extensions.Contains(ext) ? ext : string.Empty;
         }
 
         private bool IsValidRequest(string request, string ext)
@@ -360,7 +360,7 @@ namespace TinyOPDS.Server
 
             if (request.Equals("/"))
             {
-                return new RootCatalogWithStructure(_opdsStructure).GetCatalog().ToStringWithDeclaration();
+                return new RootCatalogWithStructure(opdsStructure).GetCatalog().ToStringWithDeclaration();
             }
             else if (request.StartsWith("/newdate") && IsRouteEnabled("newdate"))
             {
@@ -385,7 +385,7 @@ namespace TinyOPDS.Server
                 string authorParam = request.Substring(16);
                 Log.WriteLine(LogLevel.Info, "Author details parameter (raw): '{0}'", authorParam);
 
-                return new AuthorDetailsCatalogWithStructure(_opdsStructure).GetCatalog(authorParam).ToStringWithDeclaration();
+                return new AuthorDetailsCatalogWithStructure(opdsStructure).GetCatalog(authorParam).ToStringWithDeclaration();
             }
             else if (request.StartsWith("/author-series/") && IsRouteEnabled("author-series"))
             {
@@ -422,7 +422,7 @@ namespace TinyOPDS.Server
 
                 if (IsRouteEnabled("author-details"))
                 {
-                    return new AuthorDetailsCatalogWithStructure(_opdsStructure).GetCatalog(authorParam).ToStringWithDeclaration();
+                    return new AuthorDetailsCatalogWithStructure(opdsStructure).GetCatalog(authorParam).ToStringWithDeclaration();
                 }
                 else
                 {
@@ -548,7 +548,7 @@ namespace TinyOPDS.Server
         {
             try
             {
-                lock (_xslLock)
+                lock (xslLock)
                 {
 #if DEBUG
                     InitializeXslTransform();
@@ -570,7 +570,7 @@ namespace TinyOPDS.Server
                         args.AddParam("downloadText", "", Localizer.Text("Download"));
                         args.AddParam("downloadEpubText", "", Localizer.Text("Download EPUB"));
 
-                        _xslTransform.Transform(xPathDoc, args, writer);
+                        xslTransform.Transform(xPathDoc, args, writer);
 
                         htmlStream.Position = 0;
 

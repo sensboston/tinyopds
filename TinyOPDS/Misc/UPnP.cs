@@ -29,11 +29,11 @@ namespace UPnP
 {
     public class UPnPController : IDisposable
     {
-        private bool _disposed = false;
-        private string _serviceUrl;
-        private BackgroundWorker _worker;
-        private WebClient _webClient;
-        private readonly object _lockObject = new object();
+        private bool disposed = false;
+        private string serviceUrl;
+        private BackgroundWorker worker;
+        private WebClient webClient;
+        private readonly object lockObject = new object();
 
         private const int DISCOVERY_TIMEOUT_MS = 5000;
         private const int SOCKET_TIMEOUT_MS = 2000;
@@ -44,32 +44,32 @@ namespace UPnP
 
         public bool Discovered { get; private set; }
         public event EventHandler DiscoverCompleted;
-        public bool UPnPReady { get { return !string.IsNullOrEmpty(_serviceUrl); } }
+        public bool UPnPReady { get { return !string.IsNullOrEmpty(serviceUrl); } }
         public IPAddress ExternalIP { get; private set; }
 
-        private int _interfaceIndex = 0;
+        private int interfaceIndex = 0;
         public int InterfaceIndex
         {
-            get { return _interfaceIndex; }
+            get { return interfaceIndex; }
             set
             {
                 if (value >= 0 && value < LocalInterfaces.Count)
-                    _interfaceIndex = value;
+                    interfaceIndex = value;
             }
         }
 
         public IPAddress LocalIP { get { return LocalInterfaces[InterfaceIndex]; } }
 
-        private static List<IPAddress> _localInterfaces = null;
+        private static List<IPAddress> localInterfaces = null;
         public static List<IPAddress> LocalInterfaces
         {
             get
             {
-                if (_localInterfaces == null)
+                if (localInterfaces == null)
                 {
-                    _localInterfaces = BuildLocalInterfacesList();
+                    localInterfaces = BuildLocalInterfacesList();
                 }
-                return _localInterfaces;
+                return localInterfaces;
             }
         }
 
@@ -81,25 +81,25 @@ namespace UPnP
 
         public void DiscoverAsync(bool useUPnP)
         {
-            if (_disposed) return;
+            if (disposed) return;
 
-            lock (_lockObject)
+            lock (lockObject)
             {
-                if (_worker != null && _worker.IsBusy)
+                if (worker != null && worker.IsBusy)
                 {
                     return; // Already discovering
                 }
 
-                _worker = new BackgroundWorker();
-                _worker.DoWork += Worker_DoWork;
-                _worker.RunWorkerCompleted += Worker_RunWorkerCompleted;
-                _worker.RunWorkerAsync(useUPnP);
+                worker = new BackgroundWorker();
+                worker.DoWork += Worker_DoWork;
+                worker.RunWorkerCompleted += Worker_RunWorkerCompleted;
+                worker.RunWorkerAsync(useUPnP);
             }
         }
 
         private void Worker_DoWork(object sender, DoWorkEventArgs e)
         {
-            if (_disposed) return;
+            if (disposed) return;
 
             bool detectUPnP = (bool)e.Argument;
 
@@ -115,7 +115,7 @@ namespace UPnP
 
         private void Worker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
-            if (_disposed) return;
+            if (disposed) return;
 
             Discovered = true;
             DiscoverCompleted?.Invoke(this, EventArgs.Empty);
@@ -127,7 +127,7 @@ namespace UPnP
 
             foreach (NetworkInterface adapter in adapters)
             {
-                if (_disposed) return;
+                if (disposed) return;
 
                 if (!IsValidNetworkInterface(adapter)) continue;
 
@@ -135,7 +135,7 @@ namespace UPnP
 
                 foreach (IPAddressInformation uniAddr in properties.UnicastAddresses)
                 {
-                    if (_disposed) return;
+                    if (disposed) return;
 
                     if (uniAddr.Address.AddressFamily == AddressFamily.InterNetwork &&
                         !IsLinkLocalAddress(uniAddr.Address))
@@ -200,7 +200,7 @@ namespace UPnP
             // Send multiple discovery requests for better reliability
             for (int i = 0; i < 3; i++)
             {
-                if (_disposed) break;
+                if (disposed) break;
                 socket.SendTo(data, endpoint);
                 Thread.Sleep(50); // Small delay between requests
             }
@@ -222,7 +222,7 @@ namespace UPnP
             TimeSpan maxWaitTime = TimeSpan.FromMilliseconds(DISCOVERY_TIMEOUT_MS);
             int receiveAttempts = 0;
 
-            while (DateTime.Now - startTime < maxWaitTime && !_disposed)
+            while (DateTime.Now - startTime < maxWaitTime && !disposed)
             {
                 try
                 {
@@ -280,8 +280,8 @@ namespace UPnP
                 string locationHeader = ExtractLocationFromResponse(response);
                 if (string.IsNullOrEmpty(locationHeader)) return false;
 
-                _serviceUrl = GetServiceUrl(locationHeader);
-                return !string.IsNullOrEmpty(_serviceUrl);
+                serviceUrl = GetServiceUrl(locationHeader);
+                return !string.IsNullOrEmpty(serviceUrl);
             }
             catch
             {
@@ -309,7 +309,7 @@ namespace UPnP
         {
             try
             {
-                XmlDocument response = SOAPRequest(_serviceUrl,
+                XmlDocument response = SOAPRequest(serviceUrl,
                     "<u:GetExternalIPAddress xmlns:u=\"urn:schemas-upnp-org:service:WANIPConnection:1\">" +
                     "</u:GetExternalIPAddress>", "GetExternalIPAddress");
 
@@ -337,13 +337,13 @@ namespace UPnP
 
         private void DetectExternalIPAddress()
         {
-            if (_disposed) return;
+            if (disposed) return;
 
             try
             {
-                _webClient = new WebClient();
-                _webClient.DownloadStringCompleted += WebClient_DownloadStringCompleted;
-                _webClient.DownloadStringAsync(new Uri("http://myip.dnsdynamic.org"));
+                webClient = new WebClient();
+                webClient.DownloadStringCompleted += WebClient_DownloadStringCompleted;
+                webClient.DownloadStringAsync(new Uri("http://myip.dnsdynamic.org"));
             }
             catch
             {
@@ -353,7 +353,7 @@ namespace UPnP
 
         private void WebClient_DownloadStringCompleted(object sender, DownloadStringCompletedEventArgs e)
         {
-            if (_disposed) return;
+            if (disposed) return;
 
             try
             {
@@ -469,7 +469,7 @@ namespace UPnP
 
         public void ForwardPort(int port, ProtocolType protocol, string description)
         {
-            if (!UPnPReady || _disposed) return;
+            if (!UPnPReady || disposed) return;
 
             try
             {
@@ -484,7 +484,7 @@ namespace UPnP
                     "<NewLeaseDuration>0</NewLeaseDuration>" +
                     "</u:AddPortMapping>";
 
-                SOAPRequest(_serviceUrl, soapAction, "AddPortMapping");
+                SOAPRequest(serviceUrl, soapAction, "AddPortMapping");
             }
             catch
             {
@@ -494,7 +494,7 @@ namespace UPnP
 
         public void DeleteForwardingRule(int port, ProtocolType protocol)
         {
-            if (!UPnPReady || _disposed) return;
+            if (!UPnPReady || disposed) return;
 
             try
             {
@@ -504,7 +504,7 @@ namespace UPnP
                     "<NewProtocol>" + protocol.ToString().ToUpper() + "</NewProtocol>" +
                     "</u:DeletePortMapping>";
 
-                SOAPRequest(_serviceUrl, soapAction, "DeletePortMapping");
+                SOAPRequest(serviceUrl, soapAction, "DeletePortMapping");
             }
             catch
             {
@@ -552,26 +552,26 @@ namespace UPnP
 
         protected virtual void Dispose(bool disposing)
         {
-            if (!_disposed && disposing)
+            if (!disposed && disposing)
             {
-                lock (_lockObject)
+                lock (lockObject)
                 {
-                    _disposed = true;
+                    disposed = true;
 
-                    if (_webClient != null)
+                    if (webClient != null)
                     {
-                        if (_webClient.IsBusy)
+                        if (webClient.IsBusy)
                         {
-                            _webClient.CancelAsync();
+                            webClient.CancelAsync();
                         }
-                        _webClient.Dispose();
-                        _webClient = null;
+                        webClient.Dispose();
+                        webClient = null;
                     }
 
-                    if (_worker != null)
+                    if (worker != null)
                     {
-                        _worker.Dispose();
-                        _worker = null;
+                        worker.Dispose();
+                        worker = null;
                     }
 
                     DiscoverCompleted = null;

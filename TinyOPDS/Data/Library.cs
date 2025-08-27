@@ -24,24 +24,22 @@ namespace TinyOPDS.Data
     {
         public static event EventHandler LibraryLoaded;
 
-        private static DatabaseManager _database;
-        private static BookRepository _bookRepository;
-        private static string _databaseFullPath;
-        private static readonly List<Genre> _genres;
-        private static readonly Dictionary<string, string> _soundexedGenres;
-        private static readonly TimeSpan[] _periods = new TimeSpan[7];
+        private static DatabaseManager db;
+        private static BookRepository bookRepository;
+        private static string databaseFullPath;
+        private static readonly List<Genre> genres;
+        private static readonly Dictionary<string, string> soundexedGenres;
+        private static readonly TimeSpan[] periods = new TimeSpan[7];
 
         // Author aliases - now stored in memory for fast access
-        private static readonly Dictionary<string, string> _aliases = new Dictionary<string, string>();
-        private static readonly Dictionary<string, List<string>> _reverseAliases = new Dictionary<string, List<string>>();
+        private static readonly Dictionary<string, string> aliases = new Dictionary<string, string>();
+        private static readonly Dictionary<string, List<string>> reverseAliases = new Dictionary<string, List<string>>();
 
         // Cache for frequently accessed data
-        private static DateTime _lastStatsUpdate = DateTime.MinValue;
-        private static int _cachedTotalCount = 0;
-        private static int _cachedFB2Count = 0;
-        private static int _cachedEPUBCount = 0;
-        private static int _cachedAuthorsCount = 0;
-        private static int _cachedSequencesCount = 0;
+        private static DateTime lastStatsUpdate = DateTime.MinValue;
+        private static int cachedTotalCount = 0;
+        private static int cachedFB2Count = 0;
+        private static int cachedEPUBCount = 0;
         private static readonly TimeSpan CacheTimeout = TimeSpan.FromMinutes(1);
 
         /// <summary>
@@ -50,13 +48,13 @@ namespace TinyOPDS.Data
         static Library()
         {
             // Initialize "new books" periods
-            _periods[0] = TimeSpan.FromDays(7);
-            _periods[1] = TimeSpan.FromDays(14);
-            _periods[2] = TimeSpan.FromDays(21);
-            _periods[3] = TimeSpan.FromDays(30);
-            _periods[4] = TimeSpan.FromDays(44);
-            _periods[5] = TimeSpan.FromDays(60);
-            _periods[6] = TimeSpan.FromDays(90);
+            periods[0] = TimeSpan.FromDays(7);
+            periods[1] = TimeSpan.FromDays(14);
+            periods[2] = TimeSpan.FromDays(21);
+            periods[3] = TimeSpan.FromDays(30);
+            periods[4] = TimeSpan.FromDays(44);
+            periods[5] = TimeSpan.FromDays(60);
+            periods[6] = TimeSpan.FromDays(90);
 
             // Load and parse genres (same as original)
             try
@@ -64,7 +62,7 @@ namespace TinyOPDS.Data
                 var doc = XDocument.Load(Assembly.GetExecutingAssembly().GetManifestResourceStream(
                     Assembly.GetExecutingAssembly().GetName().Name + ".genres.xml"));
 
-                _genres = (from g in doc.Descendants("genre")
+                genres = (from g in doc.Descendants("genre")
                            select new Genre
                            {
                                Tag = "",
@@ -79,18 +77,18 @@ namespace TinyOPDS.Data
                                             }).ToList()
                            }).ToList();
 
-                _soundexedGenres = new Dictionary<string, string>();
-                foreach (var genre in _genres.SelectMany(g => g.Subgenres))
+                soundexedGenres = new Dictionary<string, string>();
+                foreach (var genre in genres.SelectMany(g => g.Subgenres))
                 {
-                    _soundexedGenres[StringUtils.Soundex(genre.Name)] = genre.Tag;
-                    _soundexedGenres[StringUtils.Soundex(genre.Translation)] = genre.Tag;
+                    soundexedGenres[StringUtils.Soundex(genre.Name)] = genre.Tag;
+                    soundexedGenres[StringUtils.Soundex(genre.Translation)] = genre.Tag;
                 }
             }
             catch (Exception ex)
             {
                 Log.WriteLine(LogLevel.Error, "Error loading genres: {0}", ex.Message);
-                _genres = new List<Genre>();
-                _soundexedGenres = new Dictionary<string, string>();
+                genres = new List<Genre>();
+                soundexedGenres = new Dictionary<string, string>();
             }
         }
 
@@ -107,18 +105,18 @@ namespace TinyOPDS.Data
                 databasePath = Path.Combine(Utils.ServiceFilesLocation, "books.sqlite");
             }
 
-            _databaseFullPath = databasePath;
+            databaseFullPath = databasePath;
 
             try
             {
-                _database?.Dispose();
-                _database = new DatabaseManager(_databaseFullPath);
-                _bookRepository = new BookRepository(_database);
+                db?.Dispose();
+                db = new DatabaseManager(databaseFullPath);
+                bookRepository = new BookRepository(db);
 
                 // Load author aliases into memory
                 LoadAuthorAliases();
 
-                Log.WriteLine("SQLite database initialized: {0}", _databaseFullPath);
+                Log.WriteLine("SQLite database initialized: {0}", databaseFullPath);
             }
             catch (Exception ex)
             {
@@ -132,9 +130,9 @@ namespace TinyOPDS.Data
         /// </summary>
         public static void Close()
         {
-            _database?.Dispose();
-            _database = null;
-            _bookRepository = null;
+            db?.Dispose();
+            db = null;
+            bookRepository = null;
         }
 
         #endregion
@@ -159,7 +157,7 @@ namespace TinyOPDS.Data
             get
             {
                 RefreshStatsCache();
-                return _cachedTotalCount;
+                return cachedTotalCount;
             }
         }
 
@@ -170,11 +168,11 @@ namespace TinyOPDS.Data
         {
             get
             {
-                if (_bookRepository == null) return 0;
+                if (bookRepository == null) return 0;
 
-                var period = _periods[TinyOPDS.Properties.Settings.Default.NewBooksPeriod];
+                var period = periods[TinyOPDS.Properties.Settings.Default.NewBooksPeriod];
                 var fromDate = DateTime.Now.Subtract(period);
-                return _bookRepository.GetNewBooksCount(fromDate);
+                return bookRepository.GetNewBooksCount(fromDate);
             }
         }
 
@@ -186,7 +184,7 @@ namespace TinyOPDS.Data
             get
             {
                 RefreshStatsCache();
-                return _cachedFB2Count;
+                return cachedFB2Count;
             }
         }
 
@@ -198,7 +196,7 @@ namespace TinyOPDS.Data
             get
             {
                 RefreshStatsCache();
-                return _cachedEPUBCount;
+                return cachedEPUBCount;
             }
         }
 
@@ -209,9 +207,9 @@ namespace TinyOPDS.Data
         {
             get
             {
-                if (_bookRepository == null) return new List<string>();
+                if (bookRepository == null) return new List<string>();
 
-                var authors = _bookRepository.GetAllAuthors();
+                var authors = bookRepository.GetAllAuthors();
                 var comparer = new OPDSComparer(TinyOPDS.Properties.Settings.Default.SortOrder > 0);
                 return authors.Where(a => a.Length > 1).OrderBy(a => a, comparer).ToList();
             }
@@ -224,9 +222,9 @@ namespace TinyOPDS.Data
         {
             get
             {
-                if (_bookRepository == null) return new List<string>();
+                if (bookRepository == null) return new List<string>();
 
-                var sequences = _bookRepository.GetAllSequences();
+                var sequences = bookRepository.GetAllSequences();
                 var comparer = new OPDSComparer(TinyOPDS.Properties.Settings.Default.SortOrder > 0);
                 return sequences.Where(s => s.Length > 1).OrderBy(s => s, comparer).ToList();
             }
@@ -237,12 +235,12 @@ namespace TinyOPDS.Data
         /// </summary>
         public static List<Genre> FB2Genres
         {
-            get { return _genres; }
+            get { return genres; }
         }
 
         public static Dictionary<string, string> SoundexedGenres
         {
-            get { return _soundexedGenres; }
+            get { return soundexedGenres; }
         }
 
         /// <summary>
@@ -255,7 +253,7 @@ namespace TinyOPDS.Data
                 // Simply return all subgenres from the loaded XML genres
                 var useCyrillic = TinyOPDS.Properties.Settings.Default.SortOrder > 0;
                 var comparer = new OPDSComparer(useCyrillic);
-                return _genres.SelectMany(g => g.Subgenres).OrderBy(g => useCyrillic ? g.Translation : g.Name, comparer).ToList();
+                return genres.SelectMany(g => g.Subgenres).OrderBy(g => useCyrillic ? g.Translation : g.Name, comparer).ToList();
             }
         }
 
@@ -266,11 +264,11 @@ namespace TinyOPDS.Data
         {
             get
             {
-                if (_bookRepository == null) return new List<Book>();
+                if (bookRepository == null) return new List<Book>();
 
-                var period = _periods[TinyOPDS.Properties.Settings.Default.NewBooksPeriod];
+                var period = periods[TinyOPDS.Properties.Settings.Default.NewBooksPeriod];
                 var fromDate = DateTime.Now.Subtract(period);
-                return _bookRepository.GetNewBooks(fromDate);
+                return bookRepository.GetNewBooks(fromDate);
             }
         }
 
@@ -281,9 +279,9 @@ namespace TinyOPDS.Data
         {
             get
             {
-                if (_bookRepository == null) return new List<string>();
+                if (bookRepository == null) return new List<string>();
 
-                var books = _bookRepository.GetAllBooks();
+                var books = bookRepository.GetAllBooks();
                 var comparer = new OPDSComparer(TinyOPDS.Properties.Settings.Default.SortOrder > 0);
                 return books.Select(b => b.Title).Distinct().OrderBy(t => t, comparer).ToList();
             }
@@ -304,18 +302,18 @@ namespace TinyOPDS.Data
         {
             var result = new NewBooksPaginatedResult();
 
-            if (_bookRepository == null)
+            if (bookRepository == null)
             {
                 return result;
             }
 
             try
             {
-                var period = _periods[TinyOPDS.Properties.Settings.Default.NewBooksPeriod];
+                var period = periods[TinyOPDS.Properties.Settings.Default.NewBooksPeriod];
                 var fromDate = DateTime.Now.Subtract(period);
 
                 // Get total count for pagination
-                result.TotalBooks = _bookRepository.GetNewBooksCount(fromDate);
+                result.TotalBooks = bookRepository.GetNewBooksCount(fromDate);
                 result.PageSize = pageSize;
                 result.CurrentPage = pageNumber;
                 result.TotalPages = (int)Math.Ceiling((double)result.TotalBooks / pageSize);
@@ -324,7 +322,7 @@ namespace TinyOPDS.Data
                 int offset = pageNumber * pageSize;
 
                 // Get books for current page
-                result.Books = _bookRepository.GetNewBooksPaginated(fromDate, offset, pageSize, sortByDate);
+                result.Books = bookRepository.GetNewBooksPaginated(fromDate, offset, pageSize, sortByDate);
 
                 result.HasPreviousPage = pageNumber > 0;
                 result.HasNextPage = pageNumber < result.TotalPages - 1;
@@ -344,11 +342,11 @@ namespace TinyOPDS.Data
         /// <returns>Total count of new books</returns>
         public static int GetNewBooksTotalCount()
         {
-            if (_bookRepository == null) return 0;
+            if (bookRepository == null) return 0;
 
-            var period = _periods[TinyOPDS.Properties.Settings.Default.NewBooksPeriod];
+            var period = periods[TinyOPDS.Properties.Settings.Default.NewBooksPeriod];
             var fromDate = DateTime.Now.Subtract(period);
-            return _bookRepository.GetNewBooksCount(fromDate);
+            return bookRepository.GetNewBooksCount(fromDate);
         }
 
         #endregion
@@ -362,7 +360,7 @@ namespace TinyOPDS.Data
         {
             var start = DateTime.Now;
 
-            if (_database == null)
+            if (db == null)
             {
                 Initialize();
             }
@@ -397,7 +395,7 @@ namespace TinyOPDS.Data
         /// <param name="book"></param>
         public static bool Add(Book book)
         {
-            if (_bookRepository == null) return false;
+            if (bookRepository == null) return false;
 
             try
             {
@@ -405,13 +403,13 @@ namespace TinyOPDS.Data
                 ApplyAliasesToBookAuthors(book);
 
                 // Check for duplicates (similar to original logic)
-                var existingBook = _bookRepository.GetBookById(book.ID);
+                var existingBook = bookRepository.GetBookById(book.ID);
                 if (existingBook != null && !book.Title.Equals(existingBook.Title))
                 {
                     book.ID = Utils.CreateGuid(Utils.IsoOidNamespace, book.FileName).ToString();
                 }
 
-                existingBook = _bookRepository.GetBookById(book.ID);
+                existingBook = bookRepository.GetBookById(book.ID);
                 bool isDuplicate = existingBook != null;
 
                 if (!isDuplicate || (isDuplicate && existingBook.Version < book.Version))
@@ -419,7 +417,7 @@ namespace TinyOPDS.Data
                     if (book.AddedDate == DateTime.MinValue)
                         book.AddedDate = DateTime.Now;
 
-                    bool success = _bookRepository.AddBook(book);
+                    bool success = bookRepository.AddBook(book);
                     if (success)
                     {
                         IsChanged = true;
@@ -456,7 +454,7 @@ namespace TinyOPDS.Data
             var result = new BookRepository.BatchResult();
             var startTime = DateTime.Now;
 
-            if (_bookRepository == null || books == null || books.Count == 0)
+            if (bookRepository == null || books == null || books.Count == 0)
             {
                 result.ProcessingTime = DateTime.Now - startTime;
                 return result;
@@ -476,13 +474,13 @@ namespace TinyOPDS.Data
                     ApplyAliasesToBookAuthors(book);
 
                     // Check for duplicates and handle ID conflicts
-                    var existingBook = _bookRepository.GetBookById(book.ID);
+                    var existingBook = bookRepository.GetBookById(book.ID);
                     if (existingBook != null && !book.Title.Equals(existingBook.Title))
                     {
                         book.ID = Utils.CreateGuid(Utils.IsoOidNamespace, book.FileName).ToString();
                     }
 
-                    existingBook = _bookRepository.GetBookById(book.ID);
+                    existingBook = bookRepository.GetBookById(book.ID);
                     bool isDuplicate = existingBook != null;
 
                     if (!isDuplicate || (isDuplicate && existingBook.Version < book.Version))
@@ -507,7 +505,7 @@ namespace TinyOPDS.Data
                 }
 
                 // Use repository batch method
-                var batchResult = _bookRepository.AddBooksBatch(processedBooks);
+                var batchResult = bookRepository.AddBooksBatch(processedBooks);
 
                 // Combine results - add duplicates found at Library level
                 result.Added = batchResult.Added;
@@ -545,7 +543,7 @@ namespace TinyOPDS.Data
         /// <returns></returns>
         public static bool Delete(string fileName)
         {
-            if (_bookRepository == null) return false;
+            if (bookRepository == null) return false;
 
             try
             {
@@ -561,10 +559,10 @@ namespace TinyOPDS.Data
                     {
                         if (Contains(fileName))
                         {
-                            Book book = _bookRepository.GetBookByFileName(fileName);
+                            Book book = bookRepository.GetBookByFileName(fileName);
                             if (book != null)
                             {
-                                bool result = _bookRepository.DeleteBook(book.ID);
+                                bool result = bookRepository.DeleteBook(book.ID);
                                 if (result)
                                 {
                                     IsChanged = true;
@@ -577,11 +575,11 @@ namespace TinyOPDS.Data
                     // Archive deletion - remove all books contained in this archive
                     else
                     {
-                        var booksToRemove = _bookRepository.GetBooksByFileNamePrefix(fileName + "@");
+                        var booksToRemove = bookRepository.GetBooksByFileNamePrefix(fileName + "@");
                         bool result = false;
                         foreach (Book book in booksToRemove)
                         {
-                            if (_bookRepository.DeleteBook(book.ID))
+                            if (bookRepository.DeleteBook(book.ID))
                             {
                                 result = true;
                                 IsChanged = true;
@@ -610,8 +608,8 @@ namespace TinyOPDS.Data
         /// <returns></returns>
         public static bool Contains(string bookPath)
         {
-            if (_bookRepository == null) return false;
-            return _bookRepository.BookExists(bookPath);
+            if (bookRepository == null) return false;
+            return bookRepository.BookExists(bookPath);
         }
 
         /// <summary>
@@ -621,14 +619,14 @@ namespace TinyOPDS.Data
         /// <returns></returns>
         public static Book GetBook(string id)
         {
-            if (_bookRepository == null)
+            if (bookRepository == null)
             {
                 Log.WriteLine(LogLevel.Error, "BookRepository is null when getting book {0}", id);
                 return null;
             }
 
             Log.WriteLine(LogLevel.Info, "Searching for book with ID: {0}", id);
-            var book = _bookRepository.GetBookById(id);
+            var book = bookRepository.GetBookById(id);
 
             if (book == null)
             {
@@ -648,11 +646,11 @@ namespace TinyOPDS.Data
         /// <returns></returns>
         public static bool RemoveNotExistingBooks()
         {
-            if (_bookRepository == null) return false;
+            if (bookRepository == null) return false;
 
             try
             {
-                var allBooks = _bookRepository.GetAllBooks();
+                var allBooks = bookRepository.GetAllBooks();
                 var booksToRemove = new List<string>();
 
                 foreach (var book in allBooks)
@@ -666,7 +664,7 @@ namespace TinyOPDS.Data
                 bool result = false;
                 foreach (var bookId in booksToRemove)
                 {
-                    if (_bookRepository.DeleteBook(bookId))
+                    if (bookRepository.DeleteBook(bookId))
                     {
                         result = true;
                         IsChanged = true;
@@ -703,9 +701,9 @@ namespace TinyOPDS.Data
             for (int i = 0; i < book.Authors.Count; i++)
             {
                 string originalAuthor = book.Authors[i];
-                if (_aliases.ContainsKey(originalAuthor))
+                if (aliases.ContainsKey(originalAuthor))
                 {
-                    book.Authors[i] = _aliases[originalAuthor];
+                    book.Authors[i] = aliases[originalAuthor];
                 }
             }
         }
@@ -727,10 +725,10 @@ namespace TinyOPDS.Data
         /// <returns>List of alias names</returns>
         public static List<string> GetAliasesForCanonicalName(string canonicalName)
         {
-            if (!_reverseAliases.ContainsKey(canonicalName))
+            if (!reverseAliases.ContainsKey(canonicalName))
                 return new List<string>();
 
-            return _reverseAliases[canonicalName];
+            return reverseAliases[canonicalName];
         }
 
         /// <summary>
@@ -740,7 +738,7 @@ namespace TinyOPDS.Data
         /// <returns>Canonical name if alias exists, otherwise original name</returns>
         public static string GetCanonicalName(string aliasName)
         {
-            return _aliases.ContainsKey(aliasName) ? _aliases[aliasName] : aliasName;
+            return aliases.ContainsKey(aliasName) ? aliases[aliasName] : aliasName;
         }
 
         #endregion
@@ -755,7 +753,7 @@ namespace TinyOPDS.Data
         /// <returns>List of matching canonical author names</returns>
         public static List<string> GetAuthorsByName(string name, bool isOpenSearch)
         {
-            if (_bookRepository == null) return new List<string>();
+            if (bookRepository == null) return new List<string>();
 
             try
             {
@@ -765,11 +763,11 @@ namespace TinyOPDS.Data
 
                 if (isOpenSearch)
                 {
-                    authors = _bookRepository.GetAuthorsForOpenSearch(name);
+                    authors = bookRepository.GetAuthorsForOpenSearch(name);
                 }
                 else
                 {
-                    authors = _bookRepository.GetAuthorsForNavigation(name);
+                    authors = bookRepository.GetAuthorsForNavigation(name);
                 }
 
                 // Remove duplicates and sort
@@ -804,7 +802,7 @@ namespace TinyOPDS.Data
         /// <returns>List of matching books</returns>
         public static List<Book> GetBooksByTitle(string title, bool isOpenSearch)
         {
-            if (_bookRepository == null) return new List<Book>();
+            if (bookRepository == null) return new List<Book>();
 
             try
             {
@@ -815,12 +813,12 @@ namespace TinyOPDS.Data
                 if (isOpenSearch)
                 {
                     // Use FTS5 search with transliteration fallback
-                    books = _bookRepository.GetBooksForOpenSearch(title);
+                    books = bookRepository.GetBooksForOpenSearch(title);
                 }
                 else
                 {
                     // Use traditional LIKE search for navigation
-                    books = _bookRepository.GetBooksByTitle(title);
+                    books = bookRepository.GetBooksByTitle(title);
                 }
 
                 Log.WriteLine(LogLevel.Info, "Found {0} books by title '{1}'", books.Count, title);
@@ -840,8 +838,8 @@ namespace TinyOPDS.Data
         /// <returns></returns>
         public static int GetBooksByAuthorCount(string author)
         {
-            if (_bookRepository == null) return 0;
-            return _bookRepository.GetBooksByAuthor(author).Count;
+            if (bookRepository == null) return 0;
+            return bookRepository.GetBooksByAuthor(author).Count;
         }
 
         /// <summary>
@@ -851,8 +849,8 @@ namespace TinyOPDS.Data
         /// <returns></returns>
         public static List<Book> GetBooksByAuthor(string author)
         {
-            if (_bookRepository == null) return new List<Book>();
-            return _bookRepository.GetBooksByAuthor(author);
+            if (bookRepository == null) return new List<Book>();
+            return bookRepository.GetBooksByAuthor(author);
         }
 
         /// <summary>
@@ -862,8 +860,8 @@ namespace TinyOPDS.Data
         /// <returns></returns>
         public static List<Book> GetBooksBySequence(string sequence)
         {
-            if (_bookRepository == null) return new List<Book>();
-            return _bookRepository.GetBooksBySequence(sequence);
+            if (bookRepository == null) return new List<Book>();
+            return bookRepository.GetBooksBySequence(sequence);
         }
 
         /// <summary>
@@ -873,8 +871,8 @@ namespace TinyOPDS.Data
         /// <returns></returns>
         public static List<Book> GetBooksByGenre(string genre)
         {
-            if (_bookRepository == null) return new List<Book>();
-            return _bookRepository.GetBooksByGenre(genre);
+            if (bookRepository == null) return new List<Book>();
+            return bookRepository.GetBooksByGenre(genre);
         }
 
         /// <summary>
@@ -883,7 +881,7 @@ namespace TinyOPDS.Data
         /// <returns>BookRepository instance or null if not initialized</returns>
         internal static BookRepository GetBookRepository()
         {
-            return _bookRepository;
+            return bookRepository;
         }
 
         #endregion
@@ -892,22 +890,20 @@ namespace TinyOPDS.Data
 
         private static void RefreshStatsCache()
         {
-            if (_bookRepository == null) return;
+            if (bookRepository == null) return;
 
-            if (DateTime.Now - _lastStatsUpdate > CacheTimeout)
+            if (DateTime.Now - lastStatsUpdate > CacheTimeout)
             {
-                _cachedTotalCount = _bookRepository.GetTotalBooksCount();
-                _cachedFB2Count = _bookRepository.GetFB2BooksCount();
-                _cachedEPUBCount = _bookRepository.GetEPUBBooksCount();
-                _cachedAuthorsCount = _bookRepository.GetAuthorsCount();
-                _cachedSequencesCount = _bookRepository.GetSequencesCount();
-                _lastStatsUpdate = DateTime.Now;
+                cachedTotalCount = bookRepository.GetTotalBooksCount();
+                cachedFB2Count = bookRepository.GetFB2BooksCount();
+                cachedEPUBCount = bookRepository.GetEPUBBooksCount();
+                lastStatsUpdate = DateTime.Now;
             }
         }
 
         private static void InvalidateStatsCache()
         {
-            _lastStatsUpdate = DateTime.MinValue;
+            lastStatsUpdate = DateTime.MinValue;
         }
 
         /// <summary>
@@ -918,8 +914,8 @@ namespace TinyOPDS.Data
             try
             {
                 // Clear existing aliases
-                _aliases.Clear();
-                _reverseAliases.Clear();
+                aliases.Clear();
+                reverseAliases.Clear();
 
                 // Load external file first (with old format)
                 string aliasesFileName = Path.Combine(Utils.ServiceFilesLocation, "a_aliases.txt");
@@ -953,7 +949,7 @@ namespace TinyOPDS.Data
                 // Build reverse lookup dictionary for fast access
                 BuildReverseAliasesLookup();
 
-                Log.WriteLine(LogLevel.Info, "Loaded {0} author aliases into memory", _aliases.Count);
+                Log.WriteLine(LogLevel.Info, "Loaded {0} author aliases into memory", aliases.Count);
             }
             catch (Exception e)
             {
@@ -980,7 +976,7 @@ namespace TinyOPDS.Data
                             string aliasName = string.Format("{2} {0} {1}", parts[5], parts[6], parts[7]).Trim();
                             if (!string.IsNullOrEmpty(aliasName) && !string.IsNullOrEmpty(canonicalName))
                             {
-                                _aliases[aliasName] = canonicalName;
+                                aliases[aliasName] = canonicalName;
                             }
                         }
                     }
@@ -997,13 +993,13 @@ namespace TinyOPDS.Data
         /// </summary>
         private static void BuildReverseAliasesLookup()
         {
-            foreach (var alias in _aliases)
+            foreach (var alias in aliases)
             {
                 string canonicalName = alias.Value;
-                if (!_reverseAliases.ContainsKey(canonicalName))
-                    _reverseAliases[canonicalName] = new List<string>();
+                if (!reverseAliases.ContainsKey(canonicalName))
+                    reverseAliases[canonicalName] = new List<string>();
 
-                _reverseAliases[canonicalName].Add(alias.Key);
+                reverseAliases[canonicalName].Add(alias.Key);
             }
         }
 

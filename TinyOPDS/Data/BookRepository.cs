@@ -18,11 +18,11 @@ namespace TinyOPDS.Data
 {
     public class BookRepository
     {
-        private readonly DatabaseManager _db;
+        private readonly DatabaseManager db;
 
         public BookRepository(DatabaseManager database)
         {
-            _db = database;
+            db = database;
         }
 
         /// <summary>
@@ -48,7 +48,7 @@ namespace TinyOPDS.Data
         {
             try
             {
-                _db.BeginTransaction();
+                db.BeginTransaction();
 
                 // Insert or update book
                 var bookParams = new[]
@@ -67,24 +67,24 @@ namespace TinyOPDS.Data
                     DatabaseManager.CreateParameter("@AddedDate", book.AddedDate)
                 };
 
-                _db.ExecuteNonQuery(DatabaseSchema.InsertBook, bookParams);
+                db.ExecuteNonQuery(DatabaseSchema.InsertBook, bookParams);
 
                 // Get the rowid for FTS synchronization
-                var bookRowIdResult = _db.ExecuteScalar("SELECT rowid FROM Books WHERE ID = @ID",
+                var bookRowIdResult = db.ExecuteScalar("SELECT rowid FROM Books WHERE ID = @ID",
                     DatabaseManager.CreateParameter("@ID", book.ID));
                 long bookRowId = Convert.ToInt64(bookRowIdResult);
 
                 // Sync with FTS table
-                _db.ExecuteNonQuery(DatabaseSchema.InsertBookTitleFTS,
+                db.ExecuteNonQuery(DatabaseSchema.InsertBookTitleFTS,
                     DatabaseManager.CreateParameter("@rowid", bookRowId),
                     DatabaseManager.CreateParameter("@Title", book.Title));
 
                 // Clear existing relationships
-                _db.ExecuteNonQuery("DELETE FROM BookAuthors WHERE BookID = @BookID",
+                db.ExecuteNonQuery("DELETE FROM BookAuthors WHERE BookID = @BookID",
                     DatabaseManager.CreateParameter("@BookID", book.ID));
-                _db.ExecuteNonQuery("DELETE FROM BookGenres WHERE BookID = @BookID",
+                db.ExecuteNonQuery("DELETE FROM BookGenres WHERE BookID = @BookID",
                     DatabaseManager.CreateParameter("@BookID", book.ID));
-                _db.ExecuteNonQuery("DELETE FROM BookTranslators WHERE BookID = @BookID",
+                db.ExecuteNonQuery("DELETE FROM BookTranslators WHERE BookID = @BookID",
                     DatabaseManager.CreateParameter("@BookID", book.ID));
 
                 // Add authors
@@ -94,7 +94,7 @@ namespace TinyOPDS.Data
                     string lastNameSoundex = !string.IsNullOrEmpty(lastName) ? StringUtils.Soundex(lastName) : "";
 
                     // Insert author if not exists
-                    _db.ExecuteNonQuery(DatabaseSchema.InsertAuthor,
+                    db.ExecuteNonQuery(DatabaseSchema.InsertAuthor,
                         DatabaseManager.CreateParameter("@Name", authorName),
                         DatabaseManager.CreateParameter("@FirstName", firstName),
                         DatabaseManager.CreateParameter("@MiddleName", middleName),
@@ -102,7 +102,7 @@ namespace TinyOPDS.Data
                         DatabaseManager.CreateParameter("@LastNameSoundex", lastNameSoundex));
 
                     // Link book to author
-                    _db.ExecuteNonQuery(DatabaseSchema.InsertBookAuthor,
+                    db.ExecuteNonQuery(DatabaseSchema.InsertBookAuthor,
                         DatabaseManager.CreateParameter("@BookID", book.ID),
                         DatabaseManager.CreateParameter("@AuthorName", authorName));
                 }
@@ -110,7 +110,7 @@ namespace TinyOPDS.Data
                 // Add genres
                 foreach (var genreTag in book.Genres)
                 {
-                    _db.ExecuteNonQuery(DatabaseSchema.InsertBookGenre,
+                    db.ExecuteNonQuery(DatabaseSchema.InsertBookGenre,
                         DatabaseManager.CreateParameter("@BookID", book.ID),
                         DatabaseManager.CreateParameter("@GenreTag", genreTag));
                 }
@@ -118,10 +118,10 @@ namespace TinyOPDS.Data
                 // Add translators
                 foreach (var translatorName in book.Translators)
                 {
-                    _db.ExecuteNonQuery(DatabaseSchema.InsertTranslator,
+                    db.ExecuteNonQuery(DatabaseSchema.InsertTranslator,
                         DatabaseManager.CreateParameter("@Name", translatorName));
 
-                    _db.ExecuteNonQuery(DatabaseSchema.InsertBookTranslator,
+                    db.ExecuteNonQuery(DatabaseSchema.InsertBookTranslator,
                         DatabaseManager.CreateParameter("@BookID", book.ID),
                         DatabaseManager.CreateParameter("@TranslatorName", translatorName));
                 }
@@ -129,16 +129,16 @@ namespace TinyOPDS.Data
                 // Update author book counts
                 foreach (var authorName in book.Authors)
                 {
-                    _db.ExecuteNonQuery(DatabaseSchema.UpdateAuthorBookCount,
+                    db.ExecuteNonQuery(DatabaseSchema.UpdateAuthorBookCount,
                         DatabaseManager.CreateParameter("@AuthorName", authorName));
                 }
 
-                _db.CommitTransaction();
+                db.CommitTransaction();
                 return true;
             }
             catch (Exception ex)
             {
-                _db.RollbackTransaction();
+                db.RollbackTransaction();
                 Log.WriteLine(LogLevel.Error, "Error adding book {0}: {1}", book.FileName, ex.Message);
                 return false;
             }
@@ -163,12 +163,12 @@ namespace TinyOPDS.Data
             try
             {
                 // Optimize SQLite settings for bulk insert
-                _db.ExecuteNonQuery("PRAGMA synchronous = OFF");
-                _db.ExecuteNonQuery("PRAGMA journal_mode = MEMORY");
-                _db.ExecuteNonQuery("PRAGMA temp_store = MEMORY");
-                _db.ExecuteNonQuery("PRAGMA cache_size = 10000");
+                db.ExecuteNonQuery("PRAGMA synchronous = OFF");
+                db.ExecuteNonQuery("PRAGMA journal_mode = MEMORY");
+                db.ExecuteNonQuery("PRAGMA temp_store = MEMORY");
+                db.ExecuteNonQuery("PRAGMA cache_size = 10000");
 
-                _db.BeginTransaction();
+                db.BeginTransaction();
 
                 var authorCounts = new Dictionary<string, int>();
 
@@ -199,15 +199,15 @@ namespace TinyOPDS.Data
                             DatabaseManager.CreateParameter("@DocumentSize", (long)book.DocumentSize),
                             DatabaseManager.CreateParameter("@AddedDate", book.AddedDate)
                         };
-                        _db.ExecuteNonQuery(DatabaseSchema.InsertBook, bookParams);
+                        db.ExecuteNonQuery(DatabaseSchema.InsertBook, bookParams);
 
                         // Get rowid for FTS synchronization
-                        var bookRowIdResult = _db.ExecuteScalar("SELECT rowid FROM Books WHERE ID = @ID",
+                        var bookRowIdResult = db.ExecuteScalar("SELECT rowid FROM Books WHERE ID = @ID",
                             DatabaseManager.CreateParameter("@ID", book.ID));
                         long bookRowId = Convert.ToInt64(bookRowIdResult);
 
                         // Sync with FTS table
-                        _db.ExecuteNonQuery(DatabaseSchema.InsertBookTitleFTS,
+                        db.ExecuteNonQuery(DatabaseSchema.InsertBookTitleFTS,
                             DatabaseManager.CreateParameter("@rowid", bookRowId),
                             DatabaseManager.CreateParameter("@Title", book.Title));
 
@@ -218,7 +218,7 @@ namespace TinyOPDS.Data
                             string lastNameSoundex = !string.IsNullOrEmpty(lastName) ? StringUtils.Soundex(lastName) : "";
 
                             // Insert author if not exists
-                            _db.ExecuteNonQuery(DatabaseSchema.InsertAuthor,
+                            db.ExecuteNonQuery(DatabaseSchema.InsertAuthor,
                                 DatabaseManager.CreateParameter("@Name", authorName),
                                 DatabaseManager.CreateParameter("@FirstName", firstName),
                                 DatabaseManager.CreateParameter("@MiddleName", middleName),
@@ -226,7 +226,7 @@ namespace TinyOPDS.Data
                                 DatabaseManager.CreateParameter("@LastNameSoundex", lastNameSoundex));
 
                             // Insert book-author relationship
-                            _db.ExecuteNonQuery(DatabaseSchema.InsertBookAuthor,
+                            db.ExecuteNonQuery(DatabaseSchema.InsertBookAuthor,
                                 DatabaseManager.CreateParameter("@BookID", book.ID),
                                 DatabaseManager.CreateParameter("@AuthorName", authorName));
 
@@ -239,7 +239,7 @@ namespace TinyOPDS.Data
                         // Insert genres and relationships
                         foreach (var genreTag in book.Genres)
                         {
-                            _db.ExecuteNonQuery(DatabaseSchema.InsertBookGenre,
+                            db.ExecuteNonQuery(DatabaseSchema.InsertBookGenre,
                                 DatabaseManager.CreateParameter("@BookID", book.ID),
                                 DatabaseManager.CreateParameter("@GenreTag", genreTag));
                         }
@@ -247,10 +247,10 @@ namespace TinyOPDS.Data
                         // Insert translators and relationships
                         foreach (var translatorName in book.Translators)
                         {
-                            _db.ExecuteNonQuery(DatabaseSchema.InsertTranslator,
+                            db.ExecuteNonQuery(DatabaseSchema.InsertTranslator,
                                 DatabaseManager.CreateParameter("@Name", translatorName));
 
-                            _db.ExecuteNonQuery(DatabaseSchema.InsertBookTranslator,
+                            db.ExecuteNonQuery(DatabaseSchema.InsertBookTranslator,
                                 DatabaseManager.CreateParameter("@BookID", book.ID),
                                 DatabaseManager.CreateParameter("@TranslatorName", translatorName));
                         }
@@ -274,11 +274,11 @@ namespace TinyOPDS.Data
                 // Update author book counts in batch
                 foreach (var authorCount in authorCounts)
                 {
-                    _db.ExecuteNonQuery(DatabaseSchema.UpdateAuthorBookCount,
+                    db.ExecuteNonQuery(DatabaseSchema.UpdateAuthorBookCount,
                         DatabaseManager.CreateParameter("@AuthorName", authorCount.Key));
                 }
 
-                _db.CommitTransaction();
+                db.CommitTransaction();
 
                 result.ProcessingTime = DateTime.Now - startTime;
                 Log.WriteLine("Batch insert completed: {0} added, {1} duplicates skipped, {2} errors in {3}ms",
@@ -288,7 +288,7 @@ namespace TinyOPDS.Data
             }
             catch (Exception ex)
             {
-                _db.RollbackTransaction();
+                db.RollbackTransaction();
                 result.Errors = result.TotalProcessed;
                 result.ErrorMessages.Add($"Batch transaction failed: {ex.Message}");
                 result.ProcessingTime = DateTime.Now - startTime;
@@ -298,16 +298,16 @@ namespace TinyOPDS.Data
             finally
             {
                 // Restore normal SQLite settings
-                _db.ExecuteNonQuery("PRAGMA synchronous = NORMAL");
-                _db.ExecuteNonQuery("PRAGMA journal_mode = DELETE");
-                _db.ExecuteNonQuery("PRAGMA temp_store = DEFAULT");
-                _db.ExecuteNonQuery("PRAGMA cache_size = 2000");
+                db.ExecuteNonQuery("PRAGMA synchronous = NORMAL");
+                db.ExecuteNonQuery("PRAGMA journal_mode = DELETE");
+                db.ExecuteNonQuery("PRAGMA temp_store = DEFAULT");
+                db.ExecuteNonQuery("PRAGMA cache_size = 2000");
             }
         }
 
         public Book GetBookById(string id)
         {
-            var book = _db.ExecuteQuerySingle<Book>(DatabaseSchema.SelectBookById, MapBook,
+            var book = db.ExecuteQuerySingle<Book>(DatabaseSchema.SelectBookById, MapBook,
                 DatabaseManager.CreateParameter("@ID", id));
 
             if (book != null)
@@ -320,7 +320,7 @@ namespace TinyOPDS.Data
 
         public Book GetBookByFileName(string fileName)
         {
-            var book = _db.ExecuteQuerySingle<Book>(DatabaseSchema.SelectBookByFileName, MapBook,
+            var book = db.ExecuteQuerySingle<Book>(DatabaseSchema.SelectBookByFileName, MapBook,
                 DatabaseManager.CreateParameter("@FileName", fileName));
 
             if (book != null)
@@ -335,30 +335,30 @@ namespace TinyOPDS.Data
         {
             try
             {
-                _db.BeginTransaction();
+                db.BeginTransaction();
 
                 // Get rowid before deletion for FTS cleanup
-                var bookRowIdResult = _db.ExecuteScalar("SELECT rowid FROM Books WHERE ID = @ID",
+                var bookRowIdResult = db.ExecuteScalar("SELECT rowid FROM Books WHERE ID = @ID",
                     DatabaseManager.CreateParameter("@ID", id));
                 long bookRowId = Convert.ToInt64(bookRowIdResult);
 
                 // Delete from main table
-                var result = _db.ExecuteNonQuery(DatabaseSchema.DeleteBook,
+                var result = db.ExecuteNonQuery(DatabaseSchema.DeleteBook,
                     DatabaseManager.CreateParameter("@ID", id));
 
                 // Delete from FTS table
                 if (result > 0)
                 {
-                    _db.ExecuteNonQuery(DatabaseSchema.DeleteBookTitleFTS,
+                    db.ExecuteNonQuery(DatabaseSchema.DeleteBookTitleFTS,
                         DatabaseManager.CreateParameter("@rowid", bookRowId));
                 }
 
-                _db.CommitTransaction();
+                db.CommitTransaction();
                 return result > 0;
             }
             catch (Exception ex)
             {
-                _db.RollbackTransaction();
+                db.RollbackTransaction();
                 Log.WriteLine(LogLevel.Error, "Error deleting book {0}: {1}", id, ex.Message);
                 return false;
             }
@@ -368,30 +368,30 @@ namespace TinyOPDS.Data
         {
             try
             {
-                _db.BeginTransaction();
+                db.BeginTransaction();
 
                 // Get rowid before deletion for FTS cleanup
-                var bookRowIdResult = _db.ExecuteScalar("SELECT rowid FROM Books WHERE FileName = @FileName",
+                var bookRowIdResult = db.ExecuteScalar("SELECT rowid FROM Books WHERE FileName = @FileName",
                     DatabaseManager.CreateParameter("@FileName", fileName));
                 long bookRowId = Convert.ToInt64(bookRowIdResult);
 
                 // Delete from main table
-                var result = _db.ExecuteNonQuery(DatabaseSchema.DeleteBookByFileName,
+                var result = db.ExecuteNonQuery(DatabaseSchema.DeleteBookByFileName,
                     DatabaseManager.CreateParameter("@FileName", fileName));
 
                 // Delete from FTS table
                 if (result > 0)
                 {
-                    _db.ExecuteNonQuery(DatabaseSchema.DeleteBookTitleFTS,
+                    db.ExecuteNonQuery(DatabaseSchema.DeleteBookTitleFTS,
                         DatabaseManager.CreateParameter("@rowid", bookRowId));
                 }
 
-                _db.CommitTransaction();
+                db.CommitTransaction();
                 return result > 0;
             }
             catch (Exception ex)
             {
-                _db.RollbackTransaction();
+                db.RollbackTransaction();
                 Log.WriteLine(LogLevel.Error, "Error deleting book by filename {0}: {1}", fileName, ex.Message);
                 return false;
             }
@@ -399,7 +399,7 @@ namespace TinyOPDS.Data
 
         public bool BookExists(string fileName)
         {
-            var count = _db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE FileName = @FileName",
+            var count = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE FileName = @FileName",
                 DatabaseManager.CreateParameter("@FileName", fileName));
             return Convert.ToInt32(count) > 0;
         }
@@ -410,7 +410,7 @@ namespace TinyOPDS.Data
 
         public List<Book> GetAllBooks()
         {
-            var books = _db.ExecuteQuery<Book>(DatabaseSchema.SelectAllBooks, MapBook);
+            var books = db.ExecuteQuery<Book>(DatabaseSchema.SelectAllBooks, MapBook);
             foreach (var book in books)
             {
                 LoadBookRelations(book);
@@ -420,7 +420,7 @@ namespace TinyOPDS.Data
 
         public List<Book> GetBooksByAuthor(string authorName)
         {
-            var books = _db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksByAuthor, MapBook,
+            var books = db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksByAuthor, MapBook,
                 DatabaseManager.CreateParameter("@AuthorName", authorName));
 
             foreach (var book in books)
@@ -432,7 +432,7 @@ namespace TinyOPDS.Data
 
         public List<Book> GetBooksBySequence(string sequence)
         {
-            var books = _db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksBySequence, MapBook,
+            var books = db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksBySequence, MapBook,
                 DatabaseManager.CreateParameter("@Sequence", sequence));
 
             foreach (var book in books)
@@ -444,7 +444,7 @@ namespace TinyOPDS.Data
 
         public List<Book> GetBooksByGenre(string genreTag)
         {
-            var books = _db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksByGenre, MapBook,
+            var books = db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksByGenre, MapBook,
                 DatabaseManager.CreateParameter("@GenreTag", genreTag));
 
             foreach (var book in books)
@@ -456,7 +456,7 @@ namespace TinyOPDS.Data
 
         public List<Book> GetBooksByTitle(string title)
         {
-            var books = _db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksByTitle, MapBook,
+            var books = db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksByTitle, MapBook,
                 DatabaseManager.CreateParameter("@Title", title));
 
             foreach (var book in books)
@@ -494,7 +494,7 @@ namespace TinyOPDS.Data
                 Log.WriteLine(LogLevel.Info, "GetBooksForOpenSearch: searching for '{0}'", searchPattern);
 
                 // First try FTS5 search
-                var books = _db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksByTitleFTS, MapBook,
+                var books = db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksByTitleFTS, MapBook,
                     DatabaseManager.CreateParameter("@SearchPattern", searchPattern));
 
                 // If no results and contains Latin letters, try transliteration
@@ -506,7 +506,7 @@ namespace TinyOPDS.Data
                     string transliteratedGOST = Transliteration.Back(searchPattern, TransliterationType.GOST);
                     if (!string.IsNullOrEmpty(transliteratedGOST) && transliteratedGOST != searchPattern)
                     {
-                        var gostBooks = _db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksByTitleFTS, MapBook,
+                        var gostBooks = db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksByTitleFTS, MapBook,
                             DatabaseManager.CreateParameter("@SearchPattern", transliteratedGOST));
 
                         if (gostBooks.Count > 0)
@@ -523,7 +523,7 @@ namespace TinyOPDS.Data
                         string transliteratedISO = Transliteration.Back(searchPattern, TransliterationType.ISO);
                         if (!string.IsNullOrEmpty(transliteratedISO) && transliteratedISO != searchPattern && transliteratedISO != transliteratedGOST)
                         {
-                            var isoBooks = _db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksByTitleFTS, MapBook,
+                            var isoBooks = db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksByTitleFTS, MapBook,
                                 DatabaseManager.CreateParameter("@SearchPattern", transliteratedISO));
 
                             if (isoBooks.Count > 0)
@@ -554,7 +554,7 @@ namespace TinyOPDS.Data
 
         public List<Book> GetNewBooks(DateTime fromDate)
         {
-            var books = _db.ExecuteQuery<Book>(DatabaseSchema.SelectNewBooks, MapBook,
+            var books = db.ExecuteQuery<Book>(DatabaseSchema.SelectNewBooks, MapBook,
                 DatabaseManager.CreateParameter("@FromDate", fromDate));
 
             foreach (var book in books)
@@ -566,7 +566,7 @@ namespace TinyOPDS.Data
 
         public List<Book> GetBooksByFileNamePrefix(string fileNamePrefix)
         {
-            var books = _db.ExecuteQuery<Book>(@"
+            var books = db.ExecuteQuery<Book>(@"
                 SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
                        Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate
                 FROM Books 
@@ -596,11 +596,11 @@ namespace TinyOPDS.Data
             {
                 if (string.IsNullOrEmpty(searchPattern))
                 {
-                    return _db.ExecuteQuery<string>(DatabaseSchema.SelectAuthors, reader => reader.GetString(0));
+                    return db.ExecuteQuery<string>(DatabaseSchema.SelectAuthors, reader => reader.GetString(0));
                 }
 
                 string namePattern = $"{searchPattern}%";
-                return _db.ExecuteQuery<string>(DatabaseSchema.SelectAuthorsByNamePattern,
+                return db.ExecuteQuery<string>(DatabaseSchema.SelectAuthorsByNamePattern,
                     reader => reader.GetString(0),
                     DatabaseManager.CreateParameter("@Pattern", namePattern));
             }
@@ -635,7 +635,7 @@ namespace TinyOPDS.Data
                     // Single word: search by LastName prefix - fix case for Cyrillic
                     string capitalizedWord = char.ToUpper(words[0][0]) + words[0].Substring(1).ToLower();
                     string wordPattern = $"{capitalizedWord}%";
-                    authors = _db.ExecuteQuery<string>(@"
+                    authors = db.ExecuteQuery<string>(@"
                             SELECT DISTINCT a.Name
                             FROM Authors a
                             INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
@@ -650,7 +650,7 @@ namespace TinyOPDS.Data
                         Log.WriteLine(LogLevel.Info, "GetAuthorsForOpenSearch: trying Soundex fallback for '{0}'", words[0]);
                         string wordSoundex = StringUtils.Soundex(capitalizedWord);
 
-                        var soundexAuthors = _db.ExecuteQuery<string>(@"
+                        var soundexAuthors = db.ExecuteQuery<string>(@"
                                 SELECT DISTINCT a.Name
                                 FROM Authors a
                                 INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
@@ -675,7 +675,7 @@ namespace TinyOPDS.Data
                             if (!string.IsNullOrEmpty(transliteratedGOST) && transliteratedGOST != capitalizedWord)
                             {
                                 string gostSoundex = StringUtils.Soundex(transliteratedGOST);
-                                var gostAuthors = _db.ExecuteQuery<string>(@"
+                                var gostAuthors = db.ExecuteQuery<string>(@"
                                         SELECT DISTINCT a.Name
                                         FROM Authors a
                                         INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
@@ -699,7 +699,7 @@ namespace TinyOPDS.Data
                                 if (!string.IsNullOrEmpty(transliteratedISO) && transliteratedISO != capitalizedWord && transliteratedISO != transliteratedGOST)
                                 {
                                     string isoSoundex = StringUtils.Soundex(transliteratedISO);
-                                    var isoAuthors = _db.ExecuteQuery<string>(@"
+                                    var isoAuthors = db.ExecuteQuery<string>(@"
                                             SELECT DISTINCT a.Name
                                             FROM Authors a
                                             INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
@@ -728,7 +728,7 @@ namespace TinyOPDS.Data
                     string word1Pattern = $"{word1Capitalized}%";
                     string word2Pattern = $"{word2Capitalized}%";
 
-                    authors = _db.ExecuteQuery<string>(@"
+                    authors = db.ExecuteQuery<string>(@"
                             SELECT DISTINCT a.Name
                             FROM Authors a
                             INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
@@ -747,7 +747,7 @@ namespace TinyOPDS.Data
                     // Try reverse order if nothing found
                     if (authors.Count == 0)
                     {
-                        var reverseAuthors = _db.ExecuteQuery<string>(@"
+                        var reverseAuthors = db.ExecuteQuery<string>(@"
                                 SELECT DISTINCT a.Name
                                 FROM Authors a
                                 INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
@@ -793,7 +793,7 @@ namespace TinyOPDS.Data
                 {
                     // Multiple words: fallback to name contains search
                     string namePattern = $"%{searchPattern}%";
-                    authors = _db.ExecuteQuery<string>(@"
+                    authors = db.ExecuteQuery<string>(@"
                             SELECT DISTINCT a.Name
                             FROM Authors a
                             INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
@@ -885,25 +885,25 @@ namespace TinyOPDS.Data
 
         public int GetTotalBooksCount()
         {
-            var result = _db.ExecuteScalar(DatabaseSchema.CountBooks);
+            var result = db.ExecuteScalar(DatabaseSchema.CountBooks);
             return Convert.ToInt32(result);
         }
 
         public int GetFB2BooksCount()
         {
-            var result = _db.ExecuteScalar(DatabaseSchema.CountFB2Books);
+            var result = db.ExecuteScalar(DatabaseSchema.CountFB2Books);
             return Convert.ToInt32(result);
         }
 
         public int GetEPUBBooksCount()
         {
-            var result = _db.ExecuteScalar(DatabaseSchema.CountEPUBBooks);
+            var result = db.ExecuteScalar(DatabaseSchema.CountEPUBBooks);
             return Convert.ToInt32(result);
         }
 
         public int GetNewBooksCount(DateTime fromDate)
         {
-            var result = _db.ExecuteScalar(DatabaseSchema.CountNewBooks,
+            var result = db.ExecuteScalar(DatabaseSchema.CountNewBooks,
                 DatabaseManager.CreateParameter("@FromDate", fromDate));
             return Convert.ToInt32(result);
         }
@@ -924,7 +924,7 @@ namespace TinyOPDS.Data
                     ? DatabaseSchema.SelectNewBooksPaginatedByDate
                     : DatabaseSchema.SelectNewBooksPaginatedByTitle;
 
-                var books = _db.ExecuteQuery<Book>(query, MapBook,
+                var books = db.ExecuteQuery<Book>(query, MapBook,
                     DatabaseManager.CreateParameter("@FromDate", fromDate),
                     DatabaseManager.CreateParameter("@Offset", offset),
                     DatabaseManager.CreateParameter("@Limit", limit));
@@ -945,28 +945,28 @@ namespace TinyOPDS.Data
 
         public List<string> GetAllAuthors()
         {
-            return _db.ExecuteQuery<string>(DatabaseSchema.SelectAuthors, reader => reader.GetString(0));
+            return db.ExecuteQuery<string>(DatabaseSchema.SelectAuthors, reader => reader.GetString(0));
         }
 
         public List<string> GetAllSequences()
         {
-            return _db.ExecuteQuery<string>(DatabaseSchema.SelectSequences, reader => reader.GetString(0));
+            return db.ExecuteQuery<string>(DatabaseSchema.SelectSequences, reader => reader.GetString(0));
         }
 
         public List<string> GetAllGenreTags()
         {
-            return _db.ExecuteQuery<string>(DatabaseSchema.SelectGenreTags, reader => reader.GetString(0));
+            return db.ExecuteQuery<string>(DatabaseSchema.SelectGenreTags, reader => reader.GetString(0));
         }
 
         public int GetAuthorsCount()
         {
-            var result = _db.ExecuteScalar(DatabaseSchema.SelectAuthorsCount);
+            var result = db.ExecuteScalar(DatabaseSchema.SelectAuthorsCount);
             return Convert.ToInt32(result);
         }
 
         public int GetSequencesCount()
         {
-            var result = _db.ExecuteScalar(DatabaseSchema.SelectSequencesCount);
+            var result = db.ExecuteScalar(DatabaseSchema.SelectSequencesCount);
             return Convert.ToInt32(result);
         }
 
@@ -979,7 +979,7 @@ namespace TinyOPDS.Data
         {
             try
             {
-                var result = _db.ExecuteScalar(DatabaseSchema.CountBooksByGenre,
+                var result = db.ExecuteScalar(DatabaseSchema.CountBooksByGenre,
                     DatabaseManager.CreateParameter("@GenreTag", genreTag));
                 return Convert.ToInt32(result);
             }
@@ -1000,7 +1000,7 @@ namespace TinyOPDS.Data
             {
                 var result = new Dictionary<string, int>();
 
-                var statistics = _db.ExecuteQuery<(string GenreTag, int BookCount)>(
+                var statistics = db.ExecuteQuery<(string GenreTag, int BookCount)>(
                     DatabaseSchema.SelectGenreStatistics,
                     reader => (reader.GetString(0), reader.GetInt32(1)));
 
@@ -1053,15 +1053,15 @@ namespace TinyOPDS.Data
         private void LoadBookRelations(Book book)
         {
             // Load authors
-            book.Authors = _db.ExecuteQuery<string>(DatabaseSchema.SelectBookAuthors, reader => reader.GetString(0),
+            book.Authors = db.ExecuteQuery<string>(DatabaseSchema.SelectBookAuthors, reader => reader.GetString(0),
                 DatabaseManager.CreateParameter("@BookID", book.ID));
 
             // Load genres
-            book.Genres = _db.ExecuteQuery<string>(DatabaseSchema.SelectBookGenres, reader => reader.GetString(0),
+            book.Genres = db.ExecuteQuery<string>(DatabaseSchema.SelectBookGenres, reader => reader.GetString(0),
                 DatabaseManager.CreateParameter("@BookID", book.ID));
 
             // Load translators
-            book.Translators = _db.ExecuteQuery<string>(DatabaseSchema.SelectBookTranslators, reader => reader.GetString(0),
+            book.Translators = db.ExecuteQuery<string>(DatabaseSchema.SelectBookTranslators, reader => reader.GetString(0),
                 DatabaseManager.CreateParameter("@BookID", book.ID));
         }
 

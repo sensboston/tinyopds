@@ -168,15 +168,14 @@
     <Compile Include="Parsers\BookParser.cs" />
     <Compile Include="Parsers\ePubParser.cs" />
     <Compile Include="Parsers\FB2Parser.cs" />
-    <Compile Include="Misc\ProcessHelper.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Scanners\FileScanner.cs" />
     <Compile Include="Scanners\ScannerEvents.cs" />
     <Compile Include="Scanners\Watcher.cs" />
     <Compile Include="Scanners\ZipScanner.cs" />
-    <Compile Include="Servers\HttpServer.cs" />
-    <Compile Include="Servers\OPDSServer.cs" />
+    <Compile Include="Server\HttpServer.cs" />
+    <Compile Include="Server\OPDSServer.cs" />
     <Compile Include="Misc\Utils.cs" />
     <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
@@ -197,7 +196,6 @@
     <None Include="Properties\app.manifest" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
-      <LastGenOutput>Settings1.Designer.cs</LastGenOutput>
     </None>
     <Compile Include="Properties\Settings.Designer.cs">
       <AutoGen>True</AutoGen>

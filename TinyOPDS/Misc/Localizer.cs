@@ -24,11 +24,11 @@ namespace TinyOPDS
 {
     public static class Localizer
     {
-        private static string _lang = "en";
-        private static Dictionary<string, string> _translations = new Dictionary<string, string>();
-        private static XDocument _xml = null;
+        private static string lang = "en";
+        private static Dictionary<string, string> translations = new Dictionary<string, string>();
+        private static XDocument xml = null;
 #if !CONSOLE
-        private static List<ToolStripItem> _menuItems = new List<ToolStripItem>();
+        private static List<ToolStripItem> menuItems = new List<ToolStripItem>();
 #endif
 
         /// <summary>
@@ -46,7 +46,7 @@ namespace TinyOPDS
                 {
                     if (stream != null)
                     {
-                        _xml = XDocument.Load(stream);
+                        xml = XDocument.Load(stream);
                     }
                     else
                     {
@@ -72,7 +72,7 @@ namespace TinyOPDS
                 foreach (ToolStripItem item in menu.Items)
                 {
                     if (item != null)
-                        _menuItems.Add(item);
+                        menuItems.Add(item);
                 }
             }
         }
@@ -85,11 +85,11 @@ namespace TinyOPDS
         {
             get
             {
-                if (_xml == null) return new Dictionary<string, string>();
+                if (xml == null) return new Dictionary<string, string>();
 
                 try
                 {
-                    return _xml.Descendants("language")
+                    return xml.Descendants("language")
                               .Where(l => l.Attribute("id") != null && !string.IsNullOrEmpty(l.Value))
                               .ToDictionary(d => d.Attribute("id").Value, d => d.Value);
                 }
@@ -106,12 +106,12 @@ namespace TinyOPDS
         /// </summary>
         public static string Language
         {
-            get { return _lang; }
+            get { return lang; }
             set
             {
-                if (_lang != value && _xml != null)
+                if (lang != value && xml != null)
                 {
-                    _lang = value;
+                    lang = value;
                     LoadTranslations();
                 }
             }
@@ -125,9 +125,9 @@ namespace TinyOPDS
         /// <param name="lang"></param>
         public static void SetLanguage(Form form, string lang)
         {
-            if (_lang != lang && _xml != null)
+            if (Localizer.lang != lang && xml != null)
             {
-                _lang = lang;
+                Localizer.lang = lang;
                 LoadTranslations();
                 UpdateControls(form);
             }
@@ -142,7 +142,7 @@ namespace TinyOPDS
         public static string Text(string source)
         {
             if (string.IsNullOrEmpty(source)) return source;
-            return _translations.ContainsKey(source) ? _translations[source] : source;
+            return translations.ContainsKey(source) ? translations[source] : source;
         }
 
         /// <summary>
@@ -150,13 +150,13 @@ namespace TinyOPDS
         /// </summary>
         private static void LoadTranslations()
         {
-            if (_xml == null) return;
+            if (xml == null) return;
 
             try
             {
-                _translations.Clear();
+                translations.Clear();
 
-                var properties = _xml.Descendants("property");
+                var properties = xml.Descendants("property");
 
                 foreach (var property in properties)
                 {
@@ -168,10 +168,10 @@ namespace TinyOPDS
 
                     string translatedText = englishText.Value; // Default to English
 
-                    if (_lang != "en")
+                    if (lang != "en")
                     {
                         var targetText = property.Descendants("text")
-                                                .FirstOrDefault(t => t.Attribute("lang")?.Value == _lang);
+                                                .FirstOrDefault(t => t.Attribute("lang")?.Value == lang);
 
                         if (targetText != null && !string.IsNullOrEmpty(targetText.Value))
                         {
@@ -181,9 +181,9 @@ namespace TinyOPDS
 
                     // Use TryAdd to avoid exceptions on duplicate keys
                     string key = englishText.Value;
-                    if (!_translations.ContainsKey(key))
+                    if (!translations.ContainsKey(key))
                     {
-                        _translations.Add(key, translatedText);
+                        translations.Add(key, translatedText);
                     }
                     else
                     {
@@ -192,15 +192,15 @@ namespace TinyOPDS
                 }
 
                 Log.WriteLine(LogLevel.Info, "Loaded {0} translations for language '{1}'",
-                             _translations.Count, _lang);
+                             translations.Count, lang);
             }
             catch (Exception e)
             {
                 Log.WriteLine(LogLevel.Error, "LoadTranslations() exception: {0}", e.Message);
 
                 // Fallback: at least initialize with empty dictionary
-                if (_translations == null)
-                    _translations = new Dictionary<string, string>();
+                if (translations == null)
+                    translations = new Dictionary<string, string>();
             }
         }
 
@@ -211,7 +211,7 @@ namespace TinyOPDS
         /// <param name="form">Form to be updated</param>
         private static void UpdateControls(Form form)
         {
-            if (form == null || _xml == null) return;
+            if (form == null || xml == null) return;
 
             try
             {
@@ -225,7 +225,7 @@ namespace TinyOPDS
 
                     try
                     {
-                        var xmlProp = _xml.Descendants("property")
+                        var xmlProp = xml.Descendants("property")
                                          .Where(e => e.Attribute("form")?.Value == form.Name &&
                                                     e.Attribute("ctrl")?.Value == ctrl.Name);
 
@@ -233,7 +233,7 @@ namespace TinyOPDS
                         {
                             var trans = xmlProp.First()
                                               .Descendants("text")
-                                              .Where(p => p.Attribute("lang")?.Value == _lang)
+                                              .Where(p => p.Attribute("lang")?.Value == lang)
                                               .Select(p => p.Value)
                                               .FirstOrDefault();
 
@@ -249,21 +249,21 @@ namespace TinyOPDS
                 }
 
                 // Update menu items
-                foreach (ToolStripItem ctrl in _menuItems)
+                foreach (ToolStripItem ctrl in menuItems)
                 {
                     if (ctrl == null || string.IsNullOrEmpty(ctrl.Name))
                         continue;
 
                     try
                     {
-                        var xmlProp = _xml.Descendants("property")
+                        var xmlProp = xml.Descendants("property")
                                          .Where(e => e.Attribute("ctrl")?.Value == ctrl.Name);
 
                         if (xmlProp.Any())
                         {
                             var trans = xmlProp.First()
                                               .Descendants("text")
-                                              .Where(p => p.Attribute("lang")?.Value == _lang)
+                                              .Where(p => p.Attribute("lang")?.Value == lang)
                                               .Select(p => p.Value)
                                               .FirstOrDefault();
 

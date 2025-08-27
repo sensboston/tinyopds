@@ -23,10 +23,10 @@ namespace TinyOPDS
     /// </summary>
     public static class EmbeddedDllLoader
     {
-        private static readonly Dictionary<string, Assembly> _loadedAssemblies = new Dictionary<string, Assembly>();
-        private static readonly Dictionary<string, string> _extractedNativeDlls = new Dictionary<string, string>();
-        private static readonly object _lockObject = new object();
-        private static bool _isInitialized = false;
+        private static readonly Dictionary<string, Assembly> loadedAssemblies = new Dictionary<string, Assembly>();
+        private static readonly Dictionary<string, string> extractedNativeDlls = new Dictionary<string, string>();
+        private static readonly object lockObject = new object();
+        private static bool isInitialized = false;
 
         // P/Invoke declarations for LoadLibrary
         [DllImport("kernel32.dll", SetLastError = true)]
@@ -55,17 +55,17 @@ namespace TinyOPDS
         /// </summary>
         public static void Initialize()
         {
-            if (_isInitialized) return;
+            if (isInitialized) return;
 
-            lock (_lockObject)
+            lock (lockObject)
             {
-                if (_isInitialized) return;
+                if (isInitialized) return;
 
                 try
                 {
                     AppDomain.CurrentDomain.AssemblyResolve += OnAssemblyResolve;
                     Log.WriteLine("EmbeddedDllLoader initialized");
-                    _isInitialized = true;
+                    isInitialized = true;
                 }
                 catch (Exception ex)
                 {
@@ -99,16 +99,16 @@ namespace TinyOPDS
 
                 Log.WriteLine("Attempting to resolve assembly: {0}", assemblyName);
 
-                if (_loadedAssemblies.ContainsKey(assemblyName))
+                if (loadedAssemblies.ContainsKey(assemblyName))
                 {
                     Log.WriteLine("Assembly {0} already loaded from cache", assemblyName);
-                    return _loadedAssemblies[assemblyName];
+                    return loadedAssemblies[assemblyName];
                 }
 
                 Assembly assembly = LoadManagedAssembly(assemblyName);
                 if (assembly != null)
                 {
-                    _loadedAssemblies[assemblyName] = assembly;
+                    loadedAssemblies[assemblyName] = assembly;
                     Log.WriteLine("Successfully loaded assembly {0} from embedded resources", assemblyName);
                     return assembly;
                 }
@@ -173,7 +173,7 @@ namespace TinyOPDS
         {
             try
             {
-                if (_extractedNativeDlls.ContainsKey(dllName))
+                if (extractedNativeDlls.ContainsKey(dllName))
                 {
                     Log.WriteLine("Native DLL {0} already loaded", dllName);
                     return true;
@@ -193,7 +193,7 @@ namespace TinyOPDS
                     return false;
                 }
 
-                _extractedNativeDlls[dllName] = extractedPath;
+                extractedNativeDlls[dllName] = extractedPath;
                 Log.WriteLine("Successfully loaded native DLL: {0}", dllName);
                 return true;
             }
@@ -288,7 +288,7 @@ namespace TinyOPDS
                     Assembly assembly = LoadManagedAssembly(dllName);
                     if (assembly != null)
                     {
-                        _loadedAssemblies[dllName] = assembly;
+                        loadedAssemblies[dllName] = assembly;
                         Log.WriteLine("Preloaded managed assembly: {0}", dllName);
                     }
                 }
@@ -314,13 +314,13 @@ namespace TinyOPDS
         {
             var info = new System.Text.StringBuilder();
             info.AppendLine("Loaded managed assemblies:");
-            foreach (var kvp in _loadedAssemblies)
+            foreach (var kvp in loadedAssemblies)
             {
                 info.AppendLine($"  {kvp.Key} -> {kvp.Value.FullName}");
             }
 
             info.AppendLine("Extracted native DLLs:");
-            foreach (var kvp in _extractedNativeDlls)
+            foreach (var kvp in extractedNativeDlls)
             {
                 info.AppendLine($"  {kvp.Key} -> {kvp.Value}");
             }

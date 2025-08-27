@@ -16,7 +16,6 @@ using System.Reflection;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 
 using TinyOPDS;
@@ -46,16 +45,11 @@ namespace TinyOPDSConsole
         private static Timer _upnpRefreshTimer = null;
 
         private static readonly Mutex _mutex = new Mutex(false, "tiny_opds_console_mutex");
-
-        #region Statistical information
         private static int _fb2Count, _epubCount, _skippedFiles, _invalidFiles, _duplicates;
-        #endregion
 
-        #region Batch processing for CLI performance
         private static readonly List<Book> _pendingBooks = new List<Book>();
         private static readonly object _batchLock = new object();
         private static int _batchSize = 500;
-        #endregion
 
         #region Startup, command line processing and service overrides
 
@@ -125,10 +119,6 @@ namespace TinyOPDSConsole
 
         static int Main(string[] args)
         {
-            // Initialize embedded DLL loader FIRST
-            EmbeddedDllLoader.Initialize();
-            EmbeddedDllLoader.PreloadNativeDlls();
-
             // Use portable settings provider
             PortableSettingsProvider.SettingsFileName = "TinyOPDS.config";
             PortableSettingsProvider.ApplyProvider(Settings.Default);
@@ -136,8 +126,13 @@ namespace TinyOPDSConsole
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
             Log.SaveToFile = Settings.Default.SaveLogToDisk;
 
+            // Initialize embedded DLL loader FIRST
+            EmbeddedDllLoader.Initialize();
+            EmbeddedDllLoader.PreloadNativeDlls();
+            EmbeddedDllLoader.PreloadManagedAssemblies();
+
             // Initialize batch size from settings
-            _batchSize = Settings.Default.BatchSize > 0 ? Settings.Default.BatchSize : 500;
+            _batchSize = Settings.Default.BatchSize > 0 ? Settings.Default.BatchSize : 1000;
 
             // Check for single instance only if enabled in settings
             if (Settings.Default.OnlyOneInstance)
@@ -592,11 +587,11 @@ namespace TinyOPDSConsole
                 Library.LibraryPath = libraryPath;
                 Library.Initialize(sqliteDbPath);
 
-                Log.WriteLine("✓ SQLite database successfully initialized");
+                Log.WriteLine("SQLite database successfully initialized");
             }
             catch (Exception ex)
             {
-                Log.WriteLine(LogLevel.Error, "✗ Error initializing SQLite: {0}", ex.Message);
+                Log.WriteLine(LogLevel.Error, "Error initializing SQLite: {0}", ex.Message);
                 throw;
             }
         }

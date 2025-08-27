@@ -270,11 +270,11 @@ namespace TinyOPDS
                 Library.LibraryPath = libraryPath;
                 Library.Initialize(sqliteDbPath);
 
-                Log.WriteLine("✓ SQLite database successfully initialized");
+                Log.WriteLine("SQLite database successfully initialized");
             }
             catch (Exception ex)
             {
-                Log.WriteLine(LogLevel.Error, "✗ Error initializing SQLite: {0}", ex.Message);
+                Log.WriteLine(LogLevel.Error, "Error initializing SQLite: {0}", ex.Message);
             }
         }
 

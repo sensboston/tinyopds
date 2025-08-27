@@ -89,14 +89,6 @@ namespace TinyOPDS
                     return null;
                 }
 
-                // Skip system assemblies
-                if (assemblyName.StartsWith("System.", StringComparison.OrdinalIgnoreCase) ||
-                    assemblyName.StartsWith("Microsoft.", StringComparison.OrdinalIgnoreCase) ||
-                    assemblyName.Equals("mscorlib", StringComparison.OrdinalIgnoreCase))
-                {
-                    return null;
-                }
-
                 Log.WriteLine("Attempting to resolve assembly: {0}", assemblyName);
 
                 if (loadedAssemblies.ContainsKey(assemblyName))

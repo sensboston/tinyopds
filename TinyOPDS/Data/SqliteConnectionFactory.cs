@@ -14,6 +14,7 @@ using System;
 using System.Data;
 using System.IO;
 using System.Reflection;
+using System.Data.SQLite;
 
 namespace TinyOPDS.Data
 {
@@ -95,7 +96,7 @@ namespace TinyOPDS.Data
                     // Fallback to System.Data.SQLite if Mono.Data.Sqlite not available
                     try
                     {
-                        return new System.Data.SQLite.SQLiteConnection(connectionString);
+                        return new SQLiteConnection(connectionString);
                     }
                     catch (Exception ex)
                     {
@@ -107,7 +108,7 @@ namespace TinyOPDS.Data
             }
             else
             {
-                return new System.Data.SQLite.SQLiteConnection(connectionString);
+                return new SQLiteConnection(connectionString);
             }
         }
 
@@ -130,7 +131,7 @@ namespace TinyOPDS.Data
                     // Fallback to System.Data.SQLite
                     try
                     {
-                        return new System.Data.SQLite.SQLiteCommand(sql, (System.Data.SQLite.SQLiteConnection)connection);
+                        return new SQLiteCommand(sql, (SQLiteConnection)connection);
                     }
                     catch (Exception ex)
                     {
@@ -141,7 +142,7 @@ namespace TinyOPDS.Data
             }
             else
             {
-                return new System.Data.SQLite.SQLiteCommand(sql, (System.Data.SQLite.SQLiteConnection)connection);
+                return new SQLiteCommand(sql, (SQLiteConnection)connection);
             }
         }
 
@@ -163,7 +164,7 @@ namespace TinyOPDS.Data
                     // Fallback to System.Data.SQLite
                     try
                     {
-                        return new System.Data.SQLite.SQLiteCommand(sql);
+                        return new SQLiteCommand(sql);
                     }
                     catch (Exception ex)
                     {
@@ -174,7 +175,7 @@ namespace TinyOPDS.Data
             }
             else
             {
-                return new System.Data.SQLite.SQLiteCommand(sql);
+                return new SQLiteCommand(sql);
             }
         }
     }

@@ -51,7 +51,7 @@ namespace Bluegrams.Application
             if (initnew)
             {
                 xmlDoc = new XDocument(new XElement("configuration",
-                    new XElement("userSettings", new XElement("Roaming"))));
+                    new XElement("userSettings", new XElement("Portable"))));
             }
             return xmlDoc;
         }
@@ -61,7 +61,7 @@ namespace Bluegrams.Application
             XDocument xmlDoc = GetXmlDoc();
             SettingsPropertyValueCollection values = new SettingsPropertyValueCollection();
             // iterate through settings to be retrieved
-            foreach(SettingsProperty setting in collection)
+            foreach (SettingsProperty setting in collection)
             {
                 SettingsPropertyValue value = new SettingsPropertyValue(setting);
                 value.IsDirty = false;
@@ -83,11 +83,12 @@ namespace Bluegrams.Application
             {
                 // Make sure that special chars such as '\r\n' are preserved by replacing them with char entities.
                 using (var writer = XmlWriter.Create(ApplicationSettingsFile,
-                    new XmlWriterSettings() { NewLineHandling = NewLineHandling.Entitize, Indent=true }))
+                    new XmlWriterSettings() { NewLineHandling = NewLineHandling.Entitize, Indent = true }))
                 {
                     xmlDoc.Save(writer);
                 }
-            } catch { /* We don't want the app to crash if the settings file is not available */ }
+            }
+            catch { /* We don't want the app to crash if the settings file is not available */ }
         }
 
         private object getXmlValue(XDocument xmlDoc, string scope, SettingsProperty prop)
@@ -95,17 +96,33 @@ namespace Bluegrams.Application
             object result = null;
             if (!IsUserScoped(prop))
                 return result;
-            //determine the location of the settings property
+
             XElement xmlSettings = xmlDoc.Element("configuration").Element("userSettings");
-            if (IsRoaming(prop))
-                xmlSettings = xmlSettings.Element("Roaming");
-            else xmlSettings = xmlSettings.Element("PC_" + Environment.MachineName);
+
+            // Always use "Portable" node for cross-platform compatibility
+            xmlSettings = xmlSettings.Element("Portable");
+
+            // Fallback: try to find any existing node (for backward compatibility)
+            if (xmlSettings == null)
+            {
+                var userSettingsElement = xmlDoc.Element("configuration").Element("userSettings");
+                foreach (var element in userSettingsElement.Elements())
+                {
+                    // Skip empty Roaming node, use any other node
+                    if (element.Name.LocalName != "Roaming" && element.HasElements)
+                    {
+                        xmlSettings = element;
+                        break;
+                    }
+                }
+            }
+
             // retrieve the value or set to default if available
             if (xmlSettings != null && xmlSettings.Element(scope) != null && xmlSettings.Element(scope).Element(prop.Name) != null)
             {
                 using (var reader = xmlSettings.Element(scope).Element(prop.Name).CreateReader())
                 {
-                reader.MoveToContent();
+                    reader.MoveToContent();
                     switch (prop.SerializeAs)
                     {
                         case SettingsSerializeAs.Xml:
@@ -127,14 +144,12 @@ namespace Bluegrams.Application
         }
 
         private void setXmlValue(XDocument xmlDoc, string scope, SettingsPropertyValue value)
-        { 
+        {
             if (!IsUserScoped(value.Property)) return;
-            //determine the location of the settings property
+
             XElement xmlSettings = xmlDoc.Element("configuration").Element("userSettings");
-            XElement xmlSettingsLoc;
-            if (IsRoaming(value.Property))
-                xmlSettingsLoc = xmlSettings.Element("Roaming");
-            else xmlSettingsLoc = xmlSettings.Element("PC_" + Environment.MachineName);
+            XElement xmlSettingsLoc = xmlSettings.Element("Portable");
+
             // the serialized value to be saved
             XNode serialized;
             if (value.SerializedValue == null || value.SerializedValue is string s && String.IsNullOrWhiteSpace(s))
@@ -144,11 +159,11 @@ namespace Bluegrams.Application
             else if (value.Property.SerializeAs == SettingsSerializeAs.Binary)
                 serialized = new XText(Convert.ToBase64String((byte[])value.SerializedValue));
             else serialized = new XText((string)value.SerializedValue);
+
             // check if setting already exists, otherwise create new
             if (xmlSettingsLoc == null)
             {
-                if (IsRoaming(value.Property)) xmlSettingsLoc = new XElement("Roaming");
-                else xmlSettingsLoc = new XElement("PC_" + Environment.MachineName);
+                xmlSettingsLoc = new XElement("Portable");
                 xmlSettingsLoc.Add(new XElement(scope,
                     new XElement(value.Name, serialized)));
                 xmlSettings.Add(xmlSettingsLoc);

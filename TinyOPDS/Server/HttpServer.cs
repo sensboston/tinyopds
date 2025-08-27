@@ -37,7 +37,7 @@ namespace TinyOPDS.Server
     /// </summary>
     public class HttpProcessor : IDisposable
     {
-        public TcpClient Socket;        
+        public TcpClient Socket;
         public HttpServer Server;
 
         private Stream inputStream;
@@ -63,7 +63,7 @@ namespace TinyOPDS.Server
         public HttpProcessor(TcpClient socket, HttpServer server)
         {
             Socket = socket;
-            Server = server;                   
+            Server = server;
         }
 
         public void Dispose()
@@ -87,7 +87,7 @@ namespace TinyOPDS.Server
             }
         }
 
-        private string StreamReadLine(Stream inputStream) 
+        private string StreamReadLine(Stream inputStream)
         {
             string data = string.Empty;
             if (inputStream.CanRead)
@@ -98,14 +98,15 @@ namespace TinyOPDS.Server
                     try { next_char = inputStream.ReadByte(); } catch { break; }
                     if (next_char == '\n') { break; }
                     if (next_char == '\r') { continue; }
-                    if (next_char == -1) { Thread.Sleep(10); continue; };
+                    if (next_char == -1) { Thread.Sleep(10); continue; }
+                    ;
                     data += Convert.ToChar(next_char);
                 }
             }
             return data;
         }
 
-        public void Process(object param) 
+        public void Process(object param)
         {
             // We can't use a StreamReader for input, because it buffers up extra data on us inside it's
             // "processed" view of the world, and we want the data raw after the headers
@@ -133,12 +134,12 @@ namespace TinyOPDS.Server
                     clientHash += remoteIP;
                     clientHash = Utils.CreateGuid(Utils.IsoOidNamespace, clientHash).ToString();
 
-                    if (TinyOPDS.Properties.Settings.Default.UseHTTPAuth)
+                    if (Properties.Settings.Default.UseHTTPAuth)
                     {
                         authorized = false;
 
                         // Is remote IP banned?
-                        if (TinyOPDS.Properties.Settings.Default.BanClients)
+                        if (Properties.Settings.Default.BanClients)
                         {
                             lock (BannedClients)
                             {
@@ -203,9 +204,9 @@ namespace TinyOPDS.Server
                                     {
                                         Log.WriteLine(LogLevel.Authentication, "Authentication exception: IP: {0}, {1}", remoteIP, e.Message);
                                     }
-                                } 
-                            } 
-                        }  
+                                }
+                            }
+                        }
                     }
 
                     if (authorized)
@@ -225,7 +226,7 @@ namespace TinyOPDS.Server
                     }
                     else
                     {
-                        if (TinyOPDS.Properties.Settings.Default.BanClients)
+                        if (Properties.Settings.Default.BanClients)
                         {
                             lock (BannedClients)
                             {
@@ -269,15 +270,17 @@ namespace TinyOPDS.Server
             finally
             {
                 Socket.Close();
+                inputStream?.Dispose();
                 inputStream = null;
+                OutputStream?.Dispose();
                 OutputStream = null;
                 Socket = null;
             }
         }
 
-        public bool ParseRequest() 
+        public bool ParseRequest()
         {
-            String request = StreamReadLine(inputStream);
+            string request = StreamReadLine(inputStream);
             if (string.IsNullOrEmpty(request)) return false;
             string[] tokens = request.Split(' ');
             if (tokens.Length != 3) return false;
@@ -287,29 +290,29 @@ namespace TinyOPDS.Server
             return true;
         }
 
-        public void ReadHeaders() 
+        public void ReadHeaders()
         {
             string line;
-            while ((line = StreamReadLine(inputStream)) != null) 
+            while ((line = StreamReadLine(inputStream)) != null)
             {
                 if (string.IsNullOrEmpty(line)) return;
-                
+
                 int separator = line.IndexOf(':');
-                if (separator == -1) 
+                if (separator == -1)
                 {
                     throw new Exception("ReadHeaders(): invalid HTTP header line: " + line);
                 }
-                String name = line.Substring(0, separator);
+                string name = line.Substring(0, separator);
                 int pos = separator + 1;
                 // strip spaces
-                while ((pos < line.Length) && (line[pos] == ' ')) pos++; 
-                    
+                while ((pos < line.Length) && (line[pos] == ' ')) pos++;
+
                 string value = line.Substring(pos, line.Length - pos);
                 HttpHeaders[name] = value;
             }
         }
 
-        public void HandleGETRequest() 
+        public void HandleGETRequest()
         {
             Server.HandleGETRequest(this);
         }
@@ -318,6 +321,7 @@ namespace TinyOPDS.Server
         public void HandlePOSTRequest()
         {
             MemoryStream memStream = null;
+            StreamReader reader = null;
 
             try
             {
@@ -344,97 +348,64 @@ namespace TinyOPDS.Server
                     }
                     memStream.Seek(0, SeekOrigin.Begin);
                 }
-                using (StreamReader reader = new StreamReader(memStream))
-                {
-                    memStream = null;
-                    Server.HandlePOSTRequest(this, reader);
-                }
+                reader = new StreamReader(memStream);
+                Server.HandlePOSTRequest(this, reader);
             }
             finally
             {
+                reader?.Dispose();
                 memStream?.Dispose();
             }
         }
 
-        public void WriteSuccess(string contentType = "text/xml", bool isGZip = false) 
+        private void WriteHttpResponse(string statusLine, string additionalHeaders = null, string methodName = null)
         {
             try
             {
-                OutputStream.Write("HTTP/1.1 200 OK\n");
-                OutputStream.Write("Content-Type: " + contentType + "\n");
-                if (isGZip) OutputStream.Write("Content-Encoding: gzip\n");
+                OutputStream.Write("HTTP/1.1 " + statusLine + "\n");
+                if (!string.IsNullOrEmpty(additionalHeaders))
+                {
+                    OutputStream.Write(additionalHeaders + "\n");
+                }
                 OutputStream.Write("Connection: close\n\n");
             }
             catch (Exception e)
             {
-                Log.WriteLine(LogLevel.Error, ".WriteSuccess() exception: {0}", e.Message);
+                string logMethodName = methodName ?? new System.Diagnostics.StackTrace().GetFrame(1).GetMethod().Name;
+                Log.WriteLine(LogLevel.Error, "{0} exception: {1}", logMethodName, e.Message);
             }
         }
 
-        public void WriteFailure() 
+        public void WriteSuccess(string contentType = "text/xml", bool isGZip = false)
         {
-            try
-            {
-                OutputStream.Write("HTTP/1.1 404 Bad request\n");
-                OutputStream.Write("Connection: close\n\n");
-            }
-            catch (Exception e)
-            {
-                Log.WriteLine(LogLevel.Error, ".WriteFailure() exception: {0}", e.Message);
-            }
+            string headers = "Content-Type: " + contentType;
+            if (isGZip) headers += "\nContent-Encoding: gzip";
+            WriteHttpResponse("200 OK", headers, "WriteSuccess");
+        }
+
+        public void WriteFailure()
+        {
+            WriteHttpResponse("404 Bad request");
         }
 
         public void WriteNotAuthorized()
         {
-            try
-            {
-                OutputStream.Write("HTTP/1.1 401 Unauthorized\n");
-                OutputStream.Write("WWW-Authenticate: Basic realm=TinyOPDS\n");
-                OutputStream.Write("Connection: close\n\n");
-            }
-            catch (Exception e)
-            {
-                Log.WriteLine(LogLevel.Error, ".WriteNotAuthorized() exception: {0}", e.Message);
-            }
+            WriteHttpResponse("401 Unauthorized", "WWW-Authenticate: Basic realm=TinyOPDS");
         }
 
         public void WriteForbidden()
         {
-            try
-            {
-                OutputStream.Write("HTTP/1.1 403 Forbidden\n");
-                OutputStream.Write("Connection: close\n\n");
-            }
-            catch (Exception e)
-            {
-                Log.WriteLine(LogLevel.Error, ".WriteForbidden() exception: {0}", e.Message);
-            }
+            WriteHttpResponse("403 Forbidden");
         }
 
         public void WriteBadRequest()
         {
-            try
-            {
-                OutputStream.Write("HTTP/1.1 400 Bad Request\n");
-                OutputStream.Write("Connection: close\n\n");
-            }
-            catch (Exception e)
-            {
-                Log.WriteLine(LogLevel.Error, "WriteBadRequest() exception: {0}", e.Message);
-            }
+            WriteHttpResponse("400 Bad Request");
         }
 
         public void WriteMethodNotAllowed()
         {
-            try
-            {
-                OutputStream.Write("HTTP/1.1 405 Method Not Allowed\n");
-                OutputStream.Write("Connection: close\n\n");
-            }
-            catch (Exception e)
-            {
-                Log.WriteLine(LogLevel.Error, "WriteMethodNotAllowed() exception: {0}", e.Message);
-            }
+            WriteHttpResponse("405 Method Not Allowed");
         }
 
     }
@@ -445,10 +416,10 @@ namespace TinyOPDS.Server
     public class Statistics
     {
         public event EventHandler StatisticsUpdated;
-        private int _booksSent  = 0;
+        private int _booksSent = 0;
         private int _imagesSent = 0;
-        private int _getRequests  = 0;
-        private int _postRequests  = 0;
+        private int _getRequests = 0;
+        private int _postRequests = 0;
         private int _successfulLoginAttempts = 0;
         private int _wrongLoginAttempts = 0;
         public int BooksSent { get { return _booksSent; } set { _booksSent = value; StatisticsUpdated?.Invoke(this, null); } }
@@ -510,7 +481,7 @@ namespace TinyOPDS.Server
             ServerStatistics.Clear();
         }
 
-        public HttpServer(IPAddress InterfaceIP, int Port, int Timeout = 10000) 
+        public HttpServer(IPAddress InterfaceIP, int Port, int Timeout = 10000)
         {
             _interfaceIP = InterfaceIP;
             _port = Port;
@@ -542,11 +513,10 @@ namespace TinyOPDS.Server
         /// <summary>
         /// Server listener
         /// </summary>
-        public void Listen() 
+        public void Listen()
         {
             DateTime requestTime = DateTime.Now;
             int loopCount = 0;
-            HttpProcessor processor = null;
             ServerException = null;
             try
             {
@@ -562,7 +532,7 @@ namespace TinyOPDS.Server
                         socket.SendTimeout = socket.ReceiveTimeout = _timeout;
                         socket.SendBufferSize = 1024 * 1024;
                         socket.NoDelay = true;
-                        processor = new HttpProcessor(socket, this);
+                        HttpProcessor processor = new HttpProcessor(socket, this);
                         // Reset idle state
                         _isIdle = false;
                         requestTime = DateTime.Now;
@@ -588,7 +558,6 @@ namespace TinyOPDS.Server
             }
             finally
             {
-                processor?.Dispose();
                 _isActive = false;
             }
         }

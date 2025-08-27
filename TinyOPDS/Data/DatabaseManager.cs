@@ -26,15 +26,17 @@ namespace TinyOPDS.Data
         {
             connectionString = $"Data Source={databasePath};Version=3;";
 
-            // Create database file if it doesn't exist (only for System.Data.SQLite on Windows)
+            // Create database file if it doesn't exist (only on Windows with System.Data.SQLite)
             if (!Utils.IsLinux && !File.Exists(databasePath))
             {
-                // Use reflection to call SQLiteConnection.CreateFile on Windows
                 try
                 {
-                    var sqliteType = typeof(System.Data.SQLite.SQLiteConnection);
-                    var createFileMethod = sqliteType.GetMethod("CreateFile", new[] { typeof(string) });
-                    createFileMethod?.Invoke(null, new object[] { databasePath });
+                    var sqliteType = Type.GetType("System.Data.SQLite.SQLiteConnection, System.Data.SQLite");
+                    if (sqliteType != null)
+                    {
+                        var createFileMethod = sqliteType.GetMethod("CreateFile", new[] { typeof(string) });
+                        createFileMethod?.Invoke(null, new object[] { databasePath });
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -188,10 +190,16 @@ namespace TinyOPDS.Data
         {
             if (Utils.IsLinux)
             {
-                // Create Mono.Data.Sqlite parameter via reflection
-                var assembly = System.Reflection.Assembly.Load("Mono.Data.Sqlite");
-                var paramType = assembly.GetType("Mono.Data.Sqlite.SqliteParameter");
-                return (IDbDataParameter)Activator.CreateInstance(paramType, name, value ?? DBNull.Value);
+                var linuxSqliteAssembly = EmbeddedDllLoader.GetLinuxSqliteAssembly();
+                if (linuxSqliteAssembly != null)
+                {
+                    var paramType = linuxSqliteAssembly.GetType("Mono.Data.Sqlite.SqliteParameter");
+                    return (IDbDataParameter)Activator.CreateInstance(paramType, name, value ?? DBNull.Value);
+                }
+                else
+                {
+                    return new System.Data.SQLite.SQLiteParameter(name, value ?? DBNull.Value);
+                }
             }
             else
             {

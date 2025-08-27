@@ -24,58 +24,28 @@ namespace TinyOPDS.Data
     /// </summary>
     public static class SqliteConnectionFactory
     {
-        private static Assembly sqliteAssembly;
         private static Type connectionType;
         private static Type commandType;
+        private static bool typesInitialized = false;
 
-        static SqliteConnectionFactory()
+        /// <summary>
+        /// Initialize types for Linux platform
+        /// </summary>
+        private static void InitializeTypes()
         {
+            if (typesInitialized) return;
+
             if (Utils.IsLinux)
             {
-                LoadLinuxSqliteTypes();
-            }
-        }
-
-        private static void LoadLinuxSqliteTypes()
-        {
-            try
-            {
-                // Try to load Mono.Data.Sqlite from GAC first
-                sqliteAssembly = Assembly.Load("Mono.Data.Sqlite");
-            }
-            catch
-            {
-                try
+                var linuxSqliteAssembly = EmbeddedDllLoader.GetLinuxSqliteAssembly();
+                if (linuxSqliteAssembly != null)
                 {
-                    // Try from standard Mono location
-                    var monoSqlitePath = "/usr/lib/mono/4.5/Mono.Data.Sqlite.dll";
-                    if (File.Exists(monoSqlitePath))
-                    {
-                        sqliteAssembly = Assembly.LoadFrom(monoSqlitePath);
-                    }
-                }
-                catch
-                {
-                    try
-                    {
-                        // Try from current directory
-                        var localPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Mono.Data.Sqlite.dll");
-                        if (File.Exists(localPath))
-                        {
-                            sqliteAssembly = Assembly.LoadFrom(localPath);
-                        }
-                    }
-                    catch
-                    {
-                    }
+                    connectionType = linuxSqliteAssembly.GetType("Mono.Data.Sqlite.SqliteConnection");
+                    commandType = linuxSqliteAssembly.GetType("Mono.Data.Sqlite.SqliteCommand");
                 }
             }
 
-            if (sqliteAssembly != null)
-            {
-                connectionType = sqliteAssembly.GetType("Mono.Data.Sqlite.SqliteConnection");
-                commandType = sqliteAssembly.GetType("Mono.Data.Sqlite.SqliteCommand");
-            }
+            typesInitialized = true;
         }
 
         /// <summary>
@@ -87,13 +57,14 @@ namespace TinyOPDS.Data
         {
             if (Utils.IsLinux)
             {
+                InitializeTypes();
+
                 if (connectionType != null)
                 {
                     return (IDbConnection)Activator.CreateInstance(connectionType, connectionString);
                 }
                 else
                 {
-                    // Fallback to System.Data.SQLite if Mono.Data.Sqlite not available
                     try
                     {
                         return new SQLiteConnection(connectionString);
@@ -122,13 +93,14 @@ namespace TinyOPDS.Data
         {
             if (Utils.IsLinux)
             {
+                InitializeTypes();
+
                 if (commandType != null)
                 {
                     return (IDbCommand)Activator.CreateInstance(commandType, sql, connection);
                 }
                 else
                 {
-                    // Fallback to System.Data.SQLite
                     try
                     {
                         return new SQLiteCommand(sql, (SQLiteConnection)connection);
@@ -155,13 +127,14 @@ namespace TinyOPDS.Data
         {
             if (Utils.IsLinux)
             {
+                InitializeTypes();
+
                 if (commandType != null)
                 {
                     return (IDbCommand)Activator.CreateInstance(commandType, sql);
                 }
                 else
                 {
-                    // Fallback to System.Data.SQLite
                     try
                     {
                         return new SQLiteCommand(sql);

@@ -28,6 +28,8 @@ namespace TinyOPDS
         private static readonly object lockObject = new object();
         private static bool isInitialized = false;
 
+        private static Assembly linuxSqliteAssembly;
+
         // P/Invoke declarations for LoadLibrary
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern IntPtr LoadLibrary(string dllToLoad);
@@ -64,6 +66,12 @@ namespace TinyOPDS
                 try
                 {
                     AppDomain.CurrentDomain.AssemblyResolve += OnAssemblyResolve;
+
+                    if (Utils.IsLinux)
+                    {
+                        LoadLinuxSqlite();
+                    }
+
                     Log.WriteLine("EmbeddedDllLoader initialized");
                     isInitialized = true;
                 }
@@ -72,6 +80,52 @@ namespace TinyOPDS
                     Log.WriteLine(LogLevel.Error, "Failed to initialize EmbeddedDllLoader: {0}", ex.Message);
                 }
             }
+        }
+
+        /// <summary>
+        /// Load Mono.Data.Sqlite assembly on Linux
+        /// </summary>
+        private static void LoadLinuxSqlite()
+        {
+            try
+            {
+                try
+                {
+                    linuxSqliteAssembly = Assembly.Load("Mono.Data.Sqlite");
+                    Log.WriteLine("Loaded Mono.Data.Sqlite from GAC");
+                    return;
+                }
+                catch { }
+
+                string[] possiblePaths = {
+                    "/usr/lib/mono/4.5/Mono.Data.Sqlite.dll",
+                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Mono.Data.Sqlite.dll")
+                };
+
+                foreach (string path in possiblePaths)
+                {
+                    if (File.Exists(path))
+                    {
+                        linuxSqliteAssembly = Assembly.LoadFrom(path);
+                        Log.WriteLine("Loaded Mono.Data.Sqlite from: {0}", path);
+                        return;
+                    }
+                }
+
+                Log.WriteLine(LogLevel.Warning, "Mono.Data.Sqlite not found, will fall back to System.Data.SQLite");
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Warning, "Error loading Mono.Data.Sqlite: {0}", ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Get Linux SQLite assembly for factory
+        /// </summary>
+        public static Assembly GetLinuxSqliteAssembly()
+        {
+            return linuxSqliteAssembly;
         }
 
         /// <summary>
@@ -85,6 +139,15 @@ namespace TinyOPDS
 
                 // Skip resource assemblies to avoid loading localization files
                 if (assemblyName.EndsWith(".resources", StringComparison.OrdinalIgnoreCase))
+                {
+                    return null;
+                }
+
+                // Skip system assemblies but allow System.Data.SQLite
+                if ((assemblyName.StartsWith("System.", StringComparison.OrdinalIgnoreCase) &&
+                     !assemblyName.Equals("System.Data.SQLite", StringComparison.OrdinalIgnoreCase)) ||
+                    assemblyName.StartsWith("Microsoft.", StringComparison.OrdinalIgnoreCase) ||
+                    assemblyName.Equals("mscorlib", StringComparison.OrdinalIgnoreCase))
                 {
                     return null;
                 }
@@ -224,10 +287,17 @@ namespace TinyOPDS
 
                     string extractedPath = Path.Combine(tempDir, dllName);
 
-                    if (File.Exists(extractedPath) && new FileInfo(extractedPath).Length == stream.Length)
+                    // Always extract fresh copy to avoid version conflicts
+                    if (File.Exists(extractedPath))
                     {
-                        Log.WriteLine("Native DLL already extracted: {0}", extractedPath);
-                        return extractedPath;
+                        try
+                        {
+                            File.Delete(extractedPath);
+                        }
+                        catch (Exception deleteEx)
+                        {
+                            Log.WriteLine(LogLevel.Warning, "Could not delete existing native DLL: {0}", deleteEx.Message);
+                        }
                     }
 
                     using (FileStream fileStream = File.Create(extractedPath))
@@ -296,7 +366,10 @@ namespace TinyOPDS
         /// </summary>
         public static void PreloadNativeDlls()
         {
-            LoadNativeDll("SQLite.Interop.dll");
+            if (!Utils.IsLinux)
+            {
+                LoadNativeDll("SQLite.Interop.dll");
+            }
         }
 
         /// <summary>

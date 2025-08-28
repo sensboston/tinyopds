@@ -16,6 +16,7 @@ using System.Threading;
 using System.Diagnostics;
 using Bluegrams.Application;
 using TinyOPDS.Properties;
+using System.Drawing;
 
 namespace TinyOPDS
 {
@@ -34,7 +35,7 @@ namespace TinyOPDS
             EmbeddedDllLoader.PreloadNativeDlls();
 
             // DPI Awareness for .NET Framework 4.7 and later
-            if (Environment.OSVersion.Version.Major >= 6)
+            if (Utils.IsWindows && Environment.OSVersion.Version.Major >= 6)
             {
                 SetProcessDpiAwareness(PROCESS_DPI_AWARENESS.Process_Per_Monitor_DPI_Aware);
             }
@@ -42,8 +43,8 @@ namespace TinyOPDS
             PortableSettingsProvider.SettingsFileName = "TinyOPDS.config";
             PortableSettingsProvider.ApplyProvider(Settings.Default);
 
-            Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
+            Application.EnableVisualStyles();
 
             // Check for single instance only if enabled in settings
             if (Settings.Default.OnlyOneInstance)
@@ -64,6 +65,10 @@ namespace TinyOPDS
                 {
                     mainForm.WindowState = Settings.Default.StartMinimized ? FormWindowState.Minimized : FormWindowState.Normal;
                     mainForm.ShowInTaskbar = !Settings.Default.StartMinimized || !Settings.Default.CloseToTray;
+                    if (Utils.IsLinux)
+                    {
+                        mainForm.Font = new Font("DejaVu Sans", 16, FontStyle.Regular);
+                    }
                     Application.Run(mainForm);
                 }
             }

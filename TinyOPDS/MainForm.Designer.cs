@@ -16,8 +16,8 @@
             if (disposing && (components != null))
             {
                 components.Dispose();
-                if (_watcher != null) _watcher.Dispose();
-                if (_upnpController != null) _upnpController.Dispose();
+                if (watcher != null) watcher.Dispose();
+                if (upnpController != null) upnpController.Dispose();
             }
             base.Dispose(disposing);
         }

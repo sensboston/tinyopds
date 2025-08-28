@@ -18,6 +18,7 @@ using System.Collections;
 using System.Security.Cryptography;
 using System.Text;
 using System.Security.Principal;
+using System.Runtime.InteropServices;
 
 namespace TinyOPDS
 {
@@ -113,17 +114,9 @@ namespace TinyOPDS
             return false;
         }
 
-        /// <summary>
-        /// Helper for project Mono
-        /// </summary>
-        public static bool IsLinux
-        {
-            get
-            {
-                int p = (int)Environment.OSVersion.Platform;
-                return (p == 4) || (p == 6) || (p == 128);
-            }
-        }
+        public static bool IsLinux => RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
+
+        public static bool IsWindows => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 
         // Default path to service files: databases, log, setting
         public static string ServiceFilesLocation

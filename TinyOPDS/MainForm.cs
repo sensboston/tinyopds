@@ -167,7 +167,7 @@ namespace TinyOPDS
             // Set server statistics handler
             HttpServer.ServerStatistics.StatisticsUpdated += (_, __) =>
             {
-                this.BeginInvoke((MethodInvoker)delegate
+                BeginInvoke((MethodInvoker)delegate
                 {
                     statRequests.Text = HttpServer.ServerStatistics.GetRequests.ToString();
                     statBooks.Text = HttpServer.ServerStatistics.BooksSent.ToString();

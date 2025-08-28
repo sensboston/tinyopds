@@ -30,26 +30,26 @@ namespace TinyOPDSConsole
 {
     class Program : ServiceBase
     {
-        private static readonly string _exePath = Assembly.GetExecutingAssembly().Location;
+        private static readonly string exePath = Assembly.GetExecutingAssembly().Location;
         private const string SERVICE_NAME = "TinyOPDSSvc";
         private const string SERVICE_DISPLAY_NAME = "TinyOPDS service";
         private const string SERVICE_DESCRIPTION = "Simple, fast and portable OPDS service and HTTP server";
         private const string _urlTemplate = "http://{0}:{1}/{2}";
 
-        private static OPDSServer _server;
-        private static Thread _serverThread;
-        private static FileScanner _scanner;
-        private static Watcher _watcher;
-        private static DateTime _scanStartTime;
-        private static readonly UPnPController _upnpController = new UPnPController();
-        private static Timer _upnpRefreshTimer = null;
+        private static OPDSServer server;
+        private static Thread serverThread;
+        private static FileScanner scanner;
+        private static Watcher watcher;
+        private static DateTime scanStartTime;
+        private static readonly UPnPController upnpController = new UPnPController();
+        private static Timer upnpRefreshTimer = null;
 
-        private static readonly Mutex _mutex = new Mutex(false, "tiny_opds_console_mutex");
-        private static int _fb2Count, _epubCount, _skippedFiles, _invalidFiles, _duplicates;
+        private static readonly Mutex mutex = new Mutex(false, "tiny_opds_console_mutex");
+        private static int fb2Count, epubCount, skippedFiles, invalidFiles, dups;
 
-        private static readonly List<Book> _pendingBooks = new List<Book>();
-        private static readonly object _batchLock = new object();
-        private static int _batchSize = 500;
+        private static readonly List<Book> pendingBooks = new List<Book>();
+        private static readonly object batchLock = new object();
+        private static int batchSize = 1000;
 
         #region Startup, command line processing and service overrides
 
@@ -132,7 +132,7 @@ namespace TinyOPDSConsole
             EmbeddedDllLoader.PreloadManagedAssemblies();
 
             // Initialize batch size from settings
-            _batchSize = Settings.Default.BatchSize > 0 ? Settings.Default.BatchSize : 1000;
+            batchSize = Settings.Default.BatchSize > 0 ? Settings.Default.BatchSize : 1000;
 
             // Check for single instance only if enabled in settings
             if (Settings.Default.OnlyOneInstance)
@@ -147,7 +147,7 @@ namespace TinyOPDSConsole
                 }
                 else
                 {
-                    if (!_mutex.WaitOne(TimeSpan.FromSeconds(1), false))
+                    if (!mutex.WaitOne(TimeSpan.FromSeconds(1), false))
                     {
                         Console.WriteLine("TinyOPDS Console is already running.");
                         return -1;
@@ -165,9 +165,9 @@ namespace TinyOPDSConsole
                         eventArgs.Cancel = true;
                         StopServer();
 
-                        if (_scanner != null)
+                        if (scanner != null)
                         {
-                            _scanner.Stop();
+                            scanner.Stop();
                             FlushRemainingBooks();
                             SaveLibrary();
                             Console.WriteLine("\nScanner interruped by user.");
@@ -192,7 +192,7 @@ namespace TinyOPDSConsole
                                     {
                                         try
                                         {
-                                            TinyOPDS.ServiceInstaller.InstallAndStart(SERVICE_NAME, SERVICE_DISPLAY_NAME, _exePath, SERVICE_DESCRIPTION);
+                                            TinyOPDS.ServiceInstaller.InstallAndStart(SERVICE_NAME, SERVICE_DISPLAY_NAME, exePath, SERVICE_DESCRIPTION);
                                             Console.WriteLine(SERVICE_DISPLAY_NAME + " installed");
                                         }
                                         catch (Exception e)
@@ -382,7 +382,7 @@ namespace TinyOPDSConsole
                 // Release mutex only if we're checking for single instance and not on Linux
                 if (Settings.Default.OnlyOneInstance && !Utils.IsLinux)
                 {
-                    try { _mutex.ReleaseMutex(); } catch { }
+                    try { mutex.ReleaseMutex(); } catch { }
                 }
             }
         }
@@ -410,7 +410,7 @@ namespace TinyOPDSConsole
 
         private static bool RunElevated(string param)
         {
-            var info = new ProcessStartInfo(_exePath, param)
+            var info = new ProcessStartInfo(exePath, param)
             {
                 Verb = "runas", // indicates to elevate privileges
                 WindowStyle = ProcessWindowStyle.Hidden,
@@ -446,12 +446,12 @@ namespace TinyOPDSConsole
         /// <returns></returns>
         private static bool AddBookToBatch(Book book)
         {
-            lock (_batchLock)
+            lock (batchLock)
             {
-                _pendingBooks.Add(book);
+                pendingBooks.Add(book);
 
                 // Check if we need to flush the batch
-                if (_pendingBooks.Count >= _batchSize)
+                if (pendingBooks.Count >= batchSize)
                 {
                     FlushPendingBooks();
                 }
@@ -467,12 +467,12 @@ namespace TinyOPDSConsole
         {
             List<Book> booksToProcess;
 
-            lock (_batchLock)
+            lock (batchLock)
             {
-                if (_pendingBooks.Count == 0) return;
+                if (pendingBooks.Count == 0) return;
 
-                booksToProcess = new List<Book>(_pendingBooks);
-                _pendingBooks.Clear();
+                booksToProcess = new List<Book>(pendingBooks);
+                pendingBooks.Clear();
             }
 
             try
@@ -486,15 +486,15 @@ namespace TinyOPDSConsole
                     int booksToSubtract = batchResult.Duplicates + batchResult.Errors;
 
                     // Add duplicates to duplicate counter
-                    _duplicates += batchResult.Duplicates;
+                    dups += batchResult.Duplicates;
 
                     // Subtract duplicates and errors from type-specific counters
                     double fb2Ratio = batchResult.FB2Count > 0 ? (double)batchResult.FB2Count / (batchResult.FB2Count + batchResult.EPUBCount) : 0.5;
                     int fb2ToSubtract = (int)(booksToSubtract * fb2Ratio);
                     int epubToSubtract = booksToSubtract - fb2ToSubtract;
 
-                    _fb2Count = Math.Max(0, _fb2Count - fb2ToSubtract);
-                    _epubCount = Math.Max(0, _epubCount - epubToSubtract);
+                    fb2Count = Math.Max(0, fb2Count - fb2ToSubtract);
+                    epubCount = Math.Max(0, epubCount - epubToSubtract);
 
                     Log.WriteLine("Batch flush completed: {0} processed, {1} added, {2} duplicates, {3} errors",
                         batchResult.TotalProcessed, batchResult.Added, batchResult.Duplicates, batchResult.Errors);
@@ -515,10 +515,10 @@ namespace TinyOPDSConsole
                     {
                         if (!Library.Add(book))
                         {
-                            _duplicates++;
+                            dups++;
                             // Adjust counters for the duplicate
-                            if (book.BookType == BookType.FB2) _fb2Count = Math.Max(0, _fb2Count - 1);
-                            else _epubCount = Math.Max(0, _epubCount - 1);
+                            if (book.BookType == BookType.FB2) fb2Count = Math.Max(0, fb2Count - 1);
+                            else epubCount = Math.Max(0, epubCount - 1);
                         }
                     }
                     catch (Exception ex2)
@@ -534,11 +534,11 @@ namespace TinyOPDSConsole
         /// </summary>
         private static void FlushRemainingBooks()
         {
-            lock (_batchLock)
+            lock (batchLock)
             {
-                if (_pendingBooks.Count > 0)
+                if (pendingBooks.Count > 0)
                 {
-                    Log.WriteLine("Flushing {0} remaining books at scan completion", _pendingBooks.Count);
+                    Log.WriteLine("Flushing {0} remaining books at scan completion", pendingBooks.Count);
                     FlushPendingBooks();
                 }
             }
@@ -624,32 +624,32 @@ namespace TinyOPDSConsole
             Library.Load();
 
             // Create timer for periodical refresh UPnP forwarding
-            _upnpRefreshTimer = new Timer(UpdateUPnPForwarding, null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
+            upnpRefreshTimer = new Timer(UpdateUPnPForwarding, null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
 
             // Create file watcher
-            _watcher = new Watcher(Library.LibraryPath);
-            _watcher.OnBookAdded += (object sender, BookAddedEventArgs e) =>
+            watcher = new Watcher(Library.LibraryPath);
+            watcher.OnBookAdded += (object sender, BookAddedEventArgs e) =>
             {
-                if (e.BookType == BookType.FB2) _fb2Count++; else _epubCount++;
+                if (e.BookType == BookType.FB2) fb2Count++; else epubCount++;
                 Log.WriteLine(LogLevel.Info, "Added: \"{0}\"", e.BookPath);
             };
-            _watcher.OnInvalidBook += (_, __) =>
+            watcher.OnInvalidBook += (_, __) =>
             {
-                _invalidFiles++;
+                invalidFiles++;
             };
-            _watcher.OnFileSkipped += (object _sender, FileSkippedEventArgs _e) =>
+            watcher.OnFileSkipped += (object _sender, FileSkippedEventArgs _e) =>
             {
-                _skippedFiles = _e.Count;
+                skippedFiles = _e.Count;
             };
 
-            _watcher.OnBookDeleted += (object sender, BookDeletedEventArgs e) =>
+            watcher.OnBookDeleted += (object sender, BookDeletedEventArgs e) =>
             {
                 Log.WriteLine(LogLevel.Info, "Deleted: \"{0}\"", e.BookPath);
             };
-            _watcher.IsEnabled = Settings.Default.WatchLibrary;
+            watcher.IsEnabled = Settings.Default.WatchLibrary;
 
-            _upnpController.DiscoverCompleted += UpnpController_DiscoverCompleted;
-            _upnpController.DiscoverAsync(Settings.Default.UseUPnP);
+            upnpController.DiscoverCompleted += UpnpController_DiscoverCompleted;
+            upnpController.DiscoverAsync(Settings.Default.UseUPnP);
 
             // Load saved credentials
             try
@@ -683,19 +683,19 @@ namespace TinyOPDSConsole
             // Create and start HTTP server
             HttpProcessor.AuthorizedClients = new List<string>();
             HttpProcessor.BannedClients.Clear();
-            _server = new OPDSServer(IPAddress.Any, int.Parse(Settings.Default.ServerPort));
+            server = new OPDSServer(IPAddress.Any, int.Parse(Settings.Default.ServerPort));
 
-            _serverThread = new Thread(new ThreadStart(_server.Listen))
+            serverThread = new Thread(new ThreadStart(server.Listen))
             {
                 Priority = ThreadPriority.BelowNormal
             };
-            _serverThread.Start();
-            _server.ServerReady.WaitOne(TimeSpan.FromMilliseconds(500));
-            if (!_server.IsActive)
+            serverThread.Start();
+            server.ServerReady.WaitOne(TimeSpan.FromMilliseconds(500));
+            if (!server.IsActive)
             {
-                if (_server.ServerException != null)
+                if (server.ServerException != null)
                 {
-                    if (_server.ServerException is System.Net.Sockets.SocketException)
+                    if (server.ServerException is System.Net.Sockets.SocketException)
                     {
                         string msg = string.Format("Probably, port {0} is already in use. Please try the different port.", Settings.Default.ServerPort);
                         Console.WriteLine(msg);
@@ -703,8 +703,8 @@ namespace TinyOPDSConsole
                     }
                     else
                     {
-                        Console.WriteLine(_server.ServerException.Message);
-                        Log.WriteLine(LogLevel.Error, _server.ServerException.Message);
+                        Console.WriteLine(server.ServerException.Message);
+                        Log.WriteLine(LogLevel.Error, server.ServerException.Message);
                     }
 
                     StopServer();
@@ -716,7 +716,7 @@ namespace TinyOPDSConsole
                 if (Utils.IsLinux || Environment.UserInteractive)
                 {
                     Console.WriteLine("Server is running... Press <Ctrl+c> to shutdown server.");
-                    while (_server != null && _server.IsActive) Thread.Sleep(500);
+                    while (server != null && server.IsActive) Thread.Sleep(500);
                 }
             }
         }
@@ -726,43 +726,43 @@ namespace TinyOPDSConsole
         /// </summary>
         private static void StopServer()
         {
-            _upnpRefreshTimer?.Dispose();
+            upnpRefreshTimer?.Dispose();
 
-            if (_server != null)
+            if (server != null)
             {
-                _server.StopServer();
-                _serverThread = null;
-                _server = null;
+                server.StopServer();
+                serverThread = null;
+                server = null;
                 Log.WriteLine("HTTP server stopped");
             }
 
-            if (_watcher != null)
+            if (watcher != null)
             {
-                _watcher.IsEnabled = false;
-                _watcher = null;
+                watcher.IsEnabled = false;
+                watcher = null;
             }
 
-            if (_upnpController != null)
+            if (upnpController != null)
             {
-                if (_upnpController.UPnPReady)
+                if (upnpController.UPnPReady)
                 {
                     int port = int.Parse(Settings.Default.ServerPort);
-                    _upnpController.DeleteForwardingRule(port, System.Net.Sockets.ProtocolType.Tcp);
+                    upnpController.DeleteForwardingRule(port, System.Net.Sockets.ProtocolType.Tcp);
                     Log.WriteLine("Port {0} closed", port);
                 }
-                _upnpController.DiscoverCompleted -= UpnpController_DiscoverCompleted;
-                _upnpController.Dispose();
+                upnpController.DiscoverCompleted -= UpnpController_DiscoverCompleted;
+                upnpController.Dispose();
             }
         }
 
         private static void UpnpController_DiscoverCompleted(object sender, EventArgs e)
         {
-            if (_upnpController != null && _upnpController.UPnPReady)
+            if (upnpController != null && upnpController.UPnPReady)
             {
                 if (Settings.Default.OpenNATPort)
                 {
                     int port = int.Parse(Settings.Default.ServerPort);
-                    _upnpController.ForwardPort(port, System.Net.Sockets.ProtocolType.Tcp, "TinyOPDS server");
+                    upnpController.ForwardPort(port, System.Net.Sockets.ProtocolType.Tcp, "TinyOPDS server");
                     Log.WriteLine("Port {0} forwarded by UPnP", port);
                 }
             }
@@ -772,16 +772,16 @@ namespace TinyOPDSConsole
         {
             if (Settings.Default.UseUPnP)
             {
-                if (_server != null && _server.IsActive && _server.IsIdle && _upnpController != null && _upnpController.UPnPReady)
+                if (server != null && server.IsActive && server.IsIdle && upnpController != null && upnpController.UPnPReady)
                 {
-                    if (!_upnpController.Discovered)
+                    if (!upnpController.Discovered)
                     {
-                        _upnpController.DiscoverAsync(true);
+                        upnpController.DiscoverAsync(true);
                     }
-                    else if (Settings.Default.OpenNATPort && _upnpController.UPnPReady)
+                    else if (Settings.Default.OpenNATPort && upnpController.UPnPReady)
                     {
                         int port = int.Parse(Settings.Default.ServerPort);
-                        _upnpController.ForwardPort(port, System.Net.Sockets.ProtocolType.Tcp, "TinyOPDS server");
+                        upnpController.ForwardPort(port, System.Net.Sockets.ProtocolType.Tcp, "TinyOPDS server");
                     }
                 }
             }
@@ -802,32 +802,32 @@ namespace TinyOPDSConsole
             // Load existing library
             Library.Load();
 
-            _scanner = new FileScanner();
-            _scanner.OnBookFound += Scanner_OnBookFound;
-            _scanner.OnInvalidBook += (_, __) => { _invalidFiles++; };
-            _scanner.OnFileSkipped += (object _sender, FileSkippedEventArgs _e) =>
+            scanner = new FileScanner();
+            scanner.OnBookFound += Scanner_OnBookFound;
+            scanner.OnInvalidBook += (_, __) => { invalidFiles++; };
+            scanner.OnFileSkipped += (object _sender, FileSkippedEventArgs _e) =>
             {
-                _skippedFiles = _e.Count;
+                skippedFiles = _e.Count;
                 UpdateInfo();
             };
-            _scanner.OnScanCompleted += (_, __) =>
+            scanner.OnScanCompleted += (_, __) =>
             {
                 // Flush any remaining books at scan completion
                 FlushRemainingBooks();
                 SaveLibrary();
-                UpdateInfo(true);
+                UpdateInfo();
 
                 Log.WriteLine("Directory scanner completed");
                 Console.WriteLine("\nScan completed. Press any key to exit...");
                 Console.ReadKey();
             };
-            _fb2Count = _epubCount = _skippedFiles = _invalidFiles = _duplicates = 0;
-            _scanStartTime = DateTime.Now;
-            _scanner.Start(Library.LibraryPath);
+            fb2Count = epubCount = skippedFiles = invalidFiles = dups = 0;
+            scanStartTime = DateTime.Now;
+            scanner.Start(Library.LibraryPath);
             Console.WriteLine("Scanning directory {0}", Library.LibraryPath);
-            Log.WriteLine("Directory scanner started with batch size: {0}", _batchSize);
+            Log.WriteLine("Directory scanner started with batch size: {0}", batchSize);
             UpdateInfo();
-            while (_scanner != null && _scanner.Status == FileScannerStatus.SCANNING) Thread.Sleep(500);
+            while (scanner != null && scanner.Status == FileScannerStatus.SCANNING) Thread.Sleep(500);
 
             // Final flush and save at the end
             FlushRemainingBooks();
@@ -845,11 +845,11 @@ namespace TinyOPDSConsole
 
             // Count for console display - duplicates will be corrected during flush
             if (e.Book.BookType == BookType.FB2)
-                _fb2Count++;
+                fb2Count++;
             else
-                _epubCount++;
+                epubCount++;
 
-            var totalProcessed = _fb2Count + _epubCount + _duplicates;
+            var totalProcessed = fb2Count + epubCount + dups;
 
             // Force flush every 1000 books to prevent "freezing"
             if (totalProcessed % 1000 == 0)
@@ -871,27 +871,27 @@ namespace TinyOPDSConsole
             }
         }
 
-        private static void UpdateInfo(bool IsScanFinished = false)
+        private static void UpdateInfo()
         {
             try
             {
-                int totalBooksProcessed = _fb2Count + _epubCount + _skippedFiles + _invalidFiles + _duplicates;
+                int totalBooksProcessed = fb2Count + epubCount + skippedFiles + invalidFiles + dups;
 
                 // Always show info - no additional checks
-                var stats = GetLibraryStats();
-                TimeSpan dt = DateTime.Now.Subtract(_scanStartTime);
+                var (Total, FB2, EPUB) = GetLibraryStats();
+                TimeSpan dt = DateTime.Now.Subtract(scanStartTime);
                 string rate = (dt.TotalSeconds) > 0 ? string.Format("{0:0.} books/min", totalBooksProcessed / dt.TotalSeconds * 60) : "---";
 
                 string info = string.Format("Elapsed: {0}, rate: {1}, found fb2: {2}, epub: {3}, skipped: {4}, dups: {5}, invalid: {6}, total: {7}, in DB: {8}     ",
                     dt.ToString(@"hh\:mm\:ss"),
                     rate,
-                    _fb2Count,
-                    _epubCount,
-                    _skippedFiles,
-                    _duplicates,
-                    _invalidFiles,
+                    FB2,
+                    EPUB,
+                    skippedFiles,
+                    dups,
+                    invalidFiles,
                     totalBooksProcessed,
-                    stats.Total);
+                    Total);
 
                 if (!Utils.IsLinux)
                 {
@@ -907,7 +907,7 @@ namespace TinyOPDSConsole
             catch (Exception ex)
             {
                 Log.WriteLine(LogLevel.Error, "Error in UpdateInfo: {0}", ex.Message);
-                Console.WriteLine("Books processed: {0}", _fb2Count + _epubCount + _duplicates);
+                Console.WriteLine("Books processed: {0}", fb2Count + epubCount + dups);
             }
         }
 

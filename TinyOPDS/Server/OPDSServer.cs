@@ -308,9 +308,8 @@ namespace TinyOPDS.Server
             if (httpUrl.StartsWith("/" + Properties.Settings.Default.HttpPrefix)) return true;
 
             // Accept header check for browser vs OPDS client (for OpenSearch results)
-            string acceptHeader = processor.HttpHeaders["Accept"] as string;
+            string acceptHeader = processor.HttpHeaders.ContainsKey("Accept") ? processor.HttpHeaders["Accept"] : null;
             bool acceptCheck = !string.IsNullOrEmpty(acceptHeader) && acceptHeader.Contains("text/html");
-
             return acceptCheck;
         }
 
@@ -575,7 +574,9 @@ namespace TinyOPDS.Server
 
                         XsltArgumentList args = new XsltArgumentList();
                         args.AddParam("serverVersion", "", Utils.ServerVersionName.Replace("running on ", ""));
-                        args.AddParam("libName", "", Properties.Settings.Default.ServerName);
+                        var books = string.Format(Localizer.Text("Books: {0}"), Library.Count).ToLower().Split(':');
+                        string libName = $"{Properties.Settings.Default.ServerName}: {books[1]} {books[0]}";
+                        args.AddParam("libName", "", libName);
 
                         // Add localized parameters
                         args.AddParam("searchPlaceholder", "", Localizer.Text("Search authors or books..."));

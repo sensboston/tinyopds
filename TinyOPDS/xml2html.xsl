@@ -32,7 +32,7 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 					background-color: #fafafa;
 					line-height: 1.4;
-					padding-top: 140px; /* Space for fixed header */
+					padding-top: 140px;
 					}
 
 					.fixed-header {
@@ -48,8 +48,8 @@ xmlns:x="http://www.w3.org/2005/Atom">
 
 					.header-content {
 					margin: 0 auto;
-					max-width: 600px;
-					padding: 15px 20px;
+					max-width: 500px;
+					padding: 16px 20px;
 					display: flex;
 					align-items: center;
 					position: relative;
@@ -69,12 +69,13 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					position: absolute;
 					left: 50%;
 					transform: translateX(-50%);
-					width: calc(100% - 96px);
+					width: calc(100% - 48px);
+					top: 8px;
 					}
-					
+
 					.server-title {
 					color: #333;
-					margin: 0 0 5px 0;
+					margin: 0 0 3px 0;
 					font-size: 24px;
 					font-weight: bold;
 					cursor: pointer;
@@ -87,15 +88,15 @@ xmlns:x="http://www.w3.org/2005/Atom">
 
 					.library-name {
 					color: #007cba;
-					font-size: 16px;
+					font-size: 14px;
 					font-weight: bold;
-					margin: 0;
+					margin: 10px 0 0 0;
 					}
 
 					.search-section {
-					margin-top: 15px;
+					margin-top: 5px;
 					text-align: center;
-					padding-top: 15px;
+					padding-top: 0px;
 					}
 
 					.search-form {
@@ -103,80 +104,34 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					}
 
 					.search-input {
-					width: 350px;
+					width: 430px;
 					max-width: calc(100vw - 140px);
-					padding: 8px 12px;
-					font-size: 14px;
+					padding: 6px 10px;
+					font-size: 13px;
 					border: 1px solid #ddd;
 					border-radius: 4px;
 					box-sizing: border-box;
 					}
 
 					.search-button {
-					padding: 8px 16px;
-					font-size: 14px;
+					padding: 6px 12px;
+					font-size: 13px;
 					background-color: #007cba;
 					color: white;
 					border: none;
 					border-radius: 4px;
 					cursor: pointer;
-					margin-left: 8px;
+					margin-left: 6px;
 					}
 
 					.search-button:hover {
 					background-color: #005a87;
 					}
 
-					@media (max-width: 768px) {
-					body {
-					padding-top: 160px;
-					}
-
-					.header-content {
-					padding: 10px;
-					flex-direction: column;
-					text-align: center;
-					}
-
-					.header-icon {
-					margin-right: 0;
-					margin-bottom: 10px;
-					}
-
-					.header-text {
-					margin: 0 0 10px 0;
-					}
-
-					.server-title {
-					font-size: 20px;
-					}
-
-					.search-input {
-					width: calc(100vw - 40px);
-					margin-bottom: 10px;
-					}
-
-					.search-button {
-					margin-left: 0;
-					}
-					}
-
-					@media (max-width: 480px) {
-					.search-input {
-					width: calc(100vw - 30px);
-					}
-					}
-
 					.main-content {
 					margin: 0 auto;
-					max-width: 700px;
+					max-width: 500px;
 					padding: 15px;
-					}
-
-					@media (max-width: 768px) {
-					.main-content {
-					padding: 10px;
-					}
 					}
 
 					ul {
@@ -236,14 +191,6 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					object-fit: cover;
 					}
 
-					@media (max-width: 480px) {
-					.cover {
-					width: 80px;
-					height: 120px;
-					margin-right: 10px;
-					}
-					}
-
 					.book-details {
 					flex: 1;
 					min-width: 0;
@@ -301,12 +248,6 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					flex-shrink: 0;
 					}
 
-					@media (max-width: 480px) {
-					.download-section {
-					width: 80px;
-					}
-					}
-
 					.download-links {
 					display: flex;
 					flex-direction: row;
@@ -356,7 +297,59 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					font-size: 20px;
 					}
 
+					@media (max-width: 768px) {
+					body {
+					padding-top: 120px;
+					}
+
+					.header-content {
+					padding: 10px;
+					flex-direction: column;
+					text-align: center;
+					}
+
+					.header-icon {
+					margin-right: 0;
+					margin-bottom: 10px;
+					}
+
+					.header-text {
+					margin: 0 0 10px 0;
+					}
+
+					.server-title {
+					font-size: 20px;
+					}
+
+					.search-input {
+					width: calc(100vw - 40px);
+					margin-bottom: 10px;
+					}
+
+					.search-button {
+					margin-left: 0;
+					}
+
+					.main-content {
+					padding: 10px;
+					}
+					}
+
 					@media (max-width: 480px) {
+					.search-input {
+					width: calc(100vw - 30px);
+					}
+
+					.cover {
+					width: 80px;
+					height: 120px;
+					margin-right: 10px;
+					}
+
+					.download-section {
+					width: 80px;
+					}
+
 					.book-header {
 					flex-direction: column;
 					align-items: flex-start;

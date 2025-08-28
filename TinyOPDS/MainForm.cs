@@ -73,7 +73,12 @@ namespace TinyOPDS
                 }
             }
 
-            // Adjust TreeView appearance
+            // Adjust TreeView appearance for Mono
+            if (Utils.IsLinux)
+            {
+                treeViewOPDS.Font = new Font("DejaVu Sans", 22, FontStyle.Regular);
+            }
+
             treeViewOPDS.ShowLines = true;
             treeViewOPDS.Indent = 80;
             treeViewOPDS.ItemHeight = 50;
@@ -577,7 +582,7 @@ namespace TinyOPDS
                 Library.LibraryPath = Properties.Settings.Default.LibraryPath = libraryPath.Text.SanitizePathName();
 
                 var (Total, FB2, EPUB) = GetLibraryStats();
-                booksInDB.Text = $"{Total}       fb2: {FB2}      epub: {EPUB}";
+                booksInDB.Text = $"{Total}           fb2: {FB2}       epub: {EPUB}";
 
                 databaseFileName.Text = "books.sqlite";
 
@@ -680,7 +685,7 @@ namespace TinyOPDS
         private void InternalUpdateInfo(bool IsScanFinished)
         {
             var (Total, FB2, EPUB) = GetLibraryStats();
-            booksInDB.Text = $"{Total}       fb2: {FB2}      epub: {EPUB}";
+            booksInDB.Text = $"{Total}           fb2: {FB2}       epub: {EPUB}";
             booksFound.Text = $"fb2: {FB2}   epub: {EPUB}";
             skippedBooks.Text = skippedFiles.ToString();
             invalidBooks.Text = invalidFiles.ToString();

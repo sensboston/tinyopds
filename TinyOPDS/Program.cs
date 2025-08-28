@@ -65,10 +65,7 @@ namespace TinyOPDS
                 {
                     mainForm.WindowState = Settings.Default.StartMinimized ? FormWindowState.Minimized : FormWindowState.Normal;
                     mainForm.ShowInTaskbar = !Settings.Default.StartMinimized || !Settings.Default.CloseToTray;
-                    if (Utils.IsLinux)
-                    {
-                        mainForm.Font = new Font("DejaVu Sans", 16, FontStyle.Regular);
-                    }
+                    if (Utils.IsLinux) mainForm.Font = new Font("DejaVu Sans", 16, FontStyle.Regular);
                     Application.Run(mainForm);
                 }
             }

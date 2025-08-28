@@ -22,7 +22,6 @@ using System.Reflection;
 using System.Collections.Generic;
 using System.Xml.Linq;
 
-using Ionic.Zip;
 using TinyOPDS.OPDS;
 using TinyOPDS.Data;
 using System.Diagnostics;
@@ -710,32 +709,38 @@ namespace TinyOPDS.Server
                     return;
                 }
 
-                using (var zip = new ZipFile())
+                // FIXED: Use System.IO.Compression for creating ZIP files in .NET 4.8
+                using (var outputStream = new MemoryStream())
                 {
-                    string fileName = Transliteration.Front(
-                        $"{book.Authors.FirstOrDefault() ?? "Unknown"}_{book.Title}.fb2");
-                    zip.AddEntry(fileName, memStream);
-
-                    using (var outputStream = new MemoryStream())
+                    using (var zipArchive = new System.IO.Compression.ZipArchive(outputStream, System.IO.Compression.ZipArchiveMode.Create, true))
                     {
-                        zip.Save(outputStream);
-                        outputStream.Position = 0;
+                        string fileName = Transliteration.Front(
+                            $"{book.Authors.FirstOrDefault() ?? "Unknown"}_{book.Title}.fb2");
 
-                        // Set proper filename for download
-                        string downloadFileName = Transliteration.Front(
-                            $"{book.Authors.FirstOrDefault() ?? "Unknown"}_{book.Title}.fb2.zip");
-
-                        // Write response headers manually
-                        processor.OutputStream.WriteLine("HTTP/1.0 200 OK");
-                        processor.OutputStream.WriteLine("Content-Type: application/zip");
-                        processor.OutputStream.WriteLine($"Content-Disposition: attachment; filename=\"{downloadFileName}\"");
-                        processor.OutputStream.WriteLine($"Content-Length: {outputStream.Length}");
-                        processor.OutputStream.WriteLine("Connection: close");
-                        processor.OutputStream.WriteLine();
-
-                        outputStream.CopyTo(processor.OutputStream.BaseStream);
-                        processor.OutputStream.BaseStream.Flush();
+                        var zipEntry = zipArchive.CreateEntry(fileName);
+                        using (var entryStream = zipEntry.Open())
+                        {
+                            memStream.Position = 0;
+                            memStream.CopyTo(entryStream);
+                        }
                     }
+
+                    outputStream.Position = 0;
+
+                    // Set proper filename for download
+                    string downloadFileName = Transliteration.Front(
+                        $"{book.Authors.FirstOrDefault() ?? "Unknown"}_{book.Title}.fb2.zip");
+
+                    // Write response headers manually
+                    processor.OutputStream.WriteLine("HTTP/1.0 200 OK");
+                    processor.OutputStream.WriteLine("Content-Type: application/zip");
+                    processor.OutputStream.WriteLine($"Content-Disposition: attachment; filename=\"{downloadFileName}\"");
+                    processor.OutputStream.WriteLine($"Content-Length: {outputStream.Length}");
+                    processor.OutputStream.WriteLine("Connection: close");
+                    processor.OutputStream.WriteLine();
+
+                    outputStream.CopyTo(processor.OutputStream.BaseStream);
+                    processor.OutputStream.BaseStream.Flush();
                 }
             }
         }
@@ -784,14 +789,21 @@ namespace TinyOPDS.Server
                 if (book.FilePath.ToLower().Contains(".zip@"))
                 {
                     string[] pathParts = book.FilePath.Split('@');
-                    using (var zipFile = new ZipFile(pathParts[0]))
+
+                    // FIXED: Use System.IO.Compression.ZipFile for .NET 4.8
+                    using (var zipArchive = System.IO.Compression.ZipFile.OpenRead(pathParts[0]))
                     {
-                        var entry = zipFile.Entries.FirstOrDefault(e => e.FileName.Contains(pathParts[1]));
+                        var entry = zipArchive.Entries.FirstOrDefault(e =>
+                            e.FullName.IndexOf(pathParts[1], StringComparison.OrdinalIgnoreCase) >= 0);
+
                         if (entry != null)
                         {
-                            entry.Extract(memStream);
-                            memStream.Position = 0;
-                            return true;
+                            using (var entryStream = entry.Open())
+                            {
+                                entryStream.CopyTo(memStream);
+                                memStream.Position = 0;
+                                return true;
+                            }
                         }
                     }
                 }
@@ -973,6 +985,7 @@ namespace TinyOPDS.Server
                         }
                         finally
                         {
+                            // FIXED: Ensure imageStream is always disposed
                             imageStream?.Dispose();
                         }
                     }

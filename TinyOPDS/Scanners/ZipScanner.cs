@@ -15,9 +15,9 @@ using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 
-using Ionic.Zip;
 using TinyOPDS.Data;
 using TinyOPDS.Parsers;
+using System.IO.Compression;
 
 namespace TinyOPDS.Scanner
 {
@@ -50,91 +50,100 @@ namespace TinyOPDS.Scanner
         }
 
         /// <summary>
-        /// Scan zip file using extract-to-memory approach for proper size handling
+        /// Scan zip file using System.IO.Compression for proper memory management
         /// </summary>
         public void Scan()
         {
             Status = FileScannerStatus.SCANNING;
-            ZipFile zipFile = null;
             string entryFileName = string.Empty;
 
             try
             {
-                zipFile = new ZipFile(ZipFileName);
-
-                foreach (ZipEntry entry in zipFile.Entries)
+                using (var zipArchive = ZipFile.OpenRead(ZipFileName))
                 {
-                    if (Status != FileScannerStatus.SCANNING) break;
-
-                    if (!string.IsNullOrEmpty(entry.FileName))
+                    foreach (var entry in zipArchive.Entries)
                     {
-                        entryFileName = entry.FileName;
+                        if (Status != FileScannerStatus.SCANNING) break;
 
-                        // Process accepted files
-                        try
+                        if (!string.IsNullOrEmpty(entry.FullName))
                         {
-                            Book book = null;
-                            string ext = Path.GetExtension(entry.FileName).ToLower();
+                            entryFileName = entry.FullName;
 
-                            if (Library.Contains(ZipFileName.Substring(Library.LibraryPath.Length + 1) + "@" + entryFileName))
+                            // Process accepted files
+                            try
                             {
-                                SkippedFiles++;
-                                if (OnFileSkipped != null) OnFileSkipped(this, new FileSkippedEventArgs(SkippedFiles));
-                            }
-                            else if (ext.Contains(".epub"))
-                            {
-                                // Extract to memory stream for proper size handling
-                                using (var memStream = new MemoryStream())
+                                Book book = null;
+                                string ext = Path.GetExtension(entry.FullName).ToLower();
+
+                                if (Library.Contains(ZipFileName.Substring(Library.LibraryPath.Length + 1) + "@" + entryFileName))
                                 {
-                                    entry.Extract(memStream);
-                                    memStream.Position = 0;
-                                    book = new ePubParser().Parse(memStream, ZipFileName + "@" + entryFileName);
-
-                                    // Ensure correct DocumentSize for archive entries
-                                    if (book != null)
+                                    SkippedFiles++;
+                                    if (OnFileSkipped != null) OnFileSkipped(this, new FileSkippedEventArgs(SkippedFiles));
+                                }
+                                else if (ext.Contains(".epub"))
+                                {
+                                    using (var entryStream = entry.Open())
+                                    using (var memStream = new MemoryStream())
                                     {
-                                        book.DocumentSize = (uint)entry.UncompressedSize;
+                                        entryStream.CopyTo(memStream);
+                                        memStream.Position = 0;
+                                        book = new ePubParser().Parse(memStream, ZipFileName + "@" + entryFileName);
+
+                                        // Ensure correct DocumentSize for archive entries
+                                        if (book != null)
+                                        {
+                                            book.DocumentSize = (uint)entry.Length;
+                                        }
+                                    }
+                                }
+                                else if (ext.Contains(".fb2"))
+                                {
+                                    using (var entryStream = entry.Open())
+                                    using (var memStream = new MemoryStream())
+                                    {
+                                        entryStream.CopyTo(memStream);
+                                        memStream.Position = 0;
+                                        book = new FB2Parser().Parse(memStream, ZipFileName + "@" + entryFileName);
+
+                                        // Ensure correct DocumentSize for archive entries
+                                        if (book != null)
+                                        {
+                                            book.DocumentSize = (uint)entry.Length;
+                                        }
+                                    }
+                                }
+
+                                if (book != null)
+                                {
+                                    if (book.IsValid && OnBookFound != null)
+                                    {
+                                        OnBookFound(this, new BookFoundEventArgs(book));
+                                    }
+                                    else if (!book.IsValid && OnInvalidBook != null)
+                                    {
+                                        OnInvalidBook(this, new InvalidBookEventArgs(ZipFileName + "@" + entryFileName));
                                     }
                                 }
                             }
-                            else if (ext.Contains(".fb2"))
+                            catch (Exception e)
                             {
-                                // Extract to memory stream for proper size handling
-                                using (var memStream = new MemoryStream())
-                                {
-                                    entry.Extract(memStream);
-                                    memStream.Position = 0;
-                                    book = new FB2Parser().Parse(memStream, ZipFileName + "@" + entryFileName);
-
-                                    // Ensure correct DocumentSize for archive entries
-                                    if (book != null)
-                                    {
-                                        book.DocumentSize = (uint)entry.UncompressedSize;
-                                    }
-                                }
+                                Log.WriteLine(LogLevel.Error, ".ScanDirectory: exception {0} on file: {1}", e.Message, ZipFileName + "@" + entryFileName);
+                                if (OnInvalidBook != null) OnInvalidBook(this, new InvalidBookEventArgs(ZipFileName + "@" + entryFileName));
                             }
-
-                            if (book != null)
-                            {
-                                if (book.IsValid && OnBookFound != null) { OnBookFound(this, new BookFoundEventArgs(book)); }
-                                else if (!book.IsValid && OnInvalidBook != null) OnInvalidBook(this, new InvalidBookEventArgs(ZipFileName + "@" + entryFileName));
-                            }
-
-                        }
-                        catch (Exception e)
-                        {
-                            Log.WriteLine(LogLevel.Error, ".ScanDirectory: exception {0} on file: {1}", e.Message, ZipFileName + "@" + entryFileName);
-                            if (OnInvalidBook != null) OnInvalidBook(this, new InvalidBookEventArgs(ZipFileName + "@" + entryFileName));
                         }
                     }
                 }
             }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error scanning ZIP file {0}: {1}", ZipFileName, ex.Message);
+                Status = FileScannerStatus.STOPPED;
+            }
             finally
             {
-                if (zipFile != null)
+                if (Status == FileScannerStatus.SCANNING)
                 {
-                    zipFile.Dispose();
-                    zipFile = null;
+                    Status = FileScannerStatus.STOPPED;
                 }
             }
         }

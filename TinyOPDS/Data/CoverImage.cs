@@ -18,7 +18,6 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Text;
 using System.Reflection;
 
-using Ionic.Zip;
 using TinyOPDS.Parsers;
 
 namespace TinyOPDS.Data
@@ -50,6 +49,7 @@ namespace TinyOPDS.Data
                 {
                     if (book.FilePath.ToLower().Contains(".zip@"))
                     {
+                        // FIXED: Use System.IO.Compression.ZipFile for .NET 4.8
                         string[] pathParts = book.FilePath.Split('@');
                         Log.WriteLine(LogLevel.Info, "Processing archive: {0}, entry: {1}", pathParts[0], pathParts[1]);
 
@@ -59,13 +59,19 @@ namespace TinyOPDS.Data
                             return;
                         }
 
-                        using (ZipFile zipFile = new ZipFile(pathParts[0]))
+                        using (var zipArchive = System.IO.Compression.ZipFile.OpenRead(pathParts[0]))
                         {
-                            ZipEntry entry = zipFile.Entries.FirstOrDefault(e => e.FileName.Contains(pathParts[1]));
+                            // Find entry by name (case-insensitive search)
+                            var entry = zipArchive.Entries.FirstOrDefault(e =>
+                                e.FullName.IndexOf(pathParts[1], StringComparison.OrdinalIgnoreCase) >= 0);
+
                             if (entry != null)
                             {
-                                entry.Extract(memStream);
-                                Log.WriteLine(LogLevel.Info, "Extracted {0} bytes from archive", memStream.Length);
+                                using (var entryStream = entry.Open())
+                                {
+                                    entryStream.CopyTo(memStream);
+                                    Log.WriteLine(LogLevel.Info, "Extracted {0} bytes from archive", memStream.Length);
+                                }
                             }
                             else
                             {
@@ -83,7 +89,7 @@ namespace TinyOPDS.Data
                             return;
                         }
 
-                        using (FileStream stream = new FileStream(book.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                        using (var stream = new FileStream(book.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
                         {
                             stream.CopyTo(memStream);
                             Log.WriteLine(LogLevel.Info, "Read {0} bytes from file", memStream.Length);

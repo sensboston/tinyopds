@@ -5,7 +5,7 @@
  * Copyright (c) 2013-2025 SeNSSoFT
  * SPDX-License-Identifier: MIT
  *
- * ePub parser implementation
+ * ePub parser implementation - migrated to EpubSharp
  *
  */
 
@@ -14,10 +14,9 @@ using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Drawing;
-using System.Drawing.Imaging;
 
 using TinyOPDS.Data;
-using eBdb.EpubReader;
+using EpubSharp;
 
 namespace TinyOPDS.Parsers
 {
@@ -35,34 +34,63 @@ namespace TinyOPDS.Parsers
             try
             {
                 book.DocumentSize = (UInt32)stream.Length;
+
+                // Convert stream to byte array as EpubReader.Read doesn't accept Stream directly
                 stream.Position = 0;
-                Epub epub = new Epub(stream);
-                book.ID = epub.UUID;
-                if (epub.Date != null && epub.Date.Count > 0)
+                byte[] epubData = new byte[stream.Length];
+                stream.Read(epubData, 0, epubData.Length);
+
+                EpubBook epub = EpubReader.Read(epubData);
+
+                // Get unique identifier
+                var identifiers = epub.Format.Opf.Metadata.Identifiers;
+                book.ID = identifiers?.FirstOrDefault()?.Text ?? Guid.NewGuid().ToString();
+
+                // Parse date
+                var dates = epub.Format.Opf.Metadata.Dates;
+                if (dates?.Count > 0)
                 {
-                    try { book.BookDate = DateTime.Parse(epub.Date.First().Date); }
+                    try
+                    {
+                        book.BookDate = DateTime.Parse(dates.First().Text);
+                    }
                     catch
                     {
                         int year;
-                        if (int.TryParse(epub.Date.First().Date, out year)) book.BookDate = new DateTime(year, 1, 1);
+                        if (int.TryParse(dates.First().Text, out year))
+                            book.BookDate = new DateTime(year, 1, 1);
                     }
                 }
-                book.Title = epub.Title[0];
+
+                book.Title = epub.Title ?? fileName;
                 book.Authors = new List<string>();
 
                 // Process and normalize author names for EPUB
-                foreach (var creator in epub.Creator)
+                if (epub.Authors != null)
                 {
-                    string normalizedAuthor = NormalizeAuthorName(creator);
-                    if (!string.IsNullOrEmpty(normalizedAuthor))
+                    foreach (var author in epub.Authors)
                     {
-                        book.Authors.Add(normalizedAuthor);
+                        string normalizedAuthor = NormalizeAuthorName(author);
+                        if (!string.IsNullOrEmpty(normalizedAuthor))
+                        {
+                            book.Authors.Add(normalizedAuthor);
+                        }
                     }
                 }
 
-                book.Genres = LookupGenres(epub.Subject);
-                if (epub.Description != null && epub.Description.Count > 0) book.Annotation = epub.Description.First();
-                if (epub.Language != null && epub.Language.Count > 0) book.Language = epub.Language.First();
+                // Handle genres/subjects
+                var subjects = epub.Format.Opf.Metadata.Subjects?.ToList() ?? new List<string>();
+                book.Genres = LookupGenres(subjects);
+
+                // Handle description
+                if (epub.Format.Opf.Metadata.Descriptions?.Count > 0)
+                {
+                    book.Annotation = CleanHtmlFromDescription(epub.Format.Opf.Metadata.Descriptions.First());
+                }
+
+                // Handle language
+                if (epub.Format.Opf.Metadata.Languages?.Count > 0)
+                    book.Language = epub.Format.Opf.Metadata.Languages.First();
             }
             catch (Exception e)
             {
@@ -139,11 +167,32 @@ namespace TinyOPDS.Parsers
         }
 
         /// <summary>
-        /// Epub's "subjects" are non-formal and extremely messy :( 
-        /// This function will try to find a corresponding genres from the FB2 standard genres by using Soundex algorithm
+        /// Clean HTML tags from description for OPDS compatibility
+        /// OPDS clients expect plain text in metadata fields
         /// </summary>
-        /// <param name="subjects"></param>
-        /// <returns></returns>
+        /// <param name="htmlDescription">Description that may contain HTML tags</param>
+        /// <returns>Clean text description</returns>
+        private string CleanHtmlFromDescription(string htmlDescription)
+        {
+            if (string.IsNullOrEmpty(htmlDescription))
+                return string.Empty;
+
+            // Remove HTML tags using regex
+            string cleaned = System.Text.RegularExpressions.Regex.Replace(
+                htmlDescription,
+                @"<[^>]*>",
+                " ",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase
+            );
+
+            // Decode HTML entities
+            cleaned = System.Net.WebUtility.HtmlDecode(cleaned);
+
+            // Clean up multiple spaces and trim
+            cleaned = System.Text.RegularExpressions.Regex.Replace(cleaned, @"\s+", " ").Trim();
+
+            return cleaned;
+        }
         private List<string> LookupGenres(List<string> subjects)
         {
             List<string> genres = new List<string>();
@@ -174,27 +223,35 @@ namespace TinyOPDS.Parsers
             Image image = null;
             try
             {
+                // Convert stream to byte array
                 stream.Position = 0;
-                Epub epub = new Epub(stream);
-                if (epub.ExtendedData != null)
+                byte[] epubData = new byte[stream.Length];
+                stream.Read(epubData, 0, epubData.Length);
+
+                EpubBook epub = EpubReader.Read(epubData);
+
+                // EpubSharp provides direct access to cover image
+                if (epub.CoverImage != null && epub.CoverImage.Length > 0)
                 {
-                    foreach (ExtendedData value in epub.ExtendedData.Values)
+                    using (MemoryStream memStream = new MemoryStream(epub.CoverImage))
                     {
-                        string s = value.FileName.ToLower();
-                        if (s.Contains(".jpeg") || s.Contains(".jpg") || s.Contains(".png"))
+                        image = Image.FromStream(memStream);
+                        image = image.Resize(CoverImage.CoverSize);
+                    }
+                }
+                else
+                {
+                    // Fallback: search through images for cover
+                    if (epub.Resources?.Images?.Count > 0)
+                    {
+                        foreach (var imageFile in epub.Resources.Images)
                         {
-                            if (value.ID.ToLower().Contains("cover") || s.Contains("cover"))
+                            string imageFileName = imageFile.FileName?.ToLower() ?? string.Empty;
+                            if (imageFileName.Contains("cover"))
                             {
-                                using (MemoryStream memStream = new MemoryStream(value.GetContentAsBinary()))
+                                using (MemoryStream memStream = new MemoryStream(imageFile.Content))
                                 {
                                     image = Image.FromStream(memStream);
-                                    // Convert image to jpeg
-                                    string mimeType = value.MimeType.ToLower();
-                                    ImageFormat fmt = mimeType.Contains("png") ? ImageFormat.Png : ImageFormat.Gif;
-                                    if (!mimeType.Contains("jpeg"))
-                                    {
-                                        image = Image.FromStream(image.ToStream(fmt));
-                                    }
                                     image = image.Resize(CoverImage.CoverSize);
                                 }
                                 break;

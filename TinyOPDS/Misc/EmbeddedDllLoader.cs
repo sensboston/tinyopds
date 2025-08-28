@@ -338,12 +338,7 @@ namespace TinyOPDS
         {
             try
             {
-                string[] managedDlls = {
-                    "eBdb.EpubReader",
-                    "FB2Library",
-                    "Ionic.Zip.Reduced",
-                    "System.Data.SQLite"
-                };
+                string[] managedDlls = {"EpubSharp", "FB2Library","System.Data.SQLite"};
 
                 foreach (string dllName in managedDlls)
                 {

@@ -61,10 +61,6 @@
     </ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="eBdb.EpubReader, Version=1.0.0.6, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\TinyOPDS\Libs\eBdb.EpubReader.dll</HintPath>
-    </Reference>
     <Reference Include="EpubSharp, Version=1.1.5.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\TinyOPDS\packages\EpubSharp.dll.1.1.5\lib\net451\EpubSharp.dll</HintPath>
     </Reference>
@@ -265,9 +261,6 @@
     </EmbeddedResource>
     <EmbeddedResource Include="..\TinyOPDS\Libs\x64\SQLite.Interop.dll">
       <Link>Libs\x64\SQLite.Interop.dll</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\TinyOPDS\Libs\eBdb.EpubReader.dll">
-      <Link>Libs\eBdb.EpubReader.dll</Link>
     </EmbeddedResource>
     <EmbeddedResource Include="..\TinyOPDS\Libs\FB2Library.dll">
       <Link>Libs\FB2Library.dll</Link>

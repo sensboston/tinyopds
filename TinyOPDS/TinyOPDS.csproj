@@ -240,7 +240,6 @@
     <EmbeddedResource Include="Resources\book_cover.jpg" />
     <Content Include="Icons\lib.png" />
     <Content Include="Icons\TinyOPDS.ico" />
-    <EmbeddedResource Include="Libs\eBdb.EpubReader.dll" />
     <EmbeddedResource Include="Libs\FB2Library.dll" />
     <EmbeddedResource Include="Libs\System.Data.SQLite.dll" />
     <EmbeddedResource Include="Libs\x64\SQLite.Interop.dll" />

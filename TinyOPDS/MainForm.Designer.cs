@@ -261,7 +261,7 @@
             this.useWatcher.TabIndex = 30;
             this.useWatcher.Text = "Monitor changes";
             this.useWatcher.UseVisualStyleBackColor = true;
-            this.useWatcher.CheckedChanged += new System.EventHandler(this.useWatcher_CheckedChanged);
+            this.useWatcher.CheckedChanged += new System.EventHandler(this.UseWatcher_CheckedChanged);
             // 
             // duplicates
             // 
@@ -472,7 +472,7 @@
             this.folderButton.Size = new System.Drawing.Size(58, 41);
             this.folderButton.TabIndex = 10;
             this.folderButton.UseVisualStyleBackColor = true;
-            this.folderButton.Click += new System.EventHandler(this.folderButton_Click);
+            this.folderButton.Click += new System.EventHandler(this.FolderButton_Click);
             // 
             // label2
             // 
@@ -504,7 +504,7 @@
             this.scannerButton.TabIndex = 7;
             this.scannerButton.Text = "Start scanning";
             this.scannerButton.UseVisualStyleBackColor = true;
-            this.scannerButton.Click += new System.EventHandler(this.scannerButton_Click);
+            this.scannerButton.Click += new System.EventHandler(this.ScannerButton_Click);
             // 
             // libraryPath
             // 
@@ -513,8 +513,8 @@
             this.libraryPath.Name = "libraryPath";
             this.libraryPath.Size = new System.Drawing.Size(802, 38);
             this.libraryPath.TabIndex = 6;
-            this.libraryPath.TextChanged += new System.EventHandler(this.libraryPath_TextChanged);
-            this.libraryPath.Validated += new System.EventHandler(this.libraryPath_Validated);
+            this.libraryPath.TextChanged += new System.EventHandler(this.LibraryPath_TextChanged);
+            this.libraryPath.Validated += new System.EventHandler(this.LibraryPath_Validated);
             // 
             // tabPage2
             // 
@@ -579,7 +579,7 @@
             this.extWebLink.TabIndex = 53;
             this.extWebLink.TabStop = true;
             this.extWebLink.Text = "- - - - - -";
-            this.extWebLink.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel_LinkClicked);
+            this.extWebLink.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.LinkLabel_LinkClicked);
             // 
             // intWebLink
             // 
@@ -590,7 +590,7 @@
             this.intWebLink.TabIndex = 52;
             this.intWebLink.TabStop = true;
             this.intWebLink.Text = "- - - - - -";
-            this.intWebLink.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel_LinkClicked);
+            this.intWebLink.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.LinkLabel_LinkClicked);
             // 
             // label34
             // 
@@ -631,7 +631,7 @@
             this.interfaceCombo.Name = "interfaceCombo";
             this.interfaceCombo.Size = new System.Drawing.Size(316, 39);
             this.interfaceCombo.TabIndex = 47;
-            this.interfaceCombo.SelectedIndexChanged += new System.EventHandler(this.interfaceCombo_SelectedIndexChanged);
+            this.interfaceCombo.SelectedIndexChanged += new System.EventHandler(this.InterfaceCombo_SelectedIndexChanged);
             // 
             // label29
             // 
@@ -732,7 +732,7 @@
             this.extLink.TabIndex = 37;
             this.extLink.TabStop = true;
             this.extLink.Text = "- - - - - -";
-            this.extLink.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel_LinkClicked);
+            this.extLink.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.LinkLabel_LinkClicked);
             // 
             // intLink
             // 
@@ -743,7 +743,7 @@
             this.intLink.TabIndex = 36;
             this.intLink.TabStop = true;
             this.intLink.Text = "- - - - - -";
-            this.intLink.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel_LinkClicked);
+            this.intLink.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.LinkLabel_LinkClicked);
             // 
             // label13
             // 
@@ -804,7 +804,7 @@
             this.serverButton.Size = new System.Drawing.Size(540, 95);
             this.serverButton.TabIndex = 8;
             this.serverButton.Text = "Start server";
-            this.serverButton.Click += new System.EventHandler(this.serverButton_Click);
+            this.serverButton.Click += new System.EventHandler(this.ServerButton_Click);
             // 
             // webPrefix
             // 
@@ -815,7 +815,7 @@
             this.webPrefix.Size = new System.Drawing.Size(279, 38);
             this.webPrefix.TabIndex = 49;
             this.webPrefix.Text = global::TinyOPDS.Properties.Settings.Default.HttpPrefix;
-            this.webPrefix.TextChanged += new System.EventHandler(this.rootPrefix_TextChanged);
+            this.webPrefix.TextChanged += new System.EventHandler(this.RootPrefix_TextChanged);
             // 
             // openPort
             // 
@@ -830,7 +830,7 @@
             this.openPort.TabIndex = 15;
             this.openPort.Text = "Forward port on router";
             this.openPort.UseVisualStyleBackColor = true;
-            this.openPort.CheckedChanged += new System.EventHandler(this.openPort_CheckedChanged);
+            this.openPort.CheckedChanged += new System.EventHandler(this.OpenPort_CheckedChanged);
             // 
             // serverPort
             // 
@@ -841,7 +841,7 @@
             this.serverPort.Size = new System.Drawing.Size(100, 38);
             this.serverPort.TabIndex = 10;
             this.serverPort.Text = global::TinyOPDS.Properties.Settings.Default.ServerPort;
-            this.serverPort.Validated += new System.EventHandler(this.serverPort_Validated);
+            this.serverPort.Validated += new System.EventHandler(this.ServerPort_Validated);
             // 
             // useUPnP
             // 
@@ -856,7 +856,7 @@
             this.useUPnP.TabIndex = 35;
             this.useUPnP.Text = "Use UPnP";
             this.useUPnP.UseVisualStyleBackColor = true;
-            this.useUPnP.CheckStateChanged += new System.EventHandler(this.useUPnP_CheckStateChanged);
+            this.useUPnP.CheckStateChanged += new System.EventHandler(this.UseUPnP_CheckStateChanged);
             // 
             // rootPrefix
             // 
@@ -867,7 +867,7 @@
             this.rootPrefix.Size = new System.Drawing.Size(308, 38);
             this.rootPrefix.TabIndex = 19;
             this.rootPrefix.Text = global::TinyOPDS.Properties.Settings.Default.RootPrefix;
-            this.rootPrefix.TextChanged += new System.EventHandler(this.rootPrefix_TextChanged);
+            this.rootPrefix.TextChanged += new System.EventHandler(this.RootPrefix_TextChanged);
             // 
             // serverName
             // 
@@ -925,7 +925,7 @@
             this.comboBox1.Name = "comboBox1";
             this.comboBox1.Size = new System.Drawing.Size(258, 39);
             this.comboBox1.TabIndex = 9;
-            this.comboBox1.SelectedIndexChanged += new System.EventHandler(this.comboBox1_SelectedIndexChanged);
+            this.comboBox1.SelectedIndexChanged += new System.EventHandler(this.ComboBox1_SelectedIndexChanged);
             // 
             // groupBox1
             // 
@@ -947,7 +947,7 @@
             this.radioButton2.TabIndex = 1;
             this.radioButton2.Text = "on disk";
             this.radioButton2.UseVisualStyleBackColor = true;
-            this.radioButton2.CheckedChanged += new System.EventHandler(this.cacheType_CheckedChanged);
+            this.radioButton2.CheckedChanged += new System.EventHandler(this.CacheType_CheckedChanged);
             // 
             // radioButton1
             // 
@@ -960,7 +960,7 @@
             this.radioButton1.TabStop = true;
             this.radioButton1.Text = "in memory";
             this.radioButton1.UseVisualStyleBackColor = true;
-            this.radioButton1.CheckedChanged += new System.EventHandler(this.cacheType_CheckedChanged);
+            this.radioButton1.CheckedChanged += new System.EventHandler(this.CacheType_CheckedChanged);
             // 
             // newBooksPeriodCombo
             // 
@@ -979,7 +979,7 @@
             this.newBooksPeriodCombo.Name = "newBooksPeriodCombo";
             this.newBooksPeriodCombo.Size = new System.Drawing.Size(256, 39);
             this.newBooksPeriodCombo.TabIndex = 7;
-            this.newBooksPeriodCombo.SelectedIndexChanged += new System.EventHandler(this.newBooksPeriodCombo_SelectedIndexChanged);
+            this.newBooksPeriodCombo.SelectedIndexChanged += new System.EventHandler(this.NewBooksPeriodCombo_SelectedIndexChanged);
             // 
             // label39
             // 
@@ -1003,7 +1003,7 @@
             this.sortOrderCombo.Name = "sortOrderCombo";
             this.sortOrderCombo.Size = new System.Drawing.Size(463, 39);
             this.sortOrderCombo.TabIndex = 5;
-            this.sortOrderCombo.SelectedIndexChanged += new System.EventHandler(this.sortOrderCombo_SelectedIndexChanged);
+            this.sortOrderCombo.SelectedIndexChanged += new System.EventHandler(this.SortOrderCombo_SelectedIndexChanged);
             // 
             // label38
             // 
@@ -1099,7 +1099,7 @@
             this.treeViewOPDS.Name = "treeViewOPDS";
             this.treeViewOPDS.Size = new System.Drawing.Size(1213, 746);
             this.treeViewOPDS.TabIndex = 2;
-            this.treeViewOPDS.AfterCheck += new System.Windows.Forms.TreeViewEventHandler(this.treeViewOPDS_AfterCheck);
+            this.treeViewOPDS.AfterCheck += new System.Windows.Forms.TreeViewEventHandler(this.TreeViewOPDS_AfterCheck);
             // 
             // tabPage5
             // 
@@ -1206,7 +1206,7 @@
             this.dataGridView1.RowHeadersWidth = 102;
             this.dataGridView1.Size = new System.Drawing.Size(1136, 320);
             this.dataGridView1.TabIndex = 1;
-            this.dataGridView1.CellFormatting += new System.Windows.Forms.DataGridViewCellFormattingEventHandler(this.dataGridView1_CellFormatting);
+            this.dataGridView1.CellFormatting += new System.Windows.Forms.DataGridViewCellFormattingEventHandler(this.DataGridView1_CellFormatting);
             // 
             // wrongAttemptsCount
             // 
@@ -1235,7 +1235,7 @@
             this.banClients.TabIndex = 44;
             this.banClients.Text = "Ban clients after";
             this.banClients.UseVisualStyleBackColor = true;
-            this.banClients.CheckedChanged += new System.EventHandler(this.banClients_CheckedChanged);
+            this.banClients.CheckedChanged += new System.EventHandler(this.BanClients_CheckedChanged);
             // 
             // rememberClients
             // 
@@ -1262,7 +1262,7 @@
             this.useHTTPAuth.TabIndex = 0;
             this.useHTTPAuth.Text = "Use HTTP basic authentication";
             this.useHTTPAuth.UseVisualStyleBackColor = true;
-            this.useHTTPAuth.CheckedChanged += new System.EventHandler(this.useHTTPAuth_CheckedChanged);
+            this.useHTTPAuth.CheckedChanged += new System.EventHandler(this.UseHTTPAuth_CheckedChanged);
             // 
             // tabPage3
             // 
@@ -1296,7 +1296,7 @@
             this.oneInstance.TabIndex = 40;
             this.oneInstance.Text = "Only one instance";
             this.oneInstance.UseVisualStyleBackColor = true;
-            this.oneInstance.CheckedChanged += new System.EventHandler(this.oneInstance_CheckedChanged);
+            this.oneInstance.CheckedChanged += new System.EventHandler(this.OneInstance_CheckedChanged);
             // 
             // viewLogFile
             // 
@@ -1307,7 +1307,7 @@
             this.viewLogFile.TabIndex = 39;
             this.viewLogFile.Text = "View log file";
             this.viewLogFile.UseVisualStyleBackColor = true;
-            this.viewLogFile.Click += new System.EventHandler(this.viewLogFile_Click);
+            this.viewLogFile.Click += new System.EventHandler(this.ViewLogFile_Click);
             // 
             // label32
             // 
@@ -1332,7 +1332,7 @@
             this.updateCombo.Name = "updateCombo";
             this.updateCombo.Size = new System.Drawing.Size(347, 39);
             this.updateCombo.TabIndex = 37;
-            this.updateCombo.SelectedIndexChanged += new System.EventHandler(this.updateCombo_SelectedIndexChanged);
+            this.updateCombo.SelectedIndexChanged += new System.EventHandler(this.UpdateCombo_SelectedIndexChanged);
             // 
             // label22
             // 
@@ -1358,7 +1358,7 @@
             this.logVerbosity.Name = "logVerbosity";
             this.logVerbosity.Size = new System.Drawing.Size(529, 39);
             this.logVerbosity.TabIndex = 35;
-            this.logVerbosity.SelectedIndexChanged += new System.EventHandler(this.logVerbosity_SelectedIndexChanged);
+            this.logVerbosity.SelectedIndexChanged += new System.EventHandler(this.LogVerbosity_SelectedIndexChanged);
             // 
             // label11
             // 
@@ -1381,7 +1381,7 @@
             this.langCombo.Size = new System.Drawing.Size(347, 39);
             this.langCombo.TabIndex = 31;
             this.langCombo.ValueMember = "Key";
-            this.langCombo.SelectedValueChanged += new System.EventHandler(this.langCombo_SelectedValueChanged);
+            this.langCombo.SelectedValueChanged += new System.EventHandler(this.LangCombo_SelectedValueChanged);
             // 
             // saveLog
             // 
@@ -1395,7 +1395,7 @@
             this.saveLog.TabIndex = 33;
             this.saveLog.Text = "Save log to file";
             this.saveLog.UseVisualStyleBackColor = true;
-            this.saveLog.CheckedChanged += new System.EventHandler(this.saveLog_CheckedChanged);
+            this.saveLog.CheckedChanged += new System.EventHandler(this.SaveLog_CheckedChanged);
             // 
             // closeToTray
             // 
@@ -1409,7 +1409,7 @@
             this.closeToTray.TabIndex = 2;
             this.closeToTray.Text = "Close or minimize to tray";
             this.closeToTray.UseVisualStyleBackColor = true;
-            this.closeToTray.CheckedChanged += new System.EventHandler(this.closeToTray_CheckedChanged);
+            this.closeToTray.CheckedChanged += new System.EventHandler(this.CloseToTray_CheckedChanged);
             // 
             // startMinimized
             // 
@@ -1436,7 +1436,7 @@
             this.startWithWindows.TabIndex = 0;
             this.startWithWindows.Text = "Start with Windows";
             this.startWithWindows.UseVisualStyleBackColor = true;
-            this.startWithWindows.CheckedChanged += new System.EventHandler(this.startWithWindows_CheckedChanged);
+            this.startWithWindows.CheckedChanged += new System.EventHandler(this.StartWithWindows_CheckedChanged);
             // 
             // tabPage4
             // 
@@ -1473,7 +1473,7 @@
             this.linkLabel6.TabIndex = 13;
             this.linkLabel6.TabStop = true;
             this.linkLabel6.Text = "Gremlin2, author of Fb2Fix project";
-            this.linkLabel6.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel3_LinkClicked);
+            this.linkLabel6.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.LinkLabel3_LinkClicked);
             // 
             // linkLabel5
             // 
@@ -1485,7 +1485,7 @@
             this.linkLabel5.TabIndex = 12;
             this.linkLabel5.TabStop = true;
             this.linkLabel5.Text = "ePubReader library";
-            this.linkLabel5.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel3_LinkClicked);
+            this.linkLabel5.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.LinkLabel3_LinkClicked);
             // 
             // linkLabel4
             // 
@@ -1497,7 +1497,7 @@
             this.linkLabel4.TabIndex = 11;
             this.linkLabel4.TabStop = true;
             this.linkLabel4.Text = "DotNetZip library";
-            this.linkLabel4.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel3_LinkClicked);
+            this.linkLabel4.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.LinkLabel3_LinkClicked);
             // 
             // linkLabel3
             // 
@@ -1509,7 +1509,7 @@
             this.linkLabel3.TabIndex = 10;
             this.linkLabel3.TabStop = true;
             this.linkLabel3.Text = "Authors of fb2library ";
-            this.linkLabel3.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel3_LinkClicked);
+            this.linkLabel3.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.LinkLabel3_LinkClicked);
             // 
             // label20
             // 
@@ -1542,7 +1542,7 @@
             this.linkLabel2.TabIndex = 7;
             this.linkLabel2.TabStop = true;
             this.linkLabel2.Text = "https://mit-license.org/";
-            this.linkLabel2.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel_LinkClicked);
+            this.linkLabel2.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.LinkLabel_LinkClicked);
             // 
             // label18
             // 
@@ -1564,7 +1564,7 @@
             this.linkLabel1.TabIndex = 5;
             this.linkLabel1.TabStop = true;
             this.linkLabel1.Text = "https://github.com/sensboston/tinyopds";
-            this.linkLabel1.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel_LinkClicked);
+            this.linkLabel1.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.LinkLabel_LinkClicked);
             // 
             // label17
             // 
@@ -1620,7 +1620,7 @@
             this.donateButton.Size = new System.Drawing.Size(269, 134);
             this.donateButton.TabIndex = 0;
             this.donateButton.UseVisualStyleBackColor = false;
-            this.donateButton.Click += new System.EventHandler(this.donateButton_Click);
+            this.donateButton.Click += new System.EventHandler(this.DonateButton_Click);
             // 
             // contextMenuStrip
             // 
@@ -1638,14 +1638,14 @@
             this.windowMenuItem.Name = "windowMenuItem";
             this.windowMenuItem.Size = new System.Drawing.Size(270, 48);
             this.windowMenuItem.Text = "Hide window";
-            this.windowMenuItem.Click += new System.EventHandler(this.windowMenuItem_Click);
+            this.windowMenuItem.Click += new System.EventHandler(this.WindowMenuItem_Click);
             // 
             // serverMenuItem
             // 
             this.serverMenuItem.Name = "serverMenuItem";
             this.serverMenuItem.Size = new System.Drawing.Size(270, 48);
             this.serverMenuItem.Text = "Stop server";
-            this.serverMenuItem.Click += new System.EventHandler(this.serverButton_Click);
+            this.serverMenuItem.Click += new System.EventHandler(this.ServerButton_Click);
             // 
             // toolStripMenuItem1
             // 
@@ -1657,7 +1657,7 @@
             this.exitMenuItem.Name = "exitMenuItem";
             this.exitMenuItem.Size = new System.Drawing.Size(270, 48);
             this.exitMenuItem.Text = "Exit";
-            this.exitMenuItem.Click += new System.EventHandler(this.exitMenuItem_Click);
+            this.exitMenuItem.Click += new System.EventHandler(this.ExitMenuItem_Click);
             // 
             // MainForm
             // 

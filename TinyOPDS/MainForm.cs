@@ -30,18 +30,18 @@ namespace TinyOPDS
     {
         OPDSServer server;
         Thread serverThread;
-        FileScanner scanner = new FileScanner();
-        Watcher watcher;
+        readonly FileScanner scanner = new FileScanner();
+        readonly Watcher watcher;
         DateTime scanStartTime;
-        UPnPController upnpController = new UPnPController();
-        NotifyIcon notifyIcon = new NotifyIcon();
-        BindingSource bs = new BindingSource();
-        System.Windows.Forms.Timer updateChecker = new System.Windows.Forms.Timer();
+        readonly UPnPController upnpController = new UPnPController();
+        readonly NotifyIcon notifyIcon = new NotifyIcon();
+        readonly BindingSource bs = new BindingSource();
+        readonly System.Windows.Forms.Timer updateChecker = new System.Windows.Forms.Timer();
         string updateUrl = string.Empty;
 
         int fb2Count, epubCount, skippedFiles, invalidFiles, dups;
 
-        private List<Book> pendingBooks = new List<Book>();
+        private readonly List<Book> pendingBooks = new List<Book>();
         private readonly object batchLock = new object();
 
         private Dictionary<string, bool> opdsStructure;
@@ -56,24 +56,20 @@ namespace TinyOPDS
             Log.SaveToFile = Properties.Settings.Default.SaveLogToDisk;
 
             AppDomain currentDomain = AppDomain.CurrentDomain;
-            currentDomain.UnhandledException += currentDomain_UnhandledException;
+            currentDomain.UnhandledException += CurrentDomain_UnhandledException;
 
             Log.WriteLine("TinyOPDS version {0}.{1} started", Utils.Version.Major, Utils.Version.Minor);
 
             InitializeComponent();
 
             // Fix TabControl height for high DPI displays
-            if (Utils.IsWindows)
+            using (Graphics g = CreateGraphics())
             {
-                float dpiScale = 1.0f;
-                using (Graphics g = CreateGraphics())
+                float dpiScale = g.DpiX / 96f;
+                if (dpiScale > 1.0f)
                 {
-                    dpiScale = g.DpiX / 96f;
-                    if (dpiScale > 1.0f)
-                    {
-                        tabControl1.SizeMode = TabSizeMode.Normal;
-                        tabControl1.ItemSize = new Size(Math.Max(120, (int)(120 * dpiScale)), Math.Max(28, (int)(28 * dpiScale)));
-                    }
+                    tabControl1.SizeMode = TabSizeMode.Normal;
+                    tabControl1.ItemSize = new Size(Math.Max(120, (int)(120 * dpiScale)), Math.Max(28, (int)(28 * dpiScale)));
                 }
             }
 
@@ -95,9 +91,9 @@ namespace TinyOPDS
             Icon = Properties.Resources.trayIcon;
             notifyIcon.ContextMenuStrip = contextMenuStrip;
             notifyIcon.Icon = Properties.Resources.trayIcon;
-            notifyIcon.MouseClick += notifyIcon1_MouseClick;
-            notifyIcon.BalloonTipClicked += _notifyIcon_BalloonTipClicked;
-            notifyIcon.BalloonTipClosed += _notifyIcon_BalloonTipClosed;
+            notifyIcon.MouseClick += NotifyIcon1_MouseClick;
+            notifyIcon.BalloonTipClicked += NotifyIcon_BalloonTipClicked;
+            notifyIcon.BalloonTipClosed += NotifyIcon_BalloonTipClosed;
 
             // Init localization service
             Localizer.Init();
@@ -109,14 +105,14 @@ namespace TinyOPDS
 
             // Initialize update checker timer to tick every minute
             updateChecker.Interval = 1000 * 60;
-            updateChecker.Tick += _updateChecker_Tick;
+            updateChecker.Tick += UpdateChecker_Tick;
 
             // Setup credentials grid
-            bs.AddingNew += bs_AddingNew;
+            bs.AddingNew += Bs_AddingNew;
             bs.AllowNew = true;
             bs.DataSource = HttpProcessor.Credentials;
             dataGridView1.DataSource = bs;
-            bs.CurrentItemChanged += bs_CurrentItemChanged;
+            bs.CurrentItemChanged += Bs_CurrentItemChanged;
             foreach (DataGridViewColumn col in dataGridView1.Columns) col.Width = 180;
 
             Library.LibraryPath = Properties.Settings.Default.LibraryPath.SanitizePathName();
@@ -193,7 +189,7 @@ namespace TinyOPDS
         /// <param name="e"></param>
         private void MainForm_Load(object sender, EventArgs e)
         {
-            upnpController.DiscoverCompleted += _upnpController_DiscoverCompleted;
+            upnpController.DiscoverCompleted += UpnpController_DiscoverCompleted;
             upnpController.DiscoverAsync(Properties.Settings.Default.UseUPnP);
 
             // Update UI after form is fully loaded
@@ -206,7 +202,7 @@ namespace TinyOPDS
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        void currentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs args)
+        void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs args)
         {
             if (args != null)
             {
@@ -226,7 +222,7 @@ namespace TinyOPDS
             }
         }
 
-        void _upnpController_DiscoverCompleted(object sender, EventArgs e)
+        void UpnpController_DiscoverCompleted(object sender, EventArgs e)
         {
             if (!IsDisposed && upnpController != null)
             {
@@ -237,7 +233,7 @@ namespace TinyOPDS
                     if (upnpController.UPnPReady)
                     {
                         openPort.Enabled = true;
-                        if (Properties.Settings.Default.OpenNATPort) openPort_CheckedChanged(this, null);
+                        if (Properties.Settings.Default.OpenNATPort) OpenPort_CheckedChanged(this, null);
                     }
                 });
             }
@@ -472,7 +468,7 @@ namespace TinyOPDS
             sortOrderCombo.SelectedIndex = Properties.Settings.Default.SortOrder;
             newBooksPeriodCombo.SelectedIndex = Properties.Settings.Default.NewBooksPeriod;
 
-            openPort.Checked = Properties.Settings.Default.UseUPnP ? Properties.Settings.Default.OpenNATPort : false;
+            openPort.Checked = Properties.Settings.Default.UseUPnP && Properties.Settings.Default.OpenNATPort;
             banClients.Enabled = rememberClients.Enabled = dataGridView1.Enabled = Properties.Settings.Default.UseHTTPAuth;
             wrongAttemptsCount.Enabled = banClients.Checked && useHTTPAuth.Checked;
 
@@ -535,21 +531,21 @@ namespace TinyOPDS
 
         #region Credentials handling
 
-        private void dataGridView1_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        private void DataGridView1_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
         {
             if (dataGridView1.Columns[e.ColumnIndex].Name == "Password" && e.Value != null)
             {
                 dataGridView1.Rows[e.RowIndex].Tag = e.Value;
-                e.Value = new String('*', e.Value.ToString().Length);
+                e.Value = new string('*', e.Value.ToString().Length);
             }
         }
 
-        void bs_AddingNew(object sender, AddingNewEventArgs e)
+        void Bs_AddingNew(object sender, AddingNewEventArgs e)
         {
             e.NewObject = new Credential("", "");
         }
 
-        void bs_CurrentItemChanged(object sender, EventArgs e)
+        void Bs_CurrentItemChanged(object sender, EventArgs e)
         {
             string s = string.Empty;
             foreach (Credential cred in HttpProcessor.Credentials) s += cred.User + ":" + cred.Password + ";";
@@ -567,12 +563,12 @@ namespace TinyOPDS
 
         #region Library scanning support
 
-        private void libraryPath_TextChanged(object sender, EventArgs e)
+        private void LibraryPath_TextChanged(object sender, EventArgs e)
         {
             databaseFileName.Text = "books.sqlite";
         }
 
-        private void libraryPath_Validated(object sender, EventArgs e)
+        private void LibraryPath_Validated(object sender, EventArgs e)
         {
             if (!string.IsNullOrEmpty(databaseFileName.Text) && !Library.LibraryPath.Equals(databaseFileName.Text.SanitizePathName()) &&
                 Directory.Exists(libraryPath.Text.SanitizePathName()))
@@ -580,8 +576,8 @@ namespace TinyOPDS
                 if (Library.IsChanged) Library.Save();
                 Library.LibraryPath = Properties.Settings.Default.LibraryPath = libraryPath.Text.SanitizePathName();
 
-                var stats = GetLibraryStats();
-                booksInDB.Text = string.Format("{0}       fb2: {1}      epub: {2}", 0, 0, 0);
+                var (Total, FB2, EPUB) = GetLibraryStats();
+                booksInDB.Text = $"{Total}       fb2: {FB2}      epub: {EPUB}";
 
                 databaseFileName.Text = "books.sqlite";
 
@@ -597,7 +593,7 @@ namespace TinyOPDS
             }
         }
 
-        private void folderButton_Click(object sender, EventArgs e)
+        private void FolderButton_Click(object sender, EventArgs e)
         {
             using (FolderBrowserDialog dialog = new FolderBrowserDialog())
             {
@@ -605,16 +601,16 @@ namespace TinyOPDS
                 if (dialog.ShowDialog() == DialogResult.OK)
                 {
                     libraryPath.Text = dialog.SelectedPath.SanitizePathName();
-                    libraryPath_Validated(sender, e);
+                    LibraryPath_Validated(sender, e);
                 }
             }
         }
 
-        private void scannerButton_Click(object sender, EventArgs e)
+        private void ScannerButton_Click(object sender, EventArgs e)
         {
             if (scanner.Status != FileScannerStatus.SCANNING)
             {
-                scanner.OnBookFound += scanner_OnBookFound;
+                scanner.OnBookFound += Scanner_OnBookFound;
                 scanner.OnInvalidBook += (_, __) => { invalidFiles++; };
                 scanner.OnFileSkipped += (object _sender, FileSkippedEventArgs _e) =>
                 {
@@ -651,7 +647,7 @@ namespace TinyOPDS
             }
         }
 
-        void scanner_OnBookFound(object sender, BookFoundEventArgs e)
+        void Scanner_OnBookFound(object sender, BookFoundEventArgs e)
         {
             // Add book to batch and count it for UI display
             // The actual duplicate detection happens in FlushPendingBooks()
@@ -677,15 +673,15 @@ namespace TinyOPDS
 
         private void UpdateInfo(bool IsScanFinished = false)
         {
-            if (this.InvokeRequired) { this.BeginInvoke((MethodInvoker)delegate { internalUpdateInfo(IsScanFinished); }); }
-            else { internalUpdateInfo(IsScanFinished); }
+            if (InvokeRequired) { BeginInvoke((MethodInvoker)delegate { InternalUpdateInfo(IsScanFinished); }); }
+            else { InternalUpdateInfo(IsScanFinished); }
         }
 
-        private void internalUpdateInfo(bool IsScanFinished)
+        private void InternalUpdateInfo(bool IsScanFinished)
         {
-            var stats = GetLibraryStats();
-            booksInDB.Text = string.Format("{0}       fb2: {1}      epub: {2}", stats.Total, stats.FB2, stats.EPUB);
-            booksFound.Text = string.Format("fb2: {0}   epub: {1}", fb2Count, epubCount);
+            var (Total, FB2, EPUB) = GetLibraryStats();
+            booksInDB.Text = $"{Total}       fb2: {FB2}      epub: {EPUB}";
+            booksFound.Text = $"fb2: {FB2}   epub: {EPUB}";
             skippedBooks.Text = skippedFiles.ToString();
             invalidBooks.Text = invalidFiles.ToString();
             duplicates.Text = dups.ToString();
@@ -706,7 +702,7 @@ namespace TinyOPDS
 
         #region HTTP (OPDS) server & network support
 
-        private void serverButton_Click(object sender, EventArgs e)
+        private void ServerButton_Click(object sender, EventArgs e)
         {
             if (server == null) StartHttpServer(); else StopHttpServer();
         }
@@ -719,8 +715,7 @@ namespace TinyOPDS
             server = new OPDSServer(IPAddress.Any, int.Parse(Properties.Settings.Default.ServerPort));
 
 
-            serverThread = new Thread(new ThreadStart(server.Listen));
-            serverThread.Priority = ThreadPriority.BelowNormal;
+            serverThread = new Thread(new ThreadStart(server.Listen)) { Priority = ThreadPriority.BelowNormal };
             serverThread.Start();
             server.ServerReady.WaitOne(TimeSpan.FromMilliseconds(500));
             if (!server.IsActive)
@@ -765,7 +760,7 @@ namespace TinyOPDS
             StartHttpServer();
         }
 
-        private void useUPnP_CheckStateChanged(object sender, EventArgs e)
+        private void UseUPnP_CheckStateChanged(object sender, EventArgs e)
         {
             if (useUPnP.Checked)
             {
@@ -778,7 +773,7 @@ namespace TinyOPDS
             }
         }
 
-        private void openPort_CheckedChanged(object sender, EventArgs e)
+        private void OpenPort_CheckedChanged(object sender, EventArgs e)
         {
             if (upnpController != null && upnpController.UPnPReady)
             {
@@ -798,7 +793,7 @@ namespace TinyOPDS
             }
         }
 
-        private void interfaceCombo_SelectedIndexChanged(object sender, EventArgs e)
+        private void InterfaceCombo_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (upnpController != null && upnpController.InterfaceIndex != interfaceCombo.SelectedIndex)
             {
@@ -829,16 +824,16 @@ namespace TinyOPDS
             }
         }
 
-        private void windowMenuItem_Click(object sender, EventArgs e)
+        private void WindowMenuItem_Click(object sender, EventArgs e)
         {
             if (!ShowInTaskbar) ShowInTaskbar = true; else Visible = !Visible;
             if (Visible) WindowState = FormWindowState.Normal;
             windowMenuItem.Text = Localizer.Text(Visible ? "Hide window" : "Show window");
         }
 
-        private void notifyIcon1_MouseClick(object sender, MouseEventArgs e)
+        private void NotifyIcon1_MouseClick(object sender, MouseEventArgs e)
         {
-            if (e.Button == System.Windows.Forms.MouseButtons.Left) windowMenuItem_Click(this, null);
+            if (e.Button == MouseButtons.Left) WindowMenuItem_Click(this, null);
         }
 
         private bool realExit = false;
@@ -869,7 +864,7 @@ namespace TinyOPDS
                         int port = int.Parse(Properties.Settings.Default.ServerPort);
                         upnpController.DeleteForwardingRule(port, System.Net.Sockets.ProtocolType.Tcp);
                     }
-                    upnpController.DiscoverCompleted -= _upnpController_DiscoverCompleted;
+                    upnpController.DiscoverCompleted -= UpnpController_DiscoverCompleted;
                     upnpController.Dispose();
                 }
             }
@@ -884,7 +879,7 @@ namespace TinyOPDS
             Log.WriteLine("TinyOPDS closed\n");
         }
 
-        private void exitMenuItem_Click(object sender, EventArgs e)
+        private void ExitMenuItem_Click(object sender, EventArgs e)
         {
             realExit = true;
             Close();
@@ -894,7 +889,7 @@ namespace TinyOPDS
 
         #region Form controls handling
 
-        private void oneInstance_CheckedChanged(object sender, EventArgs e)
+        private void OneInstance_CheckedChanged(object sender, EventArgs e)
         {
             if (sender != null)
             {
@@ -904,17 +899,17 @@ namespace TinyOPDS
         }
 
 
-        private void cacheType_CheckedChanged(object sender, EventArgs e)
+        private void CacheType_CheckedChanged(object sender, EventArgs e)
         {
             if (sender != null)
             {
-                comboBox1.Enabled = (sender == radioButton1) ? true : false;
-                Properties.Settings.Default.CacheImagesInMemory = (sender == radioButton1) ? true : false;
+                comboBox1.Enabled = (sender == radioButton1);
+                Properties.Settings.Default.CacheImagesInMemory = (sender == radioButton1);
                 Properties.Settings.Default.Save();
             }
         }
 
-        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        private void ComboBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (sender != null)
             {
@@ -928,7 +923,7 @@ namespace TinyOPDS
         }
 
 
-        private void useWatcher_CheckedChanged(object sender, EventArgs e)
+        private void UseWatcher_CheckedChanged(object sender, EventArgs e)
         {
             if (watcher != null && watcher.IsEnabled != useWatcher.Checked)
             {
@@ -936,12 +931,12 @@ namespace TinyOPDS
             }
         }
 
-        private void closeToTray_CheckedChanged(object sender, EventArgs e)
+        private void CloseToTray_CheckedChanged(object sender, EventArgs e)
         {
             notifyIcon.Visible = closeToTray.Checked;
         }
 
-        private void startWithWindows_CheckedChanged(object sender, EventArgs e)
+        private void StartWithWindows_CheckedChanged(object sender, EventArgs e)
         {
             Microsoft.Win32.RegistryKey registryKey = Microsoft.Win32.Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
             bool exists = (registryKey.GetValue("TinyOPDS") != null);
@@ -949,7 +944,7 @@ namespace TinyOPDS
             else if (exists && !startWithWindows.Checked) registryKey.DeleteValue("TinyOPDS");
         }
 
-        private void saveLog_CheckedChanged(object sender, EventArgs e)
+        private void SaveLog_CheckedChanged(object sender, EventArgs e)
         {
             Log.SaveToFile = label22.Enabled = logVerbosity.Enabled = saveLog.Checked;
         }
@@ -976,7 +971,7 @@ namespace TinyOPDS
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void rootPrefix_TextChanged(object sender, EventArgs e)
+        private void RootPrefix_TextChanged(object sender, EventArgs e)
         {
             if (sender is TextBox && (sender as TextBox).CanUndo)
             {
@@ -996,10 +991,9 @@ namespace TinyOPDS
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void serverPort_Validated(object sender, EventArgs e)
+        private void ServerPort_Validated(object sender, EventArgs e)
         {
-            int port = 8080;
-            bool valid = int.TryParse(serverPort.Text, out port);
+            bool valid = int.TryParse(serverPort.Text, out int port);
             if (valid && port >= 1 && port <= 65535)
             {
                 if (upnpController != null && upnpController.UPnPReady && openPort.Checked)
@@ -1028,7 +1022,7 @@ namespace TinyOPDS
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void langCombo_SelectedValueChanged(object sender, EventArgs e)
+        private void LangCombo_SelectedValueChanged(object sender, EventArgs e)
         {
             Localizer.SetLanguage(this, langCombo.SelectedValue as string);
             appVersion.Text = string.Format(Localizer.Text("version {0}.{1} {2}"), Utils.Version.Major, Utils.Version.Minor, Utils.Version.Major == 0 ? " (beta)" : "");
@@ -1058,7 +1052,7 @@ namespace TinyOPDS
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void donateButton_Click(object sender, EventArgs e)
+        private void DonateButton_Click(object sender, EventArgs e)
         {
             const string business = "sens.boston@gmail.com", description = "Donation%20for%20the%20TinyOPDS", country = "US", currency = "USD";
             string url = string.Format("https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business={0}&lc={1}&item_name={2}&currency_code={3}&bn=PP%2dDonationsBF",
@@ -1066,61 +1060,60 @@ namespace TinyOPDS
             System.Diagnostics.Process.Start(url);
         }
 
-        private bool checkUrl(string uriName)
+        private bool CheckUrl(string uriName)
         {
-            Uri uriResult;
-            bool result = Uri.TryCreate(uriName, UriKind.Absolute, out uriResult);
+            bool result = Uri.TryCreate(uriName, UriKind.Absolute, out Uri uriResult);
             return result && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
         }
 
-        private void linkLabel_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        private void LinkLabel_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            if (sender is LinkLabel && checkUrl((sender as LinkLabel).Text))
+            if (sender is LinkLabel && CheckUrl((sender as LinkLabel).Text))
             {
                 System.Diagnostics.Process.Start((sender as LinkLabel).Text);
             }
         }
 
-        private void linkLabel3_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        private void LinkLabel3_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            if (sender is LinkLabel && checkUrl((sender as LinkLabel).Links[0].LinkData as string))
+            if (sender is LinkLabel && CheckUrl((sender as LinkLabel).Links[0].LinkData as string))
             {
                 System.Diagnostics.Process.Start((sender as LinkLabel).Links[0].LinkData as string);
             }
         }
 
-        private void useHTTPAuth_CheckedChanged(object sender, EventArgs e)
+        private void UseHTTPAuth_CheckedChanged(object sender, EventArgs e)
         {
             dataGridView1.Enabled = banClients.Enabled = rememberClients.Enabled = useHTTPAuth.Checked;
             wrongAttemptsCount.Enabled = banClients.Enabled && banClients.Checked;
         }
 
-        private void banClients_CheckedChanged(object sender, EventArgs e)
+        private void BanClients_CheckedChanged(object sender, EventArgs e)
         {
             wrongAttemptsCount.Enabled = banClients.Checked;
         }
 
-        private void logVerbosity_SelectedIndexChanged(object sender, EventArgs e)
+        private void LogVerbosity_SelectedIndexChanged(object sender, EventArgs e)
         {
             Log.VerbosityLevel = (LogLevel)logVerbosity.SelectedIndex;
         }
 
-        private void updateCombo_SelectedIndexChanged(object sender, EventArgs e)
+        private void UpdateCombo_SelectedIndexChanged(object sender, EventArgs e)
         {
             Properties.Settings.Default.UpdatesCheck = updateCombo.SelectedIndex;
         }
 
-        private void viewLogFile_Click(object sender, EventArgs e)
+        private void ViewLogFile_Click(object sender, EventArgs e)
         {
             System.Diagnostics.Process.Start(Log.LogFileName);
         }
 
-        private void sortOrderCombo_SelectedIndexChanged(object sender, EventArgs e)
+        private void SortOrderCombo_SelectedIndexChanged(object sender, EventArgs e)
         {
             Properties.Settings.Default.SortOrder = sortOrderCombo.SelectedIndex;
         }
 
-        private void newBooksPeriodCombo_SelectedIndexChanged(object sender, EventArgs e)
+        private void NewBooksPeriodCombo_SelectedIndexChanged(object sender, EventArgs e)
         {
             Properties.Settings.Default.NewBooksPeriod = newBooksPeriodCombo.SelectedIndex;
         }
@@ -1134,9 +1127,9 @@ namespace TinyOPDS
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        static int[] checkIntervals = new int[] { 0, 60 * 24 * 7, 60 * 24 * 30, 1 };
+        static readonly int[] checkIntervals = new int[] { 0, 60 * 24 * 7, 60 * 24 * 30, 1 };
         static int _timerCallsCount = 0;
-        void _updateChecker_Tick(object sender, EventArgs e)
+        void UpdateChecker_Tick(object sender, EventArgs e)
         {
             if (Properties.Settings.Default.UpdatesCheck > 0)
             {
@@ -1146,7 +1139,7 @@ namespace TinyOPDS
                 {
                     Log.WriteLine(LogLevel.Info, "Checking software update. Minutes from the last check: {0}", minutesFromLastCheck);
                     WebClient wc = new WebClient();
-                    wc.DownloadStringCompleted += wc_DownloadStringCompleted;
+                    wc.DownloadStringCompleted += Wc_DownloadStringCompleted;
                     wc.DownloadStringAsync(new Uri("http://senssoft.com/tinyopds.txt"));
                 }
             }
@@ -1169,7 +1162,7 @@ namespace TinyOPDS
             }
         }
 
-        void wc_DownloadStringCompleted(object sender, DownloadStringCompletedEventArgs e)
+        void Wc_DownloadStringCompleted(object sender, DownloadStringCompletedEventArgs e)
         {
             if (e.Error == null)
             {
@@ -1180,10 +1173,9 @@ namespace TinyOPDS
                 if (s.Length == 2)
                 {
                     s[0] = s[0].Replace("\r", "");
-                    double currentVersion = 0, newVersion = 0;
-                    if (double.TryParse(string.Format("{0}.{1}", Utils.Version.Major, Utils.Version.Minor), out currentVersion))
+                    if (double.TryParse(string.Format("{0}.{1}", Utils.Version.Major, Utils.Version.Minor), out double currentVersion))
                     {
-                        if (double.TryParse(s[0], out newVersion))
+                        if (double.TryParse(s[0], out double newVersion))
                         {
                             if (newVersion > currentVersion)
                             {
@@ -1197,12 +1189,12 @@ namespace TinyOPDS
             }
         }
 
-        void _notifyIcon_BalloonTipClicked(object sender, EventArgs e)
+        void NotifyIcon_BalloonTipClicked(object sender, EventArgs e)
         {
             System.Diagnostics.Process.Start(updateUrl);
         }
 
-        void _notifyIcon_BalloonTipClosed(object sender, EventArgs e)
+        void NotifyIcon_BalloonTipClosed(object sender, EventArgs e)
         {
             notifyIcon.Visible = Properties.Settings.Default.CloseToTray;
         }
@@ -1384,7 +1376,7 @@ namespace TinyOPDS
             }
         }
 
-        private void treeViewOPDS_AfterCheck(object sender, TreeViewEventArgs e)
+        private void TreeViewOPDS_AfterCheck(object sender, TreeViewEventArgs e)
         {
             if (isLoading) return;
 

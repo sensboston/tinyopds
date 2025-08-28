@@ -577,7 +577,7 @@ namespace TinyOPDS.Server
         // Connection management
         private readonly SemaphoreSlim connectionSemaphore;
         private const int MAX_CONCURRENT_CONNECTIONS = 100;
-        private const int SOCKET_BUFFER_SIZE = 1024 * 1024;
+        private const int SOCKET_BUFFER_SIZE = 1024 * 512;
         private const int IDLE_CHECK_INTERVAL = 600; // 60 seconds at 100ms intervals
 
         public HttpServer(int Port, int Timeout = 10000)
@@ -687,15 +687,19 @@ namespace TinyOPDS.Server
             try
             {
                 // Wait for available connection slot
-                connectionSemaphore.Wait();
+                connectionSemaphore?.Wait();
 
                 processor = new HttpProcessor(socket, this);
                 processor.Process();
             }
             finally
             {
-                processor?.Dispose();
-                connectionSemaphore.Release();
+                try
+                {
+                    processor?.Dispose();
+                    connectionSemaphore?.Release();
+                }
+                catch { }
             }
         }
 

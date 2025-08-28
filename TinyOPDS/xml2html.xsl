@@ -106,7 +106,7 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					.search-input {
 					width: 430px;
 					max-width: calc(100vw - 140px);
-					padding: 6px 10px;
+					padding: 6px 4px;
 					font-size: 13px;
 					border: 1px solid #ddd;
 					border-radius: 4px;
@@ -114,14 +114,14 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					}
 
 					.search-button {
-					padding: 6px 12px;
+					padding: 8px 4px;
 					font-size: 13px;
 					background-color: #007cba;
 					color: white;
 					border: none;
 					border-radius: 4px;
 					cursor: pointer;
-					margin-left: 6px;
+					margin-left: 12px;
 					}
 
 					.search-button:hover {
@@ -183,7 +183,7 @@ xmlns:x="http://www.w3.org/2005/Atom">
 
 					.cover {
 					width: 120px;
-					height: 180px;
+					height: 190px;
 					max-width: 120px;
 					flex-shrink: 0;
 					margin-right: 15px;
@@ -252,7 +252,7 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					display: flex;
 					flex-direction: row;
 					gap: 5px;
-					margin-top: 5px;
+					margin-top: 10px;
 					width: 100%;
 					}
 
@@ -302,52 +302,64 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					padding-top: 120px;
 					}
 
+					.search-section {
+					margin-top: 5px;
+					padding-top: 5px;
+					padding-left: 0;
+					padding-right: 0;
+					width: 100%;
+					box-sizing: border-box;
+					}
+
 					.header-content {
-					padding: 10px;
-					flex-direction: column;
-					text-align: center;
+					padding: 5px 10px;
+					display: flex;
+					align-items: center;
+					position: relative;
+					max-width: none;
 					}
 
 					.header-icon {
+					width: 48px;
+					height: 48px;
 					margin-right: 0;
-					margin-bottom: 10px;
+					flex-shrink: 0;
 					}
 
 					.header-text {
-					margin: 0 0 10px 0;
+					flex-grow: 1;
+					text-align: center;
+					margin: 0;
+					position: absolute;
+					left: 50%;
+					transform: translateX(-50%);
+					width: calc(100% - 48px);
+					top: 2px;
 					}
 
 					.server-title {
-					font-size: 20px;
+					font-size: 18px;
+					margin: 0 0 1px 0;
 					}
 
-					.search-input {
-					width: calc(100vw - 40px);
-					margin-bottom: 10px;
+					.library-name {
+					margin: 0 10px 0 0;
+					font-size: 14px;
 					}
 
-					.search-button {
-					margin-left: 0;
-					}
 
 					.main-content {
 					padding: 10px;
+					max-width: none;
 					}
 					}
 
 					@media (max-width: 480px) {
-					.search-input {
-					width: calc(100vw - 30px);
-					}
 
 					.cover {
-					width: 80px;
-					height: 120px;
+					width: 120px;
+					height: 170px;
 					margin-right: 10px;
-					}
-
-					.download-section {
-					width: 80px;
 					}
 
 					.book-header {

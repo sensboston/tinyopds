@@ -194,7 +194,7 @@ namespace TinyOPDS.Server
                 string request = NormalizeRequest(processor.HttpUrl);
                 string ext = GetFileExtension(request);
 
-                if (!IsValidRequest(request, ext))
+                if (!IsValidRequest(request))
                 {
                     processor.WriteBadRequest();
                     return;
@@ -523,7 +523,7 @@ document.addEventListener('DOMContentLoaded', function() {{
             return extensions.Contains(ext) ? ext : string.Empty;
         }
 
-        private bool IsValidRequest(string request, string ext)
+        private bool IsValidRequest(string request)
         {
             return !string.IsNullOrEmpty(request) && request.Length <= 2048;
         }

@@ -9,6 +9,7 @@ xmlns:x="http://www.w3.org/2005/Atom">
 	<xsl:param name="sizeText" select="'Size:'"/>
 	<xsl:param name="downloadText" select="'Download'"/>
 	<xsl:param name="downloadEpubText" select="'Download EPUB'"/>
+	<xsl:param name="readText" select="'Read'"/>
 
 	<xsl:template match="/">
 		<xsl:variable name="id">
@@ -248,6 +249,27 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					flex-shrink: 0;
 					}
 
+					.read-button {
+					font-size: 11px;
+					padding: 4px 8px;
+					text-decoration: none;
+					border-radius: 3px;
+					text-align: center;
+					font-weight: bold;
+					display: block;
+					width: 120px;
+					box-sizing: border-box;
+					background-color: #6c757d;
+					color: white;
+					margin-top: 5px;
+					}
+
+					.read-button:hover {
+					background-color: #5a6268;
+					color: white;
+					text-decoration: none;
+					}
+
 					.download-links {
 					display: flex;
 					flex-direction: row;
@@ -469,23 +491,34 @@ xmlns:x="http://www.w3.org/2005/Atom">
 												</xsl:attribute>
 											</img>
 
-											<div class="download-links">
-												<!-- Extract book ID from download links -->
-												<xsl:variable name="bookId">
-													<xsl:choose>
-														<xsl:when test="x:link[attribute::type='application/fb2+zip']">
-															<xsl:call-template name="extract-book-id">
-																<xsl:with-param name="href" select="x:link[attribute::type='application/fb2+zip']/@href"/>
-															</xsl:call-template>
-														</xsl:when>
-														<xsl:when test="x:link[attribute::type='application/epub+zip']">
-															<xsl:call-template name="extract-book-id">
-																<xsl:with-param name="href" select="x:link[attribute::type='application/epub+zip']/@href"/>
-															</xsl:call-template>
-														</xsl:when>
-													</xsl:choose>
-												</xsl:variable>
+											<!-- Extract book ID from download links -->
+											<xsl:variable name="bookId">
+												<xsl:choose>
+													<xsl:when test="x:link[attribute::type='application/fb2+zip']">
+														<xsl:call-template name="extract-book-id">
+															<xsl:with-param name="href" select="x:link[attribute::type='application/fb2+zip']/@href"/>
+														</xsl:call-template>
+													</xsl:when>
+													<xsl:when test="x:link[attribute::type='application/epub+zip']">
+														<xsl:call-template name="extract-book-id">
+															<xsl:with-param name="href" select="x:link[attribute::type='application/epub+zip']/@href"/>
+														</xsl:call-template>
+													</xsl:when>
+												</xsl:choose>
+											</xsl:variable>
 
+											<!-- Read button -->
+											<xsl:if test="$bookId != ''">
+												<a class="read-button">
+													<xsl:attribute name="href">
+														<xsl:text>/reader/</xsl:text>
+														<xsl:value-of select="$bookId"/>
+													</xsl:attribute>
+													<xsl:value-of select="$readText"/>
+												</a>
+											</xsl:if>
+
+											<div class="download-links">
 												<!-- FB2 Download button -->
 												<xsl:if test="x:link[attribute::type='application/fb2+zip'] or x:format = 'fb2'">
 													<a class="download-link download-fb2">

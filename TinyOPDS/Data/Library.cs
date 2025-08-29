@@ -60,7 +60,7 @@ namespace TinyOPDS.Data
             try
             {
                 var doc = XDocument.Load(Assembly.GetExecutingAssembly().GetManifestResourceStream(
-                    Assembly.GetExecutingAssembly().GetName().Name + ".genres.xml"));
+                    Assembly.GetExecutingAssembly().GetName().Name + ".Resources.genres.xml"));
 
                 genres = (from g in doc.Descendants("genre")
                            select new Genre
@@ -933,7 +933,7 @@ namespace TinyOPDS.Data
                     // Load from embedded gzipped resource
                     Log.WriteLine("Loading author aliases from embedded resource...");
                     using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(
-                        Assembly.GetExecutingAssembly().GetName().Name + ".a_aliases.txt.gz"))
+                        Assembly.GetExecutingAssembly().GetName().Name + ".Resources.a_aliases.txt.gz"))
                     {
                         if (stream != null)
                         {

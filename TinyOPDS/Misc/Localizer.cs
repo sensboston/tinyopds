@@ -40,7 +40,7 @@ namespace TinyOPDS
             try
             {
                 var assembly = Assembly.GetExecutingAssembly();
-                var resourceName = assembly.GetName().Name + "." + xmlFile;
+                var resourceName = assembly.GetName().Name + ".Resources." + xmlFile;
 
                 using (var stream = assembly.GetManifestResourceStream(resourceName))
                 {

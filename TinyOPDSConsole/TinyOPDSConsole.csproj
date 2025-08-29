@@ -218,12 +218,12 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <EmbeddedResource Include="..\TinyOPDS\a_aliases.txt.gz">
-      <Link>a_aliases.txt.gz</Link>
-    </EmbeddedResource>
     <EmbeddedResource Include="..\TinyOPDS\Resources\fb2.dtd">
       <Link>Resources\fb2.dtd</Link>
     </EmbeddedResource>
+    <None Include="..\TinyOPDS\Resources\a_aliases.txt.gz">
+      <Link>Resources\a_aliases.txt.gz</Link>
+    </None>
     <None Include="packages.config" />
     <None Include="Properties\app.manifest" />
     <None Include="..\TinyOPDS\Properties\Settings.settings">
@@ -245,16 +245,6 @@
     </EmbeddedResource>
     <EmbeddedResource Include="..\TinyOPDS\Resources\book_cover.jpg">
       <Link>Resources\book_cover.jpg</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\TinyOPDS\xml2html.xsl">
-      <Link>xml2html.xsl</Link>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\TinyOPDS\translation.xml">
-      <Link>translation.xml</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\TinyOPDS\genres.xml">
-      <Link>genres.xml</Link>
     </EmbeddedResource>
     <EmbeddedResource Include="..\TinyOPDS\Libs\x86\SQLite.Interop.dll">
       <Link>Libs\x86\SQLite.Interop.dll</Link>
@@ -287,6 +277,25 @@
     <EmbeddedResource Include="..\TinyOPDS\Libs\EpubSharp.dll">
       <Link>Libs\EpubSharp.dll</Link>
     </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\TinyOPDS\Resources\logo.png">
+      <Link>Resources\logo.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\Resources\reader.html">
+      <Link>Resources\reader.html</Link>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\TinyOPDS\Resources\genres.xml">
+      <Link>Resources\genres.xml</Link>
+    </Content>
+    <Content Include="..\TinyOPDS\Resources\translation.xml">
+      <Link>Resources\translation.xml</Link>
+    </Content>
+    <Content Include="..\TinyOPDS\Resources\xml2html.xsl">
+      <Link>Resources\xml2html.xsl</Link>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

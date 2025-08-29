@@ -1,0 +1,1586 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal Reader</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a1a;
+            color: #e1e1e1;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Menu toggle button */
+        .menu-toggle {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 40px;
+            height: 40px;
+            background: rgba(100, 100, 100, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 0 0 0 8px;
+            cursor: pointer;
+            z-index: 1001;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 20px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .menu-toggle:hover {
+            background: rgba(100, 100, 100, 0.5);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .menu-toggle.active {
+            background: rgba(60, 60, 60, 0.9);
+            color: white;
+        }
+
+        /* Top toolbar - dark theme */
+        .toolbar {
+            position: fixed;
+            top: -100%;
+            left: 0;
+            right: 0;
+            background: rgba(42, 42, 42, 0.98);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+            transition: top 0.3s ease;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .toolbar.visible {
+            top: 0;
+        }
+
+        /* Book info row */
+        .book-info {
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            min-height: 45px;
+        }
+
+        .book-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #f0f0f0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 50%;
+        }
+
+        .book-author {
+            font-size: 14px;
+            color: #aaa;
+            font-style: italic;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 40%;
+            margin-right: 60px;
+        }
+
+        /* Controls row */
+        .controls {
+            padding: 12px 20px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* Elegant dark buttons */
+        .control-btn {
+            width: 40px;
+            height: 40px;
+            background: rgba(70, 70, 70, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            position: relative;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .control-btn:hover {
+            background: rgba(90, 90, 90, 0.9);
+            border-color: rgba(255, 255, 255, 0.25);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .control-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .control-btn.active {
+            background: rgba(0, 122, 204, 0.8);
+            color: white;
+            border-color: rgba(0, 122, 204, 0.3);
+        }
+
+        .control-btn:disabled {
+            background: rgba(50, 50, 50, 0.5);
+            color: rgba(255, 255, 255, 0.3);
+            cursor: not-allowed;
+            opacity: 0.5;
+            box-shadow: none;
+        }
+
+        /* Control groups */
+        .control-group {
+            display: flex;
+            gap: 8px;
+            padding: 0 10px;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .control-group:last-child {
+            border-right: none;
+        }
+
+        /* Font indicators */
+        .font-indicator {
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .font-indicator.serif {
+            font-family: Georgia, serif;
+        }
+
+        .font-indicator.sans {
+            font-family: Arial, sans-serif;
+        }
+
+        .font-indicator.mono {
+            font-family: 'Courier New', monospace;
+        }
+
+        /* Click areas for page navigation */
+        .click-area {
+            position: fixed;
+            width: 100%;
+            height: 50%;
+            z-index: 1;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .click-area:hover {
+            opacity: 0.02;
+            background: #007acc;
+        }
+
+        .click-area.top {
+            top: 0;
+        }
+
+        .click-area.bottom {
+            bottom: 0;
+        }
+
+        /* Reader container */
+        .reader-container {
+            padding: 20px;
+            min-height: 100vh;
+            transition: all 0.3s ease;
+        }
+
+        .reader-container.full-width {
+            max-width: 100%;
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+
+        .reader-container.standard {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* Book content */
+        .book-content {
+            background: white;
+            color: #333;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            font-size: 16px;
+            line-height: 1.8;
+            display: block;
+            transition: all 0.3s ease;
+            min-height: calc(100vh - 40px);
+        }
+
+        /* Font families */
+        .book-content.font-serif {
+            font-family: Georgia, 'Times New Roman', serif;
+        }
+
+        .book-content.font-sans {
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .book-content.font-mono {
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        /* Themes */
+        .book-content.light {
+            background: white;
+            color: #333;
+        }
+
+        .book-content.dark {
+            background: #2d2d2d;
+            color: #e1e1e1;
+        }
+
+        .book-content.sepia {
+            background: #f4f1e8;
+            color: #5c4b37;
+        }
+
+        body.theme-light {
+            background: #f5f5f5;
+        }
+
+        body.theme-dark {
+            background: #1a1a1a;
+        }
+
+        body.theme-sepia {
+            background: #f4f1e8;
+        }
+
+        /* Book elements */
+        .book-content h1, .book-content h2, .book-content h3 {
+            margin: 30px 0 20px;
+            font-weight: 600;
+        }
+
+        .book-content h1 { font-size: 28px; }
+        .book-content h2 { font-size: 24px; }
+        .book-content h3 { font-size: 20px; }
+
+        .book-content p {
+            margin: 15px 0;
+            text-align: justify;
+            text-indent: 1.5em;
+        }
+
+        .book-content p:first-of-type {
+            text-indent: 0;
+        }
+
+        .book-content .author {
+            font-style: italic;
+            color: #666;
+            margin-bottom: 30px;
+            text-indent: 0;
+        }
+
+        /* Images in book */
+        .book-content img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 20px auto;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* TOC Overlay */
+        .toc-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .toc-overlay.visible {
+            display: block;
+            opacity: 1;
+        }
+
+        /* TOC Panel */
+        .toc-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            background: rgba(42, 42, 42, 0.98);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            opacity: 0;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .toc-overlay.visible .toc-panel {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        /* TOC Header */
+        .toc-header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .toc-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #f0f0f0;
+        }
+
+        .toc-close {
+            width: 32px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .toc-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        /* TOC Content */
+        .toc-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .toc-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .toc-content::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        .toc-content::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        .toc-content::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* TOC Items */
+        .toc-item {
+            padding: 12px 15px;
+            margin: 5px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: rgba(255, 255, 255, 0.9);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .toc-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+
+        .toc-item.current {
+            background: rgba(0, 122, 204, 0.3);
+            border-color: rgba(0, 122, 204, 0.5);
+            color: white;
+        }
+
+        .toc-empty {
+            padding: 40px;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.5);
+            font-style: italic;
+        }
+
+        /* Progress bar */
+        .progress-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            background: #007acc;
+            transition: width 0.3s ease;
+            z-index: 1000;
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 40px 0;
+            color: #007acc;
+        }
+
+        .loading::after {
+            content: '';
+            width: 20px;
+            height: 20px;
+            border: 3px solid #ddd;
+            border-top: 3px solid #007acc;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Error */
+        .error {
+            background: rgba(220, 53, 69, 0.1);
+            border: 1px solid #dc3545;
+            color: #dc3545;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        /* Tooltip */
+        .tooltip {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .control-btn:hover .tooltip {
+            opacity: 1;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+            .menu-toggle {
+                width: 36px;
+                height: 36px;
+                font-size: 18px;
+            }
+
+            .book-info {
+                padding: 8px 15px;
+                min-height: 40px;
+            }
+
+            .book-title {
+                font-size: 14px;
+                max-width: 60%;
+            }
+
+            .book-author {
+                font-size: 12px;
+                max-width: 35%;
+                margin-right: 50px;
+            }
+
+            .controls {
+                padding: 10px 15px;
+                gap: 15px;
+            }
+
+            .control-btn {
+                width: 36px;
+                height: 36px;
+                font-size: 16px;
+            }
+
+            .control-group {
+                gap: 6px;
+                padding: 0 8px;
+            }
+
+            /* Hide fullscreen and width controls on mobile */
+            #fullscreen,
+            #standardWidth,
+            #fullWidth {
+                display: none;
+            }
+
+            .reader-container {
+                padding: 10px;
+            }
+
+            .book-content {
+                padding: 20px;
+                border-radius: 0;
+                min-height: calc(100vh - 20px);
+            }
+
+            .toc-panel {
+                width: 95%;
+                max-height: 90vh;
+            }
+
+            .toc-header {
+                padding: 15px;
+            }
+
+            .toc-title {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body class="theme-light">
+    <button class="menu-toggle" id="menuToggle">☰</button>
+
+    <div class="toolbar" id="toolbar">
+        <div class="book-info">
+            <div class="book-title" id="bookTitle">Reader</div>
+            <div class="book-author" id="bookAuthor"></div>
+        </div>
+        <div class="controls">
+            <div class="control-group">
+                <button class="control-btn" id="tocButton">
+                    ☰
+                    <span class="tooltip">Table of Contents</span>
+                </button>
+            </div>
+            <div class="control-group">
+                <button class="control-btn" id="openFile">
+                    📁
+                    <span class="tooltip">Open Book</span>
+                </button>
+            </div>
+            <div class="control-group">
+                <button class="control-btn" id="decreaseFont">
+                    A-
+                    <span class="tooltip">Decrease Font</span>
+                </button>
+                <button class="control-btn" id="increaseFont">
+                    A+
+                    <span class="tooltip">Increase Font</span>
+                </button>
+            </div>
+            <div class="control-group">
+                <button class="control-btn" id="fontToggle">
+                    <span class="font-indicator serif" id="fontIndicator">Aa</span>
+                    <span class="tooltip">Change Font</span>
+                </button>
+            </div>
+            <div class="control-group">
+                <button class="control-btn" id="themeToggle">
+                    ◐
+                    <span class="tooltip">Change Theme</span>
+                </button>
+            </div>
+            <div class="control-group">
+                <button class="control-btn" id="decreaseMargins">
+                    ◀▶
+                    <span class="tooltip">Decrease Margins</span>
+                </button>
+                <button class="control-btn" id="increaseMargins">
+                    ▶◀
+                    <span class="tooltip">Increase Margins</span>
+                </button>
+            </div>
+            <div class="control-group">
+                <button class="control-btn" id="standardWidth">
+                    ⬚
+                    <span class="tooltip">Standard Width</span>
+                </button>
+                <button class="control-btn" id="fullWidth">
+                    ⬛
+                    <span class="tooltip">Full Width</span>
+                </button>
+            </div>
+            <div class="control-group">
+                <button class="control-btn" id="fullscreen">
+                    ⛶
+                    <span class="tooltip">Fullscreen</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOC Overlay -->
+    <div class="toc-overlay" id="tocOverlay">
+        <div class="toc-panel">
+            <div class="toc-header">
+                <div class="toc-title">Table of Contents</div>
+                <button class="toc-close" id="tocClose">✕</button>
+            </div>
+            <div class="toc-content" id="tocContent">
+                <div class="toc-empty">No chapters available</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="click-area top" id="clickTop"></div>
+    <div class="click-area bottom" id="clickBottom"></div>
+
+    <div class="reader-container standard" id="readerContainer">
+        <div class="book-content light font-serif" id="bookContent"></div>
+    </div>
+
+    <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+
+    <input type="file" id="fileInput" accept=".fb2,.fb2.zip,.epub">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script>
+        class UniversalReader {
+            constructor() {
+                this.themes = ['light', 'dark', 'sepia'];
+                this.currentThemeIndex = 0;
+                this.fonts = ['font-serif', 'font-sans', 'font-mono'];
+                this.fontClasses = ['serif', 'sans', 'mono'];
+                this.currentFontIndex = 0;
+                this.fontSize = 16;
+                this.margins = 40;
+                this.widthMode = 'standard';
+                this.bookTitle = '';
+                this.bookAuthor = '';
+                this.menuVisible = false;
+                this.tocVisible = false;
+                this.images = {};
+                this.chapters = [];
+                this.currentChapterIndex = -1;
+                
+                // Localization strings with English defaults
+                this.strings = {
+                    tableOfContents: 'Table of Contents',
+                    openBook: 'Open Book',
+                    decreaseFont: 'Decrease Font',
+                    increaseFont: 'Increase Font',
+                    changeFont: 'Change Font',
+                    changeTheme: 'Change Theme',
+                    decreaseMargins: 'Decrease Margins',
+                    increaseMargins: 'Increase Margins',
+                    standardWidth: 'Standard Width',
+                    fullWidth: 'Full Width',
+                    fullscreen: 'Fullscreen',
+                    loading: 'Loading...',
+                    errorLoading: 'Error loading file',
+                    noTitle: 'Untitled',
+                    unknownAuthor: 'Unknown Author',
+                    noChapters: 'No chapters available'
+                };
+                
+                this.initializeElements();
+                this.loadLocalization();
+                this.bindEvents();
+                this.loadPreferences();
+                this.checkMobile();
+                this.applyLocalization();
+            }
+
+            loadLocalization() {
+                try {
+                    const savedStrings = localStorage.getItem('tinyopds-localization');
+                    if (savedStrings) {
+                        const parsed = JSON.parse(savedStrings);
+                        this.strings = { ...this.strings, ...parsed };
+                    }
+                } catch (e) {
+                    console.warn('Could not load localization:', e);
+                }
+            }
+
+            applyLocalization() {
+                const tooltips = {
+                    'tocButton': this.strings.tableOfContents,
+                    'openFile': this.strings.openBook,
+                    'decreaseFont': this.strings.decreaseFont,
+                    'increaseFont': this.strings.increaseFont,
+                    'fontToggle': this.strings.changeFont,
+                    'themeToggle': this.strings.changeTheme,
+                    'decreaseMargins': this.strings.decreaseMargins,
+                    'increaseMargins': this.strings.increaseMargins,
+                    'standardWidth': this.strings.standardWidth,
+                    'fullWidth': this.strings.fullWidth,
+                    'fullscreen': this.strings.fullscreen
+                };
+
+                for (let [id, text] of Object.entries(tooltips)) {
+                    const btn = document.getElementById(id);
+                    if (btn) {
+                        const tooltip = btn.querySelector('.tooltip');
+                        if (tooltip) {
+                            tooltip.textContent = text;
+                        }
+                    }
+                }
+
+                // Update TOC title
+                const tocTitle = document.querySelector('.toc-title');
+                if (tocTitle) {
+                    tocTitle.textContent = this.strings.tableOfContents;
+                }
+            }
+
+            initializeElements() {
+                this.fileInput = document.getElementById('fileInput');
+                this.bookContent = document.getElementById('bookContent');
+                this.toolbar = document.getElementById('toolbar');
+                this.menuToggle = document.getElementById('menuToggle');
+                this.progressBar = document.getElementById('progressBar');
+                this.readerContainer = document.getElementById('readerContainer');
+                this.bookTitleEl = document.getElementById('bookTitle');
+                this.bookAuthorEl = document.getElementById('bookAuthor');
+                this.clickTop = document.getElementById('clickTop');
+                this.clickBottom = document.getElementById('clickBottom');
+                this.fontIndicator = document.getElementById('fontIndicator');
+                this.tocOverlay = document.getElementById('tocOverlay');
+                this.tocContent = document.getElementById('tocContent');
+                this.tocClose = document.getElementById('tocClose');
+            }
+
+            bindEvents() {
+                // Menu toggle
+                this.menuToggle.onclick = () => this.toggleMenu();
+                
+                // Click areas for page navigation
+                this.clickTop.onclick = () => this.scrollPage(-1);
+                this.clickBottom.onclick = () => this.scrollPage(1);
+                
+                // TOC button
+                const tocBtn = document.getElementById('tocButton');
+                if (tocBtn) {
+                    tocBtn.onclick = () => this.showTOC();
+                }
+
+                // TOC close button
+                this.tocClose.onclick = () => this.hideTOC();
+
+                // Close TOC when clicking overlay background
+                this.tocOverlay.onclick = (e) => {
+                    if (e.target === this.tocOverlay) {
+                        this.hideTOC();
+                    }
+                };
+                
+                // File input
+                document.getElementById('openFile').onclick = () => {
+                    this.fileInput.click();
+                };
+                this.fileInput.onchange = (e) => this.handleFileSelect(e.target.files[0]);
+
+                // Font controls
+                document.getElementById('decreaseFont').onclick = () => this.changeFontSize(-2);
+                document.getElementById('increaseFont').onclick = () => this.changeFontSize(2);
+                document.getElementById('fontToggle').onclick = () => this.toggleFont();
+
+                // Theme control
+                document.getElementById('themeToggle').onclick = () => this.toggleTheme();
+
+                // Margin controls
+                document.getElementById('decreaseMargins').onclick = () => this.changeMargins(-10);
+                document.getElementById('increaseMargins').onclick = () => this.changeMargins(10);
+
+                // Width controls
+                document.getElementById('standardWidth').onclick = () => this.setWidthMode('standard');
+                document.getElementById('fullWidth').onclick = () => this.setWidthMode('full-width');
+
+                // Fullscreen
+                document.getElementById('fullscreen').onclick = () => this.toggleFullscreen();
+
+                // Scroll progress
+                window.onscroll = () => {
+                    this.updateProgress();
+                    this.updateCurrentChapter();
+                };
+
+                // Keyboard shortcuts
+                document.onkeydown = (e) => this.handleKeyboard(e);
+
+                // Close menu when clicking outside
+                document.onclick = (e) => {
+                    if (!this.toolbar.contains(e.target) && 
+                        !this.menuToggle.contains(e.target) && 
+                        this.menuVisible) {
+                        this.toggleMenu();
+                    }
+                };
+            }
+
+            toggleMenu() {
+                this.menuVisible = !this.menuVisible;
+                this.toolbar.classList.toggle('visible', this.menuVisible);
+                this.menuToggle.classList.toggle('active', this.menuVisible);
+                this.menuToggle.textContent = this.menuVisible ? '✕' : '☰';
+            }
+
+            showTOC() {
+                if (this.chapters.length === 0) {
+                    return;
+                }
+
+                this.tocVisible = true;
+                this.tocOverlay.classList.add('visible');
+                this.renderTOC();
+                
+                // Close menu if open
+                if (this.menuVisible) {
+                    this.toggleMenu();
+                }
+            }
+
+            hideTOC() {
+                this.tocVisible = false;
+                this.tocOverlay.classList.remove('visible');
+            }
+
+            renderTOC() {
+                if (this.chapters.length === 0) {
+                    this.tocContent.innerHTML = `<div class="toc-empty">${this.strings.noChapters}</div>`;
+                    return;
+                }
+
+                let tocHTML = '';
+                this.chapters.forEach((chapter, index) => {
+                    const isCurrent = index === this.currentChapterIndex;
+                    tocHTML += `
+                        <div class="toc-item ${isCurrent ? 'current' : ''}" 
+                             data-chapter-id="${chapter.id}" 
+                             data-chapter-index="${index}">
+                            ${chapter.title}
+                        </div>
+                    `;
+                });
+
+                this.tocContent.innerHTML = tocHTML;
+
+                // Bind click events to TOC items
+                this.tocContent.querySelectorAll('.toc-item').forEach(item => {
+                    item.onclick = () => {
+                        const chapterId = item.getAttribute('data-chapter-id');
+                        this.navigateToChapter(chapterId);
+                    };
+                });
+            }
+
+            navigateToChapter(chapterId) {
+                const element = document.getElementById(chapterId);
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    this.hideTOC();
+                }
+            }
+
+            updateCurrentChapter() {
+                if (this.chapters.length === 0) return;
+
+                const scrollTop = window.pageYOffset;
+                let newChapterIndex = -1;
+
+                // Find current chapter based on scroll position
+                for (let i = this.chapters.length - 1; i >= 0; i--) {
+                    const element = document.getElementById(this.chapters[i].id);
+                    if (element && element.offsetTop <= scrollTop + 100) {
+                        newChapterIndex = i;
+                        break;
+                    }
+                }
+
+                if (newChapterIndex !== this.currentChapterIndex) {
+                    this.currentChapterIndex = newChapterIndex;
+                    
+                    // Update TOC if visible
+                    if (this.tocVisible) {
+                        this.renderTOC();
+                    }
+                }
+            }
+
+            scrollPage(direction) {
+                const viewportHeight = window.innerHeight;
+                const scrollAmount = viewportHeight * 0.9;
+                
+                window.scrollBy({
+                    top: scrollAmount * direction,
+                    behavior: 'smooth'
+                });
+            }
+
+            checkMobile() {
+                const isMobile = window.innerWidth <= 768;
+                if (isMobile) {
+                    this.setWidthMode('full-width');
+                }
+            }
+
+            async handleFileSelect(file) {
+                if (!file) return;
+
+                const fileName = file.name.toLowerCase();
+                this.showLoading(true);
+                
+                try {
+                    let fb2Content;
+                    
+                    if (fileName.endsWith('.epub')) {
+                        // Convert EPUB to FB2
+                        fb2Content = await this.convertEpubToFb2(file);
+                    } else if (fileName.endsWith('.fb2.zip') || fileName.endsWith('.zip')) {
+                        // Extract FB2 from ZIP
+                        fb2Content = await this.extractFB2FromZip(file);
+                    } else if (fileName.endsWith('.fb2')) {
+                        // Read FB2 directly
+                        fb2Content = await this.readFile(file);
+                    } else {
+                        throw new Error('Unsupported file format');
+                    }
+                    
+                    // Parse and display FB2
+                    const bookData = await this.parseFB2(fb2Content);
+                    this.displayBook(bookData);
+                    
+                    this.clickTop.style.display = 'block';
+                    this.clickBottom.style.display = 'block';
+                    
+                } catch (error) {
+                    console.error('Error processing file:', error);
+                    this.showError(this.strings.errorLoading + ': ' + error.message);
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+
+            async convertEpubToFb2(file) {
+                const zip = await JSZip.loadAsync(file);
+                
+                // 1. Read container.xml to find content.opf
+                const containerXml = await zip.file('META-INF/container.xml').async('string');
+                const containerDoc = new DOMParser().parseFromString(containerXml, 'text/xml');
+                const opfPath = containerDoc.querySelector('rootfile').getAttribute('full-path');
+                const opfDir = opfPath.substring(0, opfPath.lastIndexOf('/'));
+                
+                // 2. Read content.opf
+                const opfContent = await zip.file(opfPath).async('string');
+                const opfDoc = new DOMParser().parseFromString(opfContent, 'text/xml');
+                
+                // 3. Extract metadata
+                const title = opfDoc.querySelector('metadata title')?.textContent || this.strings.noTitle;
+                const creator = opfDoc.querySelector('metadata creator')?.textContent || this.strings.unknownAuthor;
+                
+                // 4. Extract spine order
+                const spine = opfDoc.querySelectorAll('spine itemref');
+                const manifest = {};
+                opfDoc.querySelectorAll('manifest item').forEach(item => {
+                    manifest[item.getAttribute('id')] = {
+                        href: item.getAttribute('href'),
+                        type: item.getAttribute('media-type')
+                    };
+                });
+                
+                // 5. Extract images and convert to base64
+                this.images = {};
+                const imageMap = {}; // Maps image paths to IDs
+                let imageIndex = 0;
+                
+                for (let id in manifest) {
+                    const item = manifest[id];
+                    if (item.type && item.type.startsWith('image/')) {
+                        const imagePath = opfDir ? `${opfDir}/${item.href}` : item.href;
+                        try {
+                            const imageData = await zip.file(imagePath).async('base64');
+                            const imageId = `image${imageIndex++}`;
+                            this.images[imageId] = `data:${item.type};base64,${imageData}`;
+                            imageMap[item.href] = imageId;
+                            imageMap[imagePath] = imageId;
+                        } catch (e) {
+                            console.warn('Could not load image:', imagePath);
+                        }
+                    }
+                }
+                
+                // 6. Build FB2 content
+                let fb2Content = `<?xml version="1.0" encoding="UTF-8"?>
+<FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0" xmlns:l="http://www.w3.org/1999/xlink">
+<description>
+    <title-info>
+        <book-title>${this.escapeXml(title)}</book-title>
+        <author>
+            <first-name>${this.escapeXml(creator)}</first-name>
+        </author>
+    </title-info>
+</description>
+<body>`;
+                
+                // 7. Process chapters in spine order
+                this.chapters = [];
+                for (let itemRef of spine) {
+                    const id = itemRef.getAttribute('idref');
+                    if (!manifest[id]) continue;
+                    
+                    const href = manifest[id].href;
+                    const chapterPath = opfDir ? `${opfDir}/${href}` : href;
+                    
+                    try {
+                        const chapterHtml = await zip.file(chapterPath).async('string');
+                        
+                        // Convert HTML to FB2
+                        const fb2Chapter = this.convertHtmlToFb2(chapterHtml, opfDir, imageMap);
+                        fb2Content += fb2Chapter;
+                        
+                        // Extract chapter title for TOC
+                        const chapterDoc = new DOMParser().parseFromString(chapterHtml, 'text/html');
+                        const chapterTitle = chapterDoc.querySelector('h1, h2, h3, title')?.textContent || `Chapter ${this.chapters.length + 1}`;
+                        this.chapters.push({ title: chapterTitle, id: `chapter_${this.chapters.length}` });
+                    } catch (e) {
+                        console.warn('Could not process chapter:', chapterPath);
+                    }
+                }
+                
+                fb2Content += '</body>';
+                
+                // 8. Add binary images at the end
+                for (let imageId in this.images) {
+                    const base64Data = this.images[imageId].split(',')[1];
+                    const mimeType = this.images[imageId].match(/data:([^;]+);/)[1];
+                    fb2Content += `<binary id="${imageId}" content-type="${mimeType}">${base64Data}</binary>`;
+                }
+                
+                fb2Content += '</FictionBook>';
+                return fb2Content;
+            }
+
+            convertHtmlToFb2(html, baseDir, imageMap) {
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                let fb2 = '<section>';
+                
+                // Process all elements
+                const processElement = (element) => {
+                    let result = '';
+                    
+                    for (let node of element.childNodes) {
+                        if (node.nodeType === Node.TEXT_NODE) {
+                            result += this.escapeXml(node.textContent);
+                        } else if (node.nodeType === Node.ELEMENT_NODE) {
+                            const tag = node.tagName.toLowerCase();
+                            
+                            switch (tag) {
+                                case 'h1':
+                                case 'h2':
+                                case 'h3':
+                                case 'h4':
+                                case 'h5':
+                                case 'h6':
+                                    result += `<title>${processElement(node)}</title>`;
+                                    break;
+                                case 'p':
+                                    const content = processElement(node);
+                                    if (content.trim()) {
+                                        result += `<p>${content}</p>`;
+                                    }
+                                    break;
+                                case 'em':
+                                case 'i':
+                                    result += `<emphasis>${processElement(node)}</emphasis>`;
+                                    break;
+                                case 'strong':
+                                case 'b':
+                                    result += `<strong>${processElement(node)}</strong>`;
+                                    break;
+                                case 'br':
+                                    result += '<empty-line/>';
+                                    break;
+                                case 'img':
+                                    let src = node.getAttribute('src');
+                                    if (src) {
+                                        // Clean up the src path
+                                        src = src.replace(/^\.\.\//, '').replace(/^\.\//, '');
+                                        
+                                        // Try to find the image
+                                        let imageId = null;
+                                        if (imageMap[src]) {
+                                            imageId = imageMap[src];
+                                        } else {
+                                            // Try with base directory
+                                            const fullPath = baseDir ? `${baseDir}/${src}` : src;
+                                            if (imageMap[fullPath]) {
+                                                imageId = imageMap[fullPath];
+                                            }
+                                        }
+                                        
+                                        if (imageId) {
+                                            result += `<image l:href="#${imageId}"/>`;
+                                        }
+                                    }
+                                    break;
+                                case 'div':
+                                case 'span':
+                                case 'section':
+                                case 'article':
+                                    result += processElement(node);
+                                    break;
+                                default:
+                                    result += processElement(node);
+                            }
+                        }
+                    }
+                    
+                    return result;
+                };
+                
+                fb2 += processElement(doc.body || doc.documentElement);
+                fb2 += '</section>';
+                
+                return fb2;
+            }
+
+            escapeXml(text) {
+                if (!text) return '';
+                return text
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&apos;');
+            }
+
+            async extractFB2FromZip(file) {
+                try {
+                    const zip = await JSZip.loadAsync(file);
+                    
+                    // Find FB2 file in archive
+                    let fb2File = null;
+                    for (let fileName in zip.files) {
+                        if (fileName.toLowerCase().endsWith('.fb2')) {
+                            fb2File = zip.files[fileName];
+                            break;
+                        }
+                    }
+                    
+                    if (!fb2File) {
+                        throw new Error('FB2 file not found in archive');
+                    }
+                    
+                    // Extract FB2 content
+                    return await fb2File.async('string');
+                } catch (error) {
+                    throw new Error('Error extracting archive: ' + error.message);
+                }
+            }
+
+            readFile(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = () => reject(new Error('Error reading file'));
+                    reader.readAsText(file, 'utf-8');
+                });
+            }
+
+            async parseFB2(content) {
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(content, 'text/xml');
+                
+                if (xmlDoc.getElementsByTagName('parsererror').length > 0) {
+                    throw new Error('Invalid FB2 file');
+                }
+
+                // Extract images
+                const binaryNodes = xmlDoc.querySelectorAll('binary');
+                binaryNodes.forEach(node => {
+                    const id = node.getAttribute('id');
+                    const contentType = node.getAttribute('content-type') || 'image/jpeg';
+                    const base64Data = node.textContent.replace(/\s/g, '');
+                    this.images[id] = `data:${contentType};base64,${base64Data}`;
+                });
+
+                // Extract title
+                const titleNode = xmlDoc.querySelector('title-info book-title');
+                const title = titleNode ? titleNode.textContent : this.strings.noTitle;
+
+                // Extract author
+                const authorNode = xmlDoc.querySelector('title-info author');
+                let author = this.strings.unknownAuthor;
+                if (authorNode) {
+                    const firstName = authorNode.querySelector('first-name')?.textContent || '';
+                    const lastName = authorNode.querySelector('last-name')?.textContent || '';
+                    const middleName = authorNode.querySelector('middle-name')?.textContent || '';
+                    author = `${firstName} ${middleName} ${lastName}`.replace(/\s+/g, ' ').trim();
+                }
+
+                // Extract cover
+                let coverHtml = '';
+                const coverpage = xmlDoc.querySelector('coverpage image');
+                if (coverpage) {
+                    const href = coverpage.getAttribute('l:href') || coverpage.getAttribute('xlink:href');
+                    const imageId = href?.replace('#', '');
+                    if (imageId && this.images[imageId]) {
+                        coverHtml = `<img src="${this.images[imageId]}" alt="Cover" style="max-height: 400px;">`;
+                    }
+                }
+
+                // Extract chapters for TOC
+                this.chapters = [];
+                const sections = xmlDoc.querySelectorAll('body > section');
+                sections.forEach((section, index) => {
+                    const titleEl = section.querySelector('title');
+                    if (titleEl) {
+                        this.chapters.push({
+                            title: titleEl.textContent.trim(),
+                            id: `section_${index}`
+                        });
+                    }
+                });
+
+                // Extract body content
+                const bodyNodes = xmlDoc.querySelectorAll('body');
+                let htmlContent = `<h1>${title}</h1><p class="author">${author}</p>${coverHtml}`;
+
+                bodyNodes.forEach(body => {
+                    if (!body.getAttribute('name')) {
+                        htmlContent += this.convertFB2ToHTML(body);
+                    }
+                });
+
+                return {
+                    title,
+                    author,
+                    content: htmlContent
+                };
+            }
+
+            convertFB2ToHTML(element) {
+                let html = '';
+                let sectionIndex = 0;
+                
+                for (const child of element.childNodes) {
+                    if (child.nodeType === Node.TEXT_NODE) {
+                        html += child.textContent;
+                    } else if (child.nodeType === Node.ELEMENT_NODE) {
+                        switch (child.tagName.toLowerCase()) {
+                            case 'title':
+                                const level = Math.min(3, (child.parentNode.tagName === 'section' ? 2 : 1));
+                                html += `<h${level}>${this.convertFB2ToHTML(child)}</h${level}>`;
+                                break;
+                            case 'p':
+                                html += `<p>${this.convertFB2ToHTML(child)}</p>`;
+                                break;
+                            case 'emphasis':
+                                html += `<em>${this.convertFB2ToHTML(child)}</em>`;
+                                break;
+                            case 'strong':
+                                html += `<strong>${this.convertFB2ToHTML(child)}</strong>`;
+                                break;
+                            case 'section':
+                                html += `<div id="section_${sectionIndex++}" class="section">${this.convertFB2ToHTML(child)}</div>`;
+                                break;
+                            case 'image':
+                                const href = child.getAttribute('l:href') || child.getAttribute('xlink:href');
+                                const imageId = href?.replace('#', '');
+                                if (imageId && this.images[imageId]) {
+                                    html += `<img src="${this.images[imageId]}" alt="Image">`;
+                                }
+                                break;
+                            case 'empty-line':
+                                html += '<br>';
+                                break;
+                            default:
+                                html += this.convertFB2ToHTML(child);
+                        }
+                    }
+                }
+                
+                return html;
+            }
+
+            displayBook(bookData) {
+                this.bookTitle = bookData.title;
+                this.bookAuthor = bookData.author;
+                this.bookTitleEl.textContent = this.bookTitle;
+                this.bookAuthorEl.textContent = this.bookAuthor;
+                this.bookContent.innerHTML = bookData.content;
+                this.bookContent.style.display = 'block';
+                this.applyFontSize();
+                this.applyTheme();
+                this.applyFont();
+                this.applyMargins();
+                this.applyWidthMode();
+                
+                // Close menu after loading
+                if (this.menuVisible) {
+                    this.toggleMenu();
+                }
+
+                // Reset current chapter
+                this.currentChapterIndex = -1;
+            }
+
+            changeFontSize(delta) {
+                this.fontSize = Math.max(12, Math.min(24, this.fontSize + delta));
+                this.applyFontSize();
+                this.savePreferences();
+            }
+
+            applyFontSize() {
+                this.bookContent.style.fontSize = this.fontSize + 'px';
+            }
+
+            toggleFont() {
+                this.currentFontIndex = (this.currentFontIndex + 1) % this.fonts.length;
+                this.applyFont();
+                this.savePreferences();
+            }
+
+            applyFont() {
+                this.fonts.forEach(font => this.bookContent.classList.remove(font));
+                this.bookContent.classList.add(this.fonts[this.currentFontIndex]);
+                this.fontIndicator.className = `font-indicator ${this.fontClasses[this.currentFontIndex]}`;
+            }
+
+            toggleTheme() {
+                this.currentThemeIndex = (this.currentThemeIndex + 1) % this.themes.length;
+                this.applyTheme();
+                this.savePreferences();
+            }
+
+            applyTheme() {
+                const theme = this.themes[this.currentThemeIndex];
+                
+                this.bookContent.className = this.bookContent.className
+                    .replace(/\b(light|dark|sepia)\b/g, '')
+                    .trim() + ' ' + theme;
+                
+                document.body.className = 'theme-' + theme;
+            }
+
+            changeMargins(delta) {
+                this.margins = Math.max(10, Math.min(80, this.margins + delta));
+                this.applyMargins();
+                this.savePreferences();
+            }
+
+            applyMargins() {
+                this.bookContent.style.paddingLeft = this.margins + 'px';
+                this.bookContent.style.paddingRight = this.margins + 'px';
+            }
+
+            setWidthMode(mode) {
+                if (window.innerWidth <= 768) return;
+                
+                this.widthMode = mode;
+                this.applyWidthMode();
+                this.savePreferences();
+            }
+
+            applyWidthMode() {
+                document.getElementById('standardWidth').classList.toggle('active', this.widthMode === 'standard');
+                document.getElementById('fullWidth').classList.toggle('active', this.widthMode === 'full-width');
+                
+                this.readerContainer.className = this.readerContainer.className
+                    .replace(/\b(standard|full-width)\b/g, '')
+                    .trim() + ' ' + this.widthMode;
+            }
+
+            toggleFullscreen() {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen();
+                } else {
+                    document.exitFullscreen();
+                }
+            }
+
+            updateProgress() {
+                const scrollTop = window.pageYOffset;
+                const scrollHeight = document.body.scrollHeight - window.innerHeight;
+                const progress = (scrollTop / scrollHeight) * 100;
+                this.progressBar.style.width = Math.min(100, Math.max(0, progress)) + '%';
+            }
+
+            handleKeyboard(e) {
+                // Close TOC on Escape
+                if (e.key === 'Escape' && this.tocVisible) {
+                    e.preventDefault();
+                    this.hideTOC();
+                    return;
+                }
+
+                switch(e.key) {
+                    case ' ':
+                        e.preventDefault();
+                        this.scrollPage(e.shiftKey ? -1 : 1);
+                        break;
+                    case 'ArrowUp':
+                        if (e.ctrlKey) {
+                            e.preventDefault();
+                            this.scrollPage(-1);
+                        }
+                        break;
+                    case 'ArrowDown':
+                        if (e.ctrlKey) {
+                            e.preventDefault();
+                            this.scrollPage(1);
+                        }
+                        break;
+                    case 'm':
+                    case 'M':
+                        e.preventDefault();
+                        this.toggleMenu();
+                        break;
+                    case 't':
+                    case 'T':
+                        e.preventDefault();
+                        if (this.chapters.length > 0) {
+                            if (this.tocVisible) {
+                                this.hideTOC();
+                            } else {
+                                this.showTOC();
+                            }
+                        }
+                        break;
+                    case 'f':
+                    case 'F':
+                        if (e.ctrlKey) {
+                            e.preventDefault();
+                            this.toggleFullscreen();
+                        }
+                        break;
+                    case '+':
+                    case '=':
+                        if (e.ctrlKey) {
+                            e.preventDefault();
+                            this.changeFontSize(2);
+                        }
+                        break;
+                    case '-':
+                        if (e.ctrlKey) {
+                            e.preventDefault();
+                            this.changeFontSize(-2);
+                        }
+                        break;
+                }
+            }
+
+            showLoading(show) {
+                if (show) {
+                    this.bookContent.innerHTML = `<div class="loading">${this.strings.loading}</div>`;
+                    this.bookContent.style.display = 'block';
+                }
+            }
+
+            showError(message) {
+                this.bookContent.innerHTML = `<div class="error">${message}</div>`;
+                this.bookContent.style.display = 'block';
+            }
+
+            savePreferences() {
+                localStorage.setItem('reader-prefs', JSON.stringify({
+                    themeIndex: this.currentThemeIndex,
+                    fontIndex: this.currentFontIndex,
+                    fontSize: this.fontSize,
+                    margins: this.margins,
+                    widthMode: this.widthMode
+                }));
+            }
+
+            loadPreferences() {
+                try {
+                    const prefs = JSON.parse(localStorage.getItem('reader-prefs') || '{}');
+                    this.currentThemeIndex = prefs.themeIndex || 0;
+                    this.currentFontIndex = prefs.fontIndex || 0;
+                    this.fontSize = prefs.fontSize || 16;
+                    this.margins = prefs.margins || 40;
+                    this.widthMode = prefs.widthMode || 'standard';
+                    
+                    document.body.className = 'theme-' + this.themes[this.currentThemeIndex];
+                    this.bookContent.className = `book-content ${this.themes[this.currentThemeIndex]} ${this.fonts[this.currentFontIndex]}`;
+                    this.fontIndicator.className = `font-indicator ${this.fontClasses[this.currentFontIndex]}`;
+                    
+                    this.bookContent.style.paddingLeft = this.margins + 'px';
+                    this.bookContent.style.paddingRight = this.margins + 'px';
+                    
+                    const standardBtn = document.getElementById('standardWidth');
+                    const fullBtn = document.getElementById('fullWidth');
+                    if (standardBtn && fullBtn) {
+                        standardBtn.classList.toggle('active', this.widthMode === 'standard');
+                        fullBtn.classList.toggle('active', this.widthMode === 'full-width');
+                    }
+                    
+                    this.readerContainer.className = `reader-container ${this.widthMode}`;
+                } catch (e) {
+                    console.warn('Could not load preferences:', e);
+                }
+            }
+        }
+
+        // Initialize reader when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            new UniversalReader();
+        });
+    </script>
+</body>
+</html>

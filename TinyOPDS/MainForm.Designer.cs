@@ -1614,7 +1614,7 @@
             // donateButton
             // 
             this.donateButton.BackColor = System.Drawing.SystemColors.Control;
-            this.donateButton.Image = global::TinyOPDS.Properties.Resources.donate;
+            this.donateButton.Image = ((System.Drawing.Image)(resources.GetObject("donateButton.Image")));
             this.donateButton.Location = new System.Drawing.Point(27, 608);
             this.donateButton.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.donateButton.Name = "donateButton";

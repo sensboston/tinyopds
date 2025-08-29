@@ -97,10 +97,6 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="eBdb.EpubReader, Version=1.0.0.6, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>Libs\eBdb.EpubReader.dll</HintPath>
-    </Reference>
     <Reference Include="EpubSharp, Version=1.1.5.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>packages\EpubSharp.dll.1.1.5\lib\net451\EpubSharp.dll</HintPath>
     </Reference>
@@ -140,7 +136,7 @@
     <Compile Include="Misc\PortableSettingsProviderBase.cs" />
     <Compile Include="SgmlReader\SgmlParser.cs" />
     <Compile Include="SgmlReader\SgmlReader.cs" />
-    <EmbeddedResource Include="a_aliases.txt.gz" />
+    <EmbeddedResource Include="Resources\a_aliases.txt.gz" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -224,18 +220,18 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="xml2html.xsl">
+    <EmbeddedResource Include="Resources\xml2html.xsl">
       <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="Resources\fb2.dtd" />
     <None Include="TinyOPDS.png" />
-    <EmbeddedResource Include="translation.xml" />
+    <EmbeddedResource Include="Resources\translation.xml" />
     <EmbeddedResource Include="Icons\authors.ico" />
     <EmbeddedResource Include="Icons\books.ico" />
     <EmbeddedResource Include="Icons\favicon.ico" />
     <EmbeddedResource Include="Icons\genres.ico" />
-    <EmbeddedResource Include="genres.xml" />
-    <None Include="donate.png" />
+    <EmbeddedResource Include="Resources\genres.xml" />
+    <None Include="Resources\donate.png" />
     <None Include="Icons\folder.png" />
     <EmbeddedResource Include="Resources\book_cover.jpg" />
     <Content Include="Icons\lib.png" />
@@ -248,6 +244,7 @@
     <Content Include="License.txt" />
     <None Include="Resources\trayIcon.ico" />
     <EmbeddedResource Include="Resources\logo.png" />
+    <EmbeddedResource Include="Resources\reader.html" />
     <Content Include="TinyOPDS.ico" />
   </ItemGroup>
   <ItemGroup />

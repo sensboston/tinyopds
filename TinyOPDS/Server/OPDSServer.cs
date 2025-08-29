@@ -21,6 +21,7 @@ using System.Xml.XPath;
 using System.Reflection;
 using System.Collections.Generic;
 using System.Xml.Linq;
+using System.Text;
 
 using TinyOPDS.OPDS;
 using TinyOPDS.Data;
@@ -34,11 +35,51 @@ namespace TinyOPDS.Server
         private readonly XslCompiledTransform xslTransform = new XslCompiledTransform();
         private readonly object xslLock = new object();
         private Dictionary<string, bool> opdsStructure;
+        private string readerHtml = null; // Cache for reader HTML
 
         public OPDSServer(IPAddress interfaceIP, int port, int timeout = 5000) : base(interfaceIP, port, timeout)
         {
             InitializeXslTransform();
             LoadOPDSStructure();
+            LoadReaderHtml();
+        }
+
+        private void LoadReaderHtml()
+        {
+            try
+            {
+                // Try to load from file system first (for development)
+                string readerPath = Path.Combine(Utils.ServiceFilesLocation, "reader.html");
+                if (File.Exists(readerPath))
+                {
+                    readerHtml = File.ReadAllText(readerPath, Encoding.UTF8);
+                    Log.WriteLine(LogLevel.Info, "Loaded reader.html from file system");
+                }
+                else
+                {
+                    // Load from embedded resources
+                    string resourceName = Assembly.GetExecutingAssembly().GetName().Name + ".Resources.reader.html";
+                    using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
+                    {
+                        if (stream != null)
+                        {
+                            using (StreamReader reader = new StreamReader(stream, Encoding.UTF8))
+                            {
+                                readerHtml = reader.ReadToEnd();
+                                Log.WriteLine(LogLevel.Info, "Loaded reader.html from embedded resources");
+                            }
+                        }
+                        else
+                        {
+                            Log.WriteLine(LogLevel.Warning, "reader.html not found in resources");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error loading reader.html: {0}", ex.Message);
+            }
         }
 
         private void LoadOPDSStructure()
@@ -163,6 +204,13 @@ namespace TinyOPDS.Server
                 bool acceptFB2 = DetectFB2Support(processor.HttpHeaders["User-Agent"]) || isWWWRequest;
                 int threshold = isWWWRequest ? Properties.Settings.Default.ItemsPerWebPage : Properties.Settings.Default.ItemsPerOPDSPage;
 
+                // Handle reader requests
+                if (request.StartsWith("/reader/"))
+                {
+                    HandleReaderRequest(processor, request);
+                    return;
+                }
+
                 // Check for download requests first, before checking extensions
                 if (request.StartsWith("/download/"))
                 {
@@ -230,6 +278,188 @@ namespace TinyOPDS.Server
                 processor.WriteFailure();
             }
         }
+
+        #region Reader Handler
+
+        private void HandleReaderRequest(HttpProcessor processor, string request)
+        {
+            try
+            {
+                // Extract book ID from /reader/{bookId}
+                string bookId = request.Substring(8); // Remove "/reader/"
+
+                // Clean up GUID encoding
+                bookId = bookId.Replace("%7B", "{").Replace("%7D", "}");
+
+                Log.WriteLine(LogLevel.Info, "Reader request for book: {0}", bookId);
+
+                Book book = Library.GetBook(bookId);
+                if (book == null)
+                {
+                    Log.WriteLine(LogLevel.Warning, "Book {0} not found for reader", bookId);
+                    processor.WriteFailure();
+                    return;
+                }
+
+                // Get book content
+                using (var memStream = new MemoryStream())
+                {
+                    if (!ExtractBookContent(book, memStream))
+                    {
+                        processor.WriteFailure();
+                        return;
+                    }
+
+                    // Prepare book data as base64
+                    memStream.Position = 0;
+                    byte[] bookData = memStream.ToArray();
+                    string base64Data = Convert.ToBase64String(bookData);
+
+                    // Determine MIME type
+                    string mimeType = book.BookType == BookType.FB2 ? "application/x-fictionbook+xml" : "application/epub+zip";
+
+                    // Prepare file name
+                    string fileName = Transliteration.Front(
+                        string.Format("{0}_{1}.{2}",
+                            book.Authors.FirstOrDefault() ?? "Unknown",
+                            book.Title,
+                            book.BookType == BookType.FB2 ? "fb2" : "epub"));
+
+                    // Create modified HTML with embedded book
+                    string html = PrepareReaderHtml(base64Data, mimeType, fileName, book.Title, book.Authors.FirstOrDefault());
+
+                    if (!string.IsNullOrEmpty(html))
+                    {
+                        processor.WriteSuccess("text/html; charset=utf-8");
+                        processor.OutputStream.Write(html);
+
+                        Log.WriteLine(LogLevel.Info, "Successfully served reader for book: {0}", book.Title);
+                    }
+                    else
+                    {
+                        processor.WriteFailure();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Reader request error: {0}", ex.Message);
+                processor.WriteFailure();
+            }
+        }
+
+        private string PrepareReaderHtml(string base64Data, string mimeType, string fileName, string bookTitle, string author)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(readerHtml))
+                {
+                    LoadReaderHtml();
+                    if (string.IsNullOrEmpty(readerHtml))
+                    {
+                        Log.WriteLine(LogLevel.Error, "Reader HTML template not available");
+                        return null;
+                    }
+                }
+
+                // Create a copy of the reader HTML
+                string html = readerHtml;
+
+                // Prepare localization strings as JSON
+                var locStrings = new StringBuilder();
+                locStrings.Append("{");
+                locStrings.AppendFormat("'tableOfContents':'{0}',", EscapeJsString(Localizer.Text("Table of Contents")));
+                locStrings.AppendFormat("'openBook':'{0}',", EscapeJsString(Localizer.Text("Open Book")));
+                locStrings.AppendFormat("'decreaseFont':'{0}',", EscapeJsString(Localizer.Text("Decrease Font")));
+                locStrings.AppendFormat("'increaseFont':'{0}',", EscapeJsString(Localizer.Text("Increase Font")));
+                locStrings.AppendFormat("'changeFont':'{0}',", EscapeJsString(Localizer.Text("Change Font")));
+                locStrings.AppendFormat("'changeTheme':'{0}',", EscapeJsString(Localizer.Text("Change Theme")));
+                locStrings.AppendFormat("'decreaseMargins':'{0}',", EscapeJsString(Localizer.Text("Decrease Margins")));
+                locStrings.AppendFormat("'increaseMargins':'{0}',", EscapeJsString(Localizer.Text("Increase Margins")));
+                locStrings.AppendFormat("'standardWidth':'{0}',", EscapeJsString(Localizer.Text("Standard Width")));
+                locStrings.AppendFormat("'fullWidth':'{0}',", EscapeJsString(Localizer.Text("Full Width")));
+                locStrings.AppendFormat("'fullscreen':'{0}',", EscapeJsString(Localizer.Text("Fullscreen")));
+                locStrings.AppendFormat("'loading':'{0}',", EscapeJsString(Localizer.Text("Loading...")));
+                locStrings.AppendFormat("'errorLoading':'{0}',", EscapeJsString(Localizer.Text("Error loading file")));
+                locStrings.AppendFormat("'noTitle':'{0}',", EscapeJsString(Localizer.Text("Untitled")));
+                locStrings.AppendFormat("'unknownAuthor':'{0}',", EscapeJsString(Localizer.Text("Unknown Author")));
+                locStrings.AppendFormat("'noChapters':'{0}'", EscapeJsString(Localizer.Text("No chapters available")));
+                locStrings.Append("}");
+
+                // Inject book data and localization into the HTML
+                string scriptInjection = string.Format(@"
+<script>
+// Injected book data
+window.tinyOPDSBook = {{
+    data: 'data:{0};base64,{1}',
+    fileName: '{2}',
+    title: '{3}',
+    author: '{4}'
+}};
+
+// Injected localization
+localStorage.setItem('tinyopds-localization', JSON.stringify({5}));
+
+// Auto-load the book after page loads
+document.addEventListener('DOMContentLoaded', function() {{
+    setTimeout(function() {{
+        // Create a blob from the data URL
+        var dataUrl = window.tinyOPDSBook.data;
+        fetch(dataUrl)
+            .then(res => res.blob())
+            .then(blob => {{
+                // Create a File object
+                var file = new File([blob], window.tinyOPDSBook.fileName, {{
+                    type: blob.type
+                }});
+                
+                // Find the reader instance and load the file
+                if (window.universalReader) {{
+                    window.universalReader.handleFileSelect(file);
+                }}
+            }});
+    }}, 500);
+}});
+</script>
+</head>",
+                    mimeType,
+                    base64Data,
+                    EscapeJsString(fileName),
+                    EscapeJsString(bookTitle),
+                    EscapeJsString(author ?? ""),
+                    locStrings.ToString()
+                );
+
+                // Replace </head> with our script injection
+                html = html.Replace("</head>", scriptInjection);
+
+                // Modify the reader initialization to expose the instance globally
+                html = html.Replace(
+                    "new UniversalReader();",
+                    "window.universalReader = new UniversalReader();"
+                );
+
+                return html;
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error preparing reader HTML: {0}", ex.Message);
+                return null;
+            }
+        }
+
+        private string EscapeJsString(string str)
+        {
+            if (string.IsNullOrEmpty(str)) return "";
+
+            return str.Replace("\\", "\\\\")
+                     .Replace("'", "\\'")
+                     .Replace("\"", "\\\"")
+                     .Replace("\r", "\\r")
+                     .Replace("\n", "\\n");
+        }
+
+        #endregion
 
         #region Request Processing Helpers
 
@@ -584,6 +814,7 @@ namespace TinyOPDS.Server
                         args.AddParam("sizeText", "", Localizer.Text("Size:"));
                         args.AddParam("downloadText", "", Localizer.Text("Download"));
                         args.AddParam("downloadEpubText", "", Localizer.Text("Download EPUB"));
+                        args.AddParam("readText", "", Localizer.Text("Read")); // Add Read button text
 
                         xslTransform.Transform(xPathDoc, args, writer);
 

@@ -74,11 +74,38 @@ namespace TinyOPDS.OPDS
         {
             if (!string.IsNullOrEmpty(searchPattern)) searchPattern = Uri.UnescapeDataString(searchPattern).Replace('+', ' ');
 
+            // Create proper title based on search type
+            string feedTitle;
+            switch (searchFor)
+            {
+                case SearchFor.Sequence:
+                    feedTitle = Localizer.Text("Books in series: ") + searchPattern;
+                    break;
+                case SearchFor.Genre:
+                    feedTitle = Localizer.Text("Books by genre: ") + searchPattern;
+                    break;
+                case SearchFor.Title:
+                    if (isOpenSearch)
+                    {
+                        // For OpenSearch, show search results title
+                        feedTitle = Localizer.Text("Search results for books: '") + searchPattern + "'";
+                    }
+                    else
+                    {
+                        // For navigation, show books starting with
+                        feedTitle = Localizer.Text("Books starting with '") + searchPattern + "'";
+                    }
+                    break;
+                default:
+                    feedTitle = Localizer.Text("Books catalog");
+                    break;
+            }
+
             XDocument doc = new XDocument(
                 // Add root element and namespaces
                 new XElement("feed", new XAttribute(XNamespace.Xmlns + "dc", Namespaces.dc), new XAttribute(XNamespace.Xmlns + "os", Namespaces.os), new XAttribute(XNamespace.Xmlns + "opds", Namespaces.opds),
                     new XElement("id", "tag:books"),
-                    new XElement("title", Localizer.Text("Books by author ") + searchPattern),
+                    new XElement("title", feedTitle),  // Use dynamic title based on search type
                     new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                     new XElement("icon", "/icons/books.ico"),
                     // Add links
@@ -123,14 +150,35 @@ namespace TinyOPDS.OPDS
                     break;
             }
 
-            // For sequences, sort books by sequence number
+            // Sort books based on search type
             if (searchFor == SearchFor.Sequence)
             {
+                // For sequences, sort by sequence number
                 books = books.OrderBy(b => b.NumberInSequence).ToList();
             }
-            // else sort by title
+            else if (searchFor == SearchFor.Title && isOpenSearch)
+            {
+                // For OpenSearch title search, prioritize titles starting with search pattern
+                string lowerPattern = searchPattern.ToLower();
+                books = books
+                    .OrderBy(b =>
+                    {
+                        string lowerTitle = b.Title.ToLower();
+                        // Priority 1: Exact match
+                        if (lowerTitle == lowerPattern) return 0;
+                        // Priority 2: Starts with search pattern
+                        if (lowerTitle.StartsWith(lowerPattern)) return 1;
+                        // Priority 3: Word boundary match (space before pattern)
+                        if (lowerTitle.Contains(" " + lowerPattern)) return 2;
+                        // Priority 4: Contains anywhere
+                        return 3;
+                    })
+                    .ThenBy(b => b.Title, new OPDSComparer(Properties.Settings.Default.SortOrder > 0))
+                    .ToList();
+            }
             else
             {
+                // Default: sort by title
                 books = books.OrderBy(b => b.Title, new OPDSComparer(Properties.Settings.Default.SortOrder > 0)).ToList();
             }
 

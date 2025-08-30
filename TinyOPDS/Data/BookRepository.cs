@@ -562,22 +562,32 @@ namespace TinyOPDS.Data
         /// </summary>
         public List<string> GetAuthorsForOpenSearch(string searchPattern)
         {
+            var (authors, _) = GetAuthorsForOpenSearchWithMethod(searchPattern);
+            return authors;
+        }
+
+        /// <summary>
+        /// Get authors for OpenSearch with search method information
+        /// </summary>
+        /// <returns>Tuple with authors list and search method used</returns>
+        public (List<string> authors, AuthorSearchMethod method) GetAuthorsForOpenSearchWithMethod(string searchPattern)
+        {
             try
             {
                 if (string.IsNullOrEmpty(searchPattern))
                 {
-                    return new List<string>();
+                    return (new List<string>(), AuthorSearchMethod.NotFound);
                 }
 
                 searchPattern = searchPattern.Trim();
-                Log.WriteLine(LogLevel.Info, "GetAuthorsForOpenSearch: searching for '{0}'", searchPattern);
+                Log.WriteLine(LogLevel.Info, "GetAuthorsForOpenSearchWithMethod: searching for '{0}'", searchPattern);
 
                 var authors = new List<string>();
                 var words = searchPattern.Split(new char[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
 
                 if (words.Length == 0)
                 {
-                    return new List<string>();
+                    return (new List<string>(), AuthorSearchMethod.NotFound);
                 }
 
                 // STEP 1: For two-word input, try EXACT match using FTS
@@ -603,7 +613,7 @@ namespace TinyOPDS.Data
                     if (authors.Count > 0)
                     {
                         Log.WriteLine(LogLevel.Info, "Found exact match using FTS: {0} authors", authors.Count);
-                        return authors;
+                        return (authors, AuthorSearchMethod.ExactMatch);
                     }
 
                     // Try reversed order in FTS
@@ -617,7 +627,7 @@ namespace TinyOPDS.Data
                     if (authors.Count > 0)
                     {
                         Log.WriteLine(LogLevel.Info, "Found exact match with reversed order using FTS: {0} authors", authors.Count);
-                        return authors;
+                        return (authors, AuthorSearchMethod.ExactMatch);
                     }
                 }
 
@@ -645,7 +655,7 @@ namespace TinyOPDS.Data
                     if (authors.Count > 0)
                     {
                         Log.WriteLine(LogLevel.Info, "Found partial match using FTS: {0} authors", authors.Count);
-                        return authors;
+                        return (authors, AuthorSearchMethod.PartialMatch);
                     }
                 }
                 // For multi-word queries - NO partial search after exact match fails
@@ -659,12 +669,12 @@ namespace TinyOPDS.Data
                     string transliteratedGOST = Transliteration.Back(searchPattern, TransliterationType.GOST);
                     if (!string.IsNullOrEmpty(transliteratedGOST) && transliteratedGOST != searchPattern)
                     {
-                        // Recursive call with transliterated text
-                        var translitAuthors = GetAuthorsForOpenSearch(transliteratedGOST);
+                        // Recursive call with transliterated text - use the original method to avoid infinite recursion
+                        var (translitAuthors, _) = GetAuthorsForOpenSearchWithMethod(transliteratedGOST);
                         if (translitAuthors.Count > 0)
                         {
                             Log.WriteLine(LogLevel.Info, "Found via GOST transliteration: {0} authors", translitAuthors.Count);
-                            return translitAuthors;
+                            return (translitAuthors, AuthorSearchMethod.Transliteration);
                         }
                     }
 
@@ -673,11 +683,11 @@ namespace TinyOPDS.Data
                     if (!string.IsNullOrEmpty(transliteratedISO) && transliteratedISO != searchPattern && transliteratedISO != transliteratedGOST)
                     {
                         // Recursive call with transliterated text
-                        var translitAuthors = GetAuthorsForOpenSearch(transliteratedISO);
+                        var (translitAuthors, _) = GetAuthorsForOpenSearchWithMethod(transliteratedISO);
                         if (translitAuthors.Count > 0)
                         {
                             Log.WriteLine(LogLevel.Info, "Found via ISO transliteration: {0} authors", translitAuthors.Count);
-                            return translitAuthors;
+                            return (translitAuthors, AuthorSearchMethod.Transliteration);
                         }
                     }
                 }
@@ -697,17 +707,17 @@ namespace TinyOPDS.Data
                     if (authors.Count > 0)
                     {
                         Log.WriteLine(LogLevel.Info, "Found via Soundex: {0} authors", authors.Count);
-                        return authors;
+                        return (authors, AuthorSearchMethod.Soundex);
                     }
                 }
 
-                Log.WriteLine(LogLevel.Info, "GetAuthorsForOpenSearch: no results found");
-                return new List<string>();
+                Log.WriteLine(LogLevel.Info, "GetAuthorsForOpenSearchWithMethod: no results found");
+                return (new List<string>(), AuthorSearchMethod.NotFound);
             }
             catch (Exception ex)
             {
-                Log.WriteLine(LogLevel.Error, "Error in GetAuthorsForOpenSearch {0}: {1}", searchPattern, ex.Message);
-                return new List<string>();
+                Log.WriteLine(LogLevel.Error, "Error in GetAuthorsForOpenSearchWithMethod {0}: {1}", searchPattern, ex.Message);
+                return (new List<string>(), AuthorSearchMethod.NotFound);
             }
         }
 

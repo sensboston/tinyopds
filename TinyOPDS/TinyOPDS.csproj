@@ -120,6 +120,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Converters\FB2EpubConverter.cs" />
+    <Compile Include="Data\AuthorSearchMethod.cs" />
     <Compile Include="Data\Book.cs" />
     <Compile Include="Data\BookRepository.cs" />
     <Compile Include="Data\CoverImage.cs" />

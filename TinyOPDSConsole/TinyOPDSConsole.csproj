@@ -88,6 +88,9 @@
     <Compile Include="..\TinyOPDS\Converters\FB2EpubConverter.cs">
       <Link>Converters\FB2EpubConverter.cs</Link>
     </Compile>
+    <Compile Include="..\TinyOPDS\Data\AuthorSearchMethod.cs">
+      <Link>Data\AuthorSearchMethod.cs</Link>
+    </Compile>
     <Compile Include="..\TinyOPDS\Data\Book.cs">
       <Link>Data\Book.cs</Link>
     </Compile>

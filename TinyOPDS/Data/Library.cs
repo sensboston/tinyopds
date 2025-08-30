@@ -63,19 +63,19 @@ namespace TinyOPDS.Data
                     Assembly.GetExecutingAssembly().GetName().Name + ".Resources.genres.xml"));
 
                 genres = (from g in doc.Descendants("genre")
-                           select new Genre
-                           {
-                               Tag = "",
-                               Name = g.Attribute("name").Value,
-                               Translation = g.Attribute("ru").Value,
-                               Subgenres = (from sg in g.Descendants("subgenre")
-                                            select new Genre
-                                            {
-                                                Tag = sg.Attribute("tag").Value,
-                                                Name = sg.Value,
-                                                Translation = sg.Attribute("ru").Value
-                                            }).ToList()
-                           }).ToList();
+                          select new Genre
+                          {
+                              Tag = "",
+                              Name = g.Attribute("name").Value,
+                              Translation = g.Attribute("ru").Value,
+                              Subgenres = (from sg in g.Descendants("subgenre")
+                                           select new Genre
+                                           {
+                                               Tag = sg.Attribute("tag").Value,
+                                               Name = sg.Value,
+                                               Translation = sg.Attribute("ru").Value
+                                           }).ToList()
+                          }).ToList();
 
                 soundexedGenres = new Dictionary<string, string>();
                 foreach (var genre in genres.SelectMany(g => g.Subgenres))
@@ -781,6 +781,50 @@ namespace TinyOPDS.Data
             {
                 Log.WriteLine(LogLevel.Error, "Error in GetAuthorsByName: {0}", ex.Message);
                 return new List<string>();
+            }
+        }
+
+        /// <summary>
+        /// Get authors by name with search method information
+        /// </summary>
+        /// <param name="name">Search pattern</param>
+        /// <param name="isOpenSearch">True for OpenSearch, false for navigation</param>
+        /// <returns>Tuple with list of matching canonical author names and search method used</returns>
+        public static (List<string> authors, AuthorSearchMethod method) GetAuthorsByNameWithMethod(string name, bool isOpenSearch)
+        {
+            if (bookRepository == null) return (new List<string>(), AuthorSearchMethod.NotFound);
+
+            try
+            {
+                Log.WriteLine(LogLevel.Info, "Searching authors by name with method: '{0}', isOpenSearch: {1}", name, isOpenSearch);
+
+                if (isOpenSearch)
+                {
+                    var (authors, method) = bookRepository.GetAuthorsForOpenSearchWithMethod(name);
+
+                    // Remove duplicates and sort
+                    var comparer = new OPDSComparer(Properties.Settings.Default.SortOrder > 0);
+                    var result = authors.Where(a => a.Length > 1).Distinct().OrderBy(a => a, comparer).ToList();
+
+                    Log.WriteLine(LogLevel.Info, "Found {0} authors for pattern '{1}' using method: {2}", result.Count, name, method);
+                    return (result, method);
+                }
+                else
+                {
+                    // Navigation doesn't use advanced search methods
+                    var authors = bookRepository.GetAuthorsForNavigation(name);
+                    var comparer = new OPDSComparer(Properties.Settings.Default.SortOrder > 0);
+                    var result = authors.Where(a => a.Length > 1).Distinct().OrderBy(a => a, comparer).ToList();
+
+                    // For navigation, we don't track method, but if found, it's partial match
+                    var method = result.Count > 0 ? AuthorSearchMethod.PartialMatch : AuthorSearchMethod.NotFound;
+                    return (result, method);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error in GetAuthorsByNameWithMethod: {0}", ex.Message);
+                return (new List<string>(), AuthorSearchMethod.NotFound);
             }
         }
 

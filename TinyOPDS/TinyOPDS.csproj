@@ -245,7 +245,11 @@
     <Content Include="License.txt" />
     <None Include="Resources\trayIcon.ico" />
     <EmbeddedResource Include="Resources\logo.png" />
-    <EmbeddedResource Include="Resources\reader.html" />
+    <EmbeddedResource Include="Resources\reader\reader.html" />
+    <EmbeddedResource Include="Resources\reader\reader-formats.js" />
+    <EmbeddedResource Include="Resources\reader\reader-main.js" />
+    <EmbeddedResource Include="Resources\reader\reader-themes.css" />
+    <EmbeddedResource Include="Resources\reader\reader.css" />
     <Content Include="TinyOPDS.ico" />
   </ItemGroup>
   <ItemGroup />

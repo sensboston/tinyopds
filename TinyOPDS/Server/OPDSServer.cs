@@ -48,31 +48,58 @@ namespace TinyOPDS.Server
         {
             try
             {
-                // Try to load from file system first (for development)
+                // Load main HTML
                 string readerPath = Path.Combine(Utils.ServiceFilesLocation, "reader.html");
                 if (File.Exists(readerPath))
                 {
                     readerHtml = File.ReadAllText(readerPath, Encoding.UTF8);
                     Log.WriteLine(LogLevel.Info, "Loaded reader.html from file system");
+                    return;
                 }
-                else
+
+                // Load from embedded resources
+                string resourceBase = Assembly.GetExecutingAssembly().GetName().Name + ".Resources.reader.";
+
+                // Load HTML template
+                using (Stream htmlStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceBase + "reader.html"))
                 {
-                    // Load from embedded resources
-                    string resourceName = Assembly.GetExecutingAssembly().GetName().Name + ".Resources.reader.html";
-                    using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
+                    if (htmlStream != null)
                     {
-                        if (stream != null)
+                        using (StreamReader reader = new StreamReader(htmlStream, Encoding.UTF8))
                         {
-                            using (StreamReader reader = new StreamReader(stream, Encoding.UTF8))
+                            string html = reader.ReadToEnd();
+
+                            // Load CSS files
+                            string mainCss = LoadResourceText(resourceBase + "reader.css");
+                            string themesCss = LoadResourceText(resourceBase + "reader-themes.css");
+
+                            // Load JS files
+                            string formatsJs = LoadResourceText(resourceBase + "reader-formats.js");
+                            string mainJs = LoadResourceText(resourceBase + "reader-main.js");
+
+                            // Replace link and script tags with inline content
+                            if (!string.IsNullOrEmpty(mainCss) && !string.IsNullOrEmpty(themesCss))
                             {
-                                readerHtml = reader.ReadToEnd();
-                                Log.WriteLine(LogLevel.Info, "Loaded reader.html from embedded resources");
+                                string cssBlock = $"<style>\n{mainCss}\n</style>\n<style>\n{themesCss}\n</style>";
+                                html = html.Replace("<link rel=\"stylesheet\" href=\"reader.css\">", "")
+                                           .Replace("<link rel=\"stylesheet\" href=\"reader-themes.css\">", "");
+                                html = html.Replace("</head>", cssBlock + "\n</head>");
                             }
+
+                            if (!string.IsNullOrEmpty(formatsJs) && !string.IsNullOrEmpty(mainJs))
+                            {
+                                string jsBlock = $"<script>\n{formatsJs}\n</script>\n<script>\n{mainJs}\n</script>";
+                                html = html.Replace("<script src=\"reader-formats.js\"></script>", "")
+                                           .Replace("<script src=\"reader-main.js\"></script>", jsBlock);
+                            }
+
+                            readerHtml = html;
+                            Log.WriteLine(LogLevel.Info, "Loaded reader components from embedded resources");
                         }
-                        else
-                        {
-                            Log.WriteLine(LogLevel.Warning, "reader.html not found in resources");
-                        }
+                    }
+                    else
+                    {
+                        Log.WriteLine(LogLevel.Warning, "reader.html not found in resources");
                     }
                 }
             }
@@ -80,6 +107,28 @@ namespace TinyOPDS.Server
             {
                 Log.WriteLine(LogLevel.Error, "Error loading reader.html: {0}", ex.Message);
             }
+        }
+
+        private string LoadResourceText(string resourceName)
+        {
+            try
+            {
+                using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
+                {
+                    if (stream != null)
+                    {
+                        using (StreamReader reader = new StreamReader(stream, Encoding.UTF8))
+                        {
+                            return reader.ReadToEnd();
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Warning, "Error loading resource {0}: {1}", resourceName, ex.Message);
+            }
+            return null;
         }
 
         private void LoadOPDSStructure()

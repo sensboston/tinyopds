@@ -1,0 +1,139 @@
+﻿/* Theme styles - frequently customized */
+
+/* Light theme */
+.book-content.light {
+    background: white;
+    color: #333;
+}
+
+body.theme-light {
+    background: #f5f5f5;
+}
+
+/* Dark theme */
+.book-content.dark {
+    background: #2d2d2d;
+    color: #e1e1e1;
+}
+
+body.theme-dark {
+    background: #1a1a1a;
+}
+
+/* Sepia theme */
+.book-content.sepia {
+    background: #f4f1e8;
+    color: #5c4b37;
+}
+
+body.theme-sepia {
+    background: #f4f1e8;
+}
+
+/* Content typography - may be adjusted for styling */
+.book-content h1, .book-content h2, .book-content h3 {
+    margin: 30px 0 20px;
+    font-weight: 600;
+}
+
+.book-content h1 {
+    font-size: 28px;
+}
+
+.book-content h2 {
+    font-size: 24px;
+}
+
+.book-content h3 {
+    font-size: 20px;
+}
+
+.book-content p {
+    margin: 15px 0;
+    text-align: justify;
+    text-indent: 1.5em;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+    -moz-hyphens: auto;
+    -ms-hyphens: auto;
+    -webkit-hyphenate-limit-lines: 2;
+    -ms-hyphenate-limit-lines: 2;
+    hyphenate-limit-lines: 2;
+    -webkit-hyphenate-limit-chars: 6 3 2;
+    -moz-hyphenate-limit-chars: 6 3 2;
+    -ms-hyphenate-limit-chars: 6 3 2;
+    hyphenate-limit-chars: 6 3 2;
+}
+
+.book-content p:first-of-type {
+    text-indent: 0;
+}
+
+.book-content .author {
+    font-style: italic;
+    color: #666;
+    margin-bottom: 30px;
+    text-indent: 0;
+}
+
+.book-content img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 20px auto;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Hyphenation styles */
+.book-content p,
+.book-content div,
+.book-content span,
+.book-content h1,
+.book-content h2,
+.book-content h3,
+.book-content h4,
+.book-content h5,
+.book-content h6 {
+    hyphens: auto !important;
+    -webkit-hyphens: auto !important;
+    -moz-hyphens: auto !important;
+    -ms-hyphens: auto !important;
+    -webkit-hyphenate-limit-lines: 2;
+    -ms-hyphenate-limit-lines: 2;
+    hyphenate-limit-lines: 2;
+    -webkit-hyphenate-limit-chars: 5 2 2;
+    -moz-hyphenate-limit-chars: 5 2 2;
+    -ms-hyphenate-limit-chars: 5 2 2;
+    hyphenate-limit-chars: 5 2 2;
+}
+
+.book-content[lang="ru"] p,
+.book-content[lang="ru"] div {
+    hyphens: auto !important;
+    -webkit-hyphens: auto !important;
+    -moz-hyphens: auto !important;
+    -ms-hyphens: auto !important;
+}
+
+/* Content overflow handling */
+.book-content * {
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-word;
+}
+
+.book-content pre,
+.book-content code {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.book-content table {
+    max-width: 100%;
+    overflow-x: auto;
+    display: block;
+}

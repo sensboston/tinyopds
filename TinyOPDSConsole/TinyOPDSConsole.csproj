@@ -285,19 +285,31 @@
     <EmbeddedResource Include="..\TinyOPDS\Resources\logo.png">
       <Link>Resources\logo.png</Link>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\TinyOPDS\Resources\reader.html">
-      <Link>Resources\reader.html</Link>
-    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <Content Include="..\TinyOPDS\Resources\genres.xml">
       <Link>Resources\genres.xml</Link>
+    </Content>
+    <Content Include="..\TinyOPDS\Resources\reader\reader-formats.js">
+      <Link>Resources\reader\reader-formats.js</Link>
+    </Content>
+    <Content Include="..\TinyOPDS\Resources\reader\reader-main.js">
+      <Link>Resources\reader\reader-main.js</Link>
+    </Content>
+    <Content Include="..\TinyOPDS\Resources\reader\reader-themes.css">
+      <Link>Resources\reader\reader-themes.css</Link>
+    </Content>
+    <Content Include="..\TinyOPDS\Resources\reader\reader.css">
+      <Link>Resources\reader\reader.css</Link>
     </Content>
     <Content Include="..\TinyOPDS\Resources\translation.xml">
       <Link>Resources\translation.xml</Link>
     </Content>
     <Content Include="..\TinyOPDS\Resources\xml2html.xsl">
       <Link>Resources\xml2html.xsl</Link>
+    </Content>
+    <Content Include="..\TinyOPDS\Resources\reader\reader.html">
+      <Link>Resources\reader\reader.html</Link>
     </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

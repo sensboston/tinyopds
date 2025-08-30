@@ -49,9 +49,9 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					margin: 0;
 					padding: 0;
 					font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-					background-color: #fafafa;
+					background-color: #ffffff;
 					line-height: 1.4;
-					padding-top: 140px;
+					padding-top: 160px;
 					}
 
 					.fixed-header {
@@ -59,98 +59,123 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					top: 0;
 					left: 0;
 					right: 0;
-					background-color: white;
-					border-bottom: 2px solid #e0e0e0;
+					background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 					z-index: 1000;
-					box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+					box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 					}
 
 					.header-content {
 					margin: 0 auto;
-					max-width: 500px;
-					padding: 16px 20px;
+					max-width: 1200px;
+					padding: 20px;
 					display: flex;
 					align-items: center;
-					position: relative;
+					gap: 20px;
 					}
 
 					.header-icon {
-					width: 64px;
-					height: 64px;
-					margin-right: 0;
+					width: 80px;
+					height: 80px;
 					flex-shrink: 0;
+					border-radius: 12px;
+					box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+					background: rgba(255,255,255,0.1);
+					padding: 8px;
+					box-sizing: border-box;
 					}
 
 					.header-text {
 					flex-grow: 1;
-					text-align: center;
-					margin: 0;
-					position: absolute;
-					left: 50%;
-					transform: translateX(-50%);
-					width: calc(100% - 48px);
-					top: 8px;
+					color: white;
 					}
 
 					.server-title {
-					color: #333;
-					margin: 0 0 3px 0;
-					font-size: 24px;
-					font-weight: bold;
+					color: white;
+					margin: 0 0 8px 0;
+					font-size: 28px;
+					font-weight: 700;
 					cursor: pointer;
 					text-decoration: none;
+					text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+					transition: all 0.3s ease;
 					}
 
 					.server-title:hover {
-					color: #007cba;
+					color: #fff;
+					text-shadow: 0 0 8px rgba(255,255,255,0.5);
+					transform: translateY(-1px);
 					}
 
 					.library-name {
-					color: #007cba;
-					font-size: 14px;
-					font-weight: bold;
-					margin: 10px 0 0 0;
+					color: rgba(255,255,255,0.9);
+					font-size: 16px;
+					font-weight: 500;
+					margin: 0;
+					text-shadow: 0 1px 2px rgba(0,0,0,0.2);
 					}
 
 					.search-section {
-					margin-top: 5px;
-					text-align: center;
-					padding-top: 0px;
+					width: 100%;
+					margin-top: 20px;
 					}
 
 					.search-form {
-					display: inline-block;
+					display: flex;
+					width: 100%;
+					gap: 12px;
 					}
 
 					.search-input {
-					width: 430px;
-					max-width: calc(100vw - 140px);
-					padding: 6px 4px;
-					font-size: 13px;
-					border: 1px solid #ddd;
-					border-radius: 4px;
-					box-sizing: border-box;
+					flex: 1;
+					padding: 12px 16px;
+					font-size: 16px;
+					border: none;
+					border-radius: 8px;
+					background: rgba(255,255,255,0.95);
+					backdrop-filter: blur(10px);
+					box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+					transition: all 0.3s ease;
+					outline: none;
+					}
+
+					.search-input:focus {
+					background: white;
+					box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+					transform: translateY(-1px);
+					}
+
+					.search-input::placeholder {
+					color: #666;
 					}
 
 					.search-button {
-					padding: 8px 4px;
-					font-size: 13px;
-					background-color: #007cba;
-					color: white;
+					padding: 12px 24px;
+					font-size: 16px;
+					font-weight: 600;
+					background: rgba(255,255,255,0.9);
+					color: #764ba2;
 					border: none;
-					border-radius: 4px;
+					border-radius: 8px;
 					cursor: pointer;
-					margin-left: 12px;
+					box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+					transition: all 0.3s ease;
+					flex-shrink: 0;
 					}
 
 					.search-button:hover {
-					background-color: #005a87;
+					background: white;
+					box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+					transform: translateY(-1px);
+					}
+
+					.search-button:active {
+					transform: translateY(0);
 					}
 
 					.main-content {
 					margin: 0 auto;
-					max-width: 500px;
-					padding: 15px;
+					max-width: 1200px;
+					padding: 30px 20px;
 					}
 
 					ul {
@@ -160,39 +185,54 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					}
 
 					.category-item {
-					padding: 12px 0;
+					padding: 16px 0;
 					border-bottom: 1px solid #eee;
+					transition: all 0.3s ease;
 					}
 
 					.category-item:last-child {
 					border-bottom: none;
 					}
 
+					.category-item:hover {
+					background-color: #f8f9ff;
+					padding-left: 8px;
+					}
+
 					.category-link {
-					color: #007cba;
+					color: #667eea;
 					text-decoration: none;
 					font-weight: 500;
-					font-size: 16px;
+					font-size: 18px;
+					transition: all 0.3s ease;
 					}
 
 					.category-link:hover {
-					text-decoration: underline;
+					color: #764ba2;
+					text-decoration: none;
 					}
 
 					.category-descr {
 					margin-left: 20px;
-					font-size: 13px;
+					font-size: 14px;
 					color: #666;
-					margin-top: 5px;
+					margin-top: 8px;
 					}
 
 					.book-item {
-					margin-bottom: 25px;
+					margin-bottom: 30px;
 					background: white;
-					padding: 15px;
-					border-radius: 8px;
-					box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+					padding: 20px;
+					border-radius: 12px;
+					box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 					position: relative;
+					transition: all 0.3s ease;
+					border: 1px solid #f0f0f0;
+					}
+
+					.book-item:hover {
+					box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+					transform: translateY(-2px);
 					}
 
 					.book-content {
@@ -205,9 +245,10 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					height: 190px;
 					max-width: 120px;
 					flex-shrink: 0;
-					margin-right: 15px;
-					border-radius: 4px;
+					margin-right: 20px;
+					border-radius: 8px;
 					object-fit: cover;
+					box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 					}
 
 					.book-details {
@@ -219,42 +260,49 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					display: flex;
 					justify-content: space-between;
 					align-items: flex-start;
-					margin-bottom: 8px;
+					margin-bottom: 12px;
 					flex-wrap: wrap;
 					gap: 10px;
 					}
 
 					.book-title {
-					font-weight: bold;
+					font-weight: 600;
 					color: #333;
-					font-size: 16px;
+					font-size: 18px;
 					flex: 1;
 					min-width: 0;
+					line-height: 1.3;
 					}
 
 					.book-info {
-					font-size: 11px;
+					font-size: 12px;
 					color: #666;
 					text-align: right;
 					white-space: nowrap;
 					flex-shrink: 0;
+					background: #f8f9fa;
+					padding: 4px 8px;
+					border-radius: 4px;
 					}
 
 					.book-author {
-					font-size: 13px;
-					color: #007cba;
+					font-size: 14px;
+					color: #667eea;
 					text-decoration: none;
-					margin-bottom: 10px;
+					margin-bottom: 12px;
 					display: block;
+					font-weight: 500;
+					transition: all 0.3s ease;
 					}
 
 					.book-author:hover {
-					text-decoration: underline;
+					color: #764ba2;
+					text-decoration: none;
 					}
 
 					.book-descr {
-					font-size: 13px;
-					line-height: 1.3;
+					font-size: 14px;
+					line-height: 1.4;
 					color: #555;
 					margin-bottom: 15px;
 					}
@@ -268,148 +316,186 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					}
 
 					.read-button {
-					font-size: 11px;
-					padding: 4px 8px;
+					font-size: 12px;
+					padding: 8px 12px;
 					text-decoration: none;
-					border-radius: 3px;
+					border-radius: 6px;
 					text-align: center;
-					font-weight: bold;
+					font-weight: 600;
 					display: block;
 					width: 120px;
 					box-sizing: border-box;
-					background-color: #6c757d;
+					background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 					color: white;
-					margin-top: 5px;
+					margin-top: 8px;
+					transition: all 0.3s ease;
+					box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
 					}
 
 					.read-button:hover {
-					background-color: #5a6268;
+					background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
 					color: white;
 					text-decoration: none;
+					transform: translateY(-1px);
+					box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 					}
 
 					.download-links {
 					display: flex;
 					flex-direction: row;
-					gap: 5px;
-					margin-top: 10px;
+					gap: 6px;
+					margin-top: 12px;
 					width: 100%;
 					}
 
 					.download-link {
 					font-size: 11px;
-					padding: 4px 8px;
+					padding: 6px 8px;
 					text-decoration: none;
-					border-radius: 3px;
+					border-radius: 6px;
 					text-align: center;
-					font-weight: bold;
+					font-weight: 600;
 					display: block;
 					width: 40%;
 					box-sizing: border-box;
+					transition: all 0.3s ease;
 					}
 
 					.download-fb2 {
-					background-color: #28a745;
+					background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
 					color: white;
+					box-shadow: 0 2px 6px rgba(72, 187, 120, 0.3);
 					}
 
 					.download-fb2:hover {
-					background-color: #218838;
+					background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
 					color: white;
 					text-decoration: none;
+					transform: translateY(-1px);
+					box-shadow: 0 4px 12px rgba(72, 187, 120, 0.4);
 					}
 
 					.download-epub {
-					background-color: #007cba;
+					background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
 					color: white;
+					box-shadow: 0 2px 6px rgba(66, 153, 225, 0.3);
 					}
 
 					.download-epub:hover {
-					background-color: #005a87;
+					background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%);
 					color: white;
 					text-decoration: none;
+					transform: translateY(-1px);
+					box-shadow: 0 4px 12px rgba(66, 153, 225, 0.4);
 					}
 
 					h4 {
 					color: #333;
 					margin-top: 0;
-					margin-bottom: 20px;
-					font-size: 20px;
+					margin-bottom: 25px;
+					font-size: 24px;
+					font-weight: 600;
 					}
 
+					/* Mobile Responsive Design */
 					@media (max-width: 768px) {
 					body {
 					padding-top: 120px;
 					}
 
-					.search-section {
-					margin-top: 5px;
-					padding-top: 5px;
-					padding-left: 0;
-					padding-right: 0;
-					width: 100%;
-					box-sizing: border-box;
+					.header-content {
+					padding: 12px 16px;
+					flex-direction: column;
+					align-items: flex-start;
+					gap: 12px;
 					}
 
-					.header-content {
-					padding: 5px 10px;
+					.header-main {
 					display: flex;
 					align-items: center;
-					position: relative;
-					max-width: none;
+					gap: 16px;
+					width: 100%;
 					}
 
 					.header-icon {
-					width: 48px;
-					height: 48px;
-					margin-right: 0;
-					flex-shrink: 0;
-					}
-
-					.header-text {
-					flex-grow: 1;
-					text-align: center;
-					margin: 0;
-					position: absolute;
-					left: 50%;
-					transform: translateX(-50%);
-					width: calc(100% - 48px);
-					top: 2px;
+					width: 60px;
+					height: 60px;
 					}
 
 					.server-title {
-					font-size: 18px;
-					margin: 0 0 1px 0;
+					font-size: 22px;
+					margin-bottom: 4px;
 					}
 
 					.library-name {
-					margin: 0 10px 0 0;
 					font-size: 14px;
 					}
 
+					.search-section {
+					width: 100%;
+					margin-top: 0;
+					}
+
+					.search-form {
+					flex-direction: row;
+					gap: 8px;
+					}
+
+					.search-input {
+					flex: 1;
+					font-size: 16px; /* Prevents zoom on iOS */
+					}
+
+					.search-button {
+					flex-shrink: 0;
+					padding: 12px 16px;
+					}
 
 					.main-content {
-					padding: 10px;
-					max-width: none;
-					}
+					padding: 20px 16px;
 					}
 
-					@media (max-width: 480px) {
+					.book-item {
+					padding: 16px;
+					}
 
 					.cover {
-					width: 120px;
-					height: 170px;
-					margin-right: 10px;
+					width: 100px;
+					height: 150px;
+					margin-right: 16px;
 					}
 
 					.book-header {
 					flex-direction: column;
 					align-items: flex-start;
-					gap: 5px;
+					gap: 8px;
+					}
+
+					.book-title {
+					font-size: 16px;
 					}
 
 					.book-info {
 					text-align: left;
+					}
+					}
+
+					@media (min-width: 769px) {
+					.header-content {
+					flex-direction: row;
+					align-items: center;
+					}
+
+					.header-main {
+					display: flex;
+					align-items: center;
+					gap: 20px;
+					flex: 1;
+					}
+
+					.search-section {
+					width: 400px;
+					margin-top: 0;
 					}
 					}
 				</style>
@@ -447,40 +533,46 @@ xmlns:x="http://www.w3.org/2005/Atom">
 			<body>
 				<div class="fixed-header">
 					<div class="header-content">
-						<img src="/logo.png" alt="TinyOPDS" class="header-icon"/>
+						<div class="header-main">
+							<a href="/">
+								<img src="/logo.png" alt="TinyOPDS" class="header-icon"/>
+							</a>
 
-						<div class="header-text">
-							<div>
-								<a href="/" class="server-title">
-									<xsl:choose>
-										<xsl:when test="contains($serverVersion, 'version ')">
-											<xsl:value-of select="concat(substring-before($serverVersion, 'version '), 'v. ', substring-after($serverVersion, 'version '))"/>
-										</xsl:when>
-										<xsl:otherwise>
-											<xsl:value-of select="$serverVersion"/>
-										</xsl:otherwise>
-									</xsl:choose>
-								</a>
-							</div>
-							<div class="library-name">
-								<xsl:value-of select="$libName"/>
+							<div class="header-text">
+								<div>
+									<a href="/" class="server-title">
+										<xsl:choose>
+											<xsl:when test="contains($serverVersion, 'version ')">
+												<xsl:value-of select="concat(substring-before($serverVersion, 'version '), 'v. ', substring-after($serverVersion, 'version '))"/>
+											</xsl:when>
+											<xsl:otherwise>
+												<xsl:value-of select="$serverVersion"/>
+											</xsl:otherwise>
+										</xsl:choose>
+									</a>
+								</div>
+								<div class="library-name">
+									<a href="/" style="color: inherit; text-decoration: none;">
+										<xsl:value-of select="$libName"/>
+									</a>
+								</div>
 							</div>
 						</div>
-					</div>
 
-					<div class="search-section">
-						<form method="get" action="/search" class="search-form">
-							<input type="text" name="searchTerm" class="search-input">
-								<xsl:attribute name="placeholder">
-									<xsl:value-of select="$searchPlaceholder"/>
-								</xsl:attribute>
-							</input>
-							<input type="submit" class="search-button">
-								<xsl:attribute name="value">
-									<xsl:value-of select="$searchButtonText"/>
-								</xsl:attribute>
-							</input>
-						</form>
+						<div class="search-section">
+							<form method="get" action="/search" class="search-form">
+								<input type="text" name="searchTerm" class="search-input">
+									<xsl:attribute name="placeholder">
+										<xsl:value-of select="$searchPlaceholder"/>
+									</xsl:attribute>
+								</input>
+								<input type="submit" class="search-button">
+									<xsl:attribute name="value">
+										<xsl:value-of select="$searchButtonText"/>
+									</xsl:attribute>
+								</input>
+							</form>
+						</div>
 					</div>
 				</div>
 

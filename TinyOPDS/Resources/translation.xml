@@ -2,8 +2,8 @@
 <root>
 	<languages>
 		<language id="en">English</language>
-		<language id="ru">Русский</language>
 		<language id="uk">Українська</language>
+		<language id="ru">Русский</language>
 		<language id="de">Deutsch</language>
 		<language id="es">Español</language>
 		<language id="fr">Français</language>

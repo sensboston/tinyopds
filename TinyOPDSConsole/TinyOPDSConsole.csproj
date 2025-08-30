@@ -106,6 +106,9 @@
     <Compile Include="..\TinyOPDS\Data\DatabaseSchema.cs">
       <Link>Data\DatabaseSchema.cs</Link>
     </Compile>
+    <Compile Include="..\TinyOPDS\Data\DuplicateDetector.cs">
+      <Link>Data\DuplicateDetector.cs</Link>
+    </Compile>
     <Compile Include="..\TinyOPDS\Data\Genre.cs">
       <Link>Data\Genre.cs</Link>
     </Compile>

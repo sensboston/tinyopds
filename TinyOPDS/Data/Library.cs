@@ -27,8 +27,8 @@ namespace TinyOPDS.Data
         private static DatabaseManager db;
         private static BookRepository bookRepository;
         private static string databaseFullPath;
-        private static readonly List<Genre> genres;
-        private static readonly Dictionary<string, string> soundexedGenres;
+        private static List<Genre> genres;
+        private static Dictionary<string, string> soundexedGenres;
         private static readonly TimeSpan[] periods = new TimeSpan[7];
 
         // Author aliases - now stored in memory for fast access
@@ -42,8 +42,12 @@ namespace TinyOPDS.Data
         private static int cachedEPUBCount = 0;
         private static readonly TimeSpan CacheTimeout = TimeSpan.FromMinutes(1);
 
+        // Genre cache
+        private static DateTime lastGenresUpdate = DateTime.MinValue;
+        private static List<Genre> cachedGenres = null;
+
         /// <summary>
-        /// Static constructor - initializes periods and genres like the original
+        /// Static constructor - initializes periods
         /// </summary>
         static Library()
         {
@@ -55,41 +59,6 @@ namespace TinyOPDS.Data
             periods[4] = TimeSpan.FromDays(44);
             periods[5] = TimeSpan.FromDays(60);
             periods[6] = TimeSpan.FromDays(90);
-
-            // Load and parse genres (same as original)
-            try
-            {
-                var doc = XDocument.Load(Assembly.GetExecutingAssembly().GetManifestResourceStream(
-                    Assembly.GetExecutingAssembly().GetName().Name + ".Resources.genres.xml"));
-
-                genres = (from g in doc.Descendants("genre")
-                          select new Genre
-                          {
-                              Tag = "",
-                              Name = g.Attribute("name").Value,
-                              Translation = g.Attribute("ru").Value,
-                              Subgenres = (from sg in g.Descendants("subgenre")
-                                           select new Genre
-                                           {
-                                               Tag = sg.Attribute("tag").Value,
-                                               Name = sg.Value,
-                                               Translation = sg.Attribute("ru").Value
-                                           }).ToList()
-                          }).ToList();
-
-                soundexedGenres = new Dictionary<string, string>();
-                foreach (var genre in genres.SelectMany(g => g.Subgenres))
-                {
-                    soundexedGenres[StringUtils.Soundex(genre.Name)] = genre.Tag;
-                    soundexedGenres[StringUtils.Soundex(genre.Translation)] = genre.Tag;
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.WriteLine(LogLevel.Error, "Error loading genres: {0}", ex.Message);
-                genres = new List<Genre>();
-                soundexedGenres = new Dictionary<string, string>();
-            }
         }
 
         #region Database Initialization
@@ -112,6 +81,9 @@ namespace TinyOPDS.Data
                 db?.Dispose();
                 db = new DatabaseManager(databaseFullPath);
                 bookRepository = new BookRepository(db);
+
+                // Load genres from database into memory for fast access
+                LoadGenresFromDatabase();
 
                 // Load author aliases into memory
                 LoadAuthorAliases();
@@ -231,29 +203,56 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// All genres supported by fb2 format
+        /// All genres supported by fb2 format (loaded from database)
         /// </summary>
         public static List<Genre> FB2Genres
         {
-            get { return genres; }
+            get
+            {
+                RefreshGenresCache();
+                return cachedGenres ?? new List<Genre>();
+            }
         }
 
         public static Dictionary<string, string> SoundexedGenres
         {
-            get { return soundexedGenres; }
+            get
+            {
+                if (soundexedGenres == null)
+                {
+                    RefreshGenresCache();
+                }
+                return soundexedGenres ?? new Dictionary<string, string>();
+            }
         }
 
         /// <summary>
-        /// Returns sorted in alphabetical order list of library books genres
+        /// Returns sorted in alphabetical order list of library books genres (only genres with books)
         /// </summary>
         public static List<Genre> Genres
         {
             get
             {
-                // Simply return all subgenres from the loaded XML genres
-                var useCyrillic = Properties.Settings.Default.SortOrder > 0;
-                var comparer = new OPDSComparer(useCyrillic);
-                return genres.SelectMany(g => g.Subgenres).OrderBy(g => useCyrillic ? g.Translation : g.Name, comparer).ToList();
+                if (bookRepository == null) return new List<Genre>();
+
+                try
+                {
+                    // Get genres with books from database
+                    var genresWithBooks = bookRepository.GetGenresWithBooks();
+
+                    var useCyrillic = Properties.Settings.Default.SortOrder > 0;
+                    var comparer = new OPDSComparer(useCyrillic);
+
+                    return genresWithBooks
+                        .Select(g => g.genre)
+                        .OrderBy(g => useCyrillic ? g.Translation : g.Name, comparer)
+                        .ToList();
+                }
+                catch (Exception ex)
+                {
+                    Log.WriteLine(LogLevel.Error, "Error getting genres: {0}", ex.Message);
+                    return new List<Genre>();
+                }
             }
         }
 
@@ -365,6 +364,9 @@ namespace TinyOPDS.Data
                 Initialize();
             }
 
+            // Refresh genre cache from database
+            LoadGenresFromDatabase();
+
             Log.WriteLine("Library loaded from SQLite database in {0} ms",
                 (DateTime.Now - start).TotalMilliseconds);
 
@@ -401,6 +403,9 @@ namespace TinyOPDS.Data
             {
                 // Apply author aliases before saving to database
                 ApplyAliasesToBookAuthors(book);
+
+                // Normalize genre tags using soundex if needed
+                NormalizeBookGenres(book);
 
                 // Check for duplicates (similar to original logic)
                 var existingBook = bookRepository.GetBookById(book.ID);
@@ -473,6 +478,9 @@ namespace TinyOPDS.Data
                     // Apply author aliases before processing
                     ApplyAliasesToBookAuthors(book);
 
+                    // Normalize genre tags
+                    NormalizeBookGenres(book);
+
                     // Check for duplicates and handle ID conflicts
                     var existingBook = bookRepository.GetBookById(book.ID);
                     if (existingBook != null && !book.Title.Equals(existingBook.Title))
@@ -513,6 +521,8 @@ namespace TinyOPDS.Data
                 result.Errors = batchResult.Errors;
                 result.FB2Count = batchResult.FB2Count;
                 result.EPUBCount = batchResult.EPUBCount;
+                result.InvalidGenresSkipped = batchResult.InvalidGenresSkipped;
+                result.InvalidGenreTags = batchResult.InvalidGenreTags;
                 result.ErrorMessages = batchResult.ErrorMessages;
                 result.ProcessingTime = DateTime.Now - startTime;
 
@@ -520,8 +530,9 @@ namespace TinyOPDS.Data
                 {
                     IsChanged = true;
                     InvalidateStatsCache();
-                    Log.WriteLine("Library.AddBatch completed: {0} added, {1} duplicates, {2} errors in {3}ms",
-                        result.Added, result.Duplicates, result.Errors, result.ProcessingTime.TotalMilliseconds);
+                    Log.WriteLine("Library.AddBatch completed: {0} added, {1} duplicates, {2} errors, {3} invalid genres in {4}ms",
+                        result.Added, result.Duplicates, result.Errors, result.InvalidGenresSkipped,
+                        result.ProcessingTime.TotalMilliseconds);
                 }
 
                 return result;
@@ -683,6 +694,146 @@ namespace TinyOPDS.Data
                 Log.WriteLine(LogLevel.Error, "Error removing non-existing books: {0}", ex.Message);
                 return false;
             }
+        }
+
+        #endregion
+
+        #region Genre Management
+
+        /// <summary>
+        /// Load genres from database into memory cache
+        /// </summary>
+        private static void LoadGenresFromDatabase()
+        {
+            try
+            {
+                if (db == null) return;
+
+                genres = db.GetAllGenres();
+
+                // Build soundexed genres dictionary for fuzzy matching
+                soundexedGenres = new Dictionary<string, string>();
+                foreach (var genre in genres.SelectMany(g => g.Subgenres))
+                {
+                    string soundexEn = StringUtils.Soundex(genre.Name);
+                    string soundexRu = StringUtils.Soundex(genre.Translation);
+
+                    if (!string.IsNullOrEmpty(soundexEn) && !soundexedGenres.ContainsKey(soundexEn))
+                        soundexedGenres[soundexEn] = genre.Tag;
+
+                    if (!string.IsNullOrEmpty(soundexRu) && !soundexedGenres.ContainsKey(soundexRu))
+                        soundexedGenres[soundexRu] = genre.Tag;
+                }
+
+                cachedGenres = genres;
+                lastGenresUpdate = DateTime.Now;
+
+                Log.WriteLine("Loaded {0} genres from database into memory cache",
+                    genres.SelectMany(g => g.Subgenres).Count());
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error loading genres from database: {0}", ex.Message);
+                genres = new List<Genre>();
+                soundexedGenres = new Dictionary<string, string>();
+            }
+        }
+
+        /// <summary>
+        /// Refresh genres cache if needed
+        /// </summary>
+        private static void RefreshGenresCache()
+        {
+            if (db == null) return;
+
+            // Refresh every 5 minutes or if never loaded
+            if (cachedGenres == null || DateTime.Now - lastGenresUpdate > TimeSpan.FromMinutes(5))
+            {
+                LoadGenresFromDatabase();
+            }
+        }
+
+        /// <summary>
+        /// Normalize book genres using soundex matching
+        /// </summary>
+        private static void NormalizeBookGenres(Book book)
+        {
+            if (book.Genres == null || book.Genres.Count == 0) return;
+
+            RefreshGenresCache();
+
+            var normalizedGenres = new List<string>();
+
+            foreach (var genreTag in book.Genres)
+            {
+                // First check if it's already a valid tag
+                if (genres != null && genres.SelectMany(g => g.Subgenres).Any(g => g.Tag == genreTag))
+                {
+                    normalizedGenres.Add(genreTag);
+                    continue;
+                }
+
+                // Try soundex matching
+                string soundex = StringUtils.Soundex(genreTag);
+                if (!string.IsNullOrEmpty(soundex) && soundexedGenres != null && soundexedGenres.ContainsKey(soundex))
+                {
+                    string normalizedTag = soundexedGenres[soundex];
+                    if (!normalizedGenres.Contains(normalizedTag))
+                    {
+                        normalizedGenres.Add(normalizedTag);
+                        Log.WriteLine(LogLevel.Info, "Normalized genre '{0}' to '{1}' using soundex",
+                            genreTag, normalizedTag);
+                    }
+                }
+                else
+                {
+                    // Keep unknown genre - it will be validated by BookRepository
+                    normalizedGenres.Add(genreTag);
+                }
+            }
+
+            book.Genres = normalizedGenres;
+        }
+
+        /// <summary>
+        /// Reload genres from XML to database
+        /// </summary>
+        public static void ReloadGenresFromXML()
+        {
+            try
+            {
+                if (db == null) return;
+
+                db.ReloadGenres();
+                LoadGenresFromDatabase();
+
+                // Refresh valid genre tags in repository
+                bookRepository?.RefreshValidGenreTags();
+
+                Log.WriteLine("Genres reloaded from XML to database");
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error reloading genres: {0}", ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Validate and fix book genres in database
+        /// </summary>
+        public static int ValidateAndFixGenres()
+        {
+            if (bookRepository == null) return -1;
+
+            int fixedCount = bookRepository.ValidateAndFixBookGenres();
+
+            if (fixedCount > 0)
+            {
+                InvalidateStatsCache();
+                Log.WriteLine("Fixed {0} invalid genre entries", fixedCount);
+            }
+
+            return fixedCount;
         }
 
         #endregion

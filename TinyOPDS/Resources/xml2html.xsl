@@ -51,7 +51,7 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 					background-color: #ffffff;
 					line-height: 1.4;
-					padding-top: 160px;
+					padding-top: 140px;
 					}
 
 					.fixed-header {
@@ -245,7 +245,7 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					height: 190px;
 					max-width: 120px;
 					flex-shrink: 0;
-					margin-right: 20px;
+					margin-right: 0;
 					border-radius: 8px;
 					object-fit: cover;
 					box-shadow: 0 2px 8px rgba(0,0,0,0.15);
@@ -311,8 +311,9 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					display: flex;
 					flex-direction: column;
 					align-items: flex-start;
-					width: 140px;
+					width: 120px;
 					flex-shrink: 0;
+					margin-right: 25px;
 					}
 
 					.read-button {
@@ -323,7 +324,16 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					text-align: center;
 					font-weight: 600;
 					display: block;
-					width: 120px;
+					width: 100%;
+					box-sizing: border-box;
+					background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+					color: white;
+					margin-top: 8px;
+					transition: all 0.3s ease;
+					box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+					}
+					display: block;
+					width: calc(100% - 6px);
 					box-sizing: border-box;
 					background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 					color: white;
@@ -343,20 +353,20 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					.download-links {
 					display: flex;
 					flex-direction: row;
-					gap: 6px;
+					gap: 4px;
 					margin-top: 12px;
-					width: 100%;
+					width: 120px;
 					}
 
 					.download-link {
 					font-size: 11px;
-					padding: 6px 8px;
+					padding: 6px 4px;
 					text-decoration: none;
 					border-radius: 6px;
 					text-align: center;
 					font-weight: 600;
 					display: block;
-					width: 40%;
+					width: 58px;
 					box-sizing: border-box;
 					transition: all 0.3s ease;
 					}
@@ -400,7 +410,7 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					/* Mobile Responsive Design */
 					@media (max-width: 768px) {
 					body {
-					padding-top: 120px;
+					padding-top: 140px;
 					}
 
 					.header-content {
@@ -434,16 +444,18 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					.search-section {
 					width: 100%;
 					margin-top: 0;
+					padding-right: 18px;
 					}
 
 					.search-form {
 					flex-direction: row;
-					gap: 8px;
+					gap: 10px;
 					}
 
 					.search-input {
 					flex: 1;
 					font-size: 16px; /* Prevents zoom on iOS */
+					max-width: calc(100% - 90px);
 					}
 
 					.search-button {
@@ -462,7 +474,20 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					.cover {
 					width: 100px;
 					height: 150px;
-					margin-right: 16px;
+					margin-right: 0;
+					}
+
+					.download-section {
+					width: 100px;
+					margin-right: 20px;
+					}
+
+					.download-links {
+					width: 100px;
+					}
+
+					.download-link {
+					width: 48px;
 					}
 
 					.book-header {

@@ -17,17 +17,13 @@
             color: #e1e1e1;
             line-height: 1.6;
             overflow-x: hidden;
-            /* Smooth scrolling for better navigation */
             scroll-behavior: smooth;
-            /* Fix mobile viewport issues */
             width: 100vw;
             min-width: 100vw;
-            /* Prevent horizontal scroll */
             max-width: 100vw;
             position: relative;
         }
 
-        /* Menu toggle button */
         .menu-toggle {
             position: fixed;
             top: 0;
@@ -46,17 +42,14 @@
             font-size: 20px;
             transition: all 0.3s ease;
             backdrop-filter: blur(10px);
-            /* Force positioning relative to viewport, not document */
             min-width: 40px;
             min-height: 40px;
             margin: 0;
             transform: translateX(0);
-            /* Ensure it stays within viewport bounds */
             max-width: 40px;
             max-height: 40px;
         }
 
-        /* Override any potential interference from content width */
         .menu-toggle {
             right: 0 !important;
             position: fixed !important;
@@ -72,13 +65,12 @@
                 color: white;
             }
 
-        /* Top toolbar - dark theme */
         .toolbar {
             position: fixed;
             top: -100%;
             left: 0;
             right: 0;
-            background: rgba(42, 42, 42, 0.98);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             backdrop-filter: blur(10px);
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             z-index: 1000;
@@ -90,7 +82,6 @@
                 top: 0;
             }
 
-        /* Book info row */
         .book-info {
             padding: 10px 20px;
             display: flex;
@@ -121,18 +112,14 @@
             margin-right: 60px;
         }
 
-        /* Controls row - FIXED for single row */
         .controls {
-            padding: 12px 20px 35px 20px; /* Increased bottom padding for tooltips */
+            padding: 12px 20px 35px 20px;
             display: flex;
             gap: 20px;
             align-items: center;
             justify-content: center;
-            /* CRITICAL: Prevent wrapping to ensure single row */
             flex-wrap: nowrap;
-            /* Allow horizontal scroll if needed on very small screens */
             overflow-x: auto;
-            /* Hide scrollbar for cleaner look */
             scrollbar-width: none;
             -ms-overflow-style: none;
         }
@@ -141,14 +128,13 @@
                 display: none;
             }
 
-        /* Elegant dark buttons */
         .control-btn {
             width: 40px;
             height: 40px;
-            background: rgba(70, 70, 70, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 8px;
-            color: rgba(255, 255, 255, 0.9);
+            color: #667eea;
             font-size: 18px;
             cursor: pointer;
             display: flex;
@@ -156,38 +142,39 @@
             justify-content: center;
             transition: all 0.2s ease;
             position: relative;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-            /* Prevent shrinking */
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
             flex-shrink: 0;
+            font-weight: 600;
         }
 
             .control-btn:hover {
-                background: rgba(90, 90, 90, 0.9);
-                border-color: rgba(255, 255, 255, 0.25);
+                background: rgba(255, 255, 255, 1);
+                border-color: rgba(255, 255, 255, 0.5);
                 transform: translateY(-1px);
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+                color: #764ba2;
             }
 
             .control-btn:active {
                 transform: translateY(0);
-                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
             }
 
             .control-btn.active {
-                background: rgba(0, 122, 204, 0.8);
-                color: white;
-                border-color: rgba(0, 122, 204, 0.3);
+                background: rgba(255, 255, 255, 1);
+                color: #667eea;
+                border-color: #667eea;
+                box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.3);
             }
 
             .control-btn:disabled {
-                background: rgba(50, 50, 50, 0.5);
-                color: rgba(255, 255, 255, 0.3);
+                background: rgba(255, 255, 255, 0.3);
+                color: rgba(102, 126, 234, 0.4);
                 cursor: not-allowed;
                 opacity: 0.5;
                 box-shadow: none;
             }
 
-        /* Control groups */
         .control-group {
             display: flex;
             gap: 8px;
@@ -195,7 +182,6 @@
             border-right: 1px solid rgba(255, 255, 255, 0.1);
             align-items: center;
             justify-content: center;
-            /* Prevent shrinking */
             flex-shrink: 0;
         }
 
@@ -205,12 +191,10 @@
                 padding-right: 0;
             }
 
-            /* Desktop-only control group - Hidden on mobile */
             .control-group.desktop-only {
                 display: flex;
             }
 
-        /* Font indicators */
         .font-indicator {
             font-size: 16px;
             font-weight: bold;
@@ -228,7 +212,6 @@
                 font-family: 'Courier New', monospace;
             }
 
-        /* Click areas for page navigation */
         .click-area {
             position: fixed;
             width: 100%;
@@ -252,12 +235,10 @@
                 bottom: 0;
             }
 
-        /* Reader container */
         .reader-container {
             padding: 20px;
             min-height: 100vh;
             transition: all 0.3s ease;
-            /* Prevent horizontal overflow */
             max-width: 100vw;
             overflow-x: hidden;
         }
@@ -273,7 +254,6 @@
                 margin: 0 auto;
             }
 
-        /* Book content */
         .book-content {
             background: white;
             color: #333;
@@ -285,7 +265,6 @@
             display: block;
             transition: all 0.3s ease;
             min-height: calc(100vh - 40px);
-            /* Prevent horizontal overflow */
             overflow-x: hidden;
             word-wrap: break-word;
             word-break: break-word;
@@ -293,7 +272,6 @@
             max-width: 100%;
         }
 
-            /* Book content */
             .book-content.font-serif {
                 font-family: Georgia, 'Times New Roman', serif;
             }
@@ -306,14 +284,11 @@
                 font-family: 'Courier New', Courier, monospace;
             }
 
-        /* Hyphenation support - always enabled */
         .book-content {
-            /* Enable hyphenation globally */
             hyphens: auto !important;
             -webkit-hyphens: auto !important;
             -moz-hyphens: auto !important;
             -ms-hyphens: auto !important;
-            /* Ensure proper word breaking */
             word-wrap: break-word;
             word-break: normal;
             overflow-wrap: break-word;
@@ -328,23 +303,19 @@
             .book-content h4,
             .book-content h5,
             .book-content h6 {
-                /* Apply hyphenation to all text elements */
                 hyphens: auto !important;
                 -webkit-hyphens: auto !important;
                 -moz-hyphens: auto !important;
                 -ms-hyphens: auto !important;
-                /* Limit consecutive hyphens */
                 -webkit-hyphenate-limit-lines: 2;
                 -ms-hyphenate-limit-lines: 2;
                 hyphenate-limit-lines: 2;
-                /* Minimum characters for hyphenation */
                 -webkit-hyphenate-limit-chars: 5 2 2;
                 -moz-hyphenate-limit-chars: 5 2 2;
                 -ms-hyphenate-limit-chars: 5 2 2;
                 hyphenate-limit-chars: 5 2 2;
             }
 
-            /* Ensure Russian language support */
             .book-content[lang="ru"] p,
             .book-content[lang="ru"] div {
                 hyphens: auto !important;
@@ -353,7 +324,6 @@
                 -ms-hyphens: auto !important;
             }
 
-            /* Themes */
             .book-content.light {
                 background: white;
                 color: #333;
@@ -381,7 +351,6 @@
             background: #f4f1e8;
         }
 
-        /* Book elements */
         .book-content h1, .book-content h2, .book-content h3 {
             margin: 30px 0 20px;
             font-weight: 600;
@@ -403,16 +372,13 @@
             margin: 15px 0;
             text-align: justify;
             text-indent: 1.5em;
-            /* Enable hyphenation for better mobile reading */
             hyphens: auto;
             -webkit-hyphens: auto;
             -moz-hyphens: auto;
             -ms-hyphens: auto;
-            /* Limit consecutive hyphens */
             -webkit-hyphenate-limit-lines: 2;
             -ms-hyphenate-limit-lines: 2;
             hyphenate-limit-lines: 2;
-            /* Minimum word length for hyphenation */
             -webkit-hyphenate-limit-chars: 6 3 2;
             -moz-hyphenate-limit-chars: 6 3 2;
             -ms-hyphenate-limit-chars: 6 3 2;
@@ -430,7 +396,6 @@
             text-indent: 0;
         }
 
-        /* Images in book */
         .book-content img {
             max-width: 100%;
             height: auto;
@@ -440,7 +405,6 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
-        /* Prevent any element from breaking layout */
         .book-content * {
             max-width: 100%;
             overflow-wrap: break-word;
@@ -448,7 +412,6 @@
             word-break: break-word;
         }
 
-        /* Handle pre and code blocks */
         .book-content pre,
         .book-content code {
             white-space: pre-wrap;
@@ -457,14 +420,12 @@
             overflow-x: auto;
         }
 
-        /* Handle tables */
         .book-content table {
             max-width: 100%;
             overflow-x: auto;
             display: block;
         }
 
-        /* TOC Overlay */
         .toc-overlay {
             position: fixed;
             top: 0;
@@ -483,7 +444,6 @@
                 opacity: 1;
             }
 
-        /* TOC Panel */
         .toc-panel {
             position: fixed;
             top: 50%;
@@ -508,7 +468,6 @@
             transform: translate(-50%, -50%) scale(1);
         }
 
-        /* TOC Header */
         .toc-header {
             padding: 20px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -543,7 +502,6 @@
                 color: white;
             }
 
-        /* TOC Content */
         .toc-content {
             flex: 1;
             overflow-y: auto;
@@ -568,7 +526,6 @@
                     background: rgba(255, 255, 255, 0.3);
                 }
 
-        /* TOC Items */
         .toc-item {
             padding: 12px 15px;
             margin: 5px 0;
@@ -601,7 +558,6 @@
             font-style: italic;
         }
 
-        /* Progress bar */
         .progress-bar {
             position: fixed;
             bottom: 0;
@@ -612,7 +568,6 @@
             z-index: 1000;
         }
 
-        /* Loading */
         .loading {
             display: flex;
             align-items: center;
@@ -642,7 +597,6 @@
             }
         }
 
-        /* Error */
         .error {
             background: rgba(220, 53, 69, 0.1);
             border: 1px solid #dc3545;
@@ -653,7 +607,6 @@
             text-align: center;
         }
 
-        /* Tooltip - Desktop only */
         .tooltip {
             position: absolute;
             bottom: -30px;
@@ -678,9 +631,7 @@
             display: none;
         }
 
-        /* Mobile optimizations */
         @media (max-width: 768px) {
-            /* Hide tooltips on mobile - they don't make sense on touch devices */
             .tooltip {
                 display: none !important;
             }
@@ -707,13 +658,10 @@
                 margin-right: 50px;
             }
 
-            /* Mobile controls optimization */
             .controls {
                 padding: 10px 8px;
                 gap: 12px;
-                /* IMPORTANT: Keep horizontal scroll on mobile */
                 overflow-x: auto;
-                /* Smooth scrolling on touch devices */
                 -webkit-overflow-scrolling: touch;
             }
 
@@ -721,7 +669,6 @@
                 width: 38px;
                 height: 38px;
                 font-size: 16px;
-                /* Ensure buttons don't shrink on mobile */
                 min-width: 38px;
                 min-height: 38px;
             }
@@ -729,11 +676,9 @@
             .control-group {
                 gap: 5px;
                 padding: 0 8px;
-                /* Ensure groups don't shrink */
                 flex-shrink: 0;
             }
 
-                /* Special padding for first and last groups */
                 .control-group:first-child {
                     padding-left: 0;
                 }
@@ -744,7 +689,6 @@
                     border-right: none !important;
                 }
 
-                /* Hide desktop-only controls on mobile */
                 .control-group.desktop-only {
                     display: none !important;
                 }
@@ -777,7 +721,6 @@
             }
         }
 
-        /* Extra small mobile devices */
         @media (max-width: 360px) {
             .controls {
                 gap: 10px;
@@ -879,7 +822,6 @@
         </div>
     </div>
 
-    <!-- TOC Overlay -->
     <div class="toc-overlay" id="tocOverlay">
         <div class="toc-panel">
             <div class="toc-header">
@@ -922,10 +864,9 @@
                 this.images = {};
                 this.chapters = [];
                 this.currentChapterIndex = -1;
-                this.isScrolling = false; // Flag to handle TOC navigation
-                this.detectedLanguage = 'en'; // Default language
+                this.isScrolling = false;
+                this.detectedLanguage = 'en';
 
-                // Localization strings with English defaults
                 this.strings = {
                     tableOfContents: 'Table of Contents',
                     openBook: 'Open Book',
@@ -990,7 +931,6 @@
                     }
                 }
 
-                // Update TOC title
                 const tocTitle = document.querySelector('.toc-title');
                 if (tocTitle) {
                     tocTitle.textContent = this.strings.tableOfContents;
@@ -1015,55 +955,40 @@
             }
 
             bindEvents() {
-                // Menu toggle
                 this.menuToggle.onclick = () => this.toggleMenu();
 
-                // Click areas for page navigation
                 this.clickTop.onclick = () => this.scrollPage(-1);
                 this.clickBottom.onclick = () => this.scrollPage(1);
 
-                // TOC button
                 const tocBtn = document.getElementById('tocButton');
                 if (tocBtn) {
                     tocBtn.onclick = () => this.showTOC();
                 }
 
-                // TOC close button
                 this.tocClose.onclick = () => this.hideTOC();
 
-                // Close TOC when clicking overlay background
                 this.tocOverlay.onclick = (e) => {
                     if (e.target === this.tocOverlay) {
                         this.hideTOC();
                     }
                 };
 
-                // File input - removed from interface, but keep handler for programmatic use
-                // document.getElementById('openFile').onclick = () => {
-                //     this.fileInput.click();
-                // };
                 this.fileInput.onchange = (e) => this.handleFileSelect(e.target.files[0]);
 
-                // Font controls
                 document.getElementById('decreaseFont').onclick = () => this.changeFontSize(-2);
                 document.getElementById('increaseFont').onclick = () => this.changeFontSize(2);
                 document.getElementById('fontToggle').onclick = () => this.toggleFont();
 
-                // Theme control
                 document.getElementById('themeToggle').onclick = () => this.toggleTheme();
 
-                // Margin controls
                 document.getElementById('decreaseMargins').onclick = () => this.changeMargins(-10);
                 document.getElementById('increaseMargins').onclick = () => this.changeMargins(10);
 
-                // Width controls
                 document.getElementById('standardWidth').onclick = () => this.setWidthMode('standard');
                 document.getElementById('fullWidth').onclick = () => this.setWidthMode('full-width');
 
-                // Fullscreen
                 document.getElementById('fullscreen').onclick = () => this.toggleFullscreen();
 
-                // Scroll progress
                 window.onscroll = () => {
                     this.updateProgress();
                     if (!this.isScrolling) {
@@ -1071,10 +996,8 @@
                     }
                 };
 
-                // Keyboard shortcuts
                 document.onkeydown = (e) => this.handleKeyboard(e);
 
-                // Close menu when clicking outside
                 document.onclick = (e) => {
                     if (!this.toolbar.contains(e.target) &&
                         !this.menuToggle.contains(e.target) &&
@@ -1100,7 +1023,6 @@
                 this.tocOverlay.classList.add('visible');
                 this.renderTOC();
 
-                // Close menu if open
                 if (this.menuVisible) {
                     this.toggleMenu();
                 }
@@ -1121,17 +1043,16 @@
                 this.chapters.forEach((chapter, index) => {
                     const isCurrent = index === this.currentChapterIndex;
                     tocHTML += `
-                                <div class="toc-item ${isCurrent ? 'current' : ''}"
-                                     data-chapter-id="${chapter.id}"
-                                     data-chapter-index="${index}">
-                                    ${chapter.title}
-                                </div>
-                            `;
+                                    <div class="toc-item ${isCurrent ? 'current' : ''}"
+                                         data-chapter-id="${chapter.id}"
+                                         data-chapter-index="${index}">
+                                        ${chapter.title}
+                                    </div>
+                                `;
                 });
 
                 this.tocContent.innerHTML = tocHTML;
 
-                // Bind click events to TOC items
                 this.tocContent.querySelectorAll('.toc-item').forEach(item => {
                     item.onclick = () => {
                         const chapterId = item.getAttribute('data-chapter-id');
@@ -1143,19 +1064,16 @@
             navigateToChapter(chapterId) {
                 const element = document.getElementById(chapterId);
                 if (element) {
-                    // Set flag to prevent chapter update during scroll
                     this.isScrolling = true;
 
-                    // Scroll to element with offset for toolbar
                     const elementTop = element.offsetTop;
-                    const offset = 100; // Account for potential toolbar
+                    const offset = 100;
 
                     window.scrollTo({
                         top: elementTop - offset,
                         behavior: 'smooth'
                     });
 
-                    // Reset flag after scroll animation
                     setTimeout(() => {
                         this.isScrolling = false;
                         this.updateCurrentChapter();
@@ -1171,7 +1089,6 @@
                 const scrollTop = window.pageYOffset;
                 let newChapterIndex = -1;
 
-                // Find current chapter based on scroll position
                 for (let i = this.chapters.length - 1; i >= 0; i--) {
                     const element = document.getElementById(this.chapters[i].id);
                     if (element && element.offsetTop <= scrollTop + 150) {
@@ -1183,7 +1100,6 @@
                 if (newChapterIndex !== this.currentChapterIndex) {
                     this.currentChapterIndex = newChapterIndex;
 
-                    // Update TOC if visible
                     if (this.tocVisible) {
                         this.renderTOC();
                     }
@@ -1194,7 +1110,6 @@
                 const viewportHeight = window.innerHeight;
                 const scrollAmount = viewportHeight * 0.9;
 
-                // Temporarily disable smooth scrolling for manual page turns
                 const oldScrollBehavior = document.body.style.scrollBehavior;
                 document.body.style.scrollBehavior = 'smooth';
 
@@ -1203,7 +1118,6 @@
                     behavior: 'smooth'
                 });
 
-                // Restore original scroll behavior
                 setTimeout(() => {
                     document.body.style.scrollBehavior = oldScrollBehavior;
                 }, 500);
@@ -1226,19 +1140,15 @@
                     let fb2Content;
 
                     if (fileName.endsWith('.epub')) {
-                        // Convert EPUB to FB2
                         fb2Content = await this.convertEpubToFb2(file);
                     } else if (fileName.endsWith('.fb2.zip') || fileName.endsWith('.zip')) {
-                        // Extract FB2 from ZIP
                         fb2Content = await this.extractFB2FromZip(file);
                     } else if (fileName.endsWith('.fb2')) {
-                        // Read FB2 directly
                         fb2Content = await this.readFile(file);
                     } else {
                         throw new Error('Unsupported file format');
                     }
 
-                    // Parse and display FB2
                     const bookData = await this.parseFB2(fb2Content);
                     this.displayBook(bookData);
 
@@ -1256,21 +1166,17 @@
             async convertEpubToFb2(file) {
                 const zip = await JSZip.loadAsync(file);
 
-                // 1. Read container.xml to find content.opf
                 const containerXml = await zip.file('META-INF/container.xml').async('string');
                 const containerDoc = new DOMParser().parseFromString(containerXml, 'text/xml');
                 const opfPath = containerDoc.querySelector('rootfile').getAttribute('full-path');
                 const opfDir = opfPath.substring(0, opfPath.lastIndexOf('/'));
 
-                // 2. Read content.opf
                 const opfContent = await zip.file(opfPath).async('string');
                 const opfDoc = new DOMParser().parseFromString(opfContent, 'text/xml');
 
-                // 3. Extract metadata
                 const title = opfDoc.querySelector('metadata title')?.textContent || this.strings.noTitle;
                 const creator = opfDoc.querySelector('metadata creator')?.textContent || this.strings.unknownAuthor;
 
-                // 4. Extract spine order
                 const spine = opfDoc.querySelectorAll('spine itemref');
                 const manifest = {};
                 opfDoc.querySelectorAll('manifest item').forEach(item => {
@@ -1280,9 +1186,8 @@
                     };
                 });
 
-                // 5. Extract images and convert to base64
                 this.images = {};
-                const imageMap = {}; // Maps image paths to IDs
+                const imageMap = {};
                 let imageIndex = 0;
 
                 for (let id in manifest) {
@@ -1301,20 +1206,18 @@
                     }
                 }
 
-                // 6. Build FB2 content
                 let fb2Content = `<?xml version="1.0" encoding="UTF-8"?>
 <FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0" xmlns:l="http://www.w3.org/1999/xlink">
 <description>
-            <title-info>
-                <book-title>${this.escapeXml(title)}</book-title>
-                <author>
-                    <first-name>${this.escapeXml(creator)}</first-name>
-                </author>
-            </title-info>
+                <title-info>
+                    <book-title>${this.escapeXml(title)}</book-title>
+                    <author>
+                        <first-name>${this.escapeXml(creator)}</first-name>
+                    </author>
+                </title-info>
 </description>
 <body>`;
 
-                // 7. Process chapters in spine order
                 this.chapters = [];
                 let chapterIndex = 0;
                 for (let itemRef of spine) {
@@ -1327,11 +1230,9 @@
                     try {
                         const chapterHtml = await zip.file(chapterPath).async('string');
 
-                        // Convert HTML to FB2
                         const fb2Chapter = this.convertHtmlToFb2(chapterHtml, opfDir, imageMap, chapterIndex);
                         fb2Content += fb2Chapter;
 
-                        // Extract chapter title for TOC
                         const chapterDoc = new DOMParser().parseFromString(chapterHtml, 'text/html');
                         const chapterTitle = chapterDoc.querySelector('h1, h2, h3, title')?.textContent || `Chapter ${chapterIndex + 1}`;
                         this.chapters.push({ title: chapterTitle, id: `chapter_${chapterIndex}` });
@@ -1343,7 +1244,6 @@
 
                 fb2Content += '</body>';
 
-                // 8. Add binary images at the end
                 for (let imageId in this.images) {
                     const base64Data = this.images[imageId].split(',')[1];
                     const mimeType = this.images[imageId].match(/data:([^;]+);/)[1];
@@ -1358,7 +1258,6 @@
                 const doc = new DOMParser().parseFromString(html, 'text/html');
                 let fb2 = `<section id="chapter_${chapterIndex}">`;
 
-                // Process all elements
                 const processElement = (element) => {
                     let result = '';
 
@@ -1397,15 +1296,12 @@
                                 case 'img':
                                     let src = node.getAttribute('src');
                                     if (src) {
-                                        // Clean up the src path
                                         src = src.replace(/^\.\.\//, '').replace(/^\.\//, '');
 
-                                        // Try to find the image
                                         let imageId = null;
                                         if (imageMap[src]) {
                                             imageId = imageMap[src];
                                         } else {
-                                            // Try with base directory
                                             const fullPath = baseDir ? `${baseDir}/${src}` : src;
                                             if (imageMap[fullPath]) {
                                                 imageId = imageMap[fullPath];
@@ -1418,7 +1314,6 @@
                                     }
                                     break;
                                 case 'a':
-                                    // Process links but extract only text content
                                     result += processElement(node);
                                     break;
                                 case 'blockquote':
@@ -1426,7 +1321,6 @@
                                     break;
                                 case 'pre':
                                 case 'code':
-                                    // Convert to paragraphs with preserved formatting
                                     const codeContent = node.textContent || '';
                                     if (codeContent.trim()) {
                                         result += `<p>${this.escapeXml(codeContent)}</p>`;
@@ -1434,7 +1328,6 @@
                                     break;
                                 case 'ul':
                                 case 'ol':
-                                    // Process lists
                                     for (let li of node.children) {
                                         if (li.tagName && li.tagName.toLowerCase() === 'li') {
                                             result += `<p>• ${processElement(li)}</p>`;
@@ -1442,7 +1335,6 @@
                                     }
                                     break;
                                 case 'table':
-                                    // Convert tables to simple text representation
                                     result += '<p>[Table content]</p>';
                                     for (let row of node.querySelectorAll('tr')) {
                                         let rowText = '';
@@ -1459,7 +1351,6 @@
                                     break;
                                 case 'sup':
                                 case 'sub':
-                                    // Convert to regular text
                                     result += processElement(node);
                                     break;
                                 case 'div':
@@ -1471,17 +1362,14 @@
                                 case 'header':
                                 case 'footer':
                                 case 'main':
-                                    // Process container elements
                                     result += processElement(node);
                                     break;
                                 case 'style':
                                 case 'script':
                                 case 'link':
                                 case 'meta':
-                                    // Skip these elements completely
                                     break;
                                 default:
-                                    // For any unknown tags, just process their content
                                     result += processElement(node);
                             }
                         }
@@ -1510,7 +1398,6 @@
                 try {
                     const zip = await JSZip.loadAsync(file);
 
-                    // Find FB2 file in archive
                     let fb2File = null;
                     for (let fileName in zip.files) {
                         if (fileName.toLowerCase().endsWith('.fb2')) {
@@ -1523,7 +1410,6 @@
                         throw new Error('FB2 file not found in archive');
                     }
 
-                    // Extract FB2 content
                     return await fb2File.async('string');
                 } catch (error) {
                     throw new Error('Error extracting archive: ' + error.message);
@@ -1537,11 +1423,9 @@
                         const arrayBuffer = e.target.result;
                         const uint8Array = new Uint8Array(arrayBuffer);
 
-                        // Detect encoding
                         const encoding = this.detectEncoding(uint8Array);
                         console.log('Detected encoding:', encoding);
 
-                        // Decode with detected encoding
                         const text = this.decodeText(uint8Array, encoding);
                         resolve(text);
                     };
@@ -1551,7 +1435,6 @@
             }
 
             detectEncoding(bytes) {
-                // Check for BOM first
                 if (bytes.length >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
                     return 'utf-8';
                 }
@@ -1562,38 +1445,26 @@
                     return 'utf-16be';
                 }
 
-                // Sample first 8KB for analysis (increased for better detection)
                 const sampleSize = Math.min(bytes.length, 8192);
                 const sample = bytes.slice(0, sampleSize);
 
-                // Check if it's valid UTF-8 - this is the most important check
                 if (this.isValidUTF8(sample)) {
-                    // Additional check: if it's valid UTF-8 and contains typical XML/FB2 markers, it's UTF-8
                     const decoder = new TextDecoder('utf-8');
                     const text = decoder.decode(sample);
                     if (text.includes('<?xml') || text.includes('<FictionBook') || text.includes('encoding=')) {
-                        console.log('Detected UTF-8 based on valid sequences and XML markers');
                         return 'utf-8';
                     }
 
-                    // Check if UTF-8 contains mostly ASCII (which would make other encodings score higher)
                     let nonAsciiCount = 0;
                     for (let i = 0; i < sample.length; i++) {
                         if (sample[i] >= 128) nonAsciiCount++;
                     }
 
-                    // If less than 5% non-ASCII in valid UTF-8, it's likely UTF-8
                     if (nonAsciiCount / sample.length < 0.05) {
-                        console.log('Detected UTF-8 based on valid sequences and low non-ASCII ratio');
                         return 'utf-8';
                     }
-
-                    // If it's valid UTF-8 with substantial non-ASCII content, still prefer UTF-8
-                    // but check if legacy encoding makes more sense
-                    console.log('Valid UTF-8 detected, checking if legacy encoding is more likely');
                 }
 
-                // Count frequency of high bytes for encoding detection
                 const highBytes = [];
                 let totalHighBytes = 0;
                 for (let i = 0; i < sample.length; i++) {
@@ -1604,35 +1475,26 @@
                 }
 
                 if (totalHighBytes === 0) {
-                    return 'utf-8'; // Pure ASCII
+                    return 'utf-8';
                 }
 
-                // Only do statistical analysis if UTF-8 validation failed OR
-                // if we have a lot of high bytes that might indicate legacy encoding
                 let shouldCheckLegacy = !this.isValidUTF8(sample);
 
                 if (!shouldCheckLegacy) {
-                    // Even if UTF-8 is valid, check if we have suspicious patterns
-                    // that might indicate misencoded legacy text
-                    const suspiciousPatterns = totalHighBytes > sample.length * 0.3; // More than 30% high bytes
+                    const suspiciousPatterns = totalHighBytes > sample.length * 0.3;
                     shouldCheckLegacy = suspiciousPatterns;
                 }
 
                 if (!shouldCheckLegacy) {
-                    console.log('UTF-8 validation passed and no suspicious patterns, using UTF-8');
                     return 'utf-8';
                 }
 
-                // Detect legacy encodings only if UTF-8 seems unlikely
                 const cp866Score = this.scoreCyrillicCP866(highBytes);
                 const win1251Score = this.scoreCyrillicWin1251(highBytes);
                 const koi8rScore = this.scoreCyrillicKOI8R(highBytes);
-
-                // Detect Western European encodings
                 const win1252Score = this.scoreWesternWin1252(highBytes);
                 const iso88591Score = this.scoreWesternISO88591(highBytes);
 
-                // Find best match
                 const scores = [
                     { encoding: 'cp866', score: cp866Score },
                     { encoding: 'windows-1251', score: win1251Score },
@@ -1643,16 +1505,10 @@
 
                 scores.sort((a, b) => b.score - a.score);
 
-                console.log('Encoding scores:', scores);
-
-                // Only use legacy encoding if the score is significantly high
                 if (scores[0].score > 0.6) {
-                    console.log(`Selected legacy encoding: ${scores[0].encoding} (score: ${scores[0].score})`);
                     return scores[0].encoding;
                 }
 
-                // Default to UTF-8 if no legacy encoding has high confidence
-                console.log('No high-confidence legacy encoding found, defaulting to UTF-8');
                 return 'utf-8';
             }
 
@@ -1663,19 +1519,19 @@
 
                     if (byte < 0x80) {
                         i++;
-                    } else if ((byte >> 5) === 0x06) { // 110xxxxx - 2 byte sequence
+                    } else if ((byte >> 5) === 0x06) {
                         if (i + 1 >= bytes.length || (bytes[i + 1] >> 6) !== 0x02) {
                             return false;
                         }
                         i += 2;
-                    } else if ((byte >> 4) === 0x0E) { // 1110xxxx - 3 byte sequence
+                    } else if ((byte >> 4) === 0x0E) {
                         if (i + 2 >= bytes.length ||
                             (bytes[i + 1] >> 6) !== 0x02 ||
                             (bytes[i + 2] >> 6) !== 0x02) {
                             return false;
                         }
                         i += 3;
-                    } else if ((byte >> 3) === 0x1E) { // 11110xxx - 4 byte sequence
+                    } else if ((byte >> 3) === 0x1E) {
                         if (i + 3 >= bytes.length ||
                             (bytes[i + 1] >> 6) !== 0x02 ||
                             (bytes[i + 2] >> 6) !== 0x02 ||
@@ -1691,29 +1547,27 @@
             }
 
             scoreCyrillicCP866(highBytes) {
-                // CP866 (DOS) Cyrillic ranges: А-п (0x80-0xAF), р-я (0xE0-0xEF)
                 let score = 0;
                 for (let byte of highBytes) {
                     if ((byte >= 0x80 && byte <= 0xAF) || (byte >= 0xE0 && byte <= 0xEF)) {
                         score++;
                     } else if ((byte >= 0xB0 && byte <= 0xDF) || (byte >= 0xF0 && byte <= 0xFF)) {
-                        score -= 0.5; // Penalty for non-Cyrillic in CP866
+                        score -= 0.5;
                     }
                 }
                 return score / Math.max(highBytes.length, 1);
             }
 
             scoreCyrillicWin1251(highBytes) {
-                // Windows-1251 Cyrillic range: А-я (0xC0-0xFF), ё (0xB8), Ё (0xA8)
                 let score = 0;
                 for (let byte of highBytes) {
                     if ((byte >= 0xC0 && byte <= 0xFF) || byte === 0xB8 || byte === 0xA8) {
                         score++;
                     } else if (byte >= 0x80 && byte <= 0xBF) {
                         if (byte === 0xA0 || byte === 0xA9 || byte === 0xAE) {
-                            score += 0.1; // Common symbols
+                            score += 0.1;
                         } else {
-                            score -= 0.3; // Penalty for other high bytes
+                            score -= 0.3;
                         }
                     }
                 }
@@ -1721,20 +1575,18 @@
             }
 
             scoreCyrillicKOI8R(highBytes) {
-                // KOI8-R Cyrillic ranges: а-я (0xC1-0xDF), А-Я (0xE0-0xFF)
                 let score = 0;
                 for (let byte of highBytes) {
                     if ((byte >= 0xC1 && byte <= 0xDF) || (byte >= 0xE0 && byte <= 0xFF)) {
                         score++;
                     } else if (byte >= 0x80 && byte <= 0xC0) {
-                        score -= 0.5; // Penalty for non-Cyrillic
+                        score -= 0.5;
                     }
                 }
                 return score / Math.max(highBytes.length, 1);
             }
 
             scoreWesternWin1252(highBytes) {
-                // Windows-1252 common high bytes
                 let score = 0;
                 const commonWin1252 = [0x80, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8A, 0x8B, 0x8C, 0x8E,
                     0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9A, 0x9B, 0x9C, 0x9E, 0x9F,
@@ -1754,10 +1606,9 @@
             }
 
             scoreWesternISO88591(highBytes) {
-                // ISO-8859-1 (Latin-1) - all high bytes are valid
                 let score = 0;
                 for (let byte of highBytes) {
-                    if (byte >= 0xA0) { // Non-breaking space and above
+                    if (byte >= 0xA0) {
                         score += 0.3;
                     }
                 }
@@ -1766,13 +1617,11 @@
 
             decodeText(bytes, encoding) {
                 try {
-                    // Use TextDecoder if available for standard encodings
                     if (['utf-8', 'utf-16le', 'utf-16be', 'iso-8859-1', 'windows-1252'].includes(encoding)) {
                         const decoder = new TextDecoder(encoding);
                         return decoder.decode(bytes);
                     }
 
-                    // Manual decoding for encodings not supported by TextDecoder
                     if (encoding === 'windows-1251') {
                         return this.decodeWindows1251(bytes);
                     } else if (encoding === 'cp866') {
@@ -1781,7 +1630,6 @@
                         return this.decodeKOI8R(bytes);
                     }
 
-                    // Fallback to UTF-8
                     const decoder = new TextDecoder('utf-8');
                     return decoder.decode(bytes);
                 } catch (e) {
@@ -1792,7 +1640,6 @@
             }
 
             decodeWindows1251(bytes) {
-                // Windows-1251 character map
                 const win1251Map = {
                     0x80: 0x0402, 0x81: 0x0403, 0x82: 0x201A, 0x83: 0x0453, 0x84: 0x201E, 0x85: 0x2026, 0x86: 0x2020, 0x87: 0x2021,
                     0x88: 0x20AC, 0x89: 0x2030, 0x8A: 0x0409, 0x8B: 0x2039, 0x8C: 0x040A, 0x8D: 0x040C, 0x8E: 0x040B, 0x8F: 0x040F,
@@ -1810,7 +1657,6 @@
                     if (byte < 0x80) {
                         result += String.fromCharCode(byte);
                     } else if (byte >= 0xC0) {
-                        // Cyrillic А-я
                         result += String.fromCharCode(0x0410 + (byte - 0xC0));
                     } else if (win1251Map[byte]) {
                         result += String.fromCharCode(win1251Map[byte]);
@@ -1822,32 +1668,26 @@
             }
 
             decodeCP866(bytes) {
-                // CP866 (DOS Cyrillic) character map
                 let result = '';
                 for (let i = 0; i < bytes.length; i++) {
                     const byte = bytes[i];
                     if (byte < 0x80) {
                         result += String.fromCharCode(byte);
                     } else if (byte >= 0x80 && byte <= 0x9F) {
-                        // А-П
                         result += String.fromCharCode(0x0410 + (byte - 0x80));
                     } else if (byte >= 0xA0 && byte <= 0xAF) {
-                        // Р-Я
                         result += String.fromCharCode(0x0420 + (byte - 0xA0));
                     } else if (byte >= 0xE0 && byte <= 0xEF) {
-                        // а-п
                         result += String.fromCharCode(0x0430 + (byte - 0xE0));
                     } else if (byte >= 0xF0 && byte <= 0xFF) {
-                        // р-я (0xF0-0xF5), ё (0xF6), remaining (0xF7-0xFF)
                         if (byte <= 0xF5) {
                             result += String.fromCharCode(0x0440 + (byte - 0xF0));
                         } else if (byte === 0xF6) {
-                            result += String.fromCharCode(0x0451); // ё
+                            result += String.fromCharCode(0x0451);
                         } else {
                             result += String.fromCharCode(byte);
                         }
                     } else {
-                        // Box drawing and other characters
                         result += String.fromCharCode(byte);
                     }
                 }
@@ -1855,32 +1695,29 @@
             }
 
             decodeKOI8R(bytes) {
-                // KOI8-R character map for Cyrillic
                 let result = '';
                 for (let i = 0; i < bytes.length; i++) {
                     const byte = bytes[i];
                     if (byte < 0x80) {
                         result += String.fromCharCode(byte);
                     } else if (byte >= 0xC1 && byte <= 0xDF) {
-                        // а-я (except ё)
                         const offset = byte - 0xC1;
                         if (offset < 16) {
                             result += String.fromCharCode(0x0430 + offset);
                         } else {
-                            result += String.fromCharCode(0x0430 + offset + 1); // Skip ё position
+                            result += String.fromCharCode(0x0430 + offset + 1);
                         }
                     } else if (byte >= 0xE0 && byte <= 0xFF) {
-                        // А-Я (except Ё)
                         const offset = byte - 0xE0;
                         if (offset < 16) {
                             result += String.fromCharCode(0x0410 + offset);
                         } else {
-                            result += String.fromCharCode(0x0410 + offset + 1); // Skip Ё position
+                            result += String.fromCharCode(0x0410 + offset + 1);
                         }
                     } else if (byte === 0xB3) {
-                        result += String.fromCharCode(0x0451); // ё
+                        result += String.fromCharCode(0x0451);
                     } else if (byte === 0xA3) {
-                        result += String.fromCharCode(0x0401); // Ё
+                        result += String.fromCharCode(0x0401);
                     } else {
                         result += String.fromCharCode(byte);
                     }
@@ -1896,7 +1733,6 @@
                     throw new Error('Invalid FB2 file');
                 }
 
-                // Extract images
                 const binaryNodes = xmlDoc.querySelectorAll('binary');
                 binaryNodes.forEach(node => {
                     const id = node.getAttribute('id');
@@ -1905,11 +1741,9 @@
                     this.images[id] = `data:${contentType};base64,${base64Data}`;
                 });
 
-                // Extract title
                 const titleNode = xmlDoc.querySelector('title-info book-title');
                 const title = titleNode ? titleNode.textContent : this.strings.noTitle;
 
-                // Extract author
                 const authorNode = xmlDoc.querySelector('title-info author');
                 let author = this.strings.unknownAuthor;
                 if (authorNode) {
@@ -1919,7 +1753,6 @@
                     author = `${firstName} ${middleName} ${lastName}`.replace(/\s+/g, ' ').trim();
                 }
 
-                // Extract cover
                 let coverHtml = '';
                 const coverpage = xmlDoc.querySelector('coverpage image');
                 if (coverpage) {
@@ -1930,13 +1763,11 @@
                     }
                 }
 
-                // Extract chapters for TOC - FIXED ID generation
                 this.chapters = [];
                 const sections = xmlDoc.querySelectorAll('body > section');
                 sections.forEach((section, index) => {
                     const titleEl = section.querySelector('title');
                     if (titleEl) {
-                        // Use consistent ID format
                         const chapterId = `section_${index}`;
                         this.chapters.push({
                             title: titleEl.textContent.trim(),
@@ -1945,7 +1776,6 @@
                     }
                 });
 
-                // Extract body content
                 const bodyNodes = xmlDoc.querySelectorAll('body');
                 let htmlContent = `<h1>${title}</h1><p class="author">${author}</p>${coverHtml}`;
 
@@ -1985,7 +1815,6 @@
                                 html += `<strong>${this.convertFB2ToHTML(child)}</strong>`;
                                 break;
                             case 'section':
-                                // FIXED: Use consistent ID format that matches TOC
                                 html += `<div id="section_${sectionIndex++}" class="section">${this.convertFB2ToHTML(child)}</div>`;
                                 break;
                             case 'image':
@@ -2008,60 +1837,46 @@
             }
 
             detectLanguage(text) {
-                // Simple language detection based on character patterns
-                // Remove HTML tags for better detection
                 const cleanText = text.replace(/<[^>]*>/g, '');
                 const sample = cleanText.substring(0, Math.min(2000, cleanText.length));
 
-                // Cyrillic character range
                 const cyrillicPattern = /[\u0400-\u04FF]/g;
                 const latinPattern = /[a-zA-Z]/g;
 
                 const cyrillicMatches = (sample.match(cyrillicPattern) || []).length;
                 const latinMatches = (sample.match(latinPattern) || []).length;
 
-                // If more than 20% Cyrillic characters, consider it Russian
                 if (cyrillicMatches > 0 && cyrillicMatches > latinMatches * 0.2) {
                     return 'ru';
                 }
 
-                // Check for common European language patterns
-                // German: ä, ö, ü, ß
                 if (/[äöüßÄÖÜ]/.test(sample)) {
                     return 'de';
                 }
 
-                // French: é, è, ê, à, ç
                 if (/[éèêëàâçîôûÉÈÊËÀÂÇÎÔÛ]/.test(sample)) {
                     return 'fr';
                 }
 
-                // Spanish: ñ, á, é, í, ó, ú
                 if (/[ñáéíóúÑÁÉÍÓÚ]/.test(sample)) {
                     return 'es';
                 }
 
-                // Italian: à, è, é, ì, ò, ù
                 if (/[àèéìòùÀÈÉÌÒÙ]/.test(sample)) {
                     return 'it';
                 }
 
-                // Default to English
                 return 'en';
             }
 
             applyHyphenation() {
-                // Always enable hyphenation
                 this.bookContent.classList.add('hyphens-enabled');
                 this.bookContent.classList.remove('hyphens-disabled');
-                // Set language attribute for proper hyphenation
                 this.bookContent.setAttribute('lang', this.detectedLanguage);
-                // Also set on document level for better support
                 document.documentElement.setAttribute('lang', this.detectedLanguage);
 
-                // Force reflow to apply hyphenation changes (especially for Safari)
                 this.bookContent.style.display = 'none';
-                this.bookContent.offsetHeight; // Trigger reflow
+                this.bookContent.offsetHeight;
                 this.bookContent.style.display = 'block';
             }
 
@@ -2073,9 +1888,7 @@
                 this.bookContent.innerHTML = bookData.content;
                 this.bookContent.style.display = 'block';
 
-                // Detect language for hyphenation
                 this.detectedLanguage = this.detectLanguage(bookData.content);
-                console.log('Detected language:', this.detectedLanguage);
 
                 this.applyFontSize();
                 this.applyTheme();
@@ -2084,16 +1897,13 @@
                 this.applyWidthMode();
                 this.applyHyphenation();
 
-                // Close menu after loading
                 if (this.menuVisible) {
                     this.toggleMenu();
                 }
 
-                // Reset current chapter and scrolling flag
                 this.currentChapterIndex = -1;
                 this.isScrolling = false;
 
-                // Scroll to top
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
 
@@ -2179,7 +1989,6 @@
             }
 
             handleKeyboard(e) {
-                // Close TOC on Escape
                 if (e.key === 'Escape' && this.tocVisible) {
                     e.preventDefault();
                     this.hideTOC();
@@ -2294,7 +2103,6 @@
             }
         }
 
-        // Initialize reader when DOM is loaded
         document.addEventListener('DOMContentLoaded', () => {
             new UniversalReader();
         });

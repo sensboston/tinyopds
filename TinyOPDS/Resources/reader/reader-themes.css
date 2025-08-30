@@ -1,7 +1,4 @@
-﻿/* Theme styles - frequently customized */
-
-/* Light theme */
-.book-content.light {
+﻿.book-content.light {
     background: white;
     color: #333;
 }
@@ -10,7 +7,6 @@ body.theme-light {
     background: #f5f5f5;
 }
 
-/* Dark theme */
 .book-content.dark {
     background: #2d2d2d;
     color: #e1e1e1;
@@ -20,17 +16,15 @@ body.theme-dark {
     background: #1a1a1a;
 }
 
-/* Sepia theme */
 .book-content.sepia {
-    background: #f4f1e8;
-    color: #5c4b37;
+    background: #FBF0D9;
+    color: #5C4033;
 }
 
 body.theme-sepia {
-    background: #f4f1e8;
+    background: #F5E6CE;
 }
 
-/* Content typography - may be adjusted for styling */
 .book-content h1, .book-content h2, .book-content h3 {
     margin: 30px 0 20px;
     font-weight: 600;
@@ -85,7 +79,6 @@ body.theme-sepia {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Hyphenation styles */
 .book-content p,
 .book-content div,
 .book-content span,
@@ -116,7 +109,6 @@ body.theme-sepia {
     -ms-hyphens: auto !important;
 }
 
-/* Content overflow handling */
 .book-content * {
     max-width: 100%;
     overflow-wrap: break-word;

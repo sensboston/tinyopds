@@ -1,5 +1,4 @@
-﻿/* Main layout and structural styles - rarely changed */
-* {
+﻿* {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -18,7 +17,6 @@ body {
     position: relative;
 }
 
-/* Menu toggle button */
 .menu-toggle {
     position: fixed;
     top: 0;
@@ -63,7 +61,6 @@ body {
     border-color: rgba(255, 255, 255, 0.3);
 }
 
-/* Toolbar */
 .toolbar {
     position: fixed;
     top: -100%;
@@ -111,7 +108,6 @@ body {
     margin-right: 60px;
 }
 
-/* Controls */
 .controls {
     padding: 12px 20px 35px 20px;
     display: flex;
@@ -144,7 +140,13 @@ body {
     position: relative;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     flex-shrink: 0;
-    font-weight: 600;
+    font-weight: 700;
+}
+
+#themeToggle {
+    font-size: 30px;
+    font-weight: 700;
+    padding-bottom: 4px;
 }
 
 .control-btn:hover {
@@ -195,7 +197,6 @@ body {
     display: flex;
 }
 
-/* Font indicators */
 .font-indicator {
     font-size: 16px;
     font-weight: bold;
@@ -213,7 +214,6 @@ body {
     font-family: 'Courier New', monospace;
 }
 
-/* Click areas */
 .click-area {
     position: fixed;
     width: 100%;
@@ -237,7 +237,6 @@ body {
     bottom: 0;
 }
 
-/* Reader container */
 .reader-container {
     padding: 20px;
     min-height: 100vh;
@@ -257,7 +256,6 @@ body {
     margin: 0 auto;
 }
 
-/* Book content */
 .book-content {
     background: white;
     color: #333;
@@ -292,7 +290,6 @@ body {
     font-family: 'Courier New', Courier, monospace;
 }
 
-/* TOC overlay */
 .toc-overlay {
     position: fixed;
     top: 0;
@@ -425,7 +422,6 @@ body {
     font-style: italic;
 }
 
-/* Progress bar */
 .progress-bar {
     position: fixed;
     bottom: 0;
@@ -436,7 +432,6 @@ body {
     z-index: 1000;
 }
 
-/* Loading and error states */
 .loading {
     display: flex;
     align-items: center;
@@ -471,7 +466,6 @@ body {
     text-align: center;
 }
 
-/* Tooltip */
 .tooltip {
     position: absolute;
     bottom: -30px;
@@ -496,7 +490,6 @@ input[type="file"] {
     display: none;
 }
 
-/* Responsive styles */
 @media (max-width: 768px) {
     .tooltip {
         display: none !important;
@@ -538,6 +531,12 @@ input[type="file"] {
         font-size: 16px;
         min-width: 38px;
         min-height: 38px;
+    }
+
+    #themeToggle {
+        font-size: 28px;
+        font-weight: 700;
+        padding-bottom: 3px;
     }
 
     .control-group {
@@ -600,6 +599,12 @@ input[type="file"] {
         font-size: 14px;
         min-width: 34px;
         min-height: 34px;
+    }
+
+    #themeToggle {
+        font-size: 26px;
+        font-weight: 700;
+        padding-bottom: 3px;
     }
 
     .control-group {

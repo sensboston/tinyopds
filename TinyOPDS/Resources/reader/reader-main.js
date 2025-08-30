@@ -386,6 +386,8 @@ class UniversalReader {
 
     async parseFB2(content) {
         const parser = new DOMParser();
+	content = content.replace(/<h[1-6]\s+xmlns=""[^>]*>.*?<\/h[1-6]>/gi, '');
+	content = content.replace(/<(div|span|p)\s+xmlns=""[^>]*>.*?<\/\1>/gi, '');
         const xmlDoc = parser.parseFromString(content, 'text/xml');
 
         if (xmlDoc.getElementsByTagName('parsererror').length > 0) {

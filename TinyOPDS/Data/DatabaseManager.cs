@@ -5,7 +5,7 @@
  * Copyright (c) 2013-2025 SeNSSoFT
  * SPDX-License-Identifier: MIT
  *
- * Database manager for SQLite operations
+ * Database manager for SQLite operations with FTS5 support
  *
  */
 
@@ -66,13 +66,28 @@ namespace TinyOPDS.Data
                 ExecuteNonQuery(DatabaseSchema.CreateBookGenresTable);
                 ExecuteNonQuery(DatabaseSchema.CreateBookTranslatorsTable);
 
-                // Create FTS5 table for book titles
-                ExecuteNonQuery(DatabaseSchema.CreateBookTitlesFTSTable);
+                // Create FTS5 tables
+                ExecuteNonQuery(DatabaseSchema.CreateBooksFTSTable);
+                ExecuteNonQuery(DatabaseSchema.CreateAuthorsFTSTable);
+
+                // Create views
+                ExecuteNonQuery(DatabaseSchema.CreateAuthorStatisticsView);
 
                 // Create indexes
                 ExecuteNonQuery(DatabaseSchema.CreateIndexes);
 
-                Log.WriteLine("Database schema initialized with FTS5 support");
+                // Create triggers for FTS synchronization
+                // Books triggers
+                ExecuteNonQuery(DatabaseSchema.CreateBookInsertTrigger);
+                ExecuteNonQuery(DatabaseSchema.CreateBookUpdateTrigger);
+                ExecuteNonQuery(DatabaseSchema.CreateBookDeleteTrigger);
+
+                // Authors triggers
+                ExecuteNonQuery(DatabaseSchema.CreateAuthorInsertTrigger);
+                ExecuteNonQuery(DatabaseSchema.CreateAuthorUpdateTrigger);
+                ExecuteNonQuery(DatabaseSchema.CreateAuthorDeleteTrigger);
+
+                Log.WriteLine("Database schema initialized with FTS5 support and triggers");
             }
             catch (Exception ex)
             {
@@ -80,6 +95,7 @@ namespace TinyOPDS.Data
                 throw;
             }
         }
+
         public int ExecuteNonQuery(string sql, params IDbDataParameter[] parameters)
         {
             var command = SqliteConnectionFactory.CreateCommand(sql, connection);
@@ -214,7 +230,7 @@ namespace TinyOPDS.Data
 
         public static IDbDataParameter CreateParameter(string name, DateTime? value)
         {
-            if (value.HasValue)
+            if (value.HasValue && value.Value != DateTime.MinValue)
                 return CreateParameter(name, value.Value.ToBinary());
             else
                 return CreateParameter(name, DBNull.Value);
@@ -236,7 +252,9 @@ namespace TinyOPDS.Data
         {
             var ordinal = reader.GetOrdinal(columnName);
             if (reader.IsDBNull(ordinal)) return null;
-            return DateTime.FromBinary(reader.GetInt64(ordinal));
+
+            long ticks = reader.GetInt64(ordinal);
+            return ticks == 0 ? (DateTime?)null : DateTime.FromBinary(ticks);
         }
 
         public static bool GetBoolean(IDataReader reader, string columnName)

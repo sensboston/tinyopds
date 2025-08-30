@@ -5,7 +5,7 @@
  * Copyright (c) 2013-2025 SeNSSoFT
  * SPDX-License-Identifier: MIT
  *
- * Database schema and SQL queries for SQLite migration with FTS5 support
+ * Database schema and SQL queries for SQLite with FTS5 support
  *
  */
 
@@ -22,8 +22,8 @@ namespace TinyOPDS.Data
                 FileName TEXT NOT NULL UNIQUE,
                 Title TEXT NOT NULL,
                 Language TEXT,
-                BookDate INTEGER, -- DateTime as ticks
-                DocumentDate INTEGER, -- DateTime as ticks  
+                BookDate INTEGER,       -- DateTime as ticks
+                DocumentDate INTEGER,   -- DateTime as ticks  
                 Sequence TEXT,
                 NumberInSequence INTEGER NOT NULL DEFAULT 0,
                 Annotation TEXT,
@@ -34,12 +34,13 @@ namespace TinyOPDS.Data
         public const string CreateAuthorsTable = @"
             CREATE TABLE IF NOT EXISTS Authors (
                 ID INTEGER PRIMARY KEY AUTOINCREMENT,
-                Name TEXT NOT NULL UNIQUE,
+                Name TEXT NOT NULL UNIQUE,     -- Full canonical name
                 FirstName TEXT,
                 MiddleName TEXT,
                 LastName TEXT,
+                SearchName TEXT,                -- Normalized for search (lowercase, no punctuation)
                 LastNameSoundex TEXT,
-                BookCount INTEGER NOT NULL DEFAULT 0
+                NameTranslit TEXT               -- Transliterated name for Latin->Cyrillic search
             )";
 
         public const string CreateGenresTable = @"
@@ -82,10 +83,39 @@ namespace TinyOPDS.Data
                 FOREIGN KEY (TranslatorID) REFERENCES Translators(ID) ON DELETE CASCADE
             )";
 
-        // NEW: FTS5 table for book titles search
-        public const string CreateBookTitlesFTSTable = @"
-            CREATE VIRTUAL TABLE IF NOT EXISTS BookTitlesFTS 
-            USING fts5(Title, tokenize='unicode61')";
+        // FTS5 tables for full-text search
+        public const string CreateBooksFTSTable = @"
+            CREATE VIRTUAL TABLE IF NOT EXISTS BooksFTS 
+            USING fts5(
+                BookID UNINDEXED,
+                Title,
+                Annotation,
+                tokenize='unicode61 remove_diacritics 1'
+            )";
+
+        public const string CreateAuthorsFTSTable = @"
+            CREATE VIRTUAL TABLE IF NOT EXISTS AuthorsFTS 
+            USING fts5(
+                AuthorID UNINDEXED,
+                FullName,           -- 'FirstName LastName'
+                ReversedName,       -- 'LastName FirstName'
+                LastName,
+                tokenize='unicode61 remove_diacritics 1'
+            )";
+
+        #endregion
+
+        #region Views
+
+        public const string CreateAuthorStatisticsView = @"
+            CREATE VIEW IF NOT EXISTS AuthorStatistics AS
+            SELECT 
+                a.ID,
+                a.Name,
+                COUNT(ba.BookID) as BookCount
+            FROM Authors a
+            LEFT JOIN BookAuthors ba ON a.ID = ba.AuthorID
+            GROUP BY a.ID, a.Name";
 
         #endregion
 
@@ -96,15 +126,81 @@ namespace TinyOPDS.Data
             CREATE INDEX IF NOT EXISTS idx_books_title ON Books(Title);
             CREATE INDEX IF NOT EXISTS idx_books_sequence ON Books(Sequence);
             CREATE INDEX IF NOT EXISTS idx_books_addeddate ON Books(AddedDate);
+            
             CREATE INDEX IF NOT EXISTS idx_authors_name ON Authors(Name);
             CREATE INDEX IF NOT EXISTS idx_authors_lastname ON Authors(LastName);
-            CREATE INDEX IF NOT EXISTS idx_authors_lastname_soundex ON Authors(LastNameSoundex);
-            CREATE INDEX IF NOT EXISTS idx_authors_firstname ON Authors(FirstName);
-            CREATE INDEX IF NOT EXISTS idx_bookauthors_bookid ON BookAuthors(BookID);
-            CREATE INDEX IF NOT EXISTS idx_bookauthors_authorid ON BookAuthors(AuthorID);
-            CREATE INDEX IF NOT EXISTS idx_bookgenres_bookid ON BookGenres(BookID);
-            CREATE INDEX IF NOT EXISTS idx_bookgenres_genretag ON BookGenres(GenreTag);
+            CREATE INDEX IF NOT EXISTS idx_authors_searchname ON Authors(SearchName);
+            CREATE INDEX IF NOT EXISTS idx_authors_soundex ON Authors(LastNameSoundex);
+            CREATE INDEX IF NOT EXISTS idx_authors_translit ON Authors(NameTranslit);
+            
+            CREATE INDEX IF NOT EXISTS idx_bookauthors_composite ON BookAuthors(AuthorID, BookID);
+            CREATE INDEX IF NOT EXISTS idx_bookgenres_composite ON BookGenres(GenreTag, BookID);
         ";
+
+        #endregion
+
+        #region Triggers for FTS Synchronization
+
+        // Books triggers - separate constants for proper execution
+        public const string CreateBookInsertTrigger = @"
+            CREATE TRIGGER IF NOT EXISTS books_ai AFTER INSERT ON Books BEGIN
+                INSERT INTO BooksFTS(BookID, Title, Annotation) 
+                VALUES (new.ID, new.Title, new.Annotation);
+            END";
+
+        public const string CreateBookUpdateTrigger = @"
+            CREATE TRIGGER IF NOT EXISTS books_au AFTER UPDATE ON Books BEGIN
+                UPDATE BooksFTS 
+                SET Title = new.Title, Annotation = new.Annotation 
+                WHERE BookID = new.ID;
+            END";
+
+        public const string CreateBookDeleteTrigger = @"
+            CREATE TRIGGER IF NOT EXISTS books_ad AFTER DELETE ON Books BEGIN
+                DELETE FROM BooksFTS WHERE BookID = old.ID;
+            END";
+
+        // Authors triggers - separate constants for proper execution
+        public const string CreateAuthorInsertTrigger = @"
+            CREATE TRIGGER IF NOT EXISTS authors_ai AFTER INSERT ON Authors BEGIN
+                INSERT INTO AuthorsFTS(AuthorID, FullName, ReversedName, LastName) 
+                VALUES (
+                    new.ID, 
+                    CASE 
+                        WHEN new.FirstName IS NOT NULL AND new.LastName IS NOT NULL 
+                        THEN new.FirstName || ' ' || new.LastName
+                        ELSE new.Name
+                    END,
+                    CASE 
+                        WHEN new.FirstName IS NOT NULL AND new.LastName IS NOT NULL 
+                        THEN new.LastName || ' ' || new.FirstName
+                        ELSE new.Name
+                    END,
+                    COALESCE(new.LastName, new.Name)
+                );
+            END";
+
+        public const string CreateAuthorUpdateTrigger = @"
+            CREATE TRIGGER IF NOT EXISTS authors_au AFTER UPDATE ON Authors BEGIN
+                UPDATE AuthorsFTS 
+                SET FullName = CASE 
+                        WHEN new.FirstName IS NOT NULL AND new.LastName IS NOT NULL 
+                        THEN new.FirstName || ' ' || new.LastName
+                        ELSE new.Name
+                    END,
+                    ReversedName = CASE 
+                        WHEN new.FirstName IS NOT NULL AND new.LastName IS NOT NULL 
+                        THEN new.LastName || ' ' || new.FirstName
+                        ELSE new.Name
+                    END,
+                    LastName = COALESCE(new.LastName, new.Name)
+                WHERE AuthorID = new.ID;
+            END";
+
+        public const string CreateAuthorDeleteTrigger = @"
+            CREATE TRIGGER IF NOT EXISTS authors_ad AFTER DELETE ON Authors BEGIN
+                DELETE FROM AuthorsFTS WHERE AuthorID = old.ID;
+            END";
 
         #endregion
 
@@ -119,8 +215,10 @@ namespace TinyOPDS.Data
              @Sequence, @NumberInSequence, @Annotation, @DocumentSize, @AddedDate)";
 
         public const string InsertAuthor = @"
-            INSERT OR IGNORE INTO Authors (Name, FirstName, MiddleName, LastName, LastNameSoundex, BookCount) 
-            VALUES (@Name, @FirstName, @MiddleName, @LastName, @LastNameSoundex, 0)";
+            INSERT OR IGNORE INTO Authors 
+            (Name, FirstName, MiddleName, LastName, SearchName, LastNameSoundex, NameTranslit) 
+            VALUES 
+            (@Name, @FirstName, @MiddleName, @LastName, @SearchName, @LastNameSoundex, @NameTranslit)";
 
         public const string InsertTranslator = @"
             INSERT OR IGNORE INTO Translators (Name) VALUES (@Name)";
@@ -136,28 +234,9 @@ namespace TinyOPDS.Data
             INSERT OR IGNORE INTO BookTranslators (BookID, TranslatorID) 
             VALUES (@BookID, (SELECT ID FROM Translators WHERE Name = @TranslatorName))";
 
-        // NEW: FTS Insert/Update/Delete queries
-        public const string InsertBookTitleFTS = @"
-            INSERT INTO BookTitlesFTS(rowid, Title) VALUES (@rowid, @Title)";
-
-        public const string UpdateBookTitleFTS = @"
-            INSERT OR REPLACE INTO BookTitlesFTS(rowid, Title) VALUES (@rowid, @Title)";
-
-        public const string DeleteBookTitleFTS = @"
-            DELETE FROM BookTitlesFTS WHERE rowid = @rowid";
-
         #endregion
 
-        #region Update Queries
-
-        public const string UpdateAuthorBookCount = @"
-            UPDATE Authors SET BookCount = (
-                SELECT COUNT(*) FROM BookAuthors WHERE AuthorID = Authors.ID
-            ) WHERE Name = @AuthorName";
-
-        #endregion
-
-        #region Select Queries
+        #region Select Queries - Books
 
         public const string SelectAllBooks = @"
             SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
@@ -196,23 +275,25 @@ namespace TinyOPDS.Data
             INNER JOIN BookGenres bg ON b.ID = bg.BookID
             WHERE bg.GenreTag = @GenreTag";
 
-        public const string SelectBooksByTitle = @"
+        // FTS5 search for books with wildcard support for partial matches
+        public const string SelectBooksByTitleFTS = @"
+            SELECT DISTINCT b.ID, b.Version, b.FileName, b.Title, b.Language, b.BookDate, b.DocumentDate,
+                   b.Sequence, b.NumberInSequence, b.Annotation, b.DocumentSize, b.AddedDate
+            FROM Books b
+            INNER JOIN BooksFTS fts ON b.ID = fts.BookID
+            WHERE BooksFTS MATCH @SearchPattern
+            ORDER BY 
+                CASE WHEN b.Title LIKE @LikePattern || '%' THEN 0 ELSE 1 END,
+                bm25(BooksFTS),
+                b.Title";
+
+        // Fallback LIKE search for books
+        public const string SelectBooksByTitleLike = @"
             SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
                    Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate
             FROM Books 
-            WHERE Title LIKE '%' || @Title || '%' OR Sequence LIKE '%' || @Title || '%'";
-
-        // NEW: FTS5 search query for book titles with priority ordering
-        public const string SelectBooksByTitleFTS = @"
-            SELECT b.ID, b.Version, b.FileName, b.Title, b.Language, b.BookDate, b.DocumentDate,
-                   b.Sequence, b.NumberInSequence, b.Annotation, b.DocumentSize, b.AddedDate
-            FROM Books b
-            INNER JOIN BookTitlesFTS fts ON b.rowid = fts.rowid
-            WHERE BookTitlesFTS MATCH @SearchPattern
-            ORDER BY 
-                CASE WHEN b.Title LIKE @SearchPattern || '%' THEN 0 ELSE 1 END,
-                bm25(BookTitlesFTS),
-                b.Title";
+            WHERE Title LIKE '%' || @Title || '%' COLLATE NOCASE
+            ORDER BY Title";
 
         public const string SelectNewBooks = @"
             SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
@@ -220,104 +301,68 @@ namespace TinyOPDS.Data
             FROM Books 
             WHERE AddedDate >= @FromDate";
 
+        #endregion
+
+        #region Select Queries - Authors (Cascading search)
+
+        // Get all authors with books
         public const string SelectAuthors = @"
             SELECT DISTINCT a.Name
             FROM Authors a
             INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
             ORDER BY a.Name";
 
-        public const string SelectAuthorsByNamePattern = @"
+        // Step 1: Exact match for full name
+        public const string SelectAuthorByExactName = @"
             SELECT DISTINCT a.Name
             FROM Authors a
             INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
-            WHERE a.Name LIKE @Pattern
-            ORDER BY a.Name";
+            WHERE a.Name = @Name COLLATE NOCASE";
 
-        public const string SelectAuthorsByLastNamePattern = @"
+        // Step 1: Exact match by FirstName + LastName components  
+        public const string SelectAuthorByExactComponents = @"
             SELECT DISTINCT a.Name
             FROM Authors a
             INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
-            WHERE a.LastName LIKE @Pattern
-            ORDER BY a.Name";
+            WHERE (a.FirstName = @FirstName COLLATE NOCASE AND a.LastName = @LastName COLLATE NOCASE)
+               OR (a.FirstName = @LastName COLLATE NOCASE AND a.LastName = @FirstName COLLATE NOCASE)";
 
-        public const string SelectAuthorsByLastNameSoundex = @"
+        // Step 2: Partial match by LastName or FirstName
+        public const string SelectAuthorsByPartialName = @"
             SELECT DISTINCT a.Name
             FROM Authors a
             INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
-            WHERE a.LastNameSoundex = @LastNameSoundex
+            WHERE a.LastName LIKE '%' || @Pattern || '%' COLLATE NOCASE
+               OR a.FirstName LIKE '%' || @Pattern || '%' COLLATE NOCASE
             ORDER BY a.Name";
 
-        public const string SelectAuthorsByFullNamePattern = @"
+        // Step 3: Search by transliterated name
+        public const string SelectAuthorsByTranslit = @"
             SELECT DISTINCT a.Name
             FROM Authors a
             INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
-            WHERE (a.FirstName LIKE @FirstNamePattern OR a.FirstName IS NULL OR a.FirstName = '')
-              AND (a.LastName LIKE @LastNamePattern OR a.LastName IS NULL OR a.LastName = '')
+            WHERE a.NameTranslit LIKE '%' || @Pattern || '%' COLLATE NOCASE
             ORDER BY a.Name";
 
-        public const string SelectAuthorsByFullNameSoundex = @"
+        // Step 4: Soundex search
+        public const string SelectAuthorsBySoundex = @"
             SELECT DISTINCT a.Name
             FROM Authors a
             INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
-            WHERE (a.FirstName LIKE @FirstNamePattern OR a.FirstName IS NULL OR a.FirstName = '')
-              AND a.LastNameSoundex = @LastNameSoundex
+            WHERE a.LastNameSoundex = @Soundex
             ORDER BY a.Name";
 
-        // Enhanced OpenSearch queries for smart author matching
-        public const string SelectAuthorsByOpenSearchSingleWord = @"
+        // Navigation search (prefix match)
+        public const string SelectAuthorsByPrefix = @"
             SELECT DISTINCT a.Name
             FROM Authors a
             INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
-            WHERE a.LastName LIKE @WordPattern
+            WHERE a.Name LIKE @Pattern || '%' COLLATE NOCASE
             ORDER BY a.Name";
 
-        public const string SelectAuthorsByOpenSearchSingleWordSoundex = @"
-            SELECT DISTINCT a.Name
-            FROM Authors a
-            INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
-            WHERE a.LastNameSoundex = @WordSoundex
-            ORDER BY a.Name";
+        #endregion
 
-        public const string SelectAuthorsByOpenSearchTwoWords = @"
-            SELECT DISTINCT a.Name
-            FROM Authors a
-            INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
-            WHERE (
-                (a.FirstName LIKE @Word1Pattern AND a.LastName LIKE @Word2Pattern) OR
-                (a.FirstName LIKE @Word2Pattern AND a.LastName LIKE @Word1Pattern)
-            )
-            ORDER BY a.Name";
-
-        public const string SelectAuthorsByOpenSearchTwoWordsSoundex = @"
-            SELECT DISTINCT a.Name
-            FROM Authors a
-            INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
-            WHERE (
-                (a.FirstName LIKE @Word1Pattern AND a.LastNameSoundex = @Word2Soundex) OR
-                (a.FirstName LIKE @Word2Pattern AND a.LastNameSoundex = @Word1Soundex) OR
-                (a.LastNameSoundex = @Word1Soundex AND a.FirstName LIKE @Word2Pattern) OR
-                (a.LastNameSoundex = @Word2Soundex AND a.FirstName LIKE @Word1Pattern)
-            )
-            ORDER BY a.Name";
-
-        public const string SelectSequences = @"
-            SELECT DISTINCT Sequence
-            FROM Books 
-            WHERE Sequence IS NOT NULL AND Sequence != ''
-            ORDER BY Sequence";
-
-        public const string SelectGenreTags = @"
-            SELECT DISTINCT GenreTag
-            FROM BookGenres
-            ORDER BY GenreTag";
-
-        public const string SelectAuthorsCount = @"
-            SELECT COUNT(DISTINCT a.ID) FROM Authors a
-            INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID";
-
-        public const string SelectSequencesCount = @"
-            SELECT COUNT(DISTINCT Sequence) FROM Books 
-            WHERE Sequence IS NOT NULL AND Sequence != ''";
+        #region Select Queries - Relations
 
         public const string SelectBookAuthors = @"
             SELECT a.Name
@@ -337,6 +382,25 @@ namespace TinyOPDS.Data
             INNER JOIN BookTranslators bt ON t.ID = bt.TranslatorID
             WHERE bt.BookID = @BookID
             ORDER BY t.Name";
+
+        #endregion
+
+        #region Select Queries - Other
+
+        public const string SelectSequences = @"
+            SELECT DISTINCT Sequence
+            FROM Books 
+            WHERE Sequence IS NOT NULL AND Sequence != ''
+            ORDER BY Sequence";
+
+        public const string SelectGenreTags = @"
+            SELECT DISTINCT GenreTag
+            FROM BookGenres
+            ORDER BY GenreTag";
+
+        #endregion
+
+        #region Count Queries
 
         public const string CountBooks = @"SELECT COUNT(*) FROM Books";
 
@@ -358,9 +422,21 @@ namespace TinyOPDS.Data
             GROUP BY bg.GenreTag
             ORDER BY bg.GenreTag";
 
+        public const string SelectAuthorsCount = @"
+            SELECT COUNT(DISTINCT a.ID) FROM Authors a
+            INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID";
+
+        public const string SelectSequencesCount = @"
+            SELECT COUNT(DISTINCT Sequence) FROM Books 
+            WHERE Sequence IS NOT NULL AND Sequence != ''";
+
+        // Use view for author book counts
+        public const string SelectAuthorBookCount = @"
+            SELECT BookCount FROM AuthorStatistics WHERE Name = @AuthorName";
+
         #endregion
 
-        #region New Books Pagination Queries
+        #region Pagination Queries
 
         public const string SelectNewBooksPaginatedByDate = @"
             SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
@@ -378,9 +454,6 @@ namespace TinyOPDS.Data
             ORDER BY Title COLLATE NOCASE
             LIMIT @Limit OFFSET @Offset";
 
-        public const string CountNewBooksForPagination = @"
-            SELECT COUNT(*) FROM Books WHERE AddedDate >= @FromDate";
-
         #endregion
 
         #region Delete Queries
@@ -391,11 +464,15 @@ namespace TinyOPDS.Data
 
         #endregion
 
-        #region FTS5 Maintenance Queries
+        #region FTS5 Maintenance
 
-        public const string RebuildBookTitlesFTS = @"INSERT INTO BookTitlesFTS(BookTitlesFTS) VALUES('rebuild')";
+        public const string RebuildBooksFTS = @"INSERT INTO BooksFTS(BooksFTS) VALUES('rebuild')";
 
-        public const string OptimizeBookTitlesFTS = @"INSERT INTO BookTitlesFTS(BookTitlesFTS) VALUES('optimize')";
+        public const string OptimizeBooksFTS = @"INSERT INTO BooksFTS(BooksFTS) VALUES('optimize')";
+
+        public const string RebuildAuthorsFTS = @"INSERT INTO AuthorsFTS(AuthorsFTS) VALUES('rebuild')";
+
+        public const string OptimizeAuthorsFTS = @"INSERT INTO AuthorsFTS(AuthorsFTS) VALUES('optimize')";
 
         #endregion
     }

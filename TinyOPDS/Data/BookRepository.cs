@@ -532,7 +532,7 @@ namespace TinyOPDS.Data
 
         #endregion
 
-        #region Author Search Methods - FIXED CASCADING SEARCH
+        #region Author Search Methods - USING FTS5
 
         /// <summary>
         /// Get authors for navigation (catalog browsing with pagination)
@@ -558,7 +558,7 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Get authors for OpenSearch with proper cascading search
+        /// Get authors for OpenSearch with proper cascading search using FTS5
         /// </summary>
         public List<string> GetAuthorsForOpenSearch(string searchPattern)
         {
@@ -580,57 +580,75 @@ namespace TinyOPDS.Data
                     return new List<string>();
                 }
 
-                // Normalize words for case-insensitive comparison
-                var normalizedWords = words.Select(w => w.Trim()).ToArray();
-
-                // STEP 1: For multi-word input, try EXACT match first
-                if (words.Length >= 2)
+                // STEP 1: For two-word input, try EXACT match using FTS
+                if (words.Length == 2)
                 {
-                    Log.WriteLine(LogLevel.Info, "Step 1: Trying exact match for multi-word query '{0}'", searchPattern);
+                    Log.WriteLine(LogLevel.Info, "Step 1: Trying exact match for two-word query '{0}' using FTS", searchPattern);
 
-                    // Try exact match for full name as-is
-                    authors = db.ExecuteQuery<string>(DatabaseSchema.SelectAuthorByExactName,
+                    // Use FTS to find exact match - it handles case-insensitive Unicode properly
+                    string ftsQuery = $"\"{searchPattern}\""; // Exact phrase in FTS
+
+                    string sql = @"
+                        SELECT DISTINCT a.Name
+                        FROM Authors a
+                        INNER JOIN AuthorsFTS fts ON a.ID = fts.AuthorID
+                        INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
+                        WHERE AuthorsFTS MATCH @SearchPattern
+                        ORDER BY a.Name";
+
+                    authors = db.ExecuteQuery<string>(sql,
                         reader => reader.GetString(0),
-                        DatabaseManager.CreateParameter("@Name", searchPattern));
+                        DatabaseManager.CreateParameter("@SearchPattern", ftsQuery));
 
                     if (authors.Count > 0)
                     {
-                        Log.WriteLine(LogLevel.Info, "Found exact match by full name: {0} authors", authors.Count);
+                        Log.WriteLine(LogLevel.Info, "Found exact match using FTS: {0} authors", authors.Count);
                         return authors;
                     }
 
-                    // For 2-word input, try FirstName+LastName and LastName+FirstName combinations
-                    if (words.Length == 2)
-                    {
-                        authors = db.ExecuteQuery<string>(DatabaseSchema.SelectAuthorByExactComponents,
-                            reader => reader.GetString(0),
-                            DatabaseManager.CreateParameter("@FirstName", normalizedWords[0]),
-                            DatabaseManager.CreateParameter("@LastName", normalizedWords[1]));
+                    // Try reversed order in FTS
+                    string reversedPattern = $"{words[1]} {words[0]}";
+                    string reversedFtsQuery = $"\"{reversedPattern}\"";
 
-                        if (authors.Count > 0)
-                        {
-                            Log.WriteLine(LogLevel.Info, "Found exact match by components: {0} authors", authors.Count);
-                            return authors;
-                        }
-                    }
-                }
-
-                // STEP 2: Partial match (for single word or if exact didn't work)
-                if (words.Length == 1 || authors.Count == 0)
-                {
-                    string partialPattern = words.Length == 1 ? normalizedWords[0] : searchPattern;
-                    Log.WriteLine(LogLevel.Info, "Step 2: Trying partial match for '{0}'", partialPattern);
-
-                    authors = db.ExecuteQuery<string>(DatabaseSchema.SelectAuthorsByPartialName,
+                    authors = db.ExecuteQuery<string>(sql,
                         reader => reader.GetString(0),
-                        DatabaseManager.CreateParameter("@Pattern", partialPattern));
+                        DatabaseManager.CreateParameter("@SearchPattern", reversedFtsQuery));
 
                     if (authors.Count > 0)
                     {
-                        Log.WriteLine(LogLevel.Info, "Found partial match: {0} authors", authors.Count);
+                        Log.WriteLine(LogLevel.Info, "Found exact match with reversed order using FTS: {0} authors", authors.Count);
                         return authors;
                     }
                 }
+
+                // STEP 2: Partial match ONLY for single word using FTS
+                if (words.Length == 1)
+                {
+                    string pattern = words[0];
+                    Log.WriteLine(LogLevel.Info, "Step 2: Trying partial match for single word '{0}' using FTS", pattern);
+
+                    // Use FTS with wildcard for prefix search
+                    string ftsPattern = $"{pattern}*";
+
+                    string sql = @"
+                        SELECT DISTINCT a.Name
+                        FROM Authors a
+                        INNER JOIN AuthorsFTS fts ON a.ID = fts.AuthorID
+                        INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
+                        WHERE AuthorsFTS MATCH @SearchPattern
+                        ORDER BY a.Name";
+
+                    authors = db.ExecuteQuery<string>(sql,
+                        reader => reader.GetString(0),
+                        DatabaseManager.CreateParameter("@SearchPattern", ftsPattern));
+
+                    if (authors.Count > 0)
+                    {
+                        Log.WriteLine(LogLevel.Info, "Found partial match using FTS: {0} authors", authors.Count);
+                        return authors;
+                    }
+                }
+                // For multi-word queries - NO partial search after exact match fails
 
                 // STEP 3: Transliteration search (if input contains Latin letters)
                 if (ContainsLatinLetters(searchPattern))
@@ -641,14 +659,12 @@ namespace TinyOPDS.Data
                     string transliteratedGOST = Transliteration.Back(searchPattern, TransliterationType.GOST);
                     if (!string.IsNullOrEmpty(transliteratedGOST) && transliteratedGOST != searchPattern)
                     {
-                        authors = db.ExecuteQuery<string>(DatabaseSchema.SelectAuthorsByTranslit,
-                            reader => reader.GetString(0),
-                            DatabaseManager.CreateParameter("@Pattern", transliteratedGOST));
-
-                        if (authors.Count > 0)
+                        // Recursive call with transliterated text
+                        var translitAuthors = GetAuthorsForOpenSearch(transliteratedGOST);
+                        if (translitAuthors.Count > 0)
                         {
-                            Log.WriteLine(LogLevel.Info, "Found via GOST transliteration: {0} authors", authors.Count);
-                            return authors;
+                            Log.WriteLine(LogLevel.Info, "Found via GOST transliteration: {0} authors", translitAuthors.Count);
+                            return translitAuthors;
                         }
                     }
 
@@ -656,23 +672,20 @@ namespace TinyOPDS.Data
                     string transliteratedISO = Transliteration.Back(searchPattern, TransliterationType.ISO);
                     if (!string.IsNullOrEmpty(transliteratedISO) && transliteratedISO != searchPattern && transliteratedISO != transliteratedGOST)
                     {
-                        authors = db.ExecuteQuery<string>(DatabaseSchema.SelectAuthorsByTranslit,
-                            reader => reader.GetString(0),
-                            DatabaseManager.CreateParameter("@Pattern", transliteratedISO));
-
-                        if (authors.Count > 0)
+                        // Recursive call with transliterated text
+                        var translitAuthors = GetAuthorsForOpenSearch(transliteratedISO);
+                        if (translitAuthors.Count > 0)
                         {
-                            Log.WriteLine(LogLevel.Info, "Found via ISO transliteration: {0} authors", authors.Count);
-                            return authors;
+                            Log.WriteLine(LogLevel.Info, "Found via ISO transliteration: {0} authors", translitAuthors.Count);
+                            return translitAuthors;
                         }
                     }
                 }
 
-                // STEP 4: Soundex search (last resort)
-                string soundexPattern = words.Length == 1 ? normalizedWords[0] :
-                    (words.Length == 2 ? normalizedWords[1] : searchPattern); // Use last name for multi-word
-
+                // STEP 4: Soundex search (last resort) - still using regular table as Soundex is pre-calculated
+                string soundexPattern = words.Length == 1 ? words[0] : words[words.Length - 1];
                 string soundex = StringUtils.Soundex(soundexPattern);
+
                 if (!string.IsNullOrEmpty(soundex))
                 {
                     Log.WriteLine(LogLevel.Info, "Step 4: Trying Soundex search for '{0}' -> '{1}'", soundexPattern, soundex);

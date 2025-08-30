@@ -121,7 +121,7 @@ namespace TinyOPDS.OPDS
                 try
                 {
                     searchPattern = Uri.UnescapeDataString(searchPattern).Replace('+', ' ');
-                    Log.WriteLine(LogLevel.Info, "AuthorsCatalog search pattern decoded: '{0}'", searchPattern);
+                    Log.WriteLine(LogLevel.Info, "AuthorsCatalog search pattern decoded: '{0}', isOpenSearch: {1}", searchPattern, isOpenSearch);
                 }
                 catch (Exception ex)
                 {
@@ -129,13 +129,26 @@ namespace TinyOPDS.OPDS
                 }
             }
 
+            // Determine title based on search type
+            string catalogTitle;
+            if (string.IsNullOrEmpty(searchPattern))
+            {
+                catalogTitle = Localizer.Text("Books by authors");
+            }
+            else if (isOpenSearch)
+            {
+                catalogTitle = string.Format(Localizer.Text("Search results for authors: '{0}'"), searchPattern);
+            }
+            else
+            {
+                catalogTitle = string.Format(Localizer.Text("Authors starting with '{0}'"), searchPattern);
+            }
+
             XDocument doc = new XDocument(
                 // Add root element and namespaces
                 new XElement("feed", new XAttribute(XNamespace.Xmlns + "dc", Namespaces.dc), new XAttribute(XNamespace.Xmlns + "os", Namespaces.os), new XAttribute(XNamespace.Xmlns + "opds", Namespaces.opds),
                     new XElement("id", "tag:authors"),
-                    new XElement("title", string.IsNullOrEmpty(searchPattern) ?
-                        Localizer.Text("Books by authors") :
-                        string.Format(Localizer.Text("Authors starting with '{0}'"), searchPattern)),
+                    new XElement("title", catalogTitle),
                     new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                     new XElement("icon", "/authors.ico"),
                     // Add links
@@ -152,17 +165,17 @@ namespace TinyOPDS.OPDS
             }
             else
             {
-                // Get authors matching the pattern - use prefix search for navigation
+                // Get authors matching the pattern - pass isOpenSearch flag correctly
                 authors = Library.GetAuthorsByName(searchPattern, isOpenSearch);
             }
 
             // Remove duplicates and sort - authors are already canonical from database
             authors = authors.Distinct().OrderBy(a => a, new OPDSComparer(Properties.Settings.Default.SortOrder > 0)).ToList();
 
-            Log.WriteLine(LogLevel.Info, "Found {0} authors for pattern '{1}'", authors.Count, searchPattern ?? "");
+            Log.WriteLine(LogLevel.Info, "Found {0} authors for pattern '{1}', isOpenSearch: {2}", authors.Count, searchPattern ?? "", isOpenSearch);
 
-            // If no search pattern (root level) or too many results, create navigation groups
-            if (string.IsNullOrEmpty(searchPattern) || authors.Count > threshold)
+            // For navigation mode only: create groups if too many results
+            if (!isOpenSearch && (string.IsNullOrEmpty(searchPattern) || authors.Count > threshold))
             {
                 // Create alphabetical groups for navigation
                 var navigationGroups = CreateNavigationGroups(authors, searchPattern, threshold);

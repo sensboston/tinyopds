@@ -156,7 +156,7 @@ namespace TinyOPDS.Server
                 else
                 {
                     using (Stream resStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(
-                        Assembly.GetExecutingAssembly().GetName().Name + ".xml2html.xsl"))
+                        Assembly.GetExecutingAssembly().GetName().Name + ".Resources.xml2html.xsl"))
                     {
                         if (resStream != null)
                         {
@@ -297,7 +297,7 @@ namespace TinyOPDS.Server
                 if (book == null)
                 {
                     Log.WriteLine(LogLevel.Warning, "Book {0} not found for reader", bookId);
-                    processor.WriteFailure();
+                    HandleBookNotFoundForReader(processor, bookId);
                     return;
                 }
 
@@ -306,7 +306,7 @@ namespace TinyOPDS.Server
                 {
                     if (!ExtractBookContent(book, memStream))
                     {
-                        processor.WriteFailure();
+                        HandleBookFileNotFoundForReader(processor, book);
                         return;
                     }
 
@@ -346,6 +346,80 @@ namespace TinyOPDS.Server
                 Log.WriteLine(LogLevel.Error, "Reader request error: {0}", ex.Message);
                 processor.WriteFailure();
             }
+        }
+
+        private void HandleBookNotFoundForReader(HttpProcessor processor, string bookId)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(readerHtml))
+                {
+                    LoadReaderHtml();
+                }
+
+                string html = readerHtml ?? GetFallbackReaderHtml();
+
+                // Create error message in reader
+                string errorMessage = "Book not found";
+                string errorHtml = html.Replace(
+                    "<div class=\"book-content light font-serif\" id=\"bookContent\"></div>",
+                    $"<div class=\"book-content light font-serif\" id=\"bookContent\"><div class=\"error\">{errorMessage}</div></div>"
+                );
+
+                // Set error title
+                errorHtml = errorHtml.Replace("Reader", $"Reader - {errorMessage}");
+
+                processor.WriteSuccess("text/html; charset=utf-8");
+                processor.OutputStream.Write(errorHtml);
+
+                Log.WriteLine(LogLevel.Info, "Served book not found error for book ID: {0}", bookId);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error handling book not found: {0}", ex.Message);
+                processor.WriteFailure();
+            }
+        }
+
+        private void HandleBookFileNotFoundForReader(HttpProcessor processor, Book book)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(readerHtml))
+                {
+                    LoadReaderHtml();
+                }
+
+                string html = readerHtml ?? GetFallbackReaderHtml();
+
+                // Create error message in reader with book info
+                string errorMessage = "Book file not found";
+                string bookInfo = $"<h1>{book.Title}</h1><p class=\"author\">{book.Authors.FirstOrDefault() ?? "Unknown Author"}</p>";
+                string errorHtml = html.Replace(
+                    "<div class=\"book-content light font-serif\" id=\"bookContent\"></div>",
+                    $"<div class=\"book-content light font-serif\" id=\"bookContent\">{bookInfo}<div class=\"error\">{errorMessage}<br><small>File: {book.FilePath}</small></div></div>"
+                );
+
+                // Set error title with book title
+                errorHtml = errorHtml.Replace("Reader", $"Reader - {book.Title}");
+
+                processor.WriteSuccess("text/html; charset=utf-8");
+                processor.OutputStream.Write(errorHtml);
+
+                Log.WriteLine(LogLevel.Info, "Served book file not found error for book: {0} (file: {1})", book.Title, book.FilePath);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error handling book file not found: {0}", ex.Message);
+                processor.WriteFailure();
+            }
+        }
+
+        private string GetFallbackReaderHtml()
+        {
+            return @"<!DOCTYPE html>
+<html><head><title>Reader - Error</title><meta charset=""UTF-8""></head>
+<body><div class=""error"">Error loading reader interface</div></body></html>";
         }
 
         private string PrepareReaderHtml(string base64Data, string mimeType, string fileName, string bookTitle, string author)
@@ -940,7 +1014,7 @@ document.addEventListener('DOMContentLoaded', function() {{
                     return;
                 }
 
-                // FIXED: Use System.IO.Compression for creating ZIP files in .NET 4.8
+                // Use System.IO.Compression for creating ZIP files in .NET 4.8
                 using (var outputStream = new MemoryStream())
                 {
                     using (var zipArchive = new System.IO.Compression.ZipArchive(outputStream, System.IO.Compression.ZipArchiveMode.Create, true))
@@ -1017,11 +1091,32 @@ document.addEventListener('DOMContentLoaded', function() {{
         {
             try
             {
-                if (book.FilePath.ToLower().Contains(".zip@"))
-                {
-                    string[] pathParts = book.FilePath.Split('@');
+                // Build full path using library path if needed
+                string bookPath = book.FilePath;
 
-                    // FIXED: Use System.IO.Compression.ZipFile for .NET 4.8
+                // Check if path is relative and build full path
+                if (!Path.IsPathRooted(bookPath))
+                {
+                    string libraryPath = Properties.Settings.Default.LibraryPath;
+                    if (!string.IsNullOrEmpty(libraryPath))
+                    {
+                        bookPath = Path.Combine(libraryPath, bookPath);
+                    }
+                }
+
+                Log.WriteLine(LogLevel.Info, "Attempting to extract book content from: {0}", bookPath);
+
+                if (bookPath.ToLower().Contains(".zip@"))
+                {
+                    string[] pathParts = bookPath.Split('@');
+
+                    if (!File.Exists(pathParts[0]))
+                    {
+                        Log.WriteLine(LogLevel.Warning, "ZIP archive not found: {0}", pathParts[0]);
+                        return false;
+                    }
+
+                    // Use System.IO.Compression.ZipFile for .NET 4.8
                     using (var zipArchive = System.IO.Compression.ZipFile.OpenRead(pathParts[0]))
                     {
                         var entry = zipArchive.Entries.FirstOrDefault(e =>
@@ -1033,26 +1128,39 @@ document.addEventListener('DOMContentLoaded', function() {{
                             {
                                 entryStream.CopyTo(memStream);
                                 memStream.Position = 0;
+                                Log.WriteLine(LogLevel.Info, "Successfully extracted book from ZIP: {0}", entry.FullName);
                                 return true;
                             }
+                        }
+                        else
+                        {
+                            Log.WriteLine(LogLevel.Warning, "Entry not found in ZIP: {0}", pathParts[1]);
+                            return false;
                         }
                     }
                 }
                 else
                 {
-                    using (var stream = new FileStream(book.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    if (!File.Exists(bookPath))
+                    {
+                        Log.WriteLine(LogLevel.Warning, "Book file not found: {0}", bookPath);
+                        return false;
+                    }
+
+                    using (var stream = new FileStream(bookPath, FileMode.Open, FileAccess.Read, FileShare.Read))
                     {
                         stream.CopyTo(memStream);
                         memStream.Position = 0;
+                        Log.WriteLine(LogLevel.Info, "Successfully extracted book from file: {0}", bookPath);
                         return true;
                     }
                 }
             }
             catch (Exception ex)
             {
-                Log.WriteLine(LogLevel.Error, "Error extracting book content: {0}", ex.Message);
+                Log.WriteLine(LogLevel.Error, "Error extracting book content from {0}: {1}", book.FilePath, ex.Message);
+                return false;
             }
-            return false;
         }
 
         private bool ConvertFB2ToEpub(Book book, MemoryStream memStream)
@@ -1216,7 +1324,6 @@ document.addEventListener('DOMContentLoaded', function() {{
                         }
                         finally
                         {
-                            // FIXED: Ensure imageStream is always disposed
                             imageStream?.Dispose();
                         }
                     }

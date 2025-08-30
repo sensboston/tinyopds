@@ -595,8 +595,10 @@ namespace TinyOPDS.Data
                 {
                     Log.WriteLine(LogLevel.Info, "Step 1: Trying exact match for two-word query '{0}' using FTS", searchPattern);
 
+                    // Escape the search pattern for FTS
+                    string escapedPattern = EscapeForFTS(searchPattern);
                     // Use FTS to find exact match - it handles case-insensitive Unicode properly
-                    string ftsQuery = $"\"{searchPattern}\""; // Exact phrase in FTS
+                    string ftsQuery = $"\"{escapedPattern}\""; // Exact phrase in FTS
 
                     string sql = @"
                         SELECT DISTINCT a.Name
@@ -618,7 +620,8 @@ namespace TinyOPDS.Data
 
                     // Try reversed order in FTS
                     string reversedPattern = $"{words[1]} {words[0]}";
-                    string reversedFtsQuery = $"\"{reversedPattern}\"";
+                    string escapedReversedPattern = EscapeForFTS(reversedPattern);
+                    string reversedFtsQuery = $"\"{escapedReversedPattern}\"";
 
                     authors = db.ExecuteQuery<string>(sql,
                         reader => reader.GetString(0),
@@ -637,8 +640,10 @@ namespace TinyOPDS.Data
                     string pattern = words[0];
                     Log.WriteLine(LogLevel.Info, "Step 2: Trying partial match for single word '{0}' using FTS", pattern);
 
+                    // Escape and prepare for wildcard search
+                    string escapedWord = EscapeForFTS(pattern);
                     // Use FTS with wildcard for prefix search
-                    string ftsPattern = $"{pattern}*";
+                    string ftsPattern = $"{escapedWord}*";
 
                     string sql = @"
                         SELECT DISTINCT a.Name
@@ -968,11 +973,43 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
+        /// Escape special characters for FTS5 queries
+        /// </summary>
+        private string EscapeForFTS(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return text;
+
+            // FTS5 special characters that need escaping
+            // Double quotes need to be escaped by doubling them
+            text = text.Replace("\"", "\"\"");
+
+            // For safety, remove other potentially problematic characters
+            // or replace them with spaces
+            text = text.Replace("'", " ");  // Replace apostrophe with space
+            text = text.Replace("(", " ");
+            text = text.Replace(")", " ");
+            text = text.Replace("[", " ");
+            text = text.Replace("]", " ");
+            text = text.Replace("*", " ");  // Wildcard, but we'll add our own
+            text = text.Replace(":", " ");
+            text = text.Replace("-", " ");  // Can be problematic in FTS
+
+            // Clean up multiple spaces
+            while (text.Contains("  "))
+                text = text.Replace("  ", " ");
+
+            return text.Trim();
+        }
+
+        /// <summary>
         /// Prepare search pattern for FTS5 (add wildcards for partial matching)
         /// </summary>
         private string PrepareSearchPatternForFTS(string pattern)
         {
             if (string.IsNullOrEmpty(pattern)) return pattern;
+
+            // First escape special characters
+            pattern = EscapeForFTS(pattern);
 
             // Split into words and add wildcards
             var words = pattern.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);

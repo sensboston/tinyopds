@@ -286,8 +286,9 @@ class UniversalReader {
     }
 
     scrollPage(direction) {
-        const viewportHeight = window.innerHeight;
-        const scrollAmount = viewportHeight * 0.9;
+	const viewportHeight = window.innerHeight;
+        const lineHeight = this.fontSize * 1.8;
+	const scrollAmount = (viewportHeight * 0.9) + (lineHeight * 1.5);
 
         const oldScrollBehavior = document.body.style.scrollBehavior;
         document.body.style.scrollBehavior = 'smooth';

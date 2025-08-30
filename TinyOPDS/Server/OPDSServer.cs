@@ -881,14 +881,32 @@ document.addEventListener('DOMContentLoaded', function() {{
                         string libName = $"{Properties.Settings.Default.ServerName}: {books[1]} {books[0]}";
                         args.AddParam("libName", "", libName);
 
-                        // Add localized parameters
+                        // Add localized parameters for web interface
                         args.AddParam("searchPlaceholder", "", Localizer.Text("Search authors or books..."));
                         args.AddParam("searchButtonText", "", Localizer.Text("Search"));
                         args.AddParam("formatText", "", Localizer.Text("Format:"));
                         args.AddParam("sizeText", "", Localizer.Text("Size:"));
                         args.AddParam("downloadText", "", Localizer.Text("Download"));
                         args.AddParam("downloadEpubText", "", Localizer.Text("Download EPUB"));
-                        args.AddParam("readText", "", Localizer.Text("Read")); // Add Read button text
+                        args.AddParam("readText", "", Localizer.Text("Read"));
+
+                        // Add reader localization strings as parameters
+                        args.AddParam("readerTableOfContents", "", Localizer.Text("Table of Contents"));
+                        args.AddParam("readerOpenBook", "", Localizer.Text("Open Book"));
+                        args.AddParam("readerDecreaseFont", "", Localizer.Text("Decrease Font"));
+                        args.AddParam("readerIncreaseFont", "", Localizer.Text("Increase Font"));
+                        args.AddParam("readerChangeFont", "", Localizer.Text("Change Font"));
+                        args.AddParam("readerChangeTheme", "", Localizer.Text("Change Theme"));
+                        args.AddParam("readerDecreaseMargins", "", Localizer.Text("Decrease Margins"));
+                        args.AddParam("readerIncreaseMargins", "", Localizer.Text("Increase Margins"));
+                        args.AddParam("readerStandardWidth", "", Localizer.Text("Standard Width"));
+                        args.AddParam("readerFullWidth", "", Localizer.Text("Full Width"));
+                        args.AddParam("readerFullscreen", "", Localizer.Text("Fullscreen"));
+                        args.AddParam("readerLoading", "", Localizer.Text("Loading..."));
+                        args.AddParam("readerErrorLoading", "", Localizer.Text("Error loading file"));
+                        args.AddParam("readerNoTitle", "", Localizer.Text("Untitled"));
+                        args.AddParam("readerUnknownAuthor", "", Localizer.Text("Unknown Author"));
+                        args.AddParam("readerNoChapters", "", Localizer.Text("No chapters available"));
 
                         xslTransform.Transform(xPathDoc, args, writer);
 

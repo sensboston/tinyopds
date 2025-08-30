@@ -1237,5 +1237,127 @@
 			<text lang="es">Buscar</text>
 			<text lang="fr">Rechercher</text>
 		</property>
+
+		<property>
+			<text lang="en">Table of Contents</text>
+			<text lang="ru">Оглавление</text>
+			<text lang="uk">Зміст</text>
+			<text lang="de">Inhaltsverzeichnis</text>
+			<text lang="es">Tabla de contenidos</text>
+			<text lang="fr">Table des matières</text>
+		</property>
+		<property>
+			<text lang="en">Decrease Font</text>
+			<text lang="ru">Уменьшить шрифт</text>
+			<text lang="uk">Зменшити шрифт</text>
+			<text lang="de">Schrift verkleinern</text>
+			<text lang="es">Reducir fuente</text>
+			<text lang="fr">Réduire la police</text>
+		</property>
+		<property>
+			<text lang="en">Increase Font</text>
+			<text lang="ru">Увеличить шрифт</text>
+			<text lang="uk">Збільшити шрифт</text>
+			<text lang="de">Schrift vergrößern</text>
+			<text lang="es">Aumentar fuente</text>
+			<text lang="fr">Augmenter la police</text>
+		</property>
+		<property>
+			<text lang="en">Change Font</text>
+			<text lang="ru">Изменить шрифт</text>
+			<text lang="uk">Змінити шрифт</text>
+			<text lang="de">Schriftart ändern</text>
+			<text lang="es">Cambiar fuente</text>
+			<text lang="fr">Changer la police</text>
+		</property>
+		<property>
+			<text lang="en">Change Theme</text>
+			<text lang="ru">Изменить тему</text>
+			<text lang="uk">Змінити тему</text>
+			<text lang="de">Thema ändern</text>
+			<text lang="es">Cambiar tema</text>
+			<text lang="fr">Changer le thème</text>
+		</property>
+		<property>
+			<text lang="en">Decrease Margins</text>
+			<text lang="ru">Уменьшить поля</text>
+			<text lang="uk">Зменшити поля</text>
+			<text lang="de">Ränder verkleinern</text>
+			<text lang="es">Reducir márgenes</text>
+			<text lang="fr">Réduire les marges</text>
+		</property>
+		<property>
+			<text lang="en">Increase Margins</text>
+			<text lang="ru">Увеличить поля</text>
+			<text lang="uk">Збільшити поля</text>
+			<text lang="de">Ränder vergrößern</text>
+			<text lang="es">Aumentar márgenes</text>
+			<text lang="fr">Augmenter les marges</text>
+		</property>
+		<property>
+			<text lang="en">Standard Width</text>
+			<text lang="ru">Стандартная ширина</text>
+			<text lang="uk">Стандартна ширина</text>
+			<text lang="de">Standardbreite</text>
+			<text lang="es">Ancho estándar</text>
+			<text lang="fr">Largeur standard</text>
+		</property>
+		<property>
+			<text lang="en">Full Width</text>
+			<text lang="ru">Полная ширина</text>
+			<text lang="uk">Повна ширина</text>
+			<text lang="de">Volle Breite</text>
+			<text lang="es">Ancho completo</text>
+			<text lang="fr">Pleine largeur</text>
+		</property>
+		<property>
+			<text lang="en">Fullscreen</text>
+			<text lang="ru">Полный экран</text>
+			<text lang="uk">Повний екран</text>
+			<text lang="de">Vollbild</text>
+			<text lang="es">Pantalla completa</text>
+			<text lang="fr">Plein écran</text>
+		</property>
+		<property>
+			<text lang="en">Loading...</text>
+			<text lang="ru">Загрузка...</text>
+			<text lang="uk">Завантаження...</text>
+			<text lang="de">Laden...</text>
+			<text lang="es">Cargando...</text>
+			<text lang="fr">Chargement...</text>
+		</property>
+		<property>
+			<text lang="en">Error loading file</text>
+			<text lang="ru">Ошибка загрузки файла</text>
+			<text lang="uk">Помилка завантаження файлу</text>
+			<text lang="de">Fehler beim Laden der Datei</text>
+			<text lang="es">Error al cargar el archivo</text>
+			<text lang="fr">Erreur de chargement du fichier</text>
+		</property>
+		<property>
+			<text lang="en">Untitled</text>
+			<text lang="ru">Без названия</text>
+			<text lang="uk">Без назви</text>
+			<text lang="de">Ohne Titel</text>
+			<text lang="es">Sin título</text>
+			<text lang="fr">Sans titre</text>
+		</property>
+		<property>
+			<text lang="en">Unknown Author</text>
+			<text lang="ru">Неизвестный автор</text>
+			<text lang="uk">Невідомий автор</text>
+			<text lang="de">Unbekannter Autor</text>
+			<text lang="es">Autor desconocido</text>
+			<text lang="fr">Auteur inconnu</text>
+		</property>
+		<property>
+			<text lang="en">No chapters available</text>
+			<text lang="ru">Главы отсутствуют</text>
+			<text lang="uk">Розділи відсутні</text>
+			<text lang="de">Keine Kapitel verfügbar</text>
+			<text lang="es">No hay capítulos disponibles</text>
+			<text lang="fr">Aucun chapitre disponible</text>
+		</property>		
+		
 	</properties>
 </root>

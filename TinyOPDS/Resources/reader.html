@@ -34,15 +34,15 @@
             right: 0;
             width: 40px;
             height: 40px;
-            background: rgba(100, 100, 100, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(100, 100, 100, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 0 0 0 8px;
             cursor: pointer;
             z-index: 1001;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: rgba(255, 255, 255, 0.8);
+            color: rgba(255, 255, 255, 0.7);
             font-size: 20px;
             transition: all 0.3s ease;
             backdrop-filter: blur(10px);
@@ -63,8 +63,8 @@
         }
 
             .menu-toggle:hover {
-                background: rgba(100, 100, 100, 0.5);
-                border-color: rgba(255, 255, 255, 0.3);
+                background: rgba(100, 100, 100, 0.3);
+                border-color: rgba(255, 255, 255, 0.25);
             }
 
             .menu-toggle.active {
@@ -123,7 +123,7 @@
 
         /* Controls row - FIXED for single row */
         .controls {
-            padding: 12px 20px;
+            padding: 12px 20px 35px 20px; /* Increased bottom padding for tooltips */
             display: flex;
             gap: 20px;
             align-items: center;
@@ -653,7 +653,7 @@
             text-align: center;
         }
 
-        /* Tooltip */
+        /* Tooltip - Desktop only */
         .tooltip {
             position: absolute;
             bottom: -30px;
@@ -680,6 +680,11 @@
 
         /* Mobile optimizations */
         @media (max-width: 768px) {
+            /* Hide tooltips on mobile - they don't make sense on touch devices */
+            .tooltip {
+                display: none !important;
+            }
+
             .menu-toggle {
                 width: 36px;
                 height: 36px;
@@ -713,12 +718,12 @@
             }
 
             .control-btn {
-                width: 36px;
-                height: 36px;
+                width: 38px;
+                height: 38px;
                 font-size: 16px;
                 /* Ensure buttons don't shrink on mobile */
-                min-width: 36px;
-                min-height: 36px;
+                min-width: 38px;
+                min-height: 38px;
             }
 
             .control-group {
@@ -736,6 +741,7 @@
                 .control-group:last-child,
                 .control-group:last-of-type {
                     padding-right: 0;
+                    border-right: none !important;
                 }
 
                 /* Hide desktop-only controls on mobile */
@@ -779,11 +785,11 @@
             }
 
             .control-btn {
-                width: 32px;
-                height: 32px;
+                width: 34px;
+                height: 34px;
                 font-size: 14px;
-                min-width: 32px;
-                min-height: 32px;
+                min-width: 34px;
+                min-height: 34px;
             }
 
             .control-group {
@@ -798,6 +804,7 @@
                 .control-group:last-child,
                 .control-group:last-of-type {
                     padding-right: 0;
+                    border-right: none !important;
                 }
 
             .font-indicator {

@@ -11,6 +11,24 @@ xmlns:x="http://www.w3.org/2005/Atom">
 	<xsl:param name="downloadEpubText" select="'Download EPUB'"/>
 	<xsl:param name="readText" select="'Read'"/>
 
+	<!-- Reader localization parameters -->
+	<xsl:param name="readerTableOfContents" select="'Table of Contents'"/>
+	<xsl:param name="readerOpenBook" select="'Open Book'"/>
+	<xsl:param name="readerDecreaseFont" select="'Decrease Font'"/>
+	<xsl:param name="readerIncreaseFont" select="'Increase Font'"/>
+	<xsl:param name="readerChangeFont" select="'Change Font'"/>
+	<xsl:param name="readerChangeTheme" select="'Change Theme'"/>
+	<xsl:param name="readerDecreaseMargins" select="'Decrease Margins'"/>
+	<xsl:param name="readerIncreaseMargins" select="'Increase Margins'"/>
+	<xsl:param name="readerStandardWidth" select="'Standard Width'"/>
+	<xsl:param name="readerFullWidth" select="'Full Width'"/>
+	<xsl:param name="readerFullscreen" select="'Fullscreen'"/>
+	<xsl:param name="readerLoading" select="'Loading...'"/>
+	<xsl:param name="readerErrorLoading" select="'Error loading file'"/>
+	<xsl:param name="readerNoTitle" select="'Untitled'"/>
+	<xsl:param name="readerUnknownAuthor" select="'Unknown Author'"/>
+	<xsl:param name="readerNoChapters" select="'No chapters available'"/>
+
 	<xsl:template match="/">
 		<xsl:variable name="id">
 			<xsl:value-of select="x:feed/x:id"/>
@@ -395,6 +413,36 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					}
 					}
 				</style>
+				<script>
+					// Store reader localization strings in localStorage for reader.html
+					(function() {
+					var readerLocalization = {
+					'tableOfContents': '<xsl:value-of select="$readerTableOfContents"/>',
+					'openBook': '<xsl:value-of select="$readerOpenBook"/>',
+					'decreaseFont': '<xsl:value-of select="$readerDecreaseFont"/>',
+					'increaseFont': '<xsl:value-of select="$readerIncreaseFont"/>',
+					'changeFont': '<xsl:value-of select="$readerChangeFont"/>',
+					'changeTheme': '<xsl:value-of select="$readerChangeTheme"/>',
+					'decreaseMargins': '<xsl:value-of select="$readerDecreaseMargins"/>',
+					'increaseMargins': '<xsl:value-of select="$readerIncreaseMargins"/>',
+					'standardWidth': '<xsl:value-of select="$readerStandardWidth"/>',
+					'fullWidth': '<xsl:value-of select="$readerFullWidth"/>',
+					'fullscreen': '<xsl:value-of select="$readerFullscreen"/>',
+					'loading': '<xsl:value-of select="$readerLoading"/>',
+					'errorLoading': '<xsl:value-of select="$readerErrorLoading"/>',
+					'noTitle': '<xsl:value-of select="$readerNoTitle"/>',
+					'unknownAuthor': '<xsl:value-of select="$readerUnknownAuthor"/>',
+					'noChapters': '<xsl:value-of select="$readerNoChapters"/>'
+					};
+
+					try {
+					localStorage.setItem('tinyopds-localization', JSON.stringify(readerLocalization));
+					} catch(e) {
+					// localStorage might not be available
+					console.warn('Could not save reader localization to localStorage:', e);
+					}
+					})();
+				</script>
 			</head>
 			<body>
 				<div class="fixed-header">

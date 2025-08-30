@@ -293,7 +293,7 @@
             max-width: 100%;
         }
 
-            /* Font families */
+            /* Book content */
             .book-content.font-serif {
                 font-family: Georgia, 'Times New Roman', serif;
             }
@@ -304,6 +304,53 @@
 
             .book-content.font-mono {
                 font-family: 'Courier New', Courier, monospace;
+            }
+
+        /* Hyphenation support - always enabled */
+        .book-content {
+            /* Enable hyphenation globally */
+            hyphens: auto !important;
+            -webkit-hyphens: auto !important;
+            -moz-hyphens: auto !important;
+            -ms-hyphens: auto !important;
+            /* Ensure proper word breaking */
+            word-wrap: break-word;
+            word-break: normal;
+            overflow-wrap: break-word;
+        }
+
+            .book-content p,
+            .book-content div,
+            .book-content span,
+            .book-content h1,
+            .book-content h2,
+            .book-content h3,
+            .book-content h4,
+            .book-content h5,
+            .book-content h6 {
+                /* Apply hyphenation to all text elements */
+                hyphens: auto !important;
+                -webkit-hyphens: auto !important;
+                -moz-hyphens: auto !important;
+                -ms-hyphens: auto !important;
+                /* Limit consecutive hyphens */
+                -webkit-hyphenate-limit-lines: 2;
+                -ms-hyphenate-limit-lines: 2;
+                hyphenate-limit-lines: 2;
+                /* Minimum characters for hyphenation */
+                -webkit-hyphenate-limit-chars: 5 2 2;
+                -moz-hyphenate-limit-chars: 5 2 2;
+                -ms-hyphenate-limit-chars: 5 2 2;
+                hyphenate-limit-chars: 5 2 2;
+            }
+
+            /* Ensure Russian language support */
+            .book-content[lang="ru"] p,
+            .book-content[lang="ru"] div {
+                hyphens: auto !important;
+                -webkit-hyphens: auto !important;
+                -moz-hyphens: auto !important;
+                -ms-hyphens: auto !important;
             }
 
             /* Themes */
@@ -356,6 +403,20 @@
             margin: 15px 0;
             text-align: justify;
             text-indent: 1.5em;
+            /* Enable hyphenation for better mobile reading */
+            hyphens: auto;
+            -webkit-hyphens: auto;
+            -moz-hyphens: auto;
+            -ms-hyphens: auto;
+            /* Limit consecutive hyphens */
+            -webkit-hyphenate-limit-lines: 2;
+            -ms-hyphenate-limit-lines: 2;
+            hyphenate-limit-lines: 2;
+            /* Minimum word length for hyphenation */
+            -webkit-hyphenate-limit-chars: 6 3 2;
+            -moz-hyphenate-limit-chars: 6 3 2;
+            -ms-hyphenate-limit-chars: 6 3 2;
+            hyphenate-limit-chars: 6 3 2;
         }
 
             .book-content p:first-of-type {
@@ -855,6 +916,7 @@
                 this.chapters = [];
                 this.currentChapterIndex = -1;
                 this.isScrolling = false; // Flag to handle TOC navigation
+                this.detectedLanguage = 'en'; // Default language
 
                 // Localization strings with English defaults
                 this.strings = {
@@ -1938,6 +2000,64 @@
                 return html;
             }
 
+            detectLanguage(text) {
+                // Simple language detection based on character patterns
+                // Remove HTML tags for better detection
+                const cleanText = text.replace(/<[^>]*>/g, '');
+                const sample = cleanText.substring(0, Math.min(2000, cleanText.length));
+
+                // Cyrillic character range
+                const cyrillicPattern = /[\u0400-\u04FF]/g;
+                const latinPattern = /[a-zA-Z]/g;
+
+                const cyrillicMatches = (sample.match(cyrillicPattern) || []).length;
+                const latinMatches = (sample.match(latinPattern) || []).length;
+
+                // If more than 20% Cyrillic characters, consider it Russian
+                if (cyrillicMatches > 0 && cyrillicMatches > latinMatches * 0.2) {
+                    return 'ru';
+                }
+
+                // Check for common European language patterns
+                // German: ä, ö, ü, ß
+                if (/[äöüßÄÖÜ]/.test(sample)) {
+                    return 'de';
+                }
+
+                // French: é, è, ê, à, ç
+                if (/[éèêëàâçîôûÉÈÊËÀÂÇÎÔÛ]/.test(sample)) {
+                    return 'fr';
+                }
+
+                // Spanish: ñ, á, é, í, ó, ú
+                if (/[ñáéíóúÑÁÉÍÓÚ]/.test(sample)) {
+                    return 'es';
+                }
+
+                // Italian: à, è, é, ì, ò, ù
+                if (/[àèéìòùÀÈÉÌÒÙ]/.test(sample)) {
+                    return 'it';
+                }
+
+                // Default to English
+                return 'en';
+            }
+
+            applyHyphenation() {
+                // Always enable hyphenation
+                this.bookContent.classList.add('hyphens-enabled');
+                this.bookContent.classList.remove('hyphens-disabled');
+                // Set language attribute for proper hyphenation
+                this.bookContent.setAttribute('lang', this.detectedLanguage);
+                // Also set on document level for better support
+                document.documentElement.setAttribute('lang', this.detectedLanguage);
+
+                // Force reflow to apply hyphenation changes (especially for Safari)
+                this.bookContent.style.display = 'none';
+                this.bookContent.offsetHeight; // Trigger reflow
+                this.bookContent.style.display = 'block';
+            }
+
             displayBook(bookData) {
                 this.bookTitle = bookData.title;
                 this.bookAuthor = bookData.author;
@@ -1945,11 +2065,17 @@
                 this.bookAuthorEl.textContent = this.bookAuthor;
                 this.bookContent.innerHTML = bookData.content;
                 this.bookContent.style.display = 'block';
+
+                // Detect language for hyphenation
+                this.detectedLanguage = this.detectLanguage(bookData.content);
+                console.log('Detected language:', this.detectedLanguage);
+
                 this.applyFontSize();
                 this.applyTheme();
                 this.applyFont();
                 this.applyMargins();
                 this.applyWidthMode();
+                this.applyHyphenation();
 
                 // Close menu after loading
                 if (this.menuVisible) {
@@ -2141,7 +2267,7 @@
                     this.widthMode = prefs.widthMode || 'standard';
 
                     document.body.className = 'theme-' + this.themes[this.currentThemeIndex];
-                    this.bookContent.className = `book-content ${this.themes[this.currentThemeIndex]} ${this.fonts[this.currentFontIndex]}`;
+                    this.bookContent.className = `book-content ${this.themes[this.currentThemeIndex]} ${this.fonts[this.currentFontIndex]} hyphens-enabled`;
                     this.fontIndicator.className = `font-indicator ${this.fontClasses[this.currentFontIndex]}`;
 
                     this.bookContent.style.paddingLeft = this.margins + 'px';

@@ -126,6 +126,7 @@
     <Compile Include="Data\CoverImage.cs" />
     <Compile Include="Data\DatabaseManager.cs" />
     <Compile Include="Data\DatabaseSchema.cs" />
+    <Compile Include="Data\DuplicateDetector.cs" />
     <Compile Include="Data\Genre.cs" />
     <Compile Include="Data\ImagesCache.cs" />
     <Compile Include="Data\Library.cs" />
@@ -191,6 +192,7 @@
     <None Include="Properties\app.manifest" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings1.Designer.cs</LastGenOutput>
     </None>
     <Compile Include="Properties\Settings.Designer.cs">
       <AutoGen>True</AutoGen>

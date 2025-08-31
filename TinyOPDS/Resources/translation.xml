@@ -2,8 +2,8 @@
 <root>
 	<languages>
 		<language id="en">English</language>
-		<language id="ru">Русский</language>
 		<language id="uk">Українська</language>
+		<language id="ru">Русский</language>
 		<language id="de">Deutsch</language>
 		<language id="es">Español</language>
 		<language id="fr">Français</language>
@@ -989,7 +989,7 @@
 		</property>
 		<property>
 			<text lang="en">Cyrillic first</text>
-			<text lang="ru">Сначала русские</text>
+			<text lang="ru">Сначала кириллица</text>
 			<text lang="uk">Спочатку кириличні</text>
 			<text lang="de">Kyrillisch zuerst</text>
 			<text lang="es">Cirílico primero</text>

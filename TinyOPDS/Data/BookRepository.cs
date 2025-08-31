@@ -12,6 +12,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.IO;
 using System.Linq;
 
 namespace TinyOPDS.Data
@@ -19,10 +20,66 @@ namespace TinyOPDS.Data
     public class BookRepository
     {
         private readonly DatabaseManager db;
+        private readonly HashSet<string> validGenreTags;
+        private readonly DuplicateDetector duplicateDetector;
 
         public BookRepository(DatabaseManager database)
         {
             db = database;
+            validGenreTags = new HashSet<string>();
+            LoadValidGenreTags();
+
+            // Initialize duplicate detector (normal mode by default)
+            duplicateDetector = new DuplicateDetector(database, Properties.Settings.Default.AggressiveDuplicateDetection);
+        }
+
+        /// <summary>
+        /// Load valid genre tags from database for validation
+        /// </summary>
+        private void LoadValidGenreTags()
+        {
+            try
+            {
+                validGenreTags.Clear();
+                var tags = db.ExecuteQuery<string>(
+                    "SELECT Tag FROM Genres",
+                    reader => reader.GetString(0));
+
+                foreach (var tag in tags)
+                {
+                    validGenreTags.Add(tag);
+                }
+
+                Log.WriteLine(LogLevel.Info, "Loaded {0} valid genre tags from database", validGenreTags.Count);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error loading valid genre tags: {0}", ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Reload valid genre tags (call after genres table is updated)
+        /// </summary>
+        public void RefreshValidGenreTags()
+        {
+            LoadValidGenreTags();
+        }
+
+        /// <summary>
+        /// Validate genre tag against database
+        /// </summary>
+        private bool IsValidGenreTag(string tag)
+        {
+            if (string.IsNullOrEmpty(tag)) return false;
+
+            // If cache is empty, try to reload
+            if (validGenreTags.Count == 0)
+            {
+                LoadValidGenreTags();
+            }
+
+            return validGenreTags.Contains(tag);
         }
 
         /// <summary>
@@ -33,13 +90,17 @@ namespace TinyOPDS.Data
             public int TotalProcessed { get; set; }
             public int Added { get; set; }
             public int Duplicates { get; set; }
+            public int Replaced { get; set; }
             public int Errors { get; set; }
             public int FB2Count { get; set; }
             public int EPUBCount { get; set; }
+            public int InvalidGenresSkipped { get; set; }
             public TimeSpan ProcessingTime { get; set; }
             public List<string> ErrorMessages { get; set; } = new List<string>();
+            public List<string> InvalidGenreTags { get; set; } = new List<string>();
+            public List<string> ReplacedBooks { get; set; } = new List<string>();
 
-            public bool IsSuccess => Added > 0 || Duplicates > 0;
+            public bool IsSuccess => Added > 0 || Duplicates > 0 || Replaced > 0;
         }
 
         #region Book CRUD Operations
@@ -48,9 +109,46 @@ namespace TinyOPDS.Data
         {
             try
             {
+                // Generate duplicate keys
+                if (string.IsNullOrEmpty(book.DuplicateKey))
+                    book.DuplicateKey = book.GenerateDuplicateKey();
+
+                // Check for duplicates using DuplicateDetector
+                Stream fileStream = null;
+                try
+                {
+                    // Try to open file for content hash generation
+                    if (File.Exists(book.FilePath))
+                    {
+                        fileStream = new FileStream(book.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                    }
+
+                    var duplicateResult = duplicateDetector.CheckDuplicate(book, fileStream);
+
+                    if (duplicateResult.IsDuplicate)
+                    {
+                        if (!duplicateResult.ShouldReplace)
+                        {
+                            Log.WriteLine(LogLevel.Info, "Skipping duplicate book: {0} - {1}",
+                                book.FileName, duplicateResult.Reason);
+                            return false;
+                        }
+
+                        // Process replacement
+                        if (!duplicateDetector.ProcessDuplicate(book, duplicateResult))
+                        {
+                            return false;
+                        }
+                    }
+                }
+                finally
+                {
+                    fileStream?.Dispose();
+                }
+
                 db.BeginTransaction();
 
-                // Insert or update book
+                // Insert or update book with new duplicate detection fields
                 var bookParams = new[]
                 {
                     DatabaseManager.CreateParameter("@ID", book.ID),
@@ -64,7 +162,11 @@ namespace TinyOPDS.Data
                     DatabaseManager.CreateParameter("@NumberInSequence", (long)book.NumberInSequence),
                     DatabaseManager.CreateParameter("@Annotation", book.Annotation),
                     DatabaseManager.CreateParameter("@DocumentSize", (long)book.DocumentSize),
-                    DatabaseManager.CreateParameter("@AddedDate", book.AddedDate)
+                    DatabaseManager.CreateParameter("@AddedDate", book.AddedDate),
+                    DatabaseManager.CreateParameter("@DocumentIDTrusted", book.DocumentIDTrusted),
+                    DatabaseManager.CreateParameter("@DuplicateKey", book.DuplicateKey),
+                    DatabaseManager.CreateParameter("@ReplacedByID", book.ReplacedByID),
+                    DatabaseManager.CreateParameter("@ContentHash", book.ContentHash)
                 };
 
                 db.ExecuteNonQuery(DatabaseSchema.InsertBook, bookParams);
@@ -101,12 +203,29 @@ namespace TinyOPDS.Data
                         DatabaseManager.CreateParameter("@AuthorName", authorName));
                 }
 
-                // Add genres
+                // Add genres with validation
+                int validGenreCount = 0;
                 foreach (var genreTag in book.Genres)
                 {
-                    db.ExecuteNonQuery(DatabaseSchema.InsertBookGenre,
-                        DatabaseManager.CreateParameter("@BookID", book.ID),
-                        DatabaseManager.CreateParameter("@GenreTag", genreTag));
+                    if (IsValidGenreTag(genreTag))
+                    {
+                        db.ExecuteNonQuery(DatabaseSchema.InsertBookGenre,
+                            DatabaseManager.CreateParameter("@BookID", book.ID),
+                            DatabaseManager.CreateParameter("@GenreTag", genreTag));
+                        validGenreCount++;
+                    }
+                    else
+                    {
+                        Log.WriteLine(LogLevel.Warning, "Invalid genre tag '{0}' for book {1}, skipping",
+                            genreTag, book.FileName);
+                    }
+                }
+
+                // If no valid genres were added, log warning but don't fail
+                if (validGenreCount == 0 && book.Genres.Count > 0)
+                {
+                    Log.WriteLine(LogLevel.Warning, "No valid genres added for book {0} (had {1} invalid genres)",
+                        book.FileName, book.Genres.Count);
                 }
 
                 // Add translators
@@ -132,7 +251,7 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Add multiple books in batch with FTS5 synchronization
+        /// Add multiple books in batch with FTS5 synchronization and duplicate detection
         /// </summary>
         public BatchResult AddBooksBatch(List<Book> books)
         {
@@ -161,14 +280,48 @@ namespace TinyOPDS.Data
                 {
                     try
                     {
-                        // Check for duplicates
-                        if (BookExists(book.FileName))
+                        // Generate duplicate key
+                        if (string.IsNullOrEmpty(book.DuplicateKey))
+                            book.DuplicateKey = book.GenerateDuplicateKey();
+
+                        // Generate content hash if file exists
+                        Stream fileStream = null;
+                        try
                         {
-                            result.Duplicates++;
-                            continue;
+                            if (File.Exists(book.FilePath))
+                            {
+                                fileStream = new FileStream(book.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                                if (string.IsNullOrEmpty(book.ContentHash))
+                                    book.ContentHash = book.GenerateContentHash(fileStream);
+                            }
+
+                            // Check for duplicates
+                            var duplicateResult = duplicateDetector.CheckDuplicate(book, fileStream);
+
+                            if (duplicateResult.IsDuplicate)
+                            {
+                                if (!duplicateResult.ShouldReplace)
+                                {
+                                    result.Duplicates++;
+                                    continue;
+                                }
+                                else
+                                {
+                                    // Mark as replacement
+                                    result.Replaced++;
+                                    result.ReplacedBooks.Add($"{duplicateResult.ExistingBook.FileName} -> {book.FileName}");
+
+                                    // Process replacement
+                                    duplicateDetector.ProcessDuplicate(book, duplicateResult);
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            fileStream?.Dispose();
                         }
 
-                        // Insert book
+                        // Insert book with duplicate detection fields
                         var bookParams = new[]
                         {
                             DatabaseManager.CreateParameter("@ID", book.ID),
@@ -182,7 +335,11 @@ namespace TinyOPDS.Data
                             DatabaseManager.CreateParameter("@NumberInSequence", (long)book.NumberInSequence),
                             DatabaseManager.CreateParameter("@Annotation", book.Annotation),
                             DatabaseManager.CreateParameter("@DocumentSize", (long)book.DocumentSize),
-                            DatabaseManager.CreateParameter("@AddedDate", book.AddedDate)
+                            DatabaseManager.CreateParameter("@AddedDate", book.AddedDate),
+                            DatabaseManager.CreateParameter("@DocumentIDTrusted", book.DocumentIDTrusted),
+                            DatabaseManager.CreateParameter("@DuplicateKey", book.DuplicateKey),
+                            DatabaseManager.CreateParameter("@ReplacedByID", book.ReplacedByID),
+                            DatabaseManager.CreateParameter("@ContentHash", book.ContentHash)
                         };
                         db.ExecuteNonQuery(DatabaseSchema.InsertBook, bookParams);
 
@@ -210,12 +367,23 @@ namespace TinyOPDS.Data
                                 DatabaseManager.CreateParameter("@AuthorName", authorName));
                         }
 
-                        // Insert genres and relationships
+                        // Insert genres with validation
                         foreach (var genreTag in book.Genres)
                         {
-                            db.ExecuteNonQuery(DatabaseSchema.InsertBookGenre,
-                                DatabaseManager.CreateParameter("@BookID", book.ID),
-                                DatabaseManager.CreateParameter("@GenreTag", genreTag));
+                            if (IsValidGenreTag(genreTag))
+                            {
+                                db.ExecuteNonQuery(DatabaseSchema.InsertBookGenre,
+                                    DatabaseManager.CreateParameter("@BookID", book.ID),
+                                    DatabaseManager.CreateParameter("@GenreTag", genreTag));
+                            }
+                            else
+                            {
+                                result.InvalidGenresSkipped++;
+                                if (!result.InvalidGenreTags.Contains(genreTag))
+                                {
+                                    result.InvalidGenreTags.Add(genreTag);
+                                }
+                            }
                         }
 
                         // Insert translators and relationships
@@ -248,8 +416,20 @@ namespace TinyOPDS.Data
                 db.CommitTransaction();
 
                 result.ProcessingTime = DateTime.Now - startTime;
-                Log.WriteLine("Batch insert completed: {0} added, {1} duplicates skipped, {2} errors in {3}ms",
-                    result.Added, result.Duplicates, result.Errors, result.ProcessingTime.TotalMilliseconds);
+
+                if (result.InvalidGenresSkipped > 0)
+                {
+                    Log.WriteLine(LogLevel.Warning, "Batch insert: {0} invalid genre tags skipped. Tags: {1}",
+                        result.InvalidGenresSkipped, string.Join(", ", result.InvalidGenreTags));
+                }
+
+                if (result.Replaced > 0)
+                {
+                    Log.WriteLine(LogLevel.Info, "Batch insert: {0} books replaced with newer versions", result.Replaced);
+                }
+
+                Log.WriteLine("Batch insert completed: {0} added, {1} duplicates skipped, {2} replaced, {3} errors in {4}ms",
+                    result.Added, result.Duplicates, result.Replaced, result.Errors, result.ProcessingTime.TotalMilliseconds);
 
                 return result;
             }
@@ -334,7 +514,7 @@ namespace TinyOPDS.Data
 
         public bool BookExists(string fileName)
         {
-            var count = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE FileName = @FileName",
+            var count = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE FileName = @FileName AND ReplacedByID IS NULL",
                 DatabaseManager.CreateParameter("@FileName", fileName));
             return Convert.ToInt32(count) > 0;
         }
@@ -728,23 +908,112 @@ namespace TinyOPDS.Data
 
         #endregion
 
+        #region Genre Methods
+
+        /// <summary>
+        /// Get all genres from database
+        /// </summary>
+        public List<Genre> GetAllGenres()
+        {
+            return db.GetAllGenres();
+        }
+
+        /// <summary>
+        /// Get genres with book count > 0
+        /// </summary>
+        public List<(Genre genre, int bookCount)> GetGenresWithBooks()
+        {
+            try
+            {
+                var result = new List<(Genre genre, int bookCount)>();
+
+                var data = db.ExecuteQuery<(string Tag, string ParentName, string Name, string Translation, int BookCount)>(
+                    DatabaseSchema.SelectGenresWithBookCount,
+                    reader => (
+                        reader.GetString(0),  // Tag
+                        DatabaseManager.GetString(reader, "ParentName"),
+                        reader.GetString(2),  // Name
+                        DatabaseManager.GetString(reader, "Translation"),
+                        reader.GetInt32(4)   // BookCount
+                    ));
+
+                foreach (var item in data)
+                {
+                    var genre = new Genre
+                    {
+                        Tag = item.Tag,
+                        Name = item.Name,
+                        Translation = item.Translation
+                    };
+                    result.Add((genre, item.BookCount));
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error getting genres with books: {0}", ex.Message);
+                return new List<(Genre genre, int bookCount)>();
+            }
+        }
+
+        /// <summary>
+        /// Validate and fix book genres against Genres table
+        /// </summary>
+        public int ValidateAndFixBookGenres()
+        {
+            try
+            {
+                // Find invalid genre tags
+                var invalidTags = db.ExecuteQuery<string>(
+                    DatabaseSchema.ValidateBookGenres,
+                    reader => reader.GetString(0));
+
+                if (invalidTags.Count > 0)
+                {
+                    Log.WriteLine(LogLevel.Warning, "Found {0} invalid genre tags in BookGenres: {1}",
+                        invalidTags.Count, string.Join(", ", invalidTags));
+
+                    // Remove invalid entries
+                    foreach (var tag in invalidTags)
+                    {
+                        db.ExecuteNonQuery(
+                            "DELETE FROM BookGenres WHERE GenreTag = @Tag",
+                            DatabaseManager.CreateParameter("@Tag", tag));
+                    }
+
+                    Log.WriteLine("Removed {0} invalid genre entries from BookGenres", invalidTags.Count);
+                    return invalidTags.Count;
+                }
+
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error validating book genres: {0}", ex.Message);
+                return -1;
+            }
+        }
+
+        #endregion
+
         #region Statistics
 
         public int GetTotalBooksCount()
         {
-            var result = db.ExecuteScalar(DatabaseSchema.CountBooks);
+            var result = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE ReplacedByID IS NULL");
             return Convert.ToInt32(result);
         }
 
         public int GetFB2BooksCount()
         {
-            var result = db.ExecuteScalar(DatabaseSchema.CountFB2Books);
+            var result = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE FileName LIKE '%.fb2%' AND ReplacedByID IS NULL");
             return Convert.ToInt32(result);
         }
 
         public int GetEPUBBooksCount()
         {
-            var result = db.ExecuteScalar(DatabaseSchema.CountEPUBBooks);
+            var result = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE FileName LIKE '%.epub%' AND ReplacedByID IS NULL");
             return Convert.ToInt32(result);
         }
 
@@ -858,6 +1127,46 @@ namespace TinyOPDS.Data
             }
         }
 
+        /// <summary>
+        /// Get full genre statistics including parent and translation info
+        /// </summary>
+        public List<(Genre genre, int bookCount)> GetFullGenreStatistics()
+        {
+            try
+            {
+                var result = new List<(Genre genre, int bookCount)>();
+
+                var statistics = db.ExecuteQuery<(string Tag, string ParentName, string Name, string Translation, int BookCount)>(
+                    DatabaseSchema.SelectGenreStatisticsFull,
+                    reader => (
+                        reader.GetString(0),
+                        DatabaseManager.GetString(reader, "ParentName"),
+                        reader.GetString(2),
+                        DatabaseManager.GetString(reader, "Translation"),
+                        reader.GetInt32(4)
+                    ));
+
+                foreach (var stat in statistics)
+                {
+                    var genre = new Genre
+                    {
+                        Tag = stat.Tag,
+                        Name = stat.Name,
+                        Translation = stat.Translation
+                    };
+                    result.Add((genre, stat.BookCount));
+                }
+
+                Log.WriteLine(LogLevel.Info, "Loaded full statistics for {0} genres", result.Count);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error getting full genre statistics: {0}", ex.Message);
+                return new List<(Genre genre, int bookCount)>();
+            }
+        }
+
         #endregion
 
         #region Helper Methods
@@ -876,6 +1185,19 @@ namespace TinyOPDS.Data
                 Annotation = DatabaseManager.GetString(reader, "Annotation"),
                 DocumentSize = DatabaseManager.GetUInt32(reader, "DocumentSize")
             };
+
+            // Map new duplicate detection fields if they exist
+            try
+            {
+                book.DocumentIDTrusted = DatabaseManager.GetBoolean(reader, "DocumentIDTrusted");
+                book.DuplicateKey = DatabaseManager.GetString(reader, "DuplicateKey");
+                book.ReplacedByID = DatabaseManager.GetString(reader, "ReplacedByID");
+                book.ContentHash = DatabaseManager.GetString(reader, "ContentHash");
+            }
+            catch
+            {
+                // Fields might not exist in older queries, ignore
+            }
 
             var bookDate = DatabaseManager.GetDateTime(reader, "BookDate");
             if (bookDate.HasValue) book.BookDate = bookDate.Value;

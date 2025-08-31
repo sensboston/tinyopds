@@ -137,7 +137,6 @@
             this.tabPage4 = new System.Windows.Forms.TabPage();
             this.linkLabel6 = new System.Windows.Forms.LinkLabel();
             this.linkLabel5 = new System.Windows.Forms.LinkLabel();
-            this.linkLabel4 = new System.Windows.Forms.LinkLabel();
             this.linkLabel3 = new System.Windows.Forms.LinkLabel();
             this.label20 = new System.Windows.Forms.Label();
             this.label19 = new System.Windows.Forms.Label();
@@ -254,7 +253,7 @@
             this.useWatcher.AutoSize = true;
             this.useWatcher.Checked = global::TinyOPDS.Properties.Settings.Default.WatchLibrary;
             this.useWatcher.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "WatchLibrary", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.useWatcher.Location = new System.Drawing.Point(952, 85);
+            this.useWatcher.Location = new System.Drawing.Point(847, 83);
             this.useWatcher.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.useWatcher.Name = "useWatcher";
             this.useWatcher.Size = new System.Drawing.Size(262, 36);
@@ -466,7 +465,7 @@
             // folderButton
             // 
             this.folderButton.Image = global::TinyOPDS.Properties.Resources.folder;
-            this.folderButton.Location = new System.Drawing.Point(863, 83);
+            this.folderButton.Location = new System.Drawing.Point(760, 83);
             this.folderButton.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.folderButton.Name = "folderButton";
             this.folderButton.Size = new System.Drawing.Size(58, 41);
@@ -511,7 +510,7 @@
             this.libraryPath.Location = new System.Drawing.Point(45, 83);
             this.libraryPath.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.libraryPath.Name = "libraryPath";
-            this.libraryPath.Size = new System.Drawing.Size(802, 38);
+            this.libraryPath.Size = new System.Drawing.Size(712, 38);
             this.libraryPath.TabIndex = 6;
             this.libraryPath.TextChanged += new System.EventHandler(this.LibraryPath_TextChanged);
             this.libraryPath.Validated += new System.EventHandler(this.LibraryPath_Validated);
@@ -562,7 +561,7 @@
             this.useAbsoluteUri.AutoSize = true;
             this.useAbsoluteUri.Checked = global::TinyOPDS.Properties.Settings.Default.UseAbsoluteUri;
             this.useAbsoluteUri.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "UseAbsoluteUri", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.useAbsoluteUri.Location = new System.Drawing.Point(956, 174);
+            this.useAbsoluteUri.Location = new System.Drawing.Point(907, 174);
             this.useAbsoluteUri.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.useAbsoluteUri.Name = "useAbsoluteUri";
             this.useAbsoluteUri.Size = new System.Drawing.Size(229, 36);
@@ -626,17 +625,17 @@
             // 
             this.interfaceCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.interfaceCombo.FormattingEnabled = true;
-            this.interfaceCombo.Location = new System.Drawing.Point(737, 83);
+            this.interfaceCombo.Location = new System.Drawing.Point(678, 83);
             this.interfaceCombo.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.interfaceCombo.Name = "interfaceCombo";
-            this.interfaceCombo.Size = new System.Drawing.Size(316, 39);
+            this.interfaceCombo.Size = new System.Drawing.Size(375, 39);
             this.interfaceCombo.TabIndex = 47;
             this.interfaceCombo.SelectedIndexChanged += new System.EventHandler(this.InterfaceCombo_SelectedIndexChanged);
             // 
             // label29
             // 
             this.label29.AutoSize = true;
-            this.label29.Location = new System.Drawing.Point(729, 38);
+            this.label29.Location = new System.Drawing.Point(679, 38);
             this.label29.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label29.Name = "label29";
             this.label29.Size = new System.Drawing.Size(242, 32);
@@ -646,7 +645,7 @@
             // statUniqueClients
             // 
             this.statUniqueClients.AutoSize = true;
-            this.statUniqueClients.Location = new System.Drawing.Point(315, 524);
+            this.statUniqueClients.Location = new System.Drawing.Point(369, 524);
             this.statUniqueClients.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.statUniqueClients.Name = "statUniqueClients";
             this.statUniqueClients.Size = new System.Drawing.Size(30, 32);
@@ -666,7 +665,7 @@
             // statImages
             // 
             this.statImages.AutoSize = true;
-            this.statImages.Location = new System.Drawing.Point(920, 592);
+            this.statImages.Location = new System.Drawing.Point(977, 592);
             this.statImages.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.statImages.Name = "statImages";
             this.statImages.Size = new System.Drawing.Size(30, 32);
@@ -686,7 +685,7 @@
             // statBooks
             // 
             this.statBooks.AutoSize = true;
-            this.statBooks.Location = new System.Drawing.Point(315, 592);
+            this.statBooks.Location = new System.Drawing.Point(369, 592);
             this.statBooks.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.statBooks.Name = "statBooks";
             this.statBooks.Size = new System.Drawing.Size(30, 32);
@@ -706,7 +705,7 @@
             // statRequests
             // 
             this.statRequests.AutoSize = true;
-            this.statRequests.Location = new System.Drawing.Point(920, 524);
+            this.statRequests.Location = new System.Drawing.Point(977, 524);
             this.statRequests.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.statRequests.Name = "statRequests";
             this.statRequests.Size = new System.Drawing.Size(30, 32);
@@ -823,7 +822,7 @@
             this.openPort.Checked = global::TinyOPDS.Properties.Settings.Default.OpenNATPort;
             this.openPort.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "OpenNATPort", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
             this.openPort.Enabled = false;
-            this.openPort.Location = new System.Drawing.Point(427, 174);
+            this.openPort.Location = new System.Drawing.Point(409, 174);
             this.openPort.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.openPort.Name = "openPort";
             this.openPort.Size = new System.Drawing.Size(331, 36);
@@ -875,7 +874,7 @@
             this.serverName.Location = new System.Drawing.Point(59, 83);
             this.serverName.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.serverName.Name = "serverName";
-            this.serverName.Size = new System.Drawing.Size(635, 38);
+            this.serverName.Size = new System.Drawing.Size(556, 38);
             this.serverName.TabIndex = 12;
             this.serverName.Text = global::TinyOPDS.Properties.Settings.Default.ServerName;
             // 
@@ -1290,7 +1289,7 @@
             // oneInstance
             // 
             this.oneInstance.AutoSize = true;
-            this.oneInstance.Location = new System.Drawing.Point(805, 168);
+            this.oneInstance.Location = new System.Drawing.Point(751, 168);
             this.oneInstance.Name = "oneInstance";
             this.oneInstance.Size = new System.Drawing.Size(280, 36);
             this.oneInstance.TabIndex = 40;
@@ -1300,10 +1299,10 @@
             // 
             // viewLogFile
             // 
-            this.viewLogFile.Location = new System.Drawing.Point(805, 553);
+            this.viewLogFile.Location = new System.Drawing.Point(751, 562);
             this.viewLogFile.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.viewLogFile.Name = "viewLogFile";
-            this.viewLogFile.Size = new System.Drawing.Size(347, 55);
+            this.viewLogFile.Size = new System.Drawing.Size(415, 55);
             this.viewLogFile.TabIndex = 39;
             this.viewLogFile.Text = "View log file";
             this.viewLogFile.UseVisualStyleBackColor = true;
@@ -1312,7 +1311,7 @@
             // label32
             // 
             this.label32.AutoSize = true;
-            this.label32.Location = new System.Drawing.Point(799, 273);
+            this.label32.Location = new System.Drawing.Point(745, 267);
             this.label32.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label32.Name = "label32";
             this.label32.Size = new System.Drawing.Size(237, 32);
@@ -1327,17 +1326,17 @@
             "Never",
             "Once a week",
             "Once a month"});
-            this.updateCombo.Location = new System.Drawing.Point(805, 321);
+            this.updateCombo.Location = new System.Drawing.Point(751, 315);
             this.updateCombo.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.updateCombo.Name = "updateCombo";
-            this.updateCombo.Size = new System.Drawing.Size(347, 39);
+            this.updateCombo.Size = new System.Drawing.Size(415, 39);
             this.updateCombo.TabIndex = 37;
             this.updateCombo.SelectedIndexChanged += new System.EventHandler(this.UpdateCombo_SelectedIndexChanged);
             // 
             // label22
             // 
             this.label22.AutoSize = true;
-            this.label22.Location = new System.Drawing.Point(47, 506);
+            this.label22.Location = new System.Drawing.Point(35, 510);
             this.label22.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label22.Name = "label22";
             this.label22.Size = new System.Drawing.Size(250, 32);
@@ -1354,17 +1353,17 @@
             "Info, warnings and errors",
             "Warnings and errors",
             "Errors only"});
-            this.logVerbosity.Location = new System.Drawing.Point(47, 562);
+            this.logVerbosity.Location = new System.Drawing.Point(41, 565);
             this.logVerbosity.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.logVerbosity.Name = "logVerbosity";
-            this.logVerbosity.Size = new System.Drawing.Size(529, 39);
+            this.logVerbosity.Size = new System.Drawing.Size(415, 39);
             this.logVerbosity.TabIndex = 35;
             this.logVerbosity.SelectedIndexChanged += new System.EventHandler(this.LogVerbosity_SelectedIndexChanged);
             // 
             // label11
             // 
             this.label11.AutoSize = true;
-            this.label11.Location = new System.Drawing.Point(49, 273);
+            this.label11.Location = new System.Drawing.Point(35, 267);
             this.label11.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label11.Name = "label11";
             this.label11.Size = new System.Drawing.Size(339, 32);
@@ -1376,10 +1375,10 @@
             this.langCombo.DisplayMember = "Value";
             this.langCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.langCombo.FormattingEnabled = true;
-            this.langCombo.Location = new System.Drawing.Point(41, 321);
+            this.langCombo.Location = new System.Drawing.Point(41, 315);
             this.langCombo.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.langCombo.Name = "langCombo";
-            this.langCombo.Size = new System.Drawing.Size(347, 39);
+            this.langCombo.Size = new System.Drawing.Size(415, 39);
             this.langCombo.TabIndex = 31;
             this.langCombo.ValueMember = "Key";
             this.langCombo.SelectedValueChanged += new System.EventHandler(this.LangCombo_SelectedValueChanged);
@@ -1389,7 +1388,7 @@
             this.saveLog.AutoSize = true;
             this.saveLog.Checked = global::TinyOPDS.Properties.Settings.Default.SaveLogToDisk;
             this.saveLog.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "SaveLogToDisk", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.saveLog.Location = new System.Drawing.Point(50, 416);
+            this.saveLog.Location = new System.Drawing.Point(41, 410);
             this.saveLog.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.saveLog.Name = "saveLog";
             this.saveLog.Size = new System.Drawing.Size(239, 36);
@@ -1403,7 +1402,7 @@
             this.closeToTray.AutoSize = true;
             this.closeToTray.Checked = global::TinyOPDS.Properties.Settings.Default.CloseToTray;
             this.closeToTray.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "CloseToTray", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.closeToTray.Location = new System.Drawing.Point(805, 62);
+            this.closeToTray.Location = new System.Drawing.Point(41, 168);
             this.closeToTray.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.closeToTray.Name = "closeToTray";
             this.closeToTray.Size = new System.Drawing.Size(362, 36);
@@ -1417,7 +1416,7 @@
             this.startMinimized.AutoSize = true;
             this.startMinimized.Checked = global::TinyOPDS.Properties.Settings.Default.StartMinimized;
             this.startMinimized.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "StartMinimized", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.startMinimized.Location = new System.Drawing.Point(41, 168);
+            this.startMinimized.Location = new System.Drawing.Point(751, 62);
             this.startMinimized.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.startMinimized.Name = "startMinimized";
             this.startMinimized.Size = new System.Drawing.Size(248, 36);
@@ -1444,7 +1443,6 @@
             this.tabPage4.BackColor = System.Drawing.SystemColors.Control;
             this.tabPage4.Controls.Add(this.linkLabel6);
             this.tabPage4.Controls.Add(this.linkLabel5);
-            this.tabPage4.Controls.Add(this.linkLabel4);
             this.tabPage4.Controls.Add(this.linkLabel3);
             this.tabPage4.Controls.Add(this.label20);
             this.tabPage4.Controls.Add(this.label19);
@@ -1467,7 +1465,7 @@
             // linkLabel6
             // 
             this.linkLabel6.AutoSize = true;
-            this.linkLabel6.Location = new System.Drawing.Point(520, 615);
+            this.linkLabel6.Location = new System.Drawing.Point(520, 556);
             this.linkLabel6.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.linkLabel6.Name = "linkLabel6";
             this.linkLabel6.Size = new System.Drawing.Size(444, 32);
@@ -1487,18 +1485,6 @@
             this.linkLabel5.TabStop = true;
             this.linkLabel5.Text = "ePubReader library";
             this.linkLabel5.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.LinkLabel3_LinkClicked);
-            // 
-            // linkLabel4
-            // 
-            this.linkLabel4.AutoSize = true;
-            this.linkLabel4.Location = new System.Drawing.Point(520, 560);
-            this.linkLabel4.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
-            this.linkLabel4.Name = "linkLabel4";
-            this.linkLabel4.Size = new System.Drawing.Size(227, 32);
-            this.linkLabel4.TabIndex = 11;
-            this.linkLabel4.TabStop = true;
-            this.linkLabel4.Text = "DotNetZip library";
-            this.linkLabel4.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.LinkLabel3_LinkClicked);
             // 
             // linkLabel3
             // 
@@ -1771,7 +1757,6 @@
         private System.Windows.Forms.LinkLabel intLink;
         private System.Windows.Forms.LinkLabel extLink;
         private System.Windows.Forms.LinkLabel linkLabel5;
-        private System.Windows.Forms.LinkLabel linkLabel4;
         private System.Windows.Forms.LinkLabel linkLabel3;
         private System.Windows.Forms.TextBox databaseFileName;
         private System.Windows.Forms.Label label21;

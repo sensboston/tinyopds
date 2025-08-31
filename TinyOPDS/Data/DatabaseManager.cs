@@ -13,6 +13,9 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Xml.Linq;
 
 namespace TinyOPDS.Data
 {
@@ -72,6 +75,7 @@ namespace TinyOPDS.Data
 
                 // Create views
                 ExecuteNonQuery(DatabaseSchema.CreateAuthorStatisticsView);
+                ExecuteNonQuery(DatabaseSchema.CreateGenreStatisticsView);
 
                 // Create indexes
                 ExecuteNonQuery(DatabaseSchema.CreateIndexes);
@@ -87,13 +91,171 @@ namespace TinyOPDS.Data
                 ExecuteNonQuery(DatabaseSchema.CreateAuthorUpdateTrigger);
                 ExecuteNonQuery(DatabaseSchema.CreateAuthorDeleteTrigger);
 
-                Log.WriteLine("Database schema initialized with FTS5 support and triggers");
+                // Initialize genres from XML if table is empty
+                InitializeGenres();
+
+                Log.WriteLine("Database schema initialized with FTS5 support, triggers and genres");
             }
             catch (Exception ex)
             {
                 Log.WriteLine(LogLevel.Error, "Error initializing database schema: {0}", ex.Message);
                 throw;
             }
+        }
+
+        private void InitializeGenres()
+        {
+            try
+            {
+                // Check if genres table is already populated
+                var count = ExecuteScalar(DatabaseSchema.CheckGenresTablePopulated);
+                if (Convert.ToInt32(count) > 0)
+                {
+                    Log.WriteLine("Genres table already populated with {0} records", count);
+                    return;
+                }
+
+                Log.WriteLine("Initializing genres from embedded XML resource...");
+
+                // Load genres from embedded XML resource
+                var assembly = Assembly.GetExecutingAssembly();
+                var resourceName = assembly.GetName().Name + ".Resources.genres.xml";
+
+                using (var stream = assembly.GetManifestResourceStream(resourceName))
+                {
+                    if (stream == null)
+                    {
+                        Log.WriteLine(LogLevel.Warning, "genres.xml resource not found");
+                        return;
+                    }
+
+                    var doc = XDocument.Load(stream);
+
+                    BeginTransaction();
+                    try
+                    {
+                        int genreCount = 0;
+
+                        // Parse and insert genres
+                        foreach (var genreElement in doc.Descendants("genre"))
+                        {
+                            string parentName = genreElement.Attribute("name")?.Value;
+                            string parentTranslation = genreElement.Attribute("ru")?.Value;
+
+                            foreach (var subgenreElement in genreElement.Descendants("subgenre"))
+                            {
+                                string tag = subgenreElement.Attribute("tag")?.Value;
+                                string name = subgenreElement.Value;
+                                string translation = subgenreElement.Attribute("ru")?.Value;
+
+                                if (!string.IsNullOrEmpty(tag))
+                                {
+                                    ExecuteNonQuery(DatabaseSchema.InsertGenre,
+                                        CreateParameter("@Tag", tag),
+                                        CreateParameter("@ParentName", parentName),
+                                        CreateParameter("@Name", name),
+                                        CreateParameter("@Translation", translation));
+
+                                    genreCount++;
+                                }
+                            }
+                        }
+
+                        CommitTransaction();
+                        Log.WriteLine("Successfully loaded {0} genres from XML", genreCount);
+                    }
+                    catch
+                    {
+                        RollbackTransaction();
+                        throw;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error initializing genres: {0}", ex.Message);
+                // Don't throw - genres are not critical for basic operation
+            }
+        }
+
+        public void ReloadGenres()
+        {
+            try
+            {
+                Log.WriteLine("Reloading genres from XML...");
+
+                BeginTransaction();
+                try
+                {
+                    // Clear existing genres
+                    ExecuteNonQuery(DatabaseSchema.DeleteAllGenres);
+
+                    // Reload from XML
+                    InitializeGenres();
+
+                    CommitTransaction();
+                }
+                catch
+                {
+                    RollbackTransaction();
+                    throw;
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error reloading genres: {0}", ex.Message);
+                throw;
+            }
+        }
+
+        public List<Genre> GetAllGenres()
+        {
+            var genres = new List<Genre>();
+            var parentGenres = new Dictionary<string, Genre>();
+
+            var reader = ExecuteReader(DatabaseSchema.SelectAllGenres);
+            try
+            {
+                while (reader.Read())
+                {
+                    string tag = GetString(reader, "Tag");
+                    string parentName = GetString(reader, "ParentName");
+                    string name = GetString(reader, "Name");
+                    string translation = GetString(reader, "Translation");
+
+                    // Create subgenre
+                    var subgenre = new Genre
+                    {
+                        Tag = tag,
+                        Name = name,
+                        Translation = translation
+                    };
+
+                    // Get or create parent genre
+                    if (!string.IsNullOrEmpty(parentName))
+                    {
+                        if (!parentGenres.ContainsKey(parentName))
+                        {
+                            parentGenres[parentName] = new Genre
+                            {
+                                Tag = "",
+                                Name = parentName,
+                                Translation = parentName, // Will be updated if we find translation
+                                Subgenres = new List<Genre>()
+                            };
+                            genres.Add(parentGenres[parentName]);
+                        }
+
+                        parentGenres[parentName].Subgenres.Add(subgenre);
+                    }
+                }
+            }
+            finally
+            {
+                reader.Close();
+            }
+
+            return genres;
         }
 
         public int ExecuteNonQuery(string sql, params IDbDataParameter[] parameters)

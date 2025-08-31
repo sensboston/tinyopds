@@ -137,7 +137,6 @@
             this.tabPage4 = new System.Windows.Forms.TabPage();
             this.linkLabel6 = new System.Windows.Forms.LinkLabel();
             this.linkLabel5 = new System.Windows.Forms.LinkLabel();
-            this.linkLabel4 = new System.Windows.Forms.LinkLabel();
             this.linkLabel3 = new System.Windows.Forms.LinkLabel();
             this.label20 = new System.Windows.Forms.Label();
             this.label19 = new System.Windows.Forms.Label();
@@ -1303,7 +1302,7 @@
             this.viewLogFile.Location = new System.Drawing.Point(751, 562);
             this.viewLogFile.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.viewLogFile.Name = "viewLogFile";
-            this.viewLogFile.Size = new System.Drawing.Size(347, 55);
+            this.viewLogFile.Size = new System.Drawing.Size(415, 55);
             this.viewLogFile.TabIndex = 39;
             this.viewLogFile.Text = "View log file";
             this.viewLogFile.UseVisualStyleBackColor = true;
@@ -1312,7 +1311,7 @@
             // label32
             // 
             this.label32.AutoSize = true;
-            this.label32.Location = new System.Drawing.Point(745, 273);
+            this.label32.Location = new System.Drawing.Point(745, 267);
             this.label32.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label32.Name = "label32";
             this.label32.Size = new System.Drawing.Size(237, 32);
@@ -1327,10 +1326,10 @@
             "Never",
             "Once a week",
             "Once a month"});
-            this.updateCombo.Location = new System.Drawing.Point(751, 321);
+            this.updateCombo.Location = new System.Drawing.Point(751, 315);
             this.updateCombo.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.updateCombo.Name = "updateCombo";
-            this.updateCombo.Size = new System.Drawing.Size(347, 39);
+            this.updateCombo.Size = new System.Drawing.Size(415, 39);
             this.updateCombo.TabIndex = 37;
             this.updateCombo.SelectedIndexChanged += new System.EventHandler(this.UpdateCombo_SelectedIndexChanged);
             // 
@@ -1357,14 +1356,14 @@
             this.logVerbosity.Location = new System.Drawing.Point(41, 565);
             this.logVerbosity.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.logVerbosity.Name = "logVerbosity";
-            this.logVerbosity.Size = new System.Drawing.Size(362, 39);
+            this.logVerbosity.Size = new System.Drawing.Size(415, 39);
             this.logVerbosity.TabIndex = 35;
             this.logVerbosity.SelectedIndexChanged += new System.EventHandler(this.LogVerbosity_SelectedIndexChanged);
             // 
             // label11
             // 
             this.label11.AutoSize = true;
-            this.label11.Location = new System.Drawing.Point(35, 273);
+            this.label11.Location = new System.Drawing.Point(35, 267);
             this.label11.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label11.Name = "label11";
             this.label11.Size = new System.Drawing.Size(339, 32);
@@ -1376,10 +1375,10 @@
             this.langCombo.DisplayMember = "Value";
             this.langCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.langCombo.FormattingEnabled = true;
-            this.langCombo.Location = new System.Drawing.Point(41, 321);
+            this.langCombo.Location = new System.Drawing.Point(41, 315);
             this.langCombo.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.langCombo.Name = "langCombo";
-            this.langCombo.Size = new System.Drawing.Size(362, 39);
+            this.langCombo.Size = new System.Drawing.Size(415, 39);
             this.langCombo.TabIndex = 31;
             this.langCombo.ValueMember = "Key";
             this.langCombo.SelectedValueChanged += new System.EventHandler(this.LangCombo_SelectedValueChanged);
@@ -1444,7 +1443,6 @@
             this.tabPage4.BackColor = System.Drawing.SystemColors.Control;
             this.tabPage4.Controls.Add(this.linkLabel6);
             this.tabPage4.Controls.Add(this.linkLabel5);
-            this.tabPage4.Controls.Add(this.linkLabel4);
             this.tabPage4.Controls.Add(this.linkLabel3);
             this.tabPage4.Controls.Add(this.label20);
             this.tabPage4.Controls.Add(this.label19);
@@ -1467,7 +1465,7 @@
             // linkLabel6
             // 
             this.linkLabel6.AutoSize = true;
-            this.linkLabel6.Location = new System.Drawing.Point(520, 615);
+            this.linkLabel6.Location = new System.Drawing.Point(520, 556);
             this.linkLabel6.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.linkLabel6.Name = "linkLabel6";
             this.linkLabel6.Size = new System.Drawing.Size(444, 32);
@@ -1487,18 +1485,6 @@
             this.linkLabel5.TabStop = true;
             this.linkLabel5.Text = "ePubReader library";
             this.linkLabel5.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.LinkLabel3_LinkClicked);
-            // 
-            // linkLabel4
-            // 
-            this.linkLabel4.AutoSize = true;
-            this.linkLabel4.Location = new System.Drawing.Point(520, 560);
-            this.linkLabel4.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
-            this.linkLabel4.Name = "linkLabel4";
-            this.linkLabel4.Size = new System.Drawing.Size(227, 32);
-            this.linkLabel4.TabIndex = 11;
-            this.linkLabel4.TabStop = true;
-            this.linkLabel4.Text = "DotNetZip library";
-            this.linkLabel4.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.LinkLabel3_LinkClicked);
             // 
             // linkLabel3
             // 
@@ -1771,7 +1757,6 @@
         private System.Windows.Forms.LinkLabel intLink;
         private System.Windows.Forms.LinkLabel extLink;
         private System.Windows.Forms.LinkLabel linkLabel5;
-        private System.Windows.Forms.LinkLabel linkLabel4;
         private System.Windows.Forms.LinkLabel linkLabel3;
         private System.Windows.Forms.TextBox databaseFileName;
         private System.Windows.Forms.Label label21;

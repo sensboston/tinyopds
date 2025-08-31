@@ -451,7 +451,6 @@ namespace TinyOPDS
             // Setup link labels
             linkLabel3.Links.Add(0, linkLabel3.Text.Length, "https://github.com/wcoder/FB2Library");
             linkLabel5.Links.Add(0, linkLabel5.Text.Length, "https://github.com/lsmithmier/ePubReader.Portable");
-            linkLabel4.Links.Add(0, linkLabel4.Text.Length, "https://github.com/DinoChiesa/DotNetZip-2025");
             linkLabel6.Links.Add(0, linkLabel6.Text.Length, "http://www.fb2library.net/projects/fb2fix");
 
             // Setup settings controls

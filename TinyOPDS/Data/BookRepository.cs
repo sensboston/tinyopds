@@ -30,7 +30,7 @@ namespace TinyOPDS.Data
             LoadValidGenreTags();
 
             // Initialize duplicate detector (normal mode by default)
-            duplicateDetector = new DuplicateDetector(database, Properties.Settings.Default.AggressiveDuplicateDetection);
+            duplicateDetector = new DuplicateDetector(database);
         }
 
         /// <summary>

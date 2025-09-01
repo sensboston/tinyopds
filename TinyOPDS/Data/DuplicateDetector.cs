@@ -46,12 +46,11 @@ namespace TinyOPDS.Data
     public class DuplicateDetector
     {
         private readonly DatabaseManager db;
-        private readonly bool aggressiveMode;
 
         public DuplicateDetector(DatabaseManager database, bool aggressive = false)
         {
             db = database;
-            aggressiveMode = aggressive;
+            // Ignore aggressive parameter, always use normal mode
         }
 
         /// <summary>
@@ -127,9 +126,8 @@ namespace TinyOPDS.Data
                     // Determine if we should replace
                     int comparison = newBook.CompareTo(bestExisting);
 
-                    // In aggressive mode, replace if new is better or equal
-                    // In normal mode, only replace if significantly better (score > 2)
-                    result.ShouldReplace = aggressiveMode ? (comparison >= 0) : (comparison > 2);
+                    // Only replace if significantly better (score > 2)
+                    result.ShouldReplace = comparison > 2;
 
                     result.Reason = $"Matched by title/author: '{newBook.Title}' by {newBook.Authors.FirstOrDefault()}";
 
@@ -154,22 +152,8 @@ namespace TinyOPDS.Data
                 }
             }
 
-            // Step 4: Additional fuzzy matching (if enabled and no matches found)
-            if (aggressiveMode && !result.IsDuplicate)
-            {
-                var fuzzyMatch = FindByFuzzyMatch(newBook);
-                if (fuzzyMatch != null)
-                {
-                    result.IsDuplicate = true;
-                    result.ExistingBook = fuzzyMatch;
-                    result.MatchType = DuplicateMatchType.Fuzzy;
-                    result.ShouldReplace = ShouldReplaceBook(newBook, fuzzyMatch);
-                    result.Reason = "Fuzzy match (similar title/author)";
-
-                    Log.WriteLine(LogLevel.Info, "Found fuzzy duplicate: {0}, should replace: {1}",
-                        newBook.Title, result.ShouldReplace);
-                }
-            }
+            // Step 4: Additional fuzzy matching (disabled - not needed)
+            // We rely on exact matching by trusted ID, content hash, or duplicate key
 
             return result;
         }
@@ -188,8 +172,7 @@ namespace TinyOPDS.Data
             if (!checkResult.ShouldReplace)
             {
                 // Duplicate exists but we shouldn't replace it
-                Log.WriteLine(LogLevel.Info, "Skipping duplicate: {0} - {1}",
-                    newBook.FileName, checkResult.Reason);
+                Log.WriteLine(LogLevel.Info, "Skipping duplicate: {0} - {1}", newBook.FileName, checkResult.Reason);
                 return false;
             }
 
@@ -261,13 +244,6 @@ namespace TinyOPDS.Data
             }
         }
 
-        private Book FindByFuzzyMatch(Book newBook)
-        {
-            // TODO: Implement fuzzy matching using Levenshtein distance or similar
-            // For now, return null
-            return null;
-        }
-
         private void MarkAsReplaced(string oldID, string newID)
         {
             try
@@ -291,9 +267,8 @@ namespace TinyOPDS.Data
         {
             int comparison = newBook.CompareTo(existingBook);
 
-            // In aggressive mode, replace if new is equal or better
-            // In normal mode, only replace if significantly better
-            return aggressiveMode ? (comparison >= 0) : (comparison > 2);
+            // Only replace if significantly better (score > 2)
+            return comparison > 2;
         }
 
         private Book MapBook(IDataReader reader)
@@ -341,18 +316,15 @@ namespace TinyOPDS.Data
             try
             {
                 // Count replaced books
-                var replacedCount = db.ExecuteScalar(
-                    "SELECT COUNT(*) FROM Books WHERE ReplacedByID IS NOT NULL");
+                var replacedCount = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE ReplacedByID IS NOT NULL");
                 stats.ReplacedBooksCount = Convert.ToInt32(replacedCount);
 
                 // Count books with trusted IDs
-                var trustedCount = db.ExecuteScalar(
-                    "SELECT COUNT(*) FROM Books WHERE DocumentIDTrusted = 1 AND ReplacedByID IS NULL");
+                var trustedCount = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE DocumentIDTrusted = 1 AND ReplacedByID IS NULL");
                 stats.TrustedIDCount = Convert.ToInt32(trustedCount);
 
                 // Count duplicate groups
-                var duplicateGroups = db.ExecuteScalar(
-                    "SELECT COUNT(DISTINCT DuplicateKey) FROM Books WHERE ReplacedByID IS NULL");
+                var duplicateGroups = db.ExecuteScalar("SELECT COUNT(DISTINCT DuplicateKey) FROM Books WHERE ReplacedByID IS NULL");
                 stats.DuplicateGroupsCount = Convert.ToInt32(duplicateGroups);
             }
             catch (Exception ex)

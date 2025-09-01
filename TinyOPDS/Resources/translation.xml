@@ -106,12 +106,12 @@
 			<text lang="fr">{0} livres/min</text>
 		</property>
 		<property form="MainForm" ctrl="label12">
-			<text lang="en">Rate:</text>
-			<text lang="ru">Скорость:</text>
-			<text lang="uk">Швидкість:</text>
-			<text lang="de">Rate:</text>
-			<text lang="es">Velocidad:</text>
-			<text lang="fr">Vitesse:</text>
+			<text lang="en">Scan rate:</text>
+			<text lang="ru">Скорость сканирования:</text>
+			<text lang="uk">Швидкість сканування:</text>
+			<text lang="de">Scanrate:</text>
+			<text lang="es">Velocidad de escaneo:</text>
+			<text lang="fr">Vitesse de balayage:</text>
 		</property>
 		<property form="MainForm" ctrl="label10">
 			<text lang="en">Elapsed time:</text>

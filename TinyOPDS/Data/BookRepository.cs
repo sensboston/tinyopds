@@ -99,6 +99,7 @@ namespace TinyOPDS.Data
             public List<string> ErrorMessages { get; set; } = new List<string>();
             public List<string> InvalidGenreTags { get; set; } = new List<string>();
             public List<string> ReplacedBooks { get; set; } = new List<string>();
+            public int UncertainDuplicatesAdded { get; set; } = 0;  // NEW: Track uncertain duplicates that were added
 
             public bool IsSuccess => Added > 0 || Duplicates > 0 || Replaced > 0;
         }
@@ -127,17 +128,22 @@ namespace TinyOPDS.Data
 
                     if (duplicateResult.IsDuplicate)
                     {
-                        if (!duplicateResult.ShouldReplace)
+                        // MODIFIED: ProcessDuplicate now returns true for uncertain cases
+                        // allowing the book to be added
+                        if (!duplicateDetector.ProcessDuplicate(book, duplicateResult))
                         {
-                            Log.WriteLine(LogLevel.Info, "Skipping duplicate book: {0} - {1}",
+                            // Only return false if it's a definite duplicate that shouldn't be added
+                            Log.WriteLine(LogLevel.Info, "Skipping definite duplicate book: {0} - {1}",
                                 book.FileName, duplicateResult.Reason);
                             return false;
                         }
 
-                        // Process replacement
-                        if (!duplicateDetector.ProcessDuplicate(book, duplicateResult))
+                        // If ProcessDuplicate returned true, either replace or add as new
+                        if (!duplicateResult.ShouldReplace)
                         {
-                            return false;
+                            // This is an uncertain duplicate that should be added as new
+                            Log.WriteLine(LogLevel.Info, "Adding uncertain duplicate as new book: {0}",
+                                book.FileName);
                         }
                     }
                 }
@@ -252,6 +258,7 @@ namespace TinyOPDS.Data
 
         /// <summary>
         /// Add multiple books in batch with FTS5 synchronization and duplicate detection
+        /// MODIFIED: Better handling of uncertain duplicates
         /// </summary>
         public BatchResult AddBooksBatch(List<Book> books)
         {
@@ -278,6 +285,8 @@ namespace TinyOPDS.Data
 
                 foreach (var book in books)
                 {
+                    DuplicateCheckResult duplicateResult = null;  // Declare outside try block
+
                     try
                     {
                         // Generate duplicate key
@@ -296,23 +305,33 @@ namespace TinyOPDS.Data
                             }
 
                             // Check for duplicates
-                            var duplicateResult = duplicateDetector.CheckDuplicate(book, fileStream);
+                            duplicateResult = duplicateDetector.CheckDuplicate(book, fileStream);
 
                             if (duplicateResult.IsDuplicate)
                             {
-                                if (!duplicateResult.ShouldReplace)
+                                // MODIFIED: Use ProcessDuplicate to determine action
+                                bool shouldAdd = duplicateDetector.ProcessDuplicate(book, duplicateResult);
+
+                                if (!shouldAdd)
                                 {
+                                    // Definite duplicate that should be skipped
                                     result.Duplicates++;
                                     continue;
                                 }
+                                else if (duplicateResult.ShouldReplace)
+                                {
+                                    // Mark as replacement AND as duplicate (since old book is being replaced)
+                                    result.Replaced++;
+                                    result.Duplicates++;  // The replaced book is essentially a duplicate
+                                    result.ReplacedBooks.Add($"{duplicateResult.ExistingBook.FileName} -> {book.FileName}");
+                                }
                                 else
                                 {
-                                    // Mark as replacement
-                                    result.Replaced++;
-                                    result.ReplacedBooks.Add($"{duplicateResult.ExistingBook.FileName} -> {book.FileName}");
-
-                                    // Process replacement
-                                    duplicateDetector.ProcessDuplicate(book, duplicateResult);
+                                    // Uncertain duplicate that should be added as new
+                                    result.UncertainDuplicatesAdded++;
+                                    Log.WriteLine(LogLevel.Info,
+                                        "Adding uncertain duplicate in batch: {0} (score: {1})",
+                                        book.FileName, duplicateResult.ComparisonScore);
                                 }
                             }
                         }
@@ -397,13 +416,18 @@ namespace TinyOPDS.Data
                                 DatabaseManager.CreateParameter("@TranslatorName", translatorName));
                         }
 
-                        result.Added++;
+                        // Only count as added if it's not a replacement
+                        // Replacements don't increase the total book count
+                        if (duplicateResult == null || !duplicateResult.IsDuplicate || !duplicateResult.ShouldReplace)
+                        {
+                            result.Added++;
 
-                        // Count by type for statistics
-                        if (book.BookType == BookType.FB2)
-                            result.FB2Count++;
-                        else
-                            result.EPUBCount++;
+                            // Count by type for statistics
+                            if (book.BookType == BookType.FB2)
+                                result.FB2Count++;
+                            else
+                                result.EPUBCount++;
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -428,8 +452,15 @@ namespace TinyOPDS.Data
                     Log.WriteLine(LogLevel.Info, "Batch insert: {0} books replaced with newer versions", result.Replaced);
                 }
 
-                Log.WriteLine("Batch insert completed: {0} added, {1} duplicates skipped, {2} replaced, {3} errors in {4}ms",
-                    result.Added, result.Duplicates, result.Replaced, result.Errors, result.ProcessingTime.TotalMilliseconds);
+                if (result.UncertainDuplicatesAdded > 0)
+                {
+                    Log.WriteLine(LogLevel.Info, "Batch insert: {0} uncertain duplicates added as new books",
+                        result.UncertainDuplicatesAdded);
+                }
+
+                Log.WriteLine("Batch insert completed: {0} added, {1} duplicates skipped, {2} replaced, {3} uncertain added, {4} errors in {5}ms",
+                    result.Added, result.Duplicates, result.Replaced, result.UncertainDuplicatesAdded,
+                    result.Errors, result.ProcessingTime.TotalMilliseconds);
 
                 return result;
             }
@@ -451,6 +482,9 @@ namespace TinyOPDS.Data
                 db.ExecuteNonQuery("PRAGMA cache_size = 2000");
             }
         }
+
+        // ... rest of the file remains unchanged ...
+        // All other methods stay exactly the same
 
         public Book GetBookById(string id)
         {

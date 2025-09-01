@@ -26,6 +26,7 @@ namespace TinyOPDS.Data
         public bool ShouldReplace { get; set; }
         public string Reason { get; set; }
         public DuplicateMatchType MatchType { get; set; }
+        public int ComparisonScore { get; set; }  // NEW: Store comparison score
     }
 
     /// <summary>
@@ -46,6 +47,7 @@ namespace TinyOPDS.Data
     public class DuplicateDetector
     {
         private readonly DatabaseManager db;
+        private const int REPLACEMENT_THRESHOLD = 1;  // LOWERED from 2 to 1
 
         public DuplicateDetector(DatabaseManager database, bool aggressive = false)
         {
@@ -55,6 +57,7 @@ namespace TinyOPDS.Data
 
         /// <summary>
         /// Check if book is duplicate and determine action
+        /// MODIFIED: More accurate duplicate detection with better handling of edge cases
         /// </summary>
         public DuplicateCheckResult CheckDuplicate(Book newBook, Stream fileStream = null)
         {
@@ -62,7 +65,8 @@ namespace TinyOPDS.Data
             {
                 IsDuplicate = false,
                 ShouldReplace = false,
-                MatchType = DuplicateMatchType.None
+                MatchType = DuplicateMatchType.None,
+                ComparisonScore = 0
             };
 
             if (newBook == null || !newBook.IsValid)
@@ -76,6 +80,7 @@ namespace TinyOPDS.Data
                 newBook.ContentHash = newBook.GenerateContentHash(fileStream);
 
             // Step 1: Check by trusted ID (FB2 from FictionBookEditor)
+            // ONLY if BOTH books have trusted IDs
             if (newBook.DocumentIDTrusted && newBook.BookType == BookType.FB2)
             {
                 var trustedMatch = FindByTrustedID(newBook.ID);
@@ -84,11 +89,12 @@ namespace TinyOPDS.Data
                     result.IsDuplicate = true;
                     result.ExistingBook = trustedMatch;
                     result.MatchType = DuplicateMatchType.TrustedID;
-                    result.ShouldReplace = ShouldReplaceBook(newBook, trustedMatch);
-                    result.Reason = $"Matched by trusted FB2 ID: {newBook.ID}";
+                    result.ComparisonScore = newBook.CompareTo(trustedMatch);
+                    result.ShouldReplace = result.ComparisonScore > REPLACEMENT_THRESHOLD;
+                    result.Reason = $"Matched by trusted FB2 ID: {newBook.ID} (score: {result.ComparisonScore})";
 
-                    Log.WriteLine(LogLevel.Info, "Found duplicate by trusted ID: {0}, should replace: {1}",
-                        newBook.ID, result.ShouldReplace);
+                    Log.WriteLine(LogLevel.Info, "Found duplicate by trusted ID: {0}, score: {1}, should replace: {2}",
+                        newBook.ID, result.ComparisonScore, result.ShouldReplace);
                     return result;
                 }
             }
@@ -102,6 +108,7 @@ namespace TinyOPDS.Data
                     result.IsDuplicate = true;
                     result.ExistingBook = contentMatch;
                     result.MatchType = DuplicateMatchType.ContentHash;
+                    result.ComparisonScore = 0;  // Exact same file
                     result.ShouldReplace = false; // Exact same file, no need to replace
                     result.Reason = "Exact file duplicate (same content hash)";
 
@@ -111,55 +118,102 @@ namespace TinyOPDS.Data
             }
 
             // Step 3: Check by duplicate key (Title + Author + Language)
+            // MODIFIED: More careful duplicate detection with translator check
             if (!string.IsNullOrEmpty(newBook.DuplicateKey))
             {
                 var keyMatches = FindByDuplicateKey(newBook.DuplicateKey);
                 if (keyMatches != null && keyMatches.Count > 0)
                 {
-                    // Find the best existing version
-                    var bestExisting = keyMatches.OrderByDescending(b => b.CompareTo(newBook)).First();
+                    // Check each potential match more carefully
+                    Book actualDuplicate = null;
+                    int bestScore = int.MinValue;
 
-                    result.IsDuplicate = true;
-                    result.ExistingBook = bestExisting;
-                    result.MatchType = DuplicateMatchType.DuplicateKey;
-
-                    // Determine if we should replace
-                    int comparison = newBook.CompareTo(bestExisting);
-
-                    // Only replace if significantly better (score > 2)
-                    result.ShouldReplace = comparison > 2;
-
-                    result.Reason = $"Matched by title/author: '{newBook.Title}' by {newBook.Authors.FirstOrDefault()}";
-
-                    if (result.ShouldReplace)
+                    foreach (var candidate in keyMatches)
                     {
-                        result.Reason += $" (newer/better version, score: {comparison})";
-                    }
-
-                    Log.WriteLine(LogLevel.Info, "Found duplicate by key: {0}, comparison score: {1}, should replace: {2}",
-                        newBook.DuplicateKey, comparison, result.ShouldReplace);
-
-                    // If there are multiple duplicates, mark older ones for replacement too
-                    if (result.ShouldReplace && keyMatches.Count > 1)
-                    {
-                        foreach (var oldBook in keyMatches.Where(b => b.ID != bestExisting.ID))
+                        // Use the enhanced IsDuplicateOf method which checks translators
+                        if (newBook.IsDuplicateOf(candidate))
                         {
-                            MarkAsReplaced(oldBook.ID, newBook.ID);
+                            int score = newBook.CompareTo(candidate);
+                            if (actualDuplicate == null || score > bestScore)
+                            {
+                                actualDuplicate = candidate;
+                                bestScore = score;
+                            }
                         }
                     }
 
-                    return result;
+                    // If we found an actual duplicate
+                    if (actualDuplicate != null)
+                    {
+                        result.IsDuplicate = true;
+                        result.ExistingBook = actualDuplicate;
+                        result.MatchType = DuplicateMatchType.DuplicateKey;
+                        result.ComparisonScore = bestScore;
+
+                        // MODIFIED: Use lower threshold and consider it NOT a duplicate if score is 0
+                        // Score of 0 means books are essentially equal - could be different editions
+                        if (bestScore == 0)
+                        {
+                            // Books are too similar to determine which is better
+                            // Treat as NOT a duplicate to preserve both
+                            result.IsDuplicate = false;
+                            result.ExistingBook = null;
+                            result.MatchType = DuplicateMatchType.None;
+                            result.Reason = "Books too similar to determine duplicate (score: 0)";
+
+                            Log.WriteLine(LogLevel.Info,
+                                "Books have same key but equal score, treating as different: {0}",
+                                newBook.Title);
+                            return result;
+                        }
+
+                        result.ShouldReplace = bestScore > REPLACEMENT_THRESHOLD;
+                        result.Reason = $"Matched by title/author: '{newBook.Title}' by {newBook.Authors.FirstOrDefault()}";
+
+                        if (result.ShouldReplace)
+                        {
+                            result.Reason += $" (newer/better version, score: {bestScore})";
+
+                            // If there are multiple duplicates, mark older ones for replacement too
+                            if (keyMatches.Count > 1)
+                            {
+                                foreach (var oldBook in keyMatches.Where(b => b.ID != actualDuplicate.ID))
+                                {
+                                    // Only mark as replaced if it's actually a duplicate
+                                    if (newBook.IsDuplicateOf(oldBook))
+                                    {
+                                        MarkAsReplaced(oldBook.ID, newBook.ID);
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            result.Reason += $" (existing is better/equal, score: {bestScore})";
+                        }
+
+                        Log.WriteLine(LogLevel.Info,
+                            "Found duplicate by key: {0}, score: {1}, should replace: {2}",
+                            newBook.DuplicateKey, bestScore, result.ShouldReplace);
+
+                        return result;
+                    }
+                    else
+                    {
+                        // Same key but different books (e.g., different translations)
+                        Log.WriteLine(LogLevel.Info,
+                            "Books with same key but different (translators?): {0}", newBook.Title);
+                    }
                 }
             }
 
-            // Step 4: Additional fuzzy matching (disabled - not needed)
-            // We rely on exact matching by trusted ID, content hash, or duplicate key
-
+            // Not a duplicate
             return result;
         }
 
         /// <summary>
         /// Process duplicate - either skip, replace, or add as new
+        /// MODIFIED: Better handling of uncertain duplicates
         /// </summary>
         public bool ProcessDuplicate(Book newBook, DuplicateCheckResult checkResult)
         {
@@ -171,8 +225,37 @@ namespace TinyOPDS.Data
 
             if (!checkResult.ShouldReplace)
             {
-                // Duplicate exists but we shouldn't replace it
-                Log.WriteLine(LogLevel.Info, "Skipping duplicate: {0} - {1}", newBook.FileName, checkResult.Reason);
+                // For certain duplicate types, we still skip
+                if (checkResult.MatchType == DuplicateMatchType.ContentHash)
+                {
+                    // Exact same file - definitely skip
+                    Log.WriteLine(LogLevel.Info, "Skipping exact duplicate: {0} - {1}",
+                        newBook.FileName, checkResult.Reason);
+                    return false;
+                }
+
+                if (checkResult.MatchType == DuplicateMatchType.TrustedID &&
+                    checkResult.ComparisonScore < -REPLACEMENT_THRESHOLD)
+                {
+                    // Existing is significantly better - skip
+                    Log.WriteLine(LogLevel.Info, "Skipping inferior duplicate: {0} - {1}",
+                        newBook.FileName, checkResult.Reason);
+                    return false;
+                }
+
+                // For uncertain cases (score near 0), allow adding
+                // This prevents loss of potentially different books
+                if (Math.Abs(checkResult.ComparisonScore) <= REPLACEMENT_THRESHOLD)
+                {
+                    Log.WriteLine(LogLevel.Info,
+                        "Adding potentially different book despite key match: {0} - {1}",
+                        newBook.FileName, checkResult.Reason);
+                    return true;  // Allow adding
+                }
+
+                // Skip only if existing is clearly better
+                Log.WriteLine(LogLevel.Info, "Skipping duplicate: {0} - {1}",
+                    newBook.FileName, checkResult.Reason);
                 return false;
             }
 
@@ -232,10 +315,21 @@ namespace TinyOPDS.Data
         {
             try
             {
-                return db.ExecuteQuery<Book>(
+                var books = db.ExecuteQuery<Book>(
                     DatabaseSchema.SelectBooksByDuplicateKey,
                     MapBook,
                     DatabaseManager.CreateParameter("@DuplicateKey", key));
+
+                // Load translators for proper duplicate detection
+                foreach (var book in books)
+                {
+                    book.Translators = db.ExecuteQuery<string>(
+                        DatabaseSchema.SelectBookTranslators,
+                        reader => reader.GetString(0),
+                        DatabaseManager.CreateParameter("@BookID", book.ID));
+                }
+
+                return books;
             }
             catch (Exception ex)
             {
@@ -262,14 +356,6 @@ namespace TinyOPDS.Data
         #endregion
 
         #region Helper methods
-
-        private bool ShouldReplaceBook(Book newBook, Book existingBook)
-        {
-            int comparison = newBook.CompareTo(existingBook);
-
-            // Only replace if significantly better (score > 2)
-            return comparison > 2;
-        }
 
         private Book MapBook(IDataReader reader)
         {
@@ -298,6 +384,9 @@ namespace TinyOPDS.Data
 
             var addedDate = DatabaseManager.GetDateTime(reader, "AddedDate");
             if (addedDate.HasValue) book.AddedDate = addedDate.Value;
+
+            // Authors need to be loaded separately
+            book.Authors = new List<string>();
 
             return book;
         }

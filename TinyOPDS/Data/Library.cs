@@ -15,7 +15,6 @@ using System.IO;
 using System.IO.Compression;
 using System.Collections.Generic;
 using System.Linq;
-using System.Xml.Linq;
 using System.Reflection;
 
 namespace TinyOPDS.Data
@@ -393,6 +392,7 @@ namespace TinyOPDS.Data
 
         /// <summary>
         /// Add unique book descriptor to the library
+        /// MODIFIED: Removed redundant duplicate checking, let BookRepository handle it
         /// </summary>
         /// <param name="book"></param>
         public static bool Add(Book book)
@@ -407,40 +407,21 @@ namespace TinyOPDS.Data
                 // Normalize genre tags using soundex if needed
                 NormalizeBookGenres(book);
 
-                // Check for duplicates (similar to original logic)
-                var existingBook = bookRepository.GetBookById(book.ID);
-                if (existingBook != null && !book.Title.Equals(existingBook.Title))
+                // Set AddedDate if not set
+                if (book.AddedDate == DateTime.MinValue)
+                    book.AddedDate = DateTime.Now;
+
+                // MODIFIED: Let BookRepository handle all duplicate detection
+                // It has the proper logic with DuplicateDetector
+                bool success = bookRepository.AddBook(book);
+
+                if (success)
                 {
-                    book.ID = Utils.CreateGuid(Utils.IsoOidNamespace, book.FileName).ToString();
+                    IsChanged = true;
+                    InvalidateStatsCache();
                 }
 
-                existingBook = bookRepository.GetBookById(book.ID);
-                bool isDuplicate = existingBook != null;
-
-                if (!isDuplicate || (isDuplicate && existingBook.Version < book.Version))
-                {
-                    if (book.AddedDate == DateTime.MinValue)
-                        book.AddedDate = DateTime.Now;
-
-                    bool success = bookRepository.AddBook(book);
-                    if (success)
-                    {
-                        IsChanged = true;
-                        InvalidateStatsCache();
-
-                        if (isDuplicate)
-                        {
-                            Log.WriteLine(LogLevel.Warning, "Replaced duplicate. File name {0}, book version {1}",
-                                book.FileName, book.Version);
-                        }
-                    }
-
-                    return success && !isDuplicate;
-                }
-
-                Log.WriteLine(LogLevel.Warning, "Found duplicate. File name {0}, book ID {1}",
-                    book.FileName, book.ID);
-                return false;
+                return success;
             }
             catch (Exception ex)
             {
@@ -451,6 +432,7 @@ namespace TinyOPDS.Data
 
         /// <summary>
         /// Add multiple books in batch - optimized for performance with detailed results
+        /// MODIFIED: Removed redundant duplicate checking, let BookRepository handle it
         /// </summary>
         /// <param name="books">List of books to add</param>
         /// <returns>BatchResult with detailed statistics</returns>
@@ -469,10 +451,7 @@ namespace TinyOPDS.Data
             {
                 result.TotalProcessed = books.Count;
 
-                // Process each book similar to individual Add method
-                var processedBooks = new List<Book>();
-                int skippedDuplicates = 0;
-
+                // Process each book to apply aliases and normalize genres
                 foreach (var book in books)
                 {
                     // Apply author aliases before processing
@@ -481,58 +460,19 @@ namespace TinyOPDS.Data
                     // Normalize genre tags
                     NormalizeBookGenres(book);
 
-                    // Check for duplicates and handle ID conflicts
-                    var existingBook = bookRepository.GetBookById(book.ID);
-                    if (existingBook != null && !book.Title.Equals(existingBook.Title))
-                    {
-                        book.ID = Utils.CreateGuid(Utils.IsoOidNamespace, book.FileName).ToString();
-                    }
-
-                    existingBook = bookRepository.GetBookById(book.ID);
-                    bool isDuplicate = existingBook != null;
-
-                    if (!isDuplicate || (isDuplicate && existingBook.Version < book.Version))
-                    {
-                        if (book.AddedDate == DateTime.MinValue)
-                            book.AddedDate = DateTime.Now;
-
-                        processedBooks.Add(book);
-
-                        if (isDuplicate)
-                        {
-                            Log.WriteLine(LogLevel.Warning, "Will replace duplicate in batch. File name {0}, book version {1}",
-                                book.FileName, book.Version);
-                        }
-                    }
-                    else
-                    {
-                        skippedDuplicates++;
-                        Log.WriteLine(LogLevel.Warning, "Skipping duplicate in batch. File name {0}, book ID {1}",
-                            book.FileName, book.ID);
-                    }
+                    // Set AddedDate if not set
+                    if (book.AddedDate == DateTime.MinValue)
+                        book.AddedDate = DateTime.Now;
                 }
 
-                // Use repository batch method
-                var batchResult = bookRepository.AddBooksBatch(processedBooks);
+                // MODIFIED: Let BookRepository handle all duplicate detection and batch processing
+                // It has the proper logic with DuplicateDetector
+                result = bookRepository.AddBooksBatch(books);
 
-                // Combine results - add duplicates found at Library level
-                result.Added = batchResult.Added;
-                result.Duplicates = batchResult.Duplicates + skippedDuplicates;
-                result.Errors = batchResult.Errors;
-                result.FB2Count = batchResult.FB2Count;
-                result.EPUBCount = batchResult.EPUBCount;
-                result.InvalidGenresSkipped = batchResult.InvalidGenresSkipped;
-                result.InvalidGenreTags = batchResult.InvalidGenreTags;
-                result.ErrorMessages = batchResult.ErrorMessages;
-                result.ProcessingTime = DateTime.Now - startTime;
-
-                if (result.Added > 0)
+                if (result.Added > 0 || result.Replaced > 0)
                 {
                     IsChanged = true;
                     InvalidateStatsCache();
-                    Log.WriteLine("Library.AddBatch completed: {0} added, {1} duplicates, {2} errors, {3} invalid genres in {4}ms",
-                        result.Added, result.Duplicates, result.Errors, result.InvalidGenresSkipped,
-                        result.ProcessingTime.TotalMilliseconds);
                 }
 
                 return result;

@@ -106,6 +106,7 @@ namespace TinyOPDS.Data
 
         /// <summary>
         /// Check if GUID is trusted (not a placeholder from bad converters)
+        /// MODIFIED: Less aggressive checking to avoid false positives
         /// </summary>
         private bool IsTrustedGuid(Guid guid)
         {
@@ -114,29 +115,13 @@ namespace TinyOPDS.Data
 
             string guidStr = guid.ToString().ToLowerInvariant();
 
-            // Common placeholders
+            // Only check for the most obvious placeholders
             if (guidStr == "00000000-0000-0000-0000-000000000000") return false;
             if (guidStr == "11111111-1111-1111-1111-111111111111") return false;
             if (guidStr == "12345678-1234-1234-1234-123456789012") return false;
             if (guidStr == "ffffffff-ffff-ffff-ffff-ffffffffffff") return false;
 
-            // Check if all bytes are the same (likely generated badly)
-            var bytes = guid.ToByteArray();
-            if (bytes.All(b => b == bytes[0])) return false;
-
-            // Check for sequential patterns (another sign of bad generation)
-            bool isSequential = true;
-            for (int i = 1; i < bytes.Length; i++)
-            {
-                if (bytes[i] != bytes[i - 1] + 1 && bytes[i] != bytes[i - 1])
-                {
-                    isSequential = false;
-                    break;
-                }
-            }
-            if (isSequential) return false;
-
-            // Check for timestamp-based GUIDs that are not properly formatted
+            // Check for timestamp strings that are not proper GUIDs
             // LibRusEc kit generates IDs like "Mon Jun 10 19:52:43 2013" which are NOT proper GUIDs
             if (guidStr.Contains("mon") || guidStr.Contains("tue") || guidStr.Contains("wed") ||
                 guidStr.Contains("thu") || guidStr.Contains("fri") || guidStr.Contains("sat") ||
@@ -149,34 +134,37 @@ namespace TinyOPDS.Data
                 return false;
             }
 
+            // Removed the checks for all bytes being the same and sequential patterns
+            // as they might reject valid GUIDs
+
             // If it passed all checks, it's likely from FictionBookEditor or similar proper tool
             return true;
         }
 
         /// <summary>
         /// Generate duplicate detection key based on title, first author and language
-        /// This method is CRITICAL for avoiding false positives
+        /// MODIFIED: More precise key generation to avoid false positives
         /// </summary>
         public string GenerateDuplicateKey()
         {
             if (string.IsNullOrEmpty(Title) || Authors == null || Authors.Count == 0)
                 return string.Empty;
 
-            // IMPORTANT: Check if title already has volume info
+            // Extract volume info if present
             var volumeInfo = ExtractVolumeInfo(Title);
-            bool hasVolumeInTitle = !string.IsNullOrEmpty(volumeInfo.normalized);
 
             string normalizedTitle = NormalizeForDuplicateKey(Title);
             string firstAuthor = Authors.First();
             string normalizedAuthor = NormalizeAuthorForDuplicateKey(firstAuthor);
             string lang = string.IsNullOrEmpty(Language) ? "unknown" : Language.ToLowerInvariant();
 
-            // Get translator info from the Translators list (more reliable than parsing from title)
+            // Include translator info if present (from Translators list)
             string translatorInfo = "";
             if (Translators != null && Translators.Count > 0)
             {
-                // Use first translator as part of key
-                translatorInfo = "trans_" + NormalizeAuthorForDuplicateKey(Translators.First());
+                // Include ALL translators in the key to distinguish different translations
+                var translatorNames = Translators.Select(t => NormalizeAuthorForDuplicateKey(t)).OrderBy(t => t);
+                translatorInfo = "trans_" + string.Join("_", translatorNames);
             }
 
             // Include sequence and number if present to distinguish series books
@@ -188,12 +176,11 @@ namespace TinyOPDS.Data
                     sequenceInfo += "_" + NumberInSequence.ToString();
             }
 
-            // CRITICAL: If book doesn't have volume info in title, mark it as "vol0"
-            // This distinguishes "Book Title" from "Book Title (Part 2)"
-            if (!hasVolumeInTitle && !normalizedTitle.Contains("vol"))
+            // MODIFIED: Only add volume info if it was explicitly found in the title
+            // Don't add "vol0" to all books without volume info
+            if (!string.IsNullOrEmpty(volumeInfo.normalized))
             {
-                // Check if this might be a first volume without explicit numbering
-                normalizedTitle += " vol0";
+                normalizedTitle += " " + volumeInfo.normalized;
             }
 
             // Add translator info if present
@@ -202,6 +189,7 @@ namespace TinyOPDS.Data
                 normalizedTitle += " " + translatorInfo;
             }
 
+            // Build the key with all relevant parts
             string keySource = $"{normalizedTitle}|{normalizedAuthor}|{lang}|{sequenceInfo}";
 
             // Generate MD5 hash for compact storage
@@ -249,7 +237,7 @@ namespace TinyOPDS.Data
 
         /// <summary>
         /// Normalize string for duplicate key generation
-        /// IMPORTANT: This method must preserve critical information to avoid false positives
+        /// MODIFIED: More careful normalization to preserve important differences
         /// </summary>
         private string NormalizeForDuplicateKey(string text)
         {
@@ -261,6 +249,7 @@ namespace TinyOPDS.Data
             // Extract and preserve critical information from parentheses
             var volumeInfo = ExtractVolumeInfo(text);
             var translatorInfo = ExtractTranslatorInfo(text);
+            var editionInfo = ExtractEditionInfo(text);
             var collectionMarker = DetectCollection(text);
 
             // Remove the extracted parts from the main text to avoid duplication
@@ -268,8 +257,10 @@ namespace TinyOPDS.Data
                 text = text.Replace(volumeInfo.original, "");
             if (!string.IsNullOrEmpty(translatorInfo.original))
                 text = text.Replace(translatorInfo.original, "");
+            if (!string.IsNullOrEmpty(editionInfo.original))
+                text = text.Replace(editionInfo.original, "");
 
-            // Now remove remaining parentheses content (like years, editions, etc.)
+            // Now remove remaining parentheses content (like years, etc.)
             text = Regex.Replace(text, @"\([^)]*\)", " ");
             text = Regex.Replace(text, @"\[[^\]]*\]", " ");
 
@@ -290,6 +281,10 @@ namespace TinyOPDS.Data
             // Append translator info if present
             if (!string.IsNullOrEmpty(translatorInfo.normalized))
                 result += " " + translatorInfo.normalized;
+
+            // Append edition info if present
+            if (!string.IsNullOrEmpty(editionInfo.normalized))
+                result += " " + editionInfo.normalized;
 
             // Append collection marker if detected
             if (collectionMarker)
@@ -399,10 +394,7 @@ namespace TinyOPDS.Data
                 }
             }
 
-            // Special case: book without part number (often first part)
-            // If title doesn't have any part indicator, mark it as vol0 (or vol1?)
-            // This helps distinguish "Book Title" from "Book Title (Part 2)"
-
+            // Return empty if no volume info found - don't add default "vol0"
             return ("", "");
         }
 
@@ -434,6 +426,40 @@ namespace TinyOPDS.Data
                     if (!string.IsNullOrEmpty(translatorName))
                     {
                         return (original, $"trans_{translatorName.ToLowerInvariant()}");
+                    }
+                }
+            }
+
+            return ("", "");
+        }
+
+        /// <summary>
+        /// Extract edition information
+        /// NEW: Preserve edition/revision info to distinguish different versions
+        /// </summary>
+        private (string original, string normalized) ExtractEditionInfo(string text)
+        {
+            // Look for edition/revision information
+            var patterns = new[]
+            {
+                @"\((издание|изд\.?|редакция|ред\.?|edition|ed\.?|revision|rev\.?)\s*[:.]?\s*([^)]+)\)",
+                @"\[(издание|изд\.?|редакция|ред\.?|edition|ed\.?|revision|rev\.?)\s*[:.]?\s*([^]]+)\]",
+                @"(издание|изд\.?|редакция|ред\.?|edition|ed\.?|revision|rev\.?)\s*[:.]?\s*(\d+)",
+            };
+
+            foreach (var pattern in patterns)
+            {
+                var match = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
+                if (match.Success)
+                {
+                    var original = match.Value;
+                    var editionInfo = match.Groups[2].Value.Trim();
+
+                    // Extract numbers from edition info
+                    var numberMatch = Regex.Match(editionInfo, @"\d+");
+                    if (numberMatch.Success)
+                    {
+                        return (original, $"ed{numberMatch.Value}");
                     }
                 }
             }
@@ -477,6 +503,7 @@ namespace TinyOPDS.Data
 
         /// <summary>
         /// Compare two books to determine which is better/newer
+        /// MODIFIED: Lower threshold for replacement decision
         /// Returns: positive if this book is better, negative if other is better, 0 if equal
         /// </summary>
         public int CompareTo(Book other)
@@ -488,9 +515,9 @@ namespace TinyOPDS.Data
             // For books with trusted IDs (from FictionBookEditor)
             if (this.DocumentIDTrusted && other.DocumentIDTrusted && this.ID == other.ID)
             {
-                // Compare version numbers
-                if (this.Version > other.Version) score += 3;
-                else if (this.Version < other.Version) score -= 3;
+                // Compare version numbers - higher weight for version differences
+                if (this.Version > other.Version) score += 5;
+                else if (this.Version < other.Version) score -= 5;
 
                 // Compare document dates
                 if (this.DocumentDate > other.DocumentDate.AddDays(1)) score += 2;
@@ -509,8 +536,8 @@ namespace TinyOPDS.Data
                 else if (this.DocumentDate < other.DocumentDate.AddDays(-1)) score -= 3;
 
                 // Compare file sizes (bigger often means more complete, but only if significant difference)
-                if (this.DocumentSize > other.DocumentSize * 1.1) score += 1;
-                else if (this.DocumentSize < other.DocumentSize * 0.9) score -= 1;
+                if (this.DocumentSize > other.DocumentSize * 1.2) score += 1;
+                else if (this.DocumentSize < other.DocumentSize * 0.8) score -= 1;
             }
 
             // Prefer books with trusted IDs
@@ -522,12 +549,13 @@ namespace TinyOPDS.Data
 
         /// <summary>
         /// Check if this book is likely a duplicate of another
+        /// MODIFIED: More strict duplicate detection
         /// </summary>
         public bool IsDuplicateOf(Book other)
         {
             if (other == null) return false;
 
-            // Same trusted ID = definite duplicate
+            // Same trusted ID = definite duplicate ONLY if both IDs are trusted
             if (this.DocumentIDTrusted && other.DocumentIDTrusted && this.ID == other.ID)
                 return true;
 
@@ -535,9 +563,27 @@ namespace TinyOPDS.Data
             if (!string.IsNullOrEmpty(this.ContentHash) && this.ContentHash == other.ContentHash)
                 return true;
 
-            // Same duplicate key = likely duplicate (now more accurate with volume/translator info)
+            // Same duplicate key = likely duplicate, but need to check translators
             if (!string.IsNullOrEmpty(this.DuplicateKey) && this.DuplicateKey == other.DuplicateKey)
-                return true;
+            {
+                // If both have translators, they must match
+                if (this.Translators?.Count > 0 && other.Translators?.Count > 0)
+                {
+                    var thisTranslators = new HashSet<string>(this.Translators.Select(t => t.ToLowerInvariant()));
+                    var otherTranslators = new HashSet<string>(other.Translators.Select(t => t.ToLowerInvariant()));
+                    return thisTranslators.SetEquals(otherTranslators);
+                }
+
+                // If neither has translators, consider duplicate
+                if ((this.Translators == null || this.Translators.Count == 0) &&
+                    (other.Translators == null || other.Translators.Count == 0))
+                {
+                    return true;
+                }
+
+                // If one has translators and other doesn't, not a duplicate
+                return false;
+            }
 
             return false;
         }

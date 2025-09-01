@@ -5,7 +5,7 @@
  * Copyright (c) 2013-2025 SeNSSoFT
  * SPDX-License-Identifier: MIT
  *
- * Smart duplicate detection for books
+ * Smart duplicate detection for books - FIXED to remove trusted ID dependency
  */
 
 using System;
@@ -26,7 +26,7 @@ namespace TinyOPDS.Data
         public bool ShouldReplace { get; set; }
         public string Reason { get; set; }
         public DuplicateMatchType MatchType { get; set; }
-        public int ComparisonScore { get; set; }  // NEW: Store comparison score
+        public int ComparisonScore { get; set; }
     }
 
     /// <summary>
@@ -35,7 +35,7 @@ namespace TinyOPDS.Data
     public enum DuplicateMatchType
     {
         None = 0,
-        TrustedID = 1,      // Same trusted FB2 ID
+        TrustedID = 1,      // DEPRECATED - No longer used since IDs are always unique
         ContentHash = 2,    // Exact file content
         DuplicateKey = 3,   // Title + Author + Language match
         Fuzzy = 4           // Fuzzy matching (future)
@@ -43,11 +43,12 @@ namespace TinyOPDS.Data
 
     /// <summary>
     /// Smart duplicate detector for books
+    /// MODIFIED: Removed trusted ID check since all IDs are now unique
     /// </summary>
     public class DuplicateDetector
     {
         private readonly DatabaseManager db;
-        private const int REPLACEMENT_THRESHOLD = 1;  // LOWERED from 2 to 1
+        private const int REPLACEMENT_THRESHOLD = 2;  // Raised back to 2 for more conservative replacement
 
         public DuplicateDetector(DatabaseManager database, bool aggressive = false)
         {
@@ -57,7 +58,7 @@ namespace TinyOPDS.Data
 
         /// <summary>
         /// Check if book is duplicate and determine action
-        /// MODIFIED: More accurate duplicate detection with better handling of edge cases
+        /// MODIFIED: Removed trusted ID check, improved duplicate key logic
         /// </summary>
         public DuplicateCheckResult CheckDuplicate(Book newBook, Stream fileStream = null)
         {
@@ -79,27 +80,10 @@ namespace TinyOPDS.Data
             if (fileStream != null && string.IsNullOrEmpty(newBook.ContentHash))
                 newBook.ContentHash = newBook.GenerateContentHash(fileStream);
 
-            // Step 1: Check by trusted ID (FB2 from FictionBookEditor)
-            // ONLY if BOTH books have trusted IDs
-            if (newBook.DocumentIDTrusted && newBook.BookType == BookType.FB2)
-            {
-                var trustedMatch = FindByTrustedID(newBook.ID);
-                if (trustedMatch != null)
-                {
-                    result.IsDuplicate = true;
-                    result.ExistingBook = trustedMatch;
-                    result.MatchType = DuplicateMatchType.TrustedID;
-                    result.ComparisonScore = newBook.CompareTo(trustedMatch);
-                    result.ShouldReplace = result.ComparisonScore > REPLACEMENT_THRESHOLD;
-                    result.Reason = $"Matched by trusted FB2 ID: {newBook.ID} (score: {result.ComparisonScore})";
+            // REMOVED: Trusted ID check - no longer relevant since all IDs are unique
+            // This was causing false positives when same FB2 ID was used for different books
 
-                    Log.WriteLine(LogLevel.Info, "Found duplicate by trusted ID: {0}, score: {1}, should replace: {2}",
-                        newBook.ID, result.ComparisonScore, result.ShouldReplace);
-                    return result;
-                }
-            }
-
-            // Step 2: Check by content hash (exact file duplicate)
+            // Step 1: Check by content hash (exact file duplicate)
             if (!string.IsNullOrEmpty(newBook.ContentHash))
             {
                 var contentMatch = FindByContentHash(newBook.ContentHash);
@@ -117,8 +101,8 @@ namespace TinyOPDS.Data
                 }
             }
 
-            // Step 3: Check by duplicate key (Title + Author + Language)
-            // MODIFIED: More careful duplicate detection with translator check
+            // Step 2: Check by duplicate key (Title + Author + Language + Translator + Volume info)
+            // This is now the primary duplicate detection mechanism
             if (!string.IsNullOrEmpty(newBook.DuplicateKey))
             {
                 var keyMatches = FindByDuplicateKey(newBook.DuplicateKey);
@@ -150,12 +134,10 @@ namespace TinyOPDS.Data
                         result.MatchType = DuplicateMatchType.DuplicateKey;
                         result.ComparisonScore = bestScore;
 
-                        // MODIFIED: Use lower threshold and consider it NOT a duplicate if score is 0
-                        // Score of 0 means books are essentially equal - could be different editions
+                        // Books with score 0 are too similar to determine which is better
+                        // Treat as NOT a duplicate to preserve both (could be different editions)
                         if (bestScore == 0)
                         {
-                            // Books are too similar to determine which is better
-                            // Treat as NOT a duplicate to preserve both
                             result.IsDuplicate = false;
                             result.ExistingBook = null;
                             result.MatchType = DuplicateMatchType.None;
@@ -167,6 +149,7 @@ namespace TinyOPDS.Data
                             return result;
                         }
 
+                        // Only replace if new book is significantly better
                         result.ShouldReplace = bestScore > REPLACEMENT_THRESHOLD;
                         result.Reason = $"Matched by title/author: '{newBook.Title}' by {newBook.Authors.FirstOrDefault()}";
 
@@ -200,9 +183,9 @@ namespace TinyOPDS.Data
                     }
                     else
                     {
-                        // Same key but different books (e.g., different translations)
+                        // Same key but different books (e.g., different translations or volumes)
                         Log.WriteLine(LogLevel.Info,
-                            "Books with same key but different (translators?): {0}", newBook.Title);
+                            "Books with same key but different (translators/volumes?): {0}", newBook.Title);
                     }
                 }
             }
@@ -213,7 +196,7 @@ namespace TinyOPDS.Data
 
         /// <summary>
         /// Process duplicate - either skip, replace, or add as new
-        /// MODIFIED: Better handling of uncertain duplicates
+        /// MODIFIED: More lenient for uncertain duplicates to prevent data loss
         /// </summary>
         public bool ProcessDuplicate(Book newBook, DuplicateCheckResult checkResult)
         {
@@ -234,18 +217,9 @@ namespace TinyOPDS.Data
                     return false;
                 }
 
-                if (checkResult.MatchType == DuplicateMatchType.TrustedID &&
-                    checkResult.ComparisonScore < -REPLACEMENT_THRESHOLD)
-                {
-                    // Existing is significantly better - skip
-                    Log.WriteLine(LogLevel.Info, "Skipping inferior duplicate: {0} - {1}",
-                        newBook.FileName, checkResult.Reason);
-                    return false;
-                }
-
-                // For uncertain cases (score near 0), allow adding
+                // For uncertain cases (score near 0 or slightly negative), allow adding
                 // This prevents loss of potentially different books
-                if (Math.Abs(checkResult.ComparisonScore) <= REPLACEMENT_THRESHOLD)
+                if (Math.Abs(checkResult.ComparisonScore) <= 1)
                 {
                     Log.WriteLine(LogLevel.Info,
                         "Adding potentially different book despite key match: {0} - {1}",
@@ -253,10 +227,19 @@ namespace TinyOPDS.Data
                     return true;  // Allow adding
                 }
 
-                // Skip only if existing is clearly better
-                Log.WriteLine(LogLevel.Info, "Skipping duplicate: {0} - {1}",
+                // Skip only if existing is clearly better (score < -1)
+                if (checkResult.ComparisonScore < -1)
+                {
+                    Log.WriteLine(LogLevel.Info, "Skipping duplicate: {0} - {1}",
+                        newBook.FileName, checkResult.Reason);
+                    return false;
+                }
+
+                // Default: allow adding when uncertain
+                Log.WriteLine(LogLevel.Info,
+                    "Adding book with uncertain duplicate status: {0} - {1}",
                     newBook.FileName, checkResult.Reason);
-                return false;
+                return true;
             }
 
             // Replace the existing book
@@ -279,20 +262,11 @@ namespace TinyOPDS.Data
 
         #region Database queries
 
+        // DEPRECATED: No longer used since trusted IDs are not reliable
         private Book FindByTrustedID(string id)
         {
-            try
-            {
-                return db.ExecuteQuerySingle<Book>(
-                    DatabaseSchema.SelectBookByTrustedID,
-                    MapBook,
-                    DatabaseManager.CreateParameter("@ID", id));
-            }
-            catch (Exception ex)
-            {
-                Log.WriteLine(LogLevel.Error, "Error finding book by trusted ID: {0}", ex.Message);
-                return null;
-            }
+            // This method is kept for backward compatibility but should not be used
+            return null;
         }
 
         private Book FindByContentHash(string hash)
@@ -325,6 +299,12 @@ namespace TinyOPDS.Data
                 {
                     book.Translators = db.ExecuteQuery<string>(
                         DatabaseSchema.SelectBookTranslators,
+                        reader => reader.GetString(0),
+                        DatabaseManager.CreateParameter("@BookID", book.ID));
+
+                    // Also load authors for complete comparison
+                    book.Authors = db.ExecuteQuery<string>(
+                        DatabaseSchema.SelectBookAuthors,
                         reader => reader.GetString(0),
                         DatabaseManager.CreateParameter("@BookID", book.ID));
                 }
@@ -385,7 +365,7 @@ namespace TinyOPDS.Data
             var addedDate = DatabaseManager.GetDateTime(reader, "AddedDate");
             if (addedDate.HasValue) book.AddedDate = addedDate.Value;
 
-            // Authors need to be loaded separately
+            // Authors list will be loaded separately
             book.Authors = new List<string>();
 
             return book;
@@ -408,7 +388,7 @@ namespace TinyOPDS.Data
                 var replacedCount = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE ReplacedByID IS NOT NULL");
                 stats.ReplacedBooksCount = Convert.ToInt32(replacedCount);
 
-                // Count books with trusted IDs
+                // Count books with trusted IDs (will be 0 after our changes)
                 var trustedCount = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE DocumentIDTrusted = 1 AND ReplacedByID IS NULL");
                 stats.TrustedIDCount = Convert.ToInt32(trustedCount);
 

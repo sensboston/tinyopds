@@ -258,7 +258,7 @@ namespace TinyOPDS.Data
 
         /// <summary>
         /// Add multiple books in batch with FTS5 synchronization and duplicate detection
-        /// MODIFIED: Better handling of uncertain duplicates
+        /// MODIFIED: Enhanced logging for uncertain duplicates
         /// </summary>
         public BatchResult AddBooksBatch(List<Book> books)
         {
@@ -327,11 +327,22 @@ namespace TinyOPDS.Data
                                 }
                                 else
                                 {
-                                    // Uncertain duplicate that should be added as new
+                                    // Enhanced logging for uncertain duplicates
                                     result.UncertainDuplicatesAdded++;
-                                    Log.WriteLine(LogLevel.Info,
-                                        "Adding uncertain duplicate in batch: {0} (score: {1})",
-                                        book.FileName, duplicateResult.ComparisonScore);
+
+                                    string existingBookInfo = duplicateResult.ExistingBook != null
+                                        ? $"'{duplicateResult.ExistingBook.Title}' by {duplicateResult.ExistingBook.Authors?.FirstOrDefault() ?? "Unknown"} ({duplicateResult.ExistingBook.FileName})"
+                                        : "unknown existing book";
+
+                                    Log.WriteLine(LogLevel.Warning,
+                                        "UNCERTAIN DUPLICATE ADDED: '{0}' by {1} ({2}) - Score: {3}, Reason: {4}, Compared with: {5}, DuplicateKey: '{6}'",
+                                        book.Title,
+                                        book.Authors?.FirstOrDefault() ?? "Unknown",
+                                        book.FileName,
+                                        duplicateResult.ComparisonScore,
+                                        duplicateResult.Reason,
+                                        existingBookInfo,
+                                        book.DuplicateKey);
                                 }
                             }
                         }

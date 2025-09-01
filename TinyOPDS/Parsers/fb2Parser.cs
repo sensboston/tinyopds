@@ -5,7 +5,7 @@
  * Copyright (c) 2013-2025 SeNSSoFT
  * SPDX-License-Identifier: MIT
  *
- * FB2 parser implementation
+ * FB2 parser implementation - FIXED for duplicate ID issues
  *
  */
 
@@ -48,7 +48,7 @@ namespace TinyOPDS.Parsers
 
         /// <summary>
         /// Parse FB2 book from stream - supports both seekable and non-seekable streams
-        /// Uses structured FirstName/MiddleName/LastName from FB2 format
+        /// MODIFIED: Always generates unique ID to avoid duplicate ID conflicts
         /// </summary>
         /// <param name="stream"></param>
         /// <param name="fileName"></param>
@@ -93,11 +93,41 @@ namespace TinyOPDS.Parsers
                 {
                     fb2.Load(xml, true);
 
+                    // MODIFIED: Always generate unique ID to avoid conflicts
                     if (fb2.DocumentInfo != null)
                     {
-                        book.ID = fb2.DocumentInfo.ID;
-                        if (fb2.DocumentInfo.DocumentVersion != null) book.Version = (float)fb2.DocumentInfo.DocumentVersion;
-                        if (fb2.DocumentInfo.DocumentDate != null) book.DocumentDate = fb2.DocumentInfo.DocumentDate.DateValue;
+                        // Save original ID for logging/debugging
+                        string originalID = fb2.DocumentInfo.ID;
+
+                        // ALWAYS generate new unique ID for our database
+                        book.ID = Guid.NewGuid().ToString();
+
+                        // Never trust FB2 IDs as they can be duplicated
+                        book.DocumentIDTrusted = false;
+
+                        if (fb2.DocumentInfo.DocumentVersion != null)
+                            book.Version = (float)fb2.DocumentInfo.DocumentVersion;
+
+                        // Safe DateTime parsing for DocumentDate
+                        if (fb2.DocumentInfo.DocumentDate != null)
+                        {
+                            try
+                            {
+                                book.DocumentDate = fb2.DocumentInfo.DocumentDate.DateValue;
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.WriteLine(LogLevel.Warning, "Invalid DocumentDate in {0}, using current date: {1}",
+                                    fileName, ex.Message);
+                                book.DocumentDate = DateTime.Now;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // No DocumentInfo - generate ID anyway
+                        book.ID = Guid.NewGuid().ToString();
+                        book.DocumentIDTrusted = false;
                     }
 
                     if (fb2.TitleInfo != null)
@@ -113,7 +143,26 @@ namespace TinyOPDS.Parsers
                             }
                         }
                         if (fb2.TitleInfo.Language != null) book.Language = fb2.TitleInfo.Language;
-                        if (fb2.TitleInfo.BookDate != null) book.BookDate = fb2.TitleInfo.BookDate.DateValue;
+
+                        // MODIFIED: Accept any valid date for BookDate (no year restrictions)
+                        if (fb2.TitleInfo.BookDate != null)
+                        {
+                            try
+                            {
+                                book.BookDate = fb2.TitleInfo.BookDate.DateValue;
+
+                                // Only validate that it's a reasonable date for storage
+                                if (book.BookDate < new DateTime(1, 1, 1) ||
+                                    book.BookDate > new DateTime(9999, 12, 31))
+                                {
+                                    book.BookDate = DateTime.Now;
+                                }
+                            }
+                            catch
+                            {
+                                book.BookDate = DateTime.Now;
+                            }
+                        }
 
                         // Process authors using structured FB2 data
                         if (fb2.TitleInfo.BookAuthors != null && fb2.TitleInfo.BookAuthors.Any())

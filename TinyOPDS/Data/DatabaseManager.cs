@@ -393,9 +393,28 @@ namespace TinyOPDS.Data
         public static IDbDataParameter CreateParameter(string name, DateTime? value)
         {
             if (value.HasValue && value.Value != DateTime.MinValue)
-                return CreateParameter(name, value.Value.ToBinary());
+            {
+                try
+                {
+                    // Validate DateTime range before converting to binary
+                    if (value.Value < new DateTime(1900, 1, 1) || value.Value > new DateTime(2100, 12, 31))
+                    {
+                        Log.WriteLine(LogLevel.Warning, "DateTime parameter '{0}' out of valid range ({1}), using current date instead", name, value.Value);
+                        return CreateParameter(name, DateTime.Now.ToBinary());
+                    }
+
+                    return CreateParameter(name, value.Value.ToBinary());
+                }
+                catch (ArgumentOutOfRangeException ex)
+                {
+                    Log.WriteLine(LogLevel.Warning, "Invalid DateTime parameter '{0}' ({1}), using current date instead: {2}", name, value.Value, ex.Message);
+                    return CreateParameter(name, DateTime.Now.ToBinary());
+                }
+            }
             else
+            {
                 return CreateParameter(name, DBNull.Value);
+            }
         }
 
         public static IDbDataParameter CreateParameter(string name, bool value)

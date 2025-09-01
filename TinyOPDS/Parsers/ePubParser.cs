@@ -5,7 +5,7 @@
  * Copyright (c) 2013-2025 SeNSSoFT
  * SPDX-License-Identifier: MIT
  *
- * ePub parser implementation - migrated to EpubSharp
+ * ePub parser implementation (based on EpubSharp) - FIXED for duplicate ID issues
  *
  */
 
@@ -24,6 +24,7 @@ namespace TinyOPDS.Parsers
     {
         /// <summary>
         /// Parse EPUB book and normalize author names to standard format
+        /// MODIFIED: Always generates unique ID to avoid conflicts
         /// </summary>
         /// <param name="stream"></param>
         /// <param name="fileName"></param>
@@ -42,23 +43,58 @@ namespace TinyOPDS.Parsers
 
                 EpubBook epub = EpubReader.Read(epubData);
 
-                // Get unique identifier
+                // MODIFIED: Always generate unique ID to avoid conflicts
                 var identifiers = epub.Format.Opf.Metadata.Identifiers;
-                book.ID = identifiers?.FirstOrDefault()?.Text ?? Guid.NewGuid().ToString();
+                string originalID = identifiers?.FirstOrDefault()?.Text;
 
-                // Parse date
+                // ALWAYS generate new unique ID for our database
+                book.ID = Guid.NewGuid().ToString();
+
+                // Never trust EPUB IDs as they can be duplicated or missing
+                book.DocumentIDTrusted = false;
+
+                // MODIFIED: Accept any valid date for BookDate (no year restrictions)
                 var dates = epub.Format.Opf.Metadata.Dates;
                 if (dates?.Count > 0)
                 {
                     try
                     {
                         book.BookDate = DateTime.Parse(dates.First().Text);
+
+                        // Only validate that it's a reasonable date for storage
+                        if (book.BookDate < new DateTime(1, 1, 1) ||
+                            book.BookDate > new DateTime(9999, 12, 31))
+                        {
+                            book.BookDate = DateTime.Now;
+                        }
                     }
                     catch
                     {
+                        // Try parsing as year only
                         int year;
                         if (int.TryParse(dates.First().Text, out year))
-                            book.BookDate = new DateTime(year, 1, 1);
+                        {
+                            try
+                            {
+                                // Accept any year that DateTime can handle
+                                if (year >= 1 && year <= 9999)
+                                {
+                                    book.BookDate = new DateTime(year, 1, 1);
+                                }
+                                else
+                                {
+                                    book.BookDate = DateTime.Now;
+                                }
+                            }
+                            catch
+                            {
+                                book.BookDate = DateTime.Now;
+                            }
+                        }
+                        else
+                        {
+                            book.BookDate = DateTime.Now;
+                        }
                     }
                 }
 
@@ -193,6 +229,7 @@ namespace TinyOPDS.Parsers
 
             return cleaned;
         }
+
         private List<string> LookupGenres(List<string> subjects)
         {
             List<string> genres = new List<string>();

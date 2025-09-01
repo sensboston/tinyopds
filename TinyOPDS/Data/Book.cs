@@ -12,6 +12,7 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace TinyOPDS.Data
 {
@@ -110,10 +111,14 @@ namespace TinyOPDS.Data
         {
             // Check for common placeholder GUIDs
             if (guid == Guid.Empty) return false;
-            if (guid.ToString() == "00000000-0000-0000-0000-000000000000") return false;
-            if (guid.ToString() == "11111111-1111-1111-1111-111111111111") return false;
-            if (guid.ToString() == "12345678-1234-1234-1234-123456789012") return false;
-            if (guid.ToString() == "ffffffff-ffff-ffff-ffff-ffffffffffff") return false;
+
+            string guidStr = guid.ToString().ToLowerInvariant();
+
+            // Common placeholders
+            if (guidStr == "00000000-0000-0000-0000-000000000000") return false;
+            if (guidStr == "11111111-1111-1111-1111-111111111111") return false;
+            if (guidStr == "12345678-1234-1234-1234-123456789012") return false;
+            if (guidStr == "ffffffff-ffff-ffff-ffff-ffffffffffff") return false;
 
             // Check if all bytes are the same (likely generated badly)
             var bytes = guid.ToByteArray();
@@ -131,24 +136,73 @@ namespace TinyOPDS.Data
             }
             if (isSequential) return false;
 
+            // Check for timestamp-based GUIDs that are not properly formatted
+            // LibRusEc kit generates IDs like "Mon Jun 10 19:52:43 2013" which are NOT proper GUIDs
+            if (guidStr.Contains("mon") || guidStr.Contains("tue") || guidStr.Contains("wed") ||
+                guidStr.Contains("thu") || guidStr.Contains("fri") || guidStr.Contains("sat") ||
+                guidStr.Contains("sun") || guidStr.Contains("jan") || guidStr.Contains("feb") ||
+                guidStr.Contains("mar") || guidStr.Contains("apr") || guidStr.Contains("may") ||
+                guidStr.Contains("jun") || guidStr.Contains("jul") || guidStr.Contains("aug") ||
+                guidStr.Contains("sep") || guidStr.Contains("oct") || guidStr.Contains("nov") ||
+                guidStr.Contains("dec"))
+            {
+                return false;
+            }
+
             // If it passed all checks, it's likely from FictionBookEditor or similar proper tool
             return true;
         }
 
         /// <summary>
         /// Generate duplicate detection key based on title, first author and language
+        /// This method is CRITICAL for avoiding false positives
         /// </summary>
         public string GenerateDuplicateKey()
         {
             if (string.IsNullOrEmpty(Title) || Authors == null || Authors.Count == 0)
                 return string.Empty;
 
+            // IMPORTANT: Check if title already has volume info
+            var volumeInfo = ExtractVolumeInfo(Title);
+            bool hasVolumeInTitle = !string.IsNullOrEmpty(volumeInfo.normalized);
+
             string normalizedTitle = NormalizeForDuplicateKey(Title);
             string firstAuthor = Authors.First();
-            string normalizedAuthor = NormalizeForDuplicateKey(firstAuthor);
+            string normalizedAuthor = NormalizeAuthorForDuplicateKey(firstAuthor);
             string lang = string.IsNullOrEmpty(Language) ? "unknown" : Language.ToLowerInvariant();
 
-            string keySource = $"{normalizedTitle}|{normalizedAuthor}|{lang}";
+            // Get translator info from the Translators list (more reliable than parsing from title)
+            string translatorInfo = "";
+            if (Translators != null && Translators.Count > 0)
+            {
+                // Use first translator as part of key
+                translatorInfo = "trans_" + NormalizeAuthorForDuplicateKey(Translators.First());
+            }
+
+            // Include sequence and number if present to distinguish series books
+            string sequenceInfo = "";
+            if (!string.IsNullOrEmpty(Sequence))
+            {
+                sequenceInfo = NormalizeForDuplicateKey(Sequence);
+                if (NumberInSequence > 0)
+                    sequenceInfo += "_" + NumberInSequence.ToString();
+            }
+
+            // CRITICAL: If book doesn't have volume info in title, mark it as "vol0"
+            // This distinguishes "Book Title" from "Book Title (Part 2)"
+            if (!hasVolumeInTitle && !normalizedTitle.Contains("vol"))
+            {
+                // Check if this might be a first volume without explicit numbering
+                normalizedTitle += " vol0";
+            }
+
+            // Add translator info if present
+            if (!string.IsNullOrEmpty(translatorInfo))
+            {
+                normalizedTitle += " " + translatorInfo;
+            }
+
+            string keySource = $"{normalizedTitle}|{normalizedAuthor}|{lang}|{sequenceInfo}";
 
             // Generate MD5 hash for compact storage
             using (var md5 = System.Security.Cryptography.MD5.Create())
@@ -195,6 +249,7 @@ namespace TinyOPDS.Data
 
         /// <summary>
         /// Normalize string for duplicate key generation
+        /// IMPORTANT: This method must preserve critical information to avoid false positives
         /// </summary>
         private string NormalizeForDuplicateKey(string text)
         {
@@ -203,24 +258,221 @@ namespace TinyOPDS.Data
             // Convert to lowercase
             text = text.ToLowerInvariant();
 
-            // Remove content in parentheses/brackets (often subtitles, edition info, series)
-            text = System.Text.RegularExpressions.Regex.Replace(text, @"\([^)]*\)", "");
-            text = System.Text.RegularExpressions.Regex.Replace(text, @"\[[^\]]*\]", "");
+            // Extract and preserve critical information from parentheses
+            var volumeInfo = ExtractVolumeInfo(text);
+            var translatorInfo = ExtractTranslatorInfo(text);
+            var collectionMarker = DetectCollection(text);
 
-            // Remove punctuation and special characters
-            text = System.Text.RegularExpressions.Regex.Replace(text, @"[^\w\s]", " ");
+            // Remove the extracted parts from the main text to avoid duplication
+            if (!string.IsNullOrEmpty(volumeInfo.original))
+                text = text.Replace(volumeInfo.original, "");
+            if (!string.IsNullOrEmpty(translatorInfo.original))
+                text = text.Replace(translatorInfo.original, "");
 
-            // Remove common words that differ between editions
-            string[] wordsToRemove = { "the", "a", "an", "and", "or", "but", "edition", "version", "revised", "updated" };
-            foreach (var word in wordsToRemove)
-            {
-                text = System.Text.RegularExpressions.Regex.Replace(text, @"\b" + word + @"\b", " ");
-            }
+            // Now remove remaining parentheses content (like years, editions, etc.)
+            text = Regex.Replace(text, @"\([^)]*\)", " ");
+            text = Regex.Replace(text, @"\[[^\]]*\]", " ");
+
+            // Remove punctuation except hyphens and apostrophes within words
+            text = Regex.Replace(text, @"[^\w\s'-]", " ");
+            text = Regex.Replace(text, @"(\s|^)[-']|[-'](\s|$)", " ");
 
             // Remove multiple spaces
-            text = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ");
+            text = Regex.Replace(text, @"\s+", " ").Trim();
 
-            return text.Trim();
+            // Build the final normalized key with preserved critical info
+            var result = text;
+
+            // Append volume/part/book number if present
+            if (!string.IsNullOrEmpty(volumeInfo.normalized))
+                result += " " + volumeInfo.normalized;
+
+            // Append translator info if present
+            if (!string.IsNullOrEmpty(translatorInfo.normalized))
+                result += " " + translatorInfo.normalized;
+
+            // Append collection marker if detected
+            if (collectionMarker)
+                result += " _collection_";
+
+            return result.Trim();
+        }
+
+        /// <summary>
+        /// Extract volume/tome/book/part information
+        /// </summary>
+        private (string original, string normalized) ExtractVolumeInfo(string text)
+        {
+            // Dictionary for text-to-number conversion
+            var textNumbers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                {"первая", "1"}, {"первый", "1"}, {"первое", "1"},
+                {"вторая", "2"}, {"второй", "2"}, {"второе", "2"},
+                {"третья", "3"}, {"третий", "3"}, {"третье", "3"},
+                {"четвертая", "4"}, {"четвертый", "4"}, {"четвертое", "4"},
+                {"пятая", "5"}, {"пятый", "5"}, {"пятое", "5"},
+                {"шестая", "6"}, {"шестой", "6"}, {"шестое", "6"},
+                {"седьмая", "7"}, {"седьмой", "7"}, {"седьмое", "7"},
+                {"восьмая", "8"}, {"восьмой", "8"}, {"восьмое", "8"},
+                {"девятая", "9"}, {"девятый", "9"}, {"девятое", "9"},
+                {"десятая", "10"}, {"десятый", "10"}, {"десятое", "10"},
+                {"one", "1"}, {"first", "1"},
+                {"two", "2"}, {"second", "2"},
+                {"three", "3"}, {"third", "3"},
+                {"four", "4"}, {"fourth", "4"},
+                {"five", "5"}, {"fifth", "5"},
+                {"six", "6"}, {"sixth", "6"},
+                {"seven", "7"}, {"seventh", "7"},
+                {"eight", "8"}, {"eighth", "8"},
+                {"nine", "9"}, {"ninth", "9"},
+                {"ten", "10"}, {"tenth", "10"}
+            };
+
+            // Roman numerals conversion
+            var romanNumerals = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                {"i", "1"}, {"ii", "2"}, {"iii", "3"}, {"iv", "4"}, {"v", "5"},
+                {"vi", "6"}, {"vii", "7"}, {"viii", "8"}, {"ix", "9"}, {"x", "10"},
+                {"xi", "11"}, {"xii", "12"}, {"xiii", "13"}, {"xiv", "14"}, {"xv", "15"}
+            };
+
+            // Patterns for volume/book/part/tome with various number formats
+            var patterns = new[]
+            {
+                // Numeric patterns
+                @"\((том|книга|часть|volume|book|part|vol|кн|ч)\s*[:\.\s]*(\d+)[^)]*\)",
+                @"\[(том|книга|часть|volume|book|part|vol|кн|ч)\s*[:\.\s]*(\d+)[^\]]*\]",
+                @"(том|книга|часть|volume|book|part|vol|кн|ч)\s*[:\.\s]*(\d+)\b",
+                @"\((\d+)\s*(том|книга|часть|volume|book|part|vol|кн|ч)[^)]*\)",
+                @"\[(\d+)\s*(том|книга|часть|volume|book|part|vol|кн|ч)[^\]]*\]",
+                
+                // Text number patterns (e.g., "Часть вторая", "Part Two")
+                @"\((том|книга|часть|volume|book|part)\s+([а-яё]+|[a-z]+)[^)]*\)",
+                @"\[(том|книга|часть|volume|book|part)\s+([а-яё]+|[a-z]+)[^\]]*\]",
+                @"(том|книга|часть|volume|book|part)\s+([а-яё]+|[a-z]+)\b",
+                
+                // Roman numeral patterns
+                @"\((том|книга|часть|volume|book|part|vol)\s*[:\.\s]*([ivxlcdm]+)[^)]*\)",
+                @"\[(том|книга|часть|volume|book|part|vol)\s*[:\.\s]*([ivxlcdm]+)[^\]]*\]",
+                @"(том|книга|часть|volume|book|part|vol)\s*[:\.\s]*([ivxlcdm]+)\b"
+            };
+
+            foreach (var pattern in patterns)
+            {
+                var match = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
+                if (match.Success)
+                {
+                    var original = match.Value;
+                    string numberStr = "";
+
+                    // Try to extract number from different groups
+                    for (int i = 1; i <= match.Groups.Count - 1; i++)
+                    {
+                        var groupValue = match.Groups[i].Value.Trim();
+
+                        // Check if it's a direct number
+                        if (Regex.IsMatch(groupValue, @"^\d+$"))
+                        {
+                            numberStr = groupValue;
+                            break;
+                        }
+
+                        // Check if it's a text number
+                        if (textNumbers.ContainsKey(groupValue))
+                        {
+                            numberStr = textNumbers[groupValue];
+                            break;
+                        }
+
+                        // Check if it's a roman numeral
+                        if (romanNumerals.ContainsKey(groupValue.ToLowerInvariant()))
+                        {
+                            numberStr = romanNumerals[groupValue.ToLowerInvariant()];
+                            break;
+                        }
+                    }
+
+                    if (!string.IsNullOrEmpty(numberStr))
+                    {
+                        return (original, $"vol{numberStr}");
+                    }
+                }
+            }
+
+            // Special case: book without part number (often first part)
+            // If title doesn't have any part indicator, mark it as vol0 (or vol1?)
+            // This helps distinguish "Book Title" from "Book Title (Part 2)"
+
+            return ("", "");
+        }
+
+        /// <summary>
+        /// Extract translator information
+        /// </summary>
+        private (string original, string normalized) ExtractTranslatorInfo(string text)
+        {
+            // Look for translator information
+            var patterns = new[]
+            {
+                @"\((перевод|пер\.?|переводчик|translation|trans\.?|translator)\s*[:.]?\s*([^)]+)\)",
+                @"\[(перевод|пер\.?|переводчик|translation|trans\.?|translator)\s*[:.]?\s*([^]]+)\]",
+                @"(перевод|пер\.?|переводчик|translation|trans\.?|translator)\s*[:.]?\s*([а-яёa-z\s\.]+)",
+            };
+
+            foreach (var pattern in patterns)
+            {
+                var match = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
+                if (match.Success)
+                {
+                    var original = match.Value;
+                    var translatorName = match.Groups[2].Value.Trim();
+
+                    // Normalize translator name (remove initials variations, etc.)
+                    translatorName = Regex.Replace(translatorName, @"\s+", "");
+                    translatorName = Regex.Replace(translatorName, @"[^\w]", "");
+
+                    if (!string.IsNullOrEmpty(translatorName))
+                    {
+                        return (original, $"trans_{translatorName.ToLowerInvariant()}");
+                    }
+                }
+            }
+
+            return ("", "");
+        }
+
+        /// <summary>
+        /// Detect if this is a collection/anthology
+        /// </summary>
+        private bool DetectCollection(string text)
+        {
+            var collectionMarkers = new[]
+            {
+                "сборник", "собрание", "избранное", "антология", "хрестоматия",
+                "collection", "collected", "anthology", "selected", "complete works",
+                "omnibus", "compilation"
+            };
+
+            text = text.ToLowerInvariant();
+            return collectionMarkers.Any(marker => text.Contains(marker));
+        }
+
+        /// <summary>
+        /// Normalize author name for duplicate key
+        /// </summary>
+        private string NormalizeAuthorForDuplicateKey(string author)
+        {
+            if (string.IsNullOrEmpty(author)) return "";
+
+            author = author.ToLowerInvariant();
+
+            // Remove punctuation
+            author = Regex.Replace(author, @"[^\w\s]", " ");
+
+            // Remove multiple spaces
+            author = Regex.Replace(author, @"\s+", " ").Trim();
+
+            return author;
         }
 
         /// <summary>
@@ -283,7 +535,7 @@ namespace TinyOPDS.Data
             if (!string.IsNullOrEmpty(this.ContentHash) && this.ContentHash == other.ContentHash)
                 return true;
 
-            // Same duplicate key = likely duplicate
+            // Same duplicate key = likely duplicate (now more accurate with volume/translator info)
             if (!string.IsNullOrEmpty(this.DuplicateKey) && this.DuplicateKey == other.DuplicateKey)
                 return true;
 

@@ -561,7 +561,7 @@
             this.useAbsoluteUri.AutoSize = true;
             this.useAbsoluteUri.Checked = global::TinyOPDS.Properties.Settings.Default.UseAbsoluteUri;
             this.useAbsoluteUri.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "UseAbsoluteUri", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.useAbsoluteUri.Location = new System.Drawing.Point(907, 174);
+            this.useAbsoluteUri.Location = new System.Drawing.Point(883, 162);
             this.useAbsoluteUri.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.useAbsoluteUri.Name = "useAbsoluteUri";
             this.useAbsoluteUri.Size = new System.Drawing.Size(229, 36);
@@ -571,7 +571,7 @@
             // 
             // extWebLink
             // 
-            this.extWebLink.Location = new System.Drawing.Point(672, 451);
+            this.extWebLink.Location = new System.Drawing.Point(672, 439);
             this.extWebLink.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.extWebLink.Name = "extWebLink";
             this.extWebLink.Size = new System.Drawing.Size(541, 31);
@@ -582,7 +582,7 @@
             // 
             // intWebLink
             // 
-            this.intWebLink.Location = new System.Drawing.Point(672, 355);
+            this.intWebLink.Location = new System.Drawing.Point(672, 343);
             this.intWebLink.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.intWebLink.Name = "intWebLink";
             this.intWebLink.Size = new System.Drawing.Size(541, 31);
@@ -594,7 +594,7 @@
             // label34
             // 
             this.label34.AutoSize = true;
-            this.label34.Location = new System.Drawing.Point(672, 415);
+            this.label34.Location = new System.Drawing.Point(672, 403);
             this.label34.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label34.Name = "label34";
             this.label34.Size = new System.Drawing.Size(249, 32);
@@ -604,7 +604,7 @@
             // label35
             // 
             this.label35.AutoSize = true;
-            this.label35.Location = new System.Drawing.Point(672, 320);
+            this.label35.Location = new System.Drawing.Point(672, 308);
             this.label35.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label35.Name = "label35";
             this.label35.Size = new System.Drawing.Size(213, 32);
@@ -614,7 +614,7 @@
             // label33
             // 
             this.label33.AutoSize = true;
-            this.label33.Location = new System.Drawing.Point(672, 253);
+            this.label33.Location = new System.Drawing.Point(672, 237);
             this.label33.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label33.Name = "label33";
             this.label33.Size = new System.Drawing.Size(136, 32);
@@ -625,7 +625,7 @@
             // 
             this.interfaceCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.interfaceCombo.FormattingEnabled = true;
-            this.interfaceCombo.Location = new System.Drawing.Point(678, 83);
+            this.interfaceCombo.Location = new System.Drawing.Point(632, 85);
             this.interfaceCombo.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.interfaceCombo.Name = "interfaceCombo";
             this.interfaceCombo.Size = new System.Drawing.Size(375, 39);
@@ -635,7 +635,7 @@
             // label29
             // 
             this.label29.AutoSize = true;
-            this.label29.Location = new System.Drawing.Point(679, 38);
+            this.label29.Location = new System.Drawing.Point(633, 40);
             this.label29.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label29.Name = "label29";
             this.label29.Size = new System.Drawing.Size(242, 32);
@@ -645,7 +645,7 @@
             // statUniqueClients
             // 
             this.statUniqueClients.AutoSize = true;
-            this.statUniqueClients.Location = new System.Drawing.Point(369, 524);
+            this.statUniqueClients.Location = new System.Drawing.Point(376, 524);
             this.statUniqueClients.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.statUniqueClients.Name = "statUniqueClients";
             this.statUniqueClients.Size = new System.Drawing.Size(30, 32);
@@ -655,7 +655,7 @@
             // label26
             // 
             this.label26.AutoSize = true;
-            this.label26.Location = new System.Drawing.Point(53, 524);
+            this.label26.Location = new System.Drawing.Point(37, 524);
             this.label26.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label26.Name = "label26";
             this.label26.Size = new System.Drawing.Size(202, 32);
@@ -665,7 +665,7 @@
             // statImages
             // 
             this.statImages.AutoSize = true;
-            this.statImages.Location = new System.Drawing.Point(977, 592);
+            this.statImages.Location = new System.Drawing.Point(986, 592);
             this.statImages.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.statImages.Name = "statImages";
             this.statImages.Size = new System.Drawing.Size(30, 32);
@@ -685,7 +685,7 @@
             // statBooks
             // 
             this.statBooks.AutoSize = true;
-            this.statBooks.Location = new System.Drawing.Point(369, 592);
+            this.statBooks.Location = new System.Drawing.Point(376, 592);
             this.statBooks.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.statBooks.Name = "statBooks";
             this.statBooks.Size = new System.Drawing.Size(30, 32);
@@ -695,7 +695,7 @@
             // label25
             // 
             this.label25.AutoSize = true;
-            this.label25.Location = new System.Drawing.Point(53, 592);
+            this.label25.Location = new System.Drawing.Point(37, 592);
             this.label25.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label25.Name = "label25";
             this.label25.Size = new System.Drawing.Size(162, 32);
@@ -705,7 +705,7 @@
             // statRequests
             // 
             this.statRequests.AutoSize = true;
-            this.statRequests.Location = new System.Drawing.Point(977, 524);
+            this.statRequests.Location = new System.Drawing.Point(986, 524);
             this.statRequests.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.statRequests.Name = "statRequests";
             this.statRequests.Size = new System.Drawing.Size(30, 32);
@@ -724,7 +724,7 @@
             // 
             // extLink
             // 
-            this.extLink.Location = new System.Drawing.Point(51, 451);
+            this.extLink.Location = new System.Drawing.Point(37, 439);
             this.extLink.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.extLink.Name = "extLink";
             this.extLink.Size = new System.Drawing.Size(571, 31);
@@ -735,7 +735,7 @@
             // 
             // intLink
             // 
-            this.intLink.Location = new System.Drawing.Point(51, 355);
+            this.intLink.Location = new System.Drawing.Point(44, 343);
             this.intLink.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.intLink.Name = "intLink";
             this.intLink.Size = new System.Drawing.Size(571, 31);
@@ -747,7 +747,7 @@
             // label13
             // 
             this.label13.AutoSize = true;
-            this.label13.Location = new System.Drawing.Point(53, 253);
+            this.label13.Location = new System.Drawing.Point(37, 237);
             this.label13.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label13.Name = "label13";
             this.label13.Size = new System.Drawing.Size(158, 32);
@@ -757,7 +757,7 @@
             // extIPlabel
             // 
             this.extIPlabel.AutoSize = true;
-            this.extIPlabel.Location = new System.Drawing.Point(51, 415);
+            this.extIPlabel.Location = new System.Drawing.Point(37, 403);
             this.extIPlabel.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.extIPlabel.Name = "extIPlabel";
             this.extIPlabel.Size = new System.Drawing.Size(277, 32);
@@ -767,7 +767,7 @@
             // intIPlabel
             // 
             this.intIPlabel.AutoSize = true;
-            this.intIPlabel.Location = new System.Drawing.Point(51, 320);
+            this.intIPlabel.Location = new System.Drawing.Point(37, 308);
             this.intIPlabel.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.intIPlabel.Name = "intIPlabel";
             this.intIPlabel.Size = new System.Drawing.Size(241, 32);
@@ -777,7 +777,7 @@
             // label4
             // 
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(51, 38);
+            this.label4.Location = new System.Drawing.Point(37, 38);
             this.label4.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(183, 32);
@@ -787,7 +787,7 @@
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(1077, 38);
+            this.label3.Location = new System.Drawing.Point(1007, 38);
             this.label3.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(74, 32);
@@ -808,10 +808,10 @@
             // webPrefix
             // 
             this.webPrefix.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::TinyOPDS.Properties.Settings.Default, "HttpPrefix", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.webPrefix.Location = new System.Drawing.Point(907, 246);
+            this.webPrefix.Location = new System.Drawing.Point(872, 234);
             this.webPrefix.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.webPrefix.Name = "webPrefix";
-            this.webPrefix.Size = new System.Drawing.Size(279, 38);
+            this.webPrefix.Size = new System.Drawing.Size(240, 38);
             this.webPrefix.TabIndex = 49;
             this.webPrefix.Text = global::TinyOPDS.Properties.Settings.Default.HttpPrefix;
             this.webPrefix.TextChanged += new System.EventHandler(this.RootPrefix_TextChanged);
@@ -822,7 +822,7 @@
             this.openPort.Checked = global::TinyOPDS.Properties.Settings.Default.OpenNATPort;
             this.openPort.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "OpenNATPort", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
             this.openPort.Enabled = false;
-            this.openPort.Location = new System.Drawing.Point(409, 174);
+            this.openPort.Location = new System.Drawing.Point(407, 162);
             this.openPort.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.openPort.Name = "openPort";
             this.openPort.Size = new System.Drawing.Size(331, 36);
@@ -834,7 +834,7 @@
             // serverPort
             // 
             this.serverPort.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::TinyOPDS.Properties.Settings.Default, "ServerPort", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.serverPort.Location = new System.Drawing.Point(1085, 86);
+            this.serverPort.Location = new System.Drawing.Point(1012, 85);
             this.serverPort.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.serverPort.Name = "serverPort";
             this.serverPort.Size = new System.Drawing.Size(100, 38);
@@ -848,7 +848,7 @@
             this.useUPnP.Checked = global::TinyOPDS.Properties.Settings.Default.UseUPnP;
             this.useUPnP.CheckState = System.Windows.Forms.CheckState.Checked;
             this.useUPnP.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "UseUPnP", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.useUPnP.Location = new System.Drawing.Point(59, 174);
+            this.useUPnP.Location = new System.Drawing.Point(43, 162);
             this.useUPnP.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.useUPnP.Name = "useUPnP";
             this.useUPnP.Size = new System.Drawing.Size(183, 36);
@@ -860,10 +860,10 @@
             // rootPrefix
             // 
             this.rootPrefix.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::TinyOPDS.Properties.Settings.Default, "RootPrefix", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.rootPrefix.Location = new System.Drawing.Point(307, 246);
+            this.rootPrefix.Location = new System.Drawing.Point(238, 231);
             this.rootPrefix.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.rootPrefix.Name = "rootPrefix";
-            this.rootPrefix.Size = new System.Drawing.Size(308, 38);
+            this.rootPrefix.Size = new System.Drawing.Size(168, 38);
             this.rootPrefix.TabIndex = 19;
             this.rootPrefix.Text = global::TinyOPDS.Properties.Settings.Default.RootPrefix;
             this.rootPrefix.TextChanged += new System.EventHandler(this.RootPrefix_TextChanged);
@@ -871,7 +871,7 @@
             // serverName
             // 
             this.serverName.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::TinyOPDS.Properties.Settings.Default, "ServerName", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.serverName.Location = new System.Drawing.Point(59, 83);
+            this.serverName.Location = new System.Drawing.Point(43, 86);
             this.serverName.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.serverName.Name = "serverName";
             this.serverName.Size = new System.Drawing.Size(556, 38);

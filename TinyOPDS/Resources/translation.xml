@@ -379,32 +379,32 @@
 		</property>
 		<property form="MainForm" ctrl="intIPlabel">
 			<text lang="en">Local OPDS URL:</text>
-			<text lang="ru">Локальная ссылка OPDS:</text>
-			<text lang="uk">Локальне посилання OPDS:</text>
+			<text lang="ru">Локальный URL OPDS:</text>
+			<text lang="uk">Локальна URL-адреса OPDS:</text>
 			<text lang="de">Lokale OPDS-URL:</text>
 			<text lang="es">URL OPDS local:</text>
 			<text lang="fr">URL OPDS locale:</text>
 		</property>
 		<property form="MainForm" ctrl="extIPlabel">
 			<text lang="en">External OPDS URL:</text>
-			<text lang="ru">Внешняя ссылка OPDS:</text>
-			<text lang="uk">Зовнішнє посилання OPDS:</text>
+			<text lang="ru">Внешний URL OPDS:</text>
+			<text lang="uk">Зовнішня URL-адреса OPDS:</text>
 			<text lang="de">Externe OPDS-URL:</text>
 			<text lang="es">URL OPDS externa:</text>
 			<text lang="fr">URL OPDS externe:</text>
 		</property>
 		<property form="MainForm" ctrl="label35">
 			<text lang="en">Local web URL:</text>
-			<text lang="ru">Локальная ссылка:</text>
-			<text lang="uk">Локальне посилання:</text>
+			<text lang="ru">Локальный URL сайта:</text>
+			<text lang="uk">Локальна URL-адреса сайту:</text>
 			<text lang="de">Lokale Web-URL:</text>
 			<text lang="es">URL web local:</text>
 			<text lang="fr">URL web locale:</text>
 		</property>
 		<property form="MainForm" ctrl="label34">
 			<text lang="en">External web URL:</text>
-			<text lang="ru">Внешняя ссылка:</text>
-			<text lang="uk">Зовнішнє посилання:</text>
+			<text lang="ru">Внешний URL сайта:</text>
+			<text lang="uk">Зовнішня URL-адреса сайту:</text>
 			<text lang="de">Externe Web-URL:</text>
 			<text lang="es">URL web externa:</text>
 			<text lang="fr">URL web externe:</text>

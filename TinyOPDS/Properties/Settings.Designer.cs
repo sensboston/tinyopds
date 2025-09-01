@@ -431,17 +431,5 @@ namespace TinyOPDS.Properties {
                 this["OnlyOneInstance"] = value;
             }
         }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public bool AggressiveDuplicateDetection {
-            get {
-                return ((bool)(this["AggressiveDuplicateDetection"]));
-            }
-            set {
-                this["AggressiveDuplicateDetection"] = value;
-            }
-        }
     }
 }

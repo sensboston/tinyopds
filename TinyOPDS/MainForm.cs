@@ -472,6 +472,8 @@ namespace TinyOPDS
             sortOrderCombo.SelectedIndex = Properties.Settings.Default.SortOrder;
             newBooksPeriodCombo.SelectedIndex = Properties.Settings.Default.NewBooksPeriod;
 
+            label22.Enabled = logVerbosity.Enabled = saveLog.Checked = Properties.Settings.Default.SaveLogToDisk;
+
             openPort.Checked = Properties.Settings.Default.UseUPnP && Properties.Settings.Default.OpenNATPort;
             banClients.Enabled = rememberClients.Enabled = dataGridView1.Enabled = Properties.Settings.Default.UseHTTPAuth;
             wrongAttemptsCount.Enabled = banClients.Checked && useHTTPAuth.Checked;

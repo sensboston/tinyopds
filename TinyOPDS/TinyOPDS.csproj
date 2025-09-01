@@ -136,6 +136,11 @@
     <Compile Include="OPDS\AuthorDetailsCatalog.cs" />
     <Compile Include="Misc\PortableSettingsProvider.cs" />
     <Compile Include="Misc\PortableSettingsProviderBase.cs" />
+    <Compile Include="Properties\Settings1.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
     <Compile Include="SgmlReader\SgmlParser.cs" />
     <Compile Include="SgmlReader\SgmlReader.cs" />
     <EmbeddedResource Include="Resources\a_aliases.txt.gz" />

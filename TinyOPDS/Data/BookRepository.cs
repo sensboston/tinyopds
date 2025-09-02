@@ -329,20 +329,6 @@ namespace TinyOPDS.Data
                                 {
                                     // Enhanced logging for uncertain duplicates
                                     result.UncertainDuplicatesAdded++;
-
-                                    string existingBookInfo = duplicateResult.ExistingBook != null
-                                        ? $"'{duplicateResult.ExistingBook.Title}' by {duplicateResult.ExistingBook.Authors?.FirstOrDefault() ?? "Unknown"} ({duplicateResult.ExistingBook.FileName})"
-                                        : "unknown existing book";
-
-                                    Log.WriteLine(LogLevel.Warning,
-                                        "UNCERTAIN DUPLICATE ADDED: '{0}' by {1} ({2}) - Score: {3}, Reason: {4}, Compared with: {5}, DuplicateKey: '{6}'",
-                                        book.Title,
-                                        book.Authors?.FirstOrDefault() ?? "Unknown",
-                                        book.FileName,
-                                        duplicateResult.ComparisonScore,
-                                        duplicateResult.Reason,
-                                        existingBookInfo,
-                                        book.DuplicateKey);
                                 }
                             }
                         }
@@ -469,10 +455,6 @@ namespace TinyOPDS.Data
                         result.UncertainDuplicatesAdded);
                 }
 
-                Log.WriteLine("Batch insert completed: {0} added, {1} duplicates skipped, {2} replaced, {3} uncertain added, {4} errors in {5}ms",
-                    result.Added, result.Duplicates, result.Replaced, result.UncertainDuplicatesAdded,
-                    result.Errors, result.ProcessingTime.TotalMilliseconds);
-
                 return result;
             }
             catch (Exception ex)
@@ -493,9 +475,6 @@ namespace TinyOPDS.Data
                 db.ExecuteNonQuery("PRAGMA cache_size = 2000");
             }
         }
-
-        // ... rest of the file remains unchanged ...
-        // All other methods stay exactly the same
 
         public Book GetBookById(string id)
         {

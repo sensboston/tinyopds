@@ -127,12 +127,86 @@ namespace TinyOPDS.Parsers
                 // Handle language
                 if (epub.Format.Opf.Metadata.Languages?.Count > 0)
                     book.Language = epub.Format.Opf.Metadata.Languages.First();
+
+                // Handle series information
+                ExtractSeriesInfo(epub, book);
             }
             catch (Exception e)
             {
                 Log.WriteLine(LogLevel.Error, "exception {0}", e.Message);
             }
             return book;
+        }
+
+        /// <summary>
+        /// Extract series information from EPUB metadata
+        /// Supports calibre:series format (most common)
+        /// </summary>
+        /// <param name="epub">EPUB book object</param>
+        /// <param name="book">Book object to populate with series info</param>
+        private void ExtractSeriesInfo(EpubBook epub, Book book)
+        {
+            try
+            {
+                // Try to get series from metadata
+                if (epub.Format?.Opf?.Metadata?.Metas != null)
+                {
+                    string seriesName = null;
+                    uint seriesIndex = 0;
+
+                    // Look through all meta tags for series information
+                    foreach (var meta in epub.Format.Opf.Metadata.Metas)
+                    {
+                        // Check Name property for calibre format
+                        if (!string.IsNullOrEmpty(meta.Name))
+                        {
+                            if (meta.Name.Equals("calibre:series", StringComparison.OrdinalIgnoreCase))
+                            {
+                                // The series name should be in Text or Scheme property
+                                seriesName = meta.Text ?? meta.Scheme;
+                            }
+                            else if (meta.Name.Equals("calibre:series_index", StringComparison.OrdinalIgnoreCase))
+                            {
+                                string indexStr = meta.Text ?? meta.Scheme;
+                                if (!string.IsNullOrEmpty(indexStr))
+                                {
+                                    uint.TryParse(indexStr, out seriesIndex);
+                                }
+                            }
+                        }
+
+                        // Also check Property for EPUB 3 format
+                        if (!string.IsNullOrEmpty(meta.Property))
+                        {
+                            if (meta.Property.Equals("belongs-to-collection", StringComparison.OrdinalIgnoreCase))
+                            {
+                                seriesName = meta.Text ?? meta.Scheme;
+                            }
+                            else if (meta.Property.Equals("group-position", StringComparison.OrdinalIgnoreCase))
+                            {
+                                string posStr = meta.Text ?? meta.Scheme;
+                                if (!string.IsNullOrEmpty(posStr))
+                                {
+                                    uint.TryParse(posStr, out seriesIndex);
+                                }
+                            }
+                        }
+                    }
+
+                    // Set the series information if found
+                    if (!string.IsNullOrEmpty(seriesName))
+                    {
+                        book.Sequence = seriesName.Trim();
+                        book.NumberInSequence = seriesIndex;
+
+                        Log.WriteLine(LogLevel.Info, "Found series: {0} #{1}", book.Sequence, book.NumberInSequence);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Log.WriteLine(LogLevel.Warning, "Error extracting series info: {0}", e.Message);
+            }
         }
 
         /// <summary>

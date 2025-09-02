@@ -332,15 +332,6 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					transition: all 0.3s ease;
 					box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
 					}
-					display: block;
-					width: calc(100% - 6px);
-					box-sizing: border-box;
-					background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-					color: white;
-					margin-top: 8px;
-					transition: all 0.3s ease;
-					box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
-					}
 
 					.read-button:hover {
 					background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
@@ -469,17 +460,35 @@ xmlns:x="http://www.w3.org/2005/Atom">
 
 					.book-item {
 					padding: 16px;
+					/* Clearfix for float */
+					overflow: hidden;
+					}
+
+					.book-content {
+					/* Remove flex on mobile */
+					display: block;
+					position: relative;
 					}
 
 					.cover {
 					width: 100px;
 					height: 150px;
 					margin-right: 0;
+					margin-bottom: 8px;
 					}
 
 					.download-section {
+					/* Float left for text wrapping */
+					float: left;
 					width: 100px;
-					margin-right: 20px;
+					margin-right: 15px;
+					margin-bottom: 10px;
+					}
+
+					.book-details {
+					/* Remove flex properties, make it normal block */
+					display: block;
+					margin: 0;
 					}
 
 					.download-links {
@@ -491,17 +500,35 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					}
 
 					.book-header {
-					flex-direction: column;
-					align-items: flex-start;
-					gap: 8px;
+					/* Keep the header above the floated section */
+					margin-bottom: 10px;
+					clear: none;
 					}
 
 					.book-title {
 					font-size: 16px;
+					margin-bottom: 6px;
 					}
 
 					.book-info {
 					text-align: left;
+					display: inline-block;
+					margin-top: 4px;
+					}
+
+					.book-author {
+					/* Author stays in normal flow */
+					display: block;
+					margin-bottom: 10px;
+					clear: none;
+					}
+
+					.book-descr {
+					/* Description will wrap around the floated download section */
+					font-size: 13px;
+					line-height: 1.5;
+					margin: 0;
+					text-align: justify;
 					}
 					}
 

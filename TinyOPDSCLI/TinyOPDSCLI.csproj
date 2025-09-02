@@ -70,6 +70,7 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
+    <Reference Include="System.Configuration.Install" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data.SQLite, Version=1.0.114.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=MSIL">
       <HintPath>..\TinyOPDS\packages\System.Data.SQLite.Core.FTS5.1.0.114.1\lib\net45\System.Data.SQLite.dll</HintPath>
@@ -224,6 +225,10 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ServiceInstaller\LinuxServiceInstaller.cs" />
+    <Compile Include="ServiceInstaller\MacServiceInstaller.cs" />
+    <Compile Include="ServiceInstaller\ServiceInstallerBase.cs" />
+    <Compile Include="ServiceInstaller\WindowsServiceInstaller.cs" />
     <EmbeddedResource Include="..\TinyOPDS\Resources\fb2.dtd">
       <Link>Resources\fb2.dtd</Link>
     </EmbeddedResource>

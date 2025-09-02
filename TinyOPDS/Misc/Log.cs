@@ -129,7 +129,7 @@ namespace TinyOPDS
             }
         }
 
-        private static object fileSyncObject = new object();
+        private static readonly object fileSyncObject = new object();
 
         /// <summary>
         /// Writes a line to the current log file.
@@ -151,7 +151,7 @@ namespace TinyOPDS
                 }
                 finally
                 {
-                    if (fileStream != null) fileStream.Dispose();
+                    fileStream?.Dispose();
                 }
             }
         }

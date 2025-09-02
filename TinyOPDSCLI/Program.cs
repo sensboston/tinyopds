@@ -179,7 +179,9 @@ namespace TinyOPDSCLI
 
                     // On Linux, we need clear console (terminal) window first
                     if (Utils.IsLinux) Console.Write("\u001b[1J\u001b[0;0H");
-                    Console.WriteLine("TinyOPDS Commnad Line Interface, {0}, copyright (c) 2013-2025 SeNSSoFT", string.Format(Localizer.Text("version {0}.{1} {2}"), Utils.Version.Major, Utils.Version.Minor, Utils.Version.Major == 0 ? " (beta)" : ""));
+                    Console.WriteLine("TinyOPDS Command Line Interface, {0}, copyright (c) 2013-2025 SeNSSoFT",
+                        string.Format(Localizer.Text("version {0}.{1} {2}"), Utils.Version.Major, Utils.Version.Minor,
+                        Utils.Version.Major == 0 ? " (beta)" : ""));
 
                     if (args.Length > 0)
                     {
@@ -188,24 +190,35 @@ namespace TinyOPDSCLI
                             // Install & run service command
                             case "install":
                                 {
-                                    if (Utils.IsElevated)
+                                    try
                                     {
-                                        try
-                                        {
-                                            TinyOPDS.ServiceInstaller.InstallAndStart(SERVICE_NAME, SERVICE_DISPLAY_NAME, exePath, SERVICE_DESCRIPTION);
-                                            Console.WriteLine(SERVICE_DISPLAY_NAME + " installed");
-                                        }
-                                        catch (Exception e)
-                                        {
-                                            Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to install with exception: \"{0}\"", e.Message);
-                                            CleanupAndExit(-1);
-                                        }
+                                        var installer = ServiceInstallerBase.CreateInstaller(
+                                            SERVICE_NAME, SERVICE_DISPLAY_NAME, exePath, SERVICE_DESCRIPTION);
+
+                                        installer.Install();
+                                        installer.Start();
+                                        Console.WriteLine("{0} installed and started", SERVICE_DISPLAY_NAME);
                                     }
-                                    else
+                                    catch (UnauthorizedAccessException)
                                     {
-                                        // Re-run app with elevated privileges 
-                                        if (RunElevated("install")) Console.WriteLine(SERVICE_DISPLAY_NAME + " installed");
-                                        else Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to install");
+                                        if (Utils.IsLinux || Utils.IsMacOS)
+                                        {
+                                            Console.WriteLine("Please run with sudo: sudo mono TinyOPDSCLI.exe install");
+                                        }
+                                        else
+                                        {
+                                            // Windows - try to elevate
+                                            if (RunElevated("install"))
+                                                Console.WriteLine("{0} installed", SERVICE_DISPLAY_NAME);
+                                            else
+                                                Console.WriteLine("{0} failed to install", SERVICE_DISPLAY_NAME);
+                                        }
+                                        CleanupAndExit(-1);
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        Console.WriteLine("{0} failed to install: {1}", SERVICE_DISPLAY_NAME, e.Message);
+                                        CleanupAndExit(-1);
                                     }
                                     CleanupAndExit(0);
                                 }
@@ -214,20 +227,23 @@ namespace TinyOPDSCLI
                             // Uninstall service command
                             case "uninstall":
                                 {
-                                    if (!TinyOPDS.ServiceInstaller.ServiceIsInstalled(SERVICE_NAME))
+                                    try
                                     {
-                                        Console.WriteLine(SERVICE_DISPLAY_NAME + " is not installed");
-                                        CleanupAndExit(-1);
-                                    }
+                                        var installer = ServiceInstallerBase.CreateInstaller(
+                                            SERVICE_NAME, SERVICE_DISPLAY_NAME, exePath, SERVICE_DESCRIPTION);
 
-                                    if (Utils.IsElevated)
-                                    {
-                                        try
+                                        if (!installer.IsInstalled())
                                         {
-                                            TinyOPDS.ServiceInstaller.Uninstall(SERVICE_NAME);
-                                            Console.WriteLine(SERVICE_DISPLAY_NAME + " uninstalled");
+                                            Console.WriteLine("{0} is not installed", SERVICE_DISPLAY_NAME);
+                                            CleanupAndExit(-1);
+                                        }
 
-                                            // Let's close service process (except ourselves)
+                                        installer.Uninstall();
+                                        Console.WriteLine("{0} uninstalled", SERVICE_DISPLAY_NAME);
+
+                                        // On Windows, kill other service processes
+                                        if (!Utils.IsLinux && !Utils.IsMacOS)
+                                        {
                                             Process[] localByName = Process.GetProcessesByName("TinyOPDSCLI");
                                             foreach (Process p in localByName)
                                             {
@@ -235,17 +251,27 @@ namespace TinyOPDSCLI
                                                 if (!p.StartInfo.Arguments.Contains("uninstall")) p.Kill();
                                             }
                                         }
-                                        catch (Exception e)
-                                        {
-                                            Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to uninstall with exception: \"{0}\"", e.Message);
-                                            CleanupAndExit(-1);
-                                        }
                                     }
-                                    else
+                                    catch (UnauthorizedAccessException)
                                     {
-                                        // Re-run app with elevated privileges 
-                                        if (RunElevated("uninstall")) Console.WriteLine(SERVICE_DISPLAY_NAME + " uninstalled");
-                                        else Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to uninstall");
+                                        if (Utils.IsLinux || Utils.IsMacOS)
+                                        {
+                                            Console.WriteLine("Please run with sudo: sudo mono TinyOPDSCLI.exe uninstall");
+                                        }
+                                        else
+                                        {
+                                            // Windows - try to elevate
+                                            if (RunElevated("uninstall"))
+                                                Console.WriteLine("{0} uninstalled", SERVICE_DISPLAY_NAME);
+                                            else
+                                                Console.WriteLine("{0} failed to uninstall", SERVICE_DISPLAY_NAME);
+                                        }
+                                        CleanupAndExit(-1);
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        Console.WriteLine("{0} failed to uninstall: {1}", SERVICE_DISPLAY_NAME, e.Message);
+                                        CleanupAndExit(-1);
                                     }
                                     CleanupAndExit(0);
                                 }
@@ -254,29 +280,49 @@ namespace TinyOPDSCLI
                             // Start service command
                             case "start":
                                 {
-                                    if (!Utils.IsLinux && TinyOPDS.ServiceInstaller.ServiceIsInstalled(SERVICE_NAME))
+                                    try
                                     {
-                                        if (Utils.IsElevated)
+                                        var installer = ServiceInstallerBase.CreateInstaller(
+                                            SERVICE_NAME, SERVICE_DISPLAY_NAME, exePath, SERVICE_DESCRIPTION);
+
+                                        if (installer.IsInstalled())
                                         {
-                                            try
-                                            {
-                                                TinyOPDS.ServiceInstaller.StartService(SERVICE_NAME);
-                                                Console.WriteLine(SERVICE_DISPLAY_NAME + " started");
-                                            }
-                                            catch (Exception e)
-                                            {
-                                                Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to start with exception: \"{0}\"", e.Message);
-                                                CleanupAndExit(-1);
-                                            }
+                                            installer.Start();
+                                            Console.WriteLine("{0} started", SERVICE_DISPLAY_NAME);
                                         }
                                         else
                                         {
-                                            // Re-run app with elevated privileges 
-                                            if (RunElevated("start")) Console.WriteLine(SERVICE_DISPLAY_NAME + " started");
-                                            else Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to start");
+                                            // If service is not installed, run in console mode
+                                            StartServer();
                                         }
                                     }
-                                    else StartServer();
+                                    catch (UnauthorizedAccessException)
+                                    {
+                                        if (Utils.IsLinux || Utils.IsMacOS)
+                                        {
+                                            Console.WriteLine("Please run with sudo: sudo mono TinyOPDSCLI.exe start");
+                                        }
+                                        else
+                                        {
+                                            // Windows - try to elevate
+                                            if (RunElevated("start"))
+                                                Console.WriteLine("{0} started", SERVICE_DISPLAY_NAME);
+                                            else
+                                                Console.WriteLine("{0} failed to start", SERVICE_DISPLAY_NAME);
+                                        }
+                                        CleanupAndExit(-1);
+                                    }
+                                    catch (InvalidOperationException)
+                                    {
+                                        // Service not installed, run in console mode
+                                        Console.WriteLine("Service not installed, starting in console mode...");
+                                        StartServer();
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        Console.WriteLine("{0} failed to start: {1}", SERVICE_DISPLAY_NAME, e.Message);
+                                        CleanupAndExit(-1);
+                                    }
                                     CleanupAndExit(0);
                                 }
                                 break;
@@ -284,30 +330,40 @@ namespace TinyOPDSCLI
                             // Stop service command
                             case "stop":
                                 {
-                                    if (!TinyOPDS.ServiceInstaller.ServiceIsInstalled(SERVICE_NAME))
+                                    try
                                     {
-                                        Console.WriteLine(SERVICE_DISPLAY_NAME + " is not installed");
-                                        CleanupAndExit(-1);
-                                    }
+                                        var installer = ServiceInstallerBase.CreateInstaller(
+                                            SERVICE_NAME, SERVICE_DISPLAY_NAME, exePath, SERVICE_DESCRIPTION);
 
-                                    if (Utils.IsElevated)
-                                    {
-                                        try
+                                        if (!installer.IsInstalled())
                                         {
-                                            TinyOPDS.ServiceInstaller.StopService(SERVICE_NAME);
-                                            Console.WriteLine(SERVICE_DISPLAY_NAME + " stopped");
-                                        }
-                                        catch (Exception e)
-                                        {
-                                            Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to stop with exception: \"{0}\"", e.Message);
+                                            Console.WriteLine("{0} is not installed", SERVICE_DISPLAY_NAME);
                                             CleanupAndExit(-1);
                                         }
+
+                                        installer.Stop();
+                                        Console.WriteLine("{0} stopped", SERVICE_DISPLAY_NAME);
                                     }
-                                    else
+                                    catch (UnauthorizedAccessException)
                                     {
-                                        // Re-run app with elevated privileges 
-                                        if (RunElevated("stop")) Console.WriteLine(SERVICE_DISPLAY_NAME + " stopped");
-                                        else Console.WriteLine(SERVICE_DISPLAY_NAME + " failed to stop");
+                                        if (Utils.IsLinux || Utils.IsMacOS)
+                                        {
+                                            Console.WriteLine("Please run with sudo: sudo mono TinyOPDSCLI.exe stop");
+                                        }
+                                        else
+                                        {
+                                            // Windows - try to elevate
+                                            if (RunElevated("stop"))
+                                                Console.WriteLine("{0} stopped", SERVICE_DISPLAY_NAME);
+                                            else
+                                                Console.WriteLine("{0} failed to stop", SERVICE_DISPLAY_NAME);
+                                        }
+                                        CleanupAndExit(-1);
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        Console.WriteLine("{0} failed to stop: {1}", SERVICE_DISPLAY_NAME, e.Message);
+                                        CleanupAndExit(-1);
                                     }
                                     CleanupAndExit(0);
                                 }
@@ -325,7 +381,8 @@ namespace TinyOPDSCLI
                                     if ((args.Length - 1) % 2 == 0)
                                     {
                                         string s = string.Empty;
-                                        for (int i = 0; i < (args.Length - 1) / 2; i++) s += args[(i * 2) + 1] + ":" + args[(i * 2) + 2] + ";";
+                                        for (int i = 0; i < (args.Length - 1) / 2; i++)
+                                            s += args[(i * 2) + 1] + ":" + args[(i * 2) + 2] + ";";
                                         Console.WriteLine(Crypt.EncryptStringAES(s, _urlTemplate));
                                     }
                                     else
@@ -336,36 +393,23 @@ namespace TinyOPDSCLI
                                 }
                                 break;
 
-                            case "encpath":
+                            default:
                                 {
-                                    if (args.Length > 1)
-                                    {
-                                        string libName = Utils.CreateGuid(Utils.IsoOidNamespace, args[1].SanitizePathName()).ToString() + ".db";
-                                        Console.WriteLine("Library name for the path \"{0}\" is: {1}", args[1], libName);
-                                    }
-                                    else
-                                    {
-                                        Console.WriteLine("Please provide a path to the library files (without closing slash), for example: TinyOPDSCLI.exe \"C:\\My Documents\\My ebooks\"");
-                                    }
-                                    CleanupAndExit(0);
+                                    Console.WriteLine("Unknown command: {0}", args[0]);
+                                    ShowHelp();
+                                    CleanupAndExit(-1);
                                 }
                                 break;
                         }
                     }
-
-                    bool l = Utils.IsLinux;
-                    Console.WriteLine("Use: TinyOPDSCLI.exe [command], where [command] is \n\n" +
-                                  (l ? "" : "\t install \t - install and run TinyOPDS service\n") +
-                                  (l ? "" : "\t uninstall \t - uninstall TinyOPDS service\n") +
-                                            "\t start \t\t - start service\n" +
-                                  (l ? "" : "\t stop \t\t - stop service\n") +
-                                            "\t scan \t\t - scan book directory\n" +
-                                            "\t encred usr pwd\t - encode credentials\n" +
-                                            "\t encpath path\t - get library file name from path\n\n" +
-                                            "For more info please visit https://tinyopds.codeplex.com");
+                    else
+                    {
+                        ShowHelp();
+                    }
                 }
                 else
                 {
+                    // Running as Windows service (non-interactive)
                     if (!Utils.IsLinux)
                     {
                         ServiceBase[] ServicesToRun;
@@ -385,6 +429,41 @@ namespace TinyOPDSCLI
                     try { mutex.ReleaseMutex(); } catch { }
                 }
             }
+        }
+
+        /// <summary>
+        /// Show help information
+        /// </summary>
+        private static void ShowHelp()
+        {
+            bool needsSudo = Utils.IsLinux || Utils.IsMacOS;
+            string prefix = needsSudo ? "sudo mono TinyOPDSCLI.exe" : "TinyOPDSCLI.exe";
+
+            Console.WriteLine("\nUsage: {0} [command]", prefix);
+            Console.WriteLine("\nAvailable commands:");
+            Console.WriteLine("\t install \t - install and start TinyOPDS service");
+            Console.WriteLine("\t uninstall \t - uninstall TinyOPDS service");
+            Console.WriteLine("\t start \t\t - start service (or run in console mode if not installed)");
+            Console.WriteLine("\t stop \t\t - stop service");
+            Console.WriteLine("\t scan \t\t - scan book directory");
+            Console.WriteLine("\t encred user pwd - encode credentials");
+
+            if (Utils.IsLinux)
+            {
+                Console.WriteLine("\nNote: Service commands require sudo privileges.");
+                Console.WriteLine("The service will be installed as systemd or init.d service.");
+            }
+            else if (Utils.IsMacOS)
+            {
+                Console.WriteLine("\nNote: Service commands require sudo privileges.");
+                Console.WriteLine("The service will be installed as launchd daemon.");
+            }
+            else
+            {
+                Console.WriteLine("\nNote: Service commands require Administrator privileges.");
+            }
+
+            Console.WriteLine("\nFor more information visit: https://github.com/sensboston/tinyopds");
         }
 
         /// <summary>
@@ -610,6 +689,13 @@ namespace TinyOPDSCLI
         /// </summary>
         private static void StartServer()
         {
+            // Check if running as service and set the flag
+            if (Environment.GetEnvironmentVariable("TINYOPDS_SERVICE") == "1")
+            {
+                Log.IsRunningAsService = true;
+                Log.WriteLine("Running as system service");
+            }
+
             // Init log file settings
             Log.SaveToFile = Settings.Default.SaveLogToDisk;
 

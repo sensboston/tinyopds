@@ -77,7 +77,7 @@ namespace TinyOPDS
             }
         }
 
-        private static string[] fb2Clients = new string[] { "fbreader", "moon+ reader" };
+        private static readonly string[] fb2Clients = new string[] { "fbreader", "moon+ reader" };
         /// <summary>
         /// Detect eBook readers with fb2 support
         /// </summary>
@@ -95,8 +95,9 @@ namespace TinyOPDS
             return false;
         }
 
-        private static string[] browsers = new string[] { "opera", "aol", "msie", "firefox", "chrome", "mozilla", "safari", "netscape", "navigator", "mosaic", "lynx", 
-                                                          "amaya", "omniweb", "avant", "camino", "flock", "seamonkey", "konqueror", "gecko", "yandex.browser" };
+        private static readonly string[] browsers = new string[] 
+        { "opera", "aol", "msie", "firefox", "chrome", "mozilla", "safari", "netscape", "navigator", "mosaic", "lynx", 
+        "amaya", "omniweb", "avant", "camino", "flock", "seamonkey", "konqueror", "gecko", "yandex.browser" };
         /// <summary>
         /// Detect browsers by User-Agent
         /// </summary>
@@ -113,6 +114,8 @@ namespace TinyOPDS
             }
             return false;
         }
+
+        public static bool IsMacOS=> RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
 
         public static bool IsLinux => RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
 
@@ -213,11 +216,9 @@ namespace TinyOPDS
 
 		private static void SwapBytes(byte[] guid, int left, int right)
 		{
-			byte temp = guid[left];
-			guid[left] = guid[right];
-			guid[right] = temp;
-		}
-	}
+            (guid[right], guid[left]) = (guid[left], guid[right]);
+        }
+    }
 
     /// <summary>
     /// Gives us a handy way to modify a collection while we're iterating through it.
@@ -230,7 +231,7 @@ namespace TinyOPDS
     /// }
     public class IteratorIsolateCollection : IEnumerable
     {
-        IEnumerable _enumerable;
+        readonly IEnumerable _enumerable;
 
         public IteratorIsolateCollection(IEnumerable enumerable)
         {
@@ -244,7 +245,7 @@ namespace TinyOPDS
 
         internal class IteratorIsolateEnumerator : IEnumerator
         {
-            ArrayList items = new ArrayList();
+            readonly ArrayList items = new ArrayList();
             int currentItem;
 
             internal IteratorIsolateEnumerator(IEnumerator enumerator)
@@ -253,8 +254,7 @@ namespace TinyOPDS
                 {
                     items.Add(enumerator.Current);
                 }
-                IDisposable disposable = enumerator as IDisposable;
-                if (disposable != null)
+                if (enumerator is IDisposable disposable)
                 {
                     disposable.Dispose();
                 }

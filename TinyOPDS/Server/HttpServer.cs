@@ -42,10 +42,6 @@ namespace TinyOPDS.Server
         private static readonly ConcurrentDictionary<string, ClientRequestContext> clientContexts =
             new ConcurrentDictionary<string, ClientRequestContext>();
 
-        // Cleanup old contexts periodically
-        private static readonly Timer cleanupTimer = new Timer(CleanupOldContexts, null,
-            TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
-
         private class ClientRequestContext
         {
             public CancellationTokenSource ImageRequestsCts { get; set; }
@@ -112,9 +108,6 @@ namespace TinyOPDS.Server
                         if (!context.ImageRequestsCts.IsCancellationRequested)
                         {
                             context.ImageRequestsCts.Cancel();
-                            Log.WriteLine(LogLevel.Info,
-                                "Cancelled {0} pending image requests for client {1}",
-                                context.ActiveImageRequests, clientHash);
                         }
 
                         // Create new CTS for future requests
@@ -124,9 +117,7 @@ namespace TinyOPDS.Server
                     }
                     catch (Exception ex)
                     {
-                        Log.WriteLine(LogLevel.Warning,
-                            "Error cancelling requests for client {0}: {1}",
-                            clientHash, ex.Message);
+                        Log.WriteLine(LogLevel.Warning, "Error cancelling requests for client {0}: {1}", clientHash, ex.Message);
                     }
                 }
             }
@@ -142,41 +133,6 @@ namespace TinyOPDS.Server
                 return context.ImageRequestsCts.IsCancellationRequested;
             }
             return false;
-        }
-
-        /// <summary>
-        /// Cleanup contexts that haven't been active for more than 10 minutes
-        /// </summary>
-        private static void CleanupOldContexts(object state)
-        {
-            var cutoffTime = DateTime.Now.AddMinutes(-10);
-            var keysToRemove = new System.Collections.Generic.List<string>();
-
-            foreach (var kvp in clientContexts)
-            {
-                lock (kvp.Value.Lock)
-                {
-                    if (kvp.Value.LastActivity < cutoffTime && kvp.Value.ActiveImageRequests == 0)
-                    {
-                        keysToRemove.Add(kvp.Key);
-                        try
-                        {
-                            kvp.Value.ImageRequestsCts?.Dispose();
-                        }
-                        catch { }
-                    }
-                }
-            }
-
-            foreach (var key in keysToRemove)
-            {
-                clientContexts.TryRemove(key, out _);
-            }
-
-            if (keysToRemove.Count > 0)
-            {
-                Log.WriteLine(LogLevel.Info, "Cleaned up {0} inactive client contexts", keysToRemove.Count);
-            }
         }
     }
 
@@ -210,12 +166,8 @@ namespace TinyOPDS.Server
         // Maximum post size, 64 Kb max
         private const int MAX_POST_SIZE = 1024 * 64;
 
-        // Output buffer size, 64 Kb max
-        private const int OUTPUT_BUFFER_SIZE = 1024 * 64;
-
-        // Connection management constants
-        private const int SOCKET_BUFFER_SIZE = 1024 * 1024;
-        private const int IDLE_CHECK_INTERVAL = 600; // 60 seconds at 100ms intervals
+        // Output buffer size, 128 Kb max
+        private const int OUTPUT_BUFFER_SIZE = 1024 * 128;
 
         private bool disposed = false;
 

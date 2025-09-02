@@ -238,13 +238,12 @@
     <None Include="packages.config" />
     <None Include="Properties\app.manifest" />
     <None Include="..\TinyOPDS\Properties\Settings.settings">
-      <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
     <Compile Include="..\TinyOPDS\Properties\Settings.Designer.cs">
-      <AutoGen>True</AutoGen>
+      <AutoGen>False</AutoGen>
       <DependentUpon>Settings.settings</DependentUpon>
-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <DesignTimeSharedInput>False</DesignTimeSharedInput>
     </Compile>
   </ItemGroup>
   <ItemGroup>

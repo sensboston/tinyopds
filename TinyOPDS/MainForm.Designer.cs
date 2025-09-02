@@ -62,7 +62,6 @@
             this.scannerButton = new System.Windows.Forms.Button();
             this.libraryPath = new System.Windows.Forms.TextBox();
             this.tabPage2 = new System.Windows.Forms.TabPage();
-            this.useAbsoluteUri = new System.Windows.Forms.CheckBox();
             this.extWebLink = new System.Windows.Forms.LinkLabel();
             this.intWebLink = new System.Windows.Forms.LinkLabel();
             this.label34 = new System.Windows.Forms.Label();
@@ -515,7 +514,6 @@
             // tabPage2
             // 
             this.tabPage2.BackColor = System.Drawing.SystemColors.Control;
-            this.tabPage2.Controls.Add(this.useAbsoluteUri);
             this.tabPage2.Controls.Add(this.extWebLink);
             this.tabPage2.Controls.Add(this.intWebLink);
             this.tabPage2.Controls.Add(this.label34);
@@ -549,19 +547,6 @@
             this.tabPage2.Size = new System.Drawing.Size(1267, 806);
             this.tabPage2.TabIndex = 1;
             this.tabPage2.Text = "Server";
-            // 
-            // useAbsoluteUri
-            // 
-            this.useAbsoluteUri.AutoSize = true;
-            this.useAbsoluteUri.Checked = global::TinyOPDS.Properties.Settings.Default.UseAbsoluteUri;
-            this.useAbsoluteUri.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "UseAbsoluteUri", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.useAbsoluteUri.Location = new System.Drawing.Point(1009, 260);
-            this.useAbsoluteUri.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.useAbsoluteUri.Name = "useAbsoluteUri";
-            this.useAbsoluteUri.Size = new System.Drawing.Size(229, 36);
-            this.useAbsoluteUri.TabIndex = 54;
-            this.useAbsoluteUri.Text = "Absolute links";
-            this.useAbsoluteUri.UseVisualStyleBackColor = true;
             // 
             // extWebLink
             // 
@@ -1748,7 +1733,6 @@
         private System.Windows.Forms.LinkLabel intWebLink;
         private System.Windows.Forms.Label label34;
         private System.Windows.Forms.Label label35;
-        private System.Windows.Forms.CheckBox useAbsoluteUri;
         private System.Windows.Forms.Button viewLogFile;
         private System.Windows.Forms.TabPage tabPage6;
         private System.Windows.Forms.ComboBox newBooksPeriodCombo;

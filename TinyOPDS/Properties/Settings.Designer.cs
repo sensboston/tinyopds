@@ -277,18 +277,6 @@ namespace TinyOPDS.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool UseAbsoluteUri {
-            get {
-                return ((bool)(this["UseAbsoluteUri"]));
-            }
-            set {
-                this["UseAbsoluteUri"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("opds")]
         public string RootPrefix {
             get {

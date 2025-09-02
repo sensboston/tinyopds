@@ -689,7 +689,7 @@ document.addEventListener('DOMContentLoaded', function() {{
                 }
 
                 xml = FixNamespace(xml);
-                xml = ApplyUriPrefixes(xml, processor, isOPDSRequest);
+                xml = ApplyUriPrefixes(xml, isOPDSRequest);
 
                 if (isOPDSRequest)
                 {
@@ -876,32 +876,20 @@ document.addEventListener('DOMContentLoaded', function() {{
             return xml;
         }
 
-        private string ApplyUriPrefixes(string xml, HttpProcessor processor, bool isOPDSRequest)
+        private string ApplyUriPrefixes(string xml, bool isOPDSRequest)
         {
             try
             {
-                if (Properties.Settings.Default.UseAbsoluteUri)
+                // Always use relative paths for maximum compatibility and simplicity
+                // For OPDS requests, add the /opds prefix
+                // For web requests, no prefix needed
+                if (isOPDSRequest && !string.IsNullOrEmpty(Properties.Settings.Default.RootPrefix))
                 {
-                    string host = processor.HttpHeaders["Host"]?.ToString();
-                    if (!string.IsNullOrEmpty(host))
-                    {
-                        // For OPDS requests, add the /opds prefix
-                        // For web requests, no prefix
-                        string prefix = isOPDSRequest ? Properties.Settings.Default.RootPrefix : "";
-                        xml = xml.Replace("href=\"", $"href=\"http://{host.UrlCombine(prefix)}");
-                    }
-                }
-                else
-                {
-                    // For OPDS requests, add the /opds prefix
-                    // For web requests, no prefix
-                    if (isOPDSRequest && !string.IsNullOrEmpty(Properties.Settings.Default.RootPrefix))
-                    {
-                        string prefix = "/" + Properties.Settings.Default.RootPrefix;
-                        xml = xml.Replace("href=\"", "href=\"" + prefix);
-                        // Don't add prefix to opensearch as it needs to be at root
-                        xml = xml.Replace(prefix + "/opds-opensearch.xml", "/opds-opensearch.xml");
-                    }
+                    string prefix = "/" + Properties.Settings.Default.RootPrefix;
+                    xml = xml.Replace("href=\"", "href=\"" + prefix);
+
+                    // Special case: opensearch.xml must always be at root
+                    xml = xml.Replace(prefix + "/opds-opensearch.xml", "/opds-opensearch.xml");
                 }
             }
             catch (Exception ex)
@@ -990,7 +978,7 @@ document.addEventListener('DOMContentLoaded', function() {{
                     " xmlns=\"http://a9.com/-/spec/opensearch/1.1/\"");
 
                 // OpenSearch always needs to be accessible from root
-                xml = ApplyUriPrefixes(xml, processor, false);
+                xml = ApplyUriPrefixes(xml, false);
 
                 processor.WriteSuccess("application/atom+xml;charset=utf-8");
                 processor.OutputStream.Write(xml);

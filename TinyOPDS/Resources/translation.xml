@@ -273,14 +273,6 @@
 			<text lang="es">Guardar log en archivo</text>
 			<text lang="fr">Sauvegarder le log dans un fichier</text>
 		</property>
-		<property form="MainForm" ctrl="useUPnP">
-			<text lang="en">Use UPnP</text>
-			<text lang="ru">Использовать UPnP</text>
-			<text lang="uk">Використовувати UPnP</text>
-			<text lang="de">UPnP verwenden</text>
-			<text lang="es">Usar UPnP</text>
-			<text lang="fr">Utiliser UPnP</text>
-		</property>
 		<property form="MainForm" ctrl="tabPage1">
 			<text lang="en">Scanner</text>
 			<text lang="ru">Сканер</text>
@@ -353,14 +345,6 @@
 			<text lang="es">Reenviar puerto en router</text>
 			<text lang="fr">Rediriger le port sur le routeur</text>
 		</property>
-		<property form="MainForm" ctrl="useAbsoluteUri">
-			<text lang="en">Absolute links</text>
-			<text lang="ru">Абсолютные ссылки</text>
-			<text lang="uk">Абсолютні посилання</text>
-			<text lang="de">Absolute Links</text>
-			<text lang="es">Enlaces absolutos</text>
-			<text lang="fr">Liens absolus</text>
-		</property>
 		<property form="MainForm" ctrl="label13">
 			<text lang="en">OPDS root:</text>
 			<text lang="ru">Префикс OPDS:</text>
@@ -368,14 +352,6 @@
 			<text lang="de">OPDS-Root:</text>
 			<text lang="es">Raíz OPDS:</text>
 			<text lang="fr">Racine OPDS:</text>
-		</property>
-		<property form="MainForm" ctrl="label33">
-			<text lang="en">Web root:</text>
-			<text lang="ru">Префикс web:</text>
-			<text lang="uk">Префікс web:</text>
-			<text lang="de">Web-Root:</text>
-			<text lang="es">Raíz web:</text>
-			<text lang="fr">Racine web:</text>
 		</property>
 		<property form="MainForm" ctrl="intIPlabel">
 			<text lang="en">Local OPDS URL:</text>

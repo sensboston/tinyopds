@@ -19,11 +19,11 @@
         var idleTimer = null;
         var touchStartY = 0;
         var scrollThreshold = 5;
-        var hideThreshold = 80;
+        var hideThreshold = 20;
         
         // Add transition style if not present
         if (!header.style.transition) {
-            header.style.transition = 'transform 0.3s ease';
+            header.style.transition = 'transform 0.1s ease';
         }
         
         // Function to show header

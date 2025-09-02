@@ -136,6 +136,13 @@
     <Compile Include="OPDS\AuthorDetailsCatalog.cs" />
     <Compile Include="Misc\PortableSettingsProvider.cs" />
     <Compile Include="Misc\PortableSettingsProviderBase.cs" />
+    <Compile Include="Server\Handlers\BookDownloadHandler.cs" />
+    <Compile Include="Server\Handlers\ImageRequestHandler.cs" />
+    <Compile Include="Server\Handlers\OPDSRequestRouter.cs" />
+    <Compile Include="Server\Handlers\OPDSUtilities.cs" />
+    <Compile Include="Server\Handlers\ReaderHandler.cs" />
+    <Compile Include="Server\Handlers\ResourceHandlers.cs" />
+    <Compile Include="Server\Handlers\XslTransformHandler.cs" />
     <Compile Include="SgmlReader\SgmlParser.cs" />
     <Compile Include="SgmlReader\SgmlReader.cs" />
     <EmbeddedResource Include="Resources\a_aliases.txt.gz" />

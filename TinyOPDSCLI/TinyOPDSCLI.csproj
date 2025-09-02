@@ -215,6 +215,27 @@
     <Compile Include="..\TinyOPDS\Server\OPDSServer.cs">
       <Link>Server\OPDSServer.cs</Link>
     </Compile>
+    <Compile Include="..\TinyOPDS\Server\Handlers\BookDownloadHandler.cs">
+      <Link>Server\Handlers\BookDownloadHandler.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\Server\Handlers\ImageRequestHandler.cs">
+      <Link>Server\Handlers\ImageRequestHandler.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\Server\Handlers\OPDSRequestRouter.cs">
+      <Link>Server\Handlers\OPDSRequestRouter.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\Server\Handlers\OPDSUtilities.cs">
+      <Link>Server\Handlers\OPDSUtilities.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\Server\Handlers\ReaderHandler.cs">
+      <Link>Server\Handlers\ReaderHandler.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\Server\Handlers\ResourceHandlers.cs">
+      <Link>Server\Handlers\ResourceHandlers.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\Server\Handlers\XslTransformHandler.cs">
+      <Link>Server\Handlers\XslTransformHandler.cs</Link>
+    </Compile>
     <Compile Include="..\TinyOPDS\SgmlReader\SgmlParser.cs">
       <Link>SgmlReader\SgmlParser.cs</Link>
     </Compile>

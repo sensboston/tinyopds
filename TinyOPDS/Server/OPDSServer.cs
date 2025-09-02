@@ -5,262 +5,78 @@
  * Copyright (c) 2013-2025 SeNSSoFT
  * SPDX-License-Identifier: MIT
  *
- * Enhanced OPDS HTTP server with improved stability,
- * error handling and request cancellation support
+ * Enhanced OPDS HTTP server - main coordinator class
+ * Delegates actual work to specialized handlers
  * 
  */
 
 using System;
 using System.IO;
-using System.Linq;
 using System.Net;
-using System.Net.Sockets;
-using System.Xml;
-using System.Xml.Xsl;
-using System.Xml.XPath;
-using System.Reflection;
-using System.Collections.Generic;
-using System.Xml.Linq;
-using System.Text;
-using System.Threading;
-
-using TinyOPDS.OPDS;
-using TinyOPDS.Data;
 
 namespace TinyOPDS.Server
 {
+    /// <summary>
+    /// Main OPDS HTTP server class that coordinates request handling
+    /// </summary>
     public class OPDSServer : HttpServer
     {
-        private readonly string[] extensions = { ".zip", ".epub", ".jpeg", ".ico", ".xml" };
-        private readonly XslCompiledTransform xslTransform = new XslCompiledTransform();
-        private readonly object xslLock = new object();
-        private Dictionary<string, bool> opdsStructure;
-        private string readerHtml = null; // Cache for reader HTML
+        // Handler instances
+        private readonly OPDSRequestRouter requestRouter;
+        private readonly ReaderHandler readerHandler;
+        private readonly BookDownloadHandler downloadHandler;
+        private readonly ImageRequestHandler imageHandler;
+        private readonly XslTransformHandler xslHandler;
+        private readonly ResourceHandlers resourceHandlers;
+        private readonly OPDSUtilities utilities;
 
-        public OPDSServer(IPAddress interfaceIP, int port, int timeout = 5000) : base(interfaceIP, port, timeout)
+        public OPDSServer(IPAddress interfaceIP, int port, int timeout = 5000)
+            : base(interfaceIP, port, timeout)
         {
-            InitializeXslTransform();
-            LoadOPDSStructure();
-            LoadReaderHtml();
+            // Initialize all handlers
+            utilities = new OPDSUtilities();
+            xslHandler = new XslTransformHandler();
+            requestRouter = new OPDSRequestRouter(xslHandler);
+            readerHandler = new ReaderHandler();
+            downloadHandler = new BookDownloadHandler();
+            imageHandler = new ImageRequestHandler();
+            resourceHandlers = new ResourceHandlers();
         }
 
-        private void LoadReaderHtml()
-        {
-            try
-            {
-                // Load main HTML
-                string readerPath = Path.Combine(Utils.ServiceFilesLocation, "reader.html");
-                if (File.Exists(readerPath))
-                {
-                    readerHtml = File.ReadAllText(readerPath, Encoding.UTF8);
-                    Log.WriteLine(LogLevel.Info, "Loaded reader.html from file system");
-                    return;
-                }
-
-                // Load from embedded resources
-                string resourceBase = Assembly.GetExecutingAssembly().GetName().Name + ".Resources.reader.";
-
-                // Load HTML template
-                using (Stream htmlStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceBase + "reader.html"))
-                {
-                    if (htmlStream != null)
-                    {
-                        using (StreamReader reader = new StreamReader(htmlStream, Encoding.UTF8))
-                        {
-                            string html = reader.ReadToEnd();
-
-                            // Load CSS files
-                            string mainCss = LoadResourceText(resourceBase + "reader.css");
-                            string themesCss = LoadResourceText(resourceBase + "reader-themes.css");
-
-                            // Load JS files
-                            string formatsJs = LoadResourceText(resourceBase + "reader-formats.js");
-                            string mainJs = LoadResourceText(resourceBase + "reader-main.js");
-
-                            // Replace link and script tags with inline content
-                            if (!string.IsNullOrEmpty(mainCss) && !string.IsNullOrEmpty(themesCss))
-                            {
-                                string cssBlock = $"<style>\n{mainCss}\n</style>\n<style>\n{themesCss}\n</style>";
-                                html = html.Replace("<link rel=\"stylesheet\" href=\"reader.css\">", "")
-                                           .Replace("<link rel=\"stylesheet\" href=\"reader-themes.css\">", "");
-                                html = html.Replace("</head>", cssBlock + "\n</head>");
-                            }
-
-                            if (!string.IsNullOrEmpty(formatsJs) && !string.IsNullOrEmpty(mainJs))
-                            {
-                                string jsBlock = $"<script>\n{formatsJs}\n</script>\n<script>\n{mainJs}\n</script>";
-                                html = html.Replace("<script src=\"reader-formats.js\"></script>", "")
-                                           .Replace("<script src=\"reader-main.js\"></script>", jsBlock);
-                            }
-
-                            readerHtml = html;
-                            Log.WriteLine(LogLevel.Info, "Loaded reader components from embedded resources");
-                        }
-                    }
-                    else
-                    {
-                        Log.WriteLine(LogLevel.Warning, "reader.html not found in resources");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.WriteLine(LogLevel.Error, "Error loading reader.html: {0}", ex.Message);
-            }
-        }
-
-        private string LoadResourceText(string resourceName)
-        {
-            try
-            {
-                using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
-                {
-                    if (stream != null)
-                    {
-                        using (StreamReader reader = new StreamReader(stream, Encoding.UTF8))
-                        {
-                            return reader.ReadToEnd();
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.WriteLine(LogLevel.Warning, "Error loading resource {0}: {1}", resourceName, ex.Message);
-            }
-            return null;
-        }
-
-        private void LoadOPDSStructure()
-        {
-            try
-            {
-                string structureString = Properties.Settings.Default.OPDSStructure;
-                opdsStructure = new Dictionary<string, bool>();
-
-                if (string.IsNullOrEmpty(structureString))
-                {
-                    InitializeDefaultOPDSStructure();
-                }
-                else
-                {
-                    ParseOPDSStructure(structureString);
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.WriteLine(LogLevel.Warning, "Error loading OPDS structure: {0}", ex.Message);
-                InitializeDefaultOPDSStructure();
-            }
-        }
-
-        private void InitializeDefaultOPDSStructure()
-        {
-            opdsStructure = new Dictionary<string, bool>
-            {
-                {"newdate", true},
-                {"newtitle", true},
-                {"authorsindex", true},
-                {"author-details", true},
-                {"author-series", true},
-                {"author-no-series", true},
-                {"author-alphabetic", true},
-                {"author-by-date", true},
-                {"sequencesindex", true},
-                {"genres", true}
-            };
-        }
-
-        private void ParseOPDSStructure(string structure)
-        {
-            InitializeDefaultOPDSStructure();
-
-            string[] parts = structure.Split(';');
-            foreach (string part in parts)
-            {
-                string[] keyValue = part.Split(':');
-                if (keyValue.Length == 2 && opdsStructure.ContainsKey(keyValue[0]))
-                {
-                    opdsStructure[keyValue[0]] = keyValue[1] == "1";
-                }
-            }
-        }
-
-        private bool IsRouteEnabled(string route)
-        {
-            return opdsStructure.ContainsKey(route) && opdsStructure[route];
-        }
-
-        private void InitializeXslTransform()
-        {
-            try
-            {
-                string xslFileName = Path.Combine(Utils.ServiceFilesLocation, "xml2html.xsl");
-
-                if (File.Exists(xslFileName))
-                {
-                    xslTransform.Load(xslFileName);
-                    Log.WriteLine(LogLevel.Info, "Loaded external XSL template: {0}", xslFileName);
-                }
-                else
-                {
-                    using (Stream resStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(
-                        Assembly.GetExecutingAssembly().GetName().Name + ".Resources.xml2html.xsl"))
-                    {
-                        if (resStream != null)
-                        {
-                            using (XmlReader reader = XmlReader.Create(resStream))
-                                xslTransform.Load(reader);
-                            Log.WriteLine(LogLevel.Info, "Loaded embedded XSL template");
-                        }
-                        else
-                        {
-                            Log.WriteLine(LogLevel.Warning, "XSL template not found");
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.WriteLine(LogLevel.Error, "Error loading XSL template: {0}", ex.Message);
-            }
-        }
-
+        /// <summary>
+        /// Handles POST requests (not implemented for OPDS)
+        /// </summary>
         public override void HandlePOSTRequest(HttpProcessor processor, StreamReader inputData)
         {
             Log.WriteLine(LogLevel.Warning, "HTTP POST request from {0}: {1} : NOT IMPLEMENTED",
-                GetClientIP(processor), processor.HttpUrl);
+                utilities.GetClientIP(processor), processor.HttpUrl);
             processor.WriteMethodNotAllowed();
         }
 
+        /// <summary>
+        /// Main GET request handler - routes to appropriate handler
+        /// </summary>
         public override void HandleGETRequest(HttpProcessor processor)
         {
-            string clientIP = GetClientIP(processor);
+            string clientIP = utilities.GetClientIP(processor);
             string clientHash = processor.ClientHash; // Get client hash for request cancellation
 
             Log.WriteLine("HTTP GET request from {0}: {1}", clientIP, processor.HttpUrl);
 
             try
             {
-                string request = NormalizeRequest(processor.HttpUrl);
-                string ext = GetFileExtension(request);
+                string request = utilities.NormalizeRequest(processor.HttpUrl);
+                string ext = utilities.GetFileExtension(request);
 
-                if (!IsValidRequest(request))
+                if (!utilities.IsValidRequest(request))
                 {
                     processor.WriteBadRequest();
                     return;
                 }
 
                 // Determine request type for cancellation management
-                bool isImageRequest = ext.Equals(".jpeg") || ext.Equals(".png") ||
-                                     request.Contains("/cover/") || request.Contains("/thumbnail/");
-                bool isNavigationRequest = string.IsNullOrEmpty(ext) ||
-                                          request.StartsWith("/reader/") ||
-                                          request.Contains("opds-opensearch.xml") ||
-                                          request.StartsWith("/search") ||
-                                          request.StartsWith("/author") ||
-                                          request.StartsWith("/sequence") ||
-                                          request.StartsWith("/genre");
+                bool isImageRequest = utilities.IsImageRequest(request, ext);
+                bool isNavigationRequest = utilities.IsNavigationRequest(request, ext);
 
                 // Cancel pending image requests if this is a navigation request
                 if (isNavigationRequest && !string.IsNullOrEmpty(clientHash))
@@ -268,78 +84,21 @@ namespace TinyOPDS.Server
                     RequestCancellationManager.OnNavigationRequest(clientHash);
                 }
 
-                bool isOPDSRequest = IsOPDSRequest(processor.HttpUrl);
-                bool acceptFB2 = DetectFB2Support(processor.HttpHeaders["User-Agent"]) || !isOPDSRequest;
-                int threshold = isOPDSRequest ? Properties.Settings.Default.ItemsPerOPDSPage : Properties.Settings.Default.ItemsPerWebPage;
+                // Determine if this is OPDS (XML) or Web (HTML) request
+                bool isOPDSRequest = utilities.IsOPDSRequest(processor.HttpUrl);
 
-                // Handle reader requests
-                if (request.StartsWith("/reader/"))
-                {
-                    HandleReaderRequest(processor, request);
-                    return;
-                }
+                // Detect client capabilities
+                string userAgent = processor.HttpHeaders.ContainsKey("User-Agent") ?
+                    processor.HttpHeaders["User-Agent"] : "";
+                bool acceptFB2 = utilities.DetectFB2Support(userAgent) || !isOPDSRequest;
 
-                // Check for download requests first, before checking extensions
-                if (request.StartsWith("/download/"))
-                {
-                    // Determine format from path structure: /download/{guid}/fb2 or /download/{guid}/epub
-                    string downloadExt = "";
-                    if (request.Contains("/fb2"))
-                    {
-                        downloadExt = ".zip"; // FB2 always comes as ZIP
-                    }
-                    else if (request.Contains("/epub"))
-                    {
-                        downloadExt = ".epub";
-                    }
+                // Get pagination threshold
+                int threshold = isOPDSRequest ?
+                    Properties.Settings.Default.ItemsPerOPDSPage :
+                    Properties.Settings.Default.ItemsPerWebPage;
 
-                    if (!string.IsNullOrEmpty(downloadExt))
-                    {
-                        HandleBookDownloadRequest(processor, request, downloadExt, acceptFB2);
-                        return;
-                    }
-                }
-
-                if (request.Equals("/logo.png"))
-                {
-                    string resourceName = Assembly.GetExecutingAssembly().GetName().Name + ".Resources.logo.png";
-                    using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
-                    {
-                        if (stream != null && stream.Length > 0)
-                        {
-                            processor.WriteSuccess("image/png");
-                            stream.CopyTo(processor.OutputStream.BaseStream);
-                            processor.OutputStream.BaseStream.Flush();
-                            return;
-                        }
-                    }
-                }
-
-                if (string.IsNullOrEmpty(ext))
-                {
-                    HandleOPDSRequest(processor, request, isOPDSRequest, acceptFB2, threshold);
-                }
-                else if (request.Contains("opds-opensearch.xml"))
-                {
-                    HandleOpenSearchRequest(processor);
-                }
-                else if ((request.Contains(".fb2.zip") && ext.Equals(".zip")) || ext.Equals(".epub"))
-                {
-                    HandleBookDownloadRequest(processor, request, ext, acceptFB2);
-                }
-                else if (ext.Equals(".jpeg") || ext.Equals(".png"))
-                {
-                    // Handle image requests with cancellation support
-                    HandleImageRequestWithCancellation(processor, request, clientHash);
-                }
-                else if (ext.Equals(".ico"))
-                {
-                    HandleIconRequest(processor, request);
-                }
-                else
-                {
-                    processor.WriteFailure();
-                }
+                // Route to appropriate handler based on request type
+                RouteRequest(processor, request, ext, isOPDSRequest, acceptFB2, threshold, clientHash);
             }
             catch (Exception e)
             {
@@ -348,1356 +107,91 @@ namespace TinyOPDS.Server
             }
         }
 
-        #region Enhanced Image Handling with Cancellation
-
-        private void HandleImageRequestWithCancellation(HttpProcessor processor, string request, string clientHash)
+        /// <summary>
+        /// Routes request to appropriate handler
+        /// </summary>
+        private void RouteRequest(HttpProcessor processor, string request, string ext,
+            bool isOPDSRequest, bool acceptFB2, int threshold, string clientHash)
         {
-            CancellationToken cancellationToken = default(CancellationToken);
-            bool hasToken = false;
-            string bookID = null;
-
-            try
+            // Handle reader requests
+            if (request.StartsWith("/reader/"))
             {
-                // Get cancellation token for this client
+                readerHandler.HandleReaderRequest(processor, request);
+                return;
+            }
+
+            // Handle book download requests
+            if (request.StartsWith("/download/"))
+            {
+                string downloadExt = DetermineDownloadFormat(request);
+                if (!string.IsNullOrEmpty(downloadExt))
+                {
+                    downloadHandler.HandleBookDownloadRequest(processor, request, downloadExt, acceptFB2);
+                    return;
+                }
+            }
+
+            // Handle logo request
+            if (request.Equals("/logo.png"))
+            {
+                resourceHandlers.HandleLogoRequest(processor);
+                return;
+            }
+
+            // Handle OPDS catalog requests (no extension)
+            if (string.IsNullOrEmpty(ext))
+            {
+                requestRouter.HandleOPDSRequest(processor, request, isOPDSRequest, acceptFB2, threshold);
+            }
+            // Handle OpenSearch descriptor
+            else if (request.Contains("opds-opensearch.xml"))
+            {
+                resourceHandlers.HandleOpenSearchRequest(processor, isOPDSRequest);
+            }
+            // Handle legacy book download URLs
+            else if ((request.Contains(".fb2.zip") && ext.Equals(".zip")) || ext.Equals(".epub"))
+            {
+                downloadHandler.HandleBookDownloadRequest(processor, request, ext, acceptFB2);
+            }
+            // Handle image requests (covers and thumbnails)
+            else if (ext.Equals(".jpeg") || ext.Equals(".png"))
+            {
+                // Use cancellation-aware handler if client hash is available
                 if (!string.IsNullOrEmpty(clientHash))
                 {
-                    cancellationToken = RequestCancellationManager.GetImageRequestToken(clientHash);
-                    hasToken = true;
-                }
-
-                // Check if already cancelled
-                if (hasToken && cancellationToken.IsCancellationRequested)
-                {
-                    Log.WriteLine(LogLevel.Info, "Image request cancelled before processing: {0}", request);
-                    processor.WriteFailure();
-                    return;
-                }
-
-                bool getCover = request.Contains("/cover/");
-                bookID = ExtractBookIdFromImageRequest(request, getCover);
-
-                if (string.IsNullOrEmpty(bookID))
-                {
-                    Log.WriteLine(LogLevel.Warning, "Invalid book ID in image request: {0}", request);
-                    processor.WriteBadRequest();
-                    return;
-                }
-
-                Book book = Library.GetBook(bookID);
-                if (book == null)
-                {
-                    Log.WriteLine(LogLevel.Warning, "Book {0} not found for image request", bookID);
-                    processor.WriteFailure();
-                    return;
-                }
-
-                // Check cancellation before expensive operations
-                if (hasToken && cancellationToken.IsCancellationRequested)
-                {
-                    Log.WriteLine(LogLevel.Info, "Image request cancelled before extraction for book {0}", bookID);
-                    return;
-                }
-
-                var imageObject = GetOrCreateCoverImageWithCancellation(bookID, book, cancellationToken);
-
-                if (imageObject != null)
-                {
-                    SendImageToClientWithCancellation(processor, imageObject, getCover, bookID, cancellationToken);
+                    imageHandler.HandleImageRequestWithCancellation(processor, request, clientHash);
                 }
                 else
                 {
-                    Log.WriteLine(LogLevel.Warning, "No image available for book {0}", bookID);
-                    processor.WriteFailure();
+                    imageHandler.HandleImageRequest(processor, request);
                 }
             }
-            catch (OperationCanceledException)
+            // Handle icon requests
+            else if (ext.Equals(".ico"))
             {
-                Log.WriteLine(LogLevel.Info, "Image request cancelled for book {0}", bookID ?? "unknown");
+                resourceHandlers.HandleIconRequest(processor, request);
             }
-            catch (Exception ex)
+            else
             {
-                Log.WriteLine(LogLevel.Error, "Image request error for book {0}: {1}", bookID ?? "unknown", ex.Message);
-                try
-                {
-                    processor.WriteFailure();
-                }
-                catch { }
-            }
-            finally
-            {
-                if (hasToken && !string.IsNullOrEmpty(clientHash))
-                {
-                    RequestCancellationManager.CompleteImageRequest(clientHash);
-                }
-            }
-        }
-
-        private object GetOrCreateCoverImageWithCancellation(string bookID, Book book, CancellationToken cancellationToken)
-        {
-            try
-            {
-                // Check cache first
-                if (ImagesCache.HasImage(bookID))
-                {
-                    return ImagesCache.GetImage(bookID);
-                }
-
-                // Check cancellation before extraction
-                cancellationToken.ThrowIfCancellationRequested();
-
-                // For now, use existing CoverImage class
-                // In production, you'd want to modify CoverImage to accept cancellation token
-                var image = new CoverImage(book);
-
-                // Simulate cancellation check points during image extraction
-                // In real implementation, pass cancellation token to CoverImage constructor
-                cancellationToken.ThrowIfCancellationRequested();
-
-                if (image != null && image.HasImages)
-                {
-                    ImagesCache.Add(image);
-                }
-
-                return image;
-            }
-            catch (OperationCanceledException)
-            {
-                throw; // Re-throw to handle at higher level
-            }
-            catch (Exception ex)
-            {
-                Log.WriteLine(LogLevel.Error, "Error creating cover image for book {0}: {1}", bookID, ex.Message);
-                return null;
-            }
-        }
-
-        private void SendImageToClientWithCancellation(HttpProcessor processor, object imageObject, bool getCover, string bookID, CancellationToken cancellationToken)
-        {
-            Stream imageStream = null;
-            bool hasImages = false;
-
-            try
-            {
-                // Handle both CoverImage and CachedCoverImage types
-                if (imageObject is CachedCoverImage cachedImage)
-                {
-                    hasImages = cachedImage.HasImages;
-                    if (hasImages)
-                    {
-                        imageStream = getCover ? cachedImage.CoverImageStream : cachedImage.ThumbnailImageStream;
-                    }
-                }
-                else if (imageObject is CoverImage regularImage)
-                {
-                    hasImages = regularImage.HasImages;
-                    if (hasImages)
-                    {
-                        imageStream = getCover ? regularImage.CoverImageStream : regularImage.ThumbnailImageStream;
-                    }
-                }
-
-                if (hasImages && imageStream != null && imageStream.Length > 0)
-                {
-                    // Check cancellation before sending
-                    cancellationToken.ThrowIfCancellationRequested();
-
-                    if (!processor.OutputStream.BaseStream.CanWrite)
-                    {
-                        Log.WriteLine(LogLevel.Info, "Client disconnected before sending image for book {0}", bookID);
-                        return;
-                    }
-
-                    processor.WriteSuccess("image/jpeg");
-
-                    const int bufferSize = 8192;
-                    byte[] buffer = new byte[bufferSize];
-                    int bytesRead;
-                    long totalBytesSent = 0;
-
-                    imageStream.Position = 0;
-
-                    while ((bytesRead = imageStream.Read(buffer, 0, bufferSize)) > 0)
-                    {
-                        // Check cancellation during transfer
-                        cancellationToken.ThrowIfCancellationRequested();
-
-                        try
-                        {
-                            if (!processor.OutputStream.BaseStream.CanWrite)
-                            {
-                                Log.WriteLine(LogLevel.Info, "Client disconnected during image transfer for book {0} after {1} bytes", bookID, totalBytesSent);
-                                break;
-                            }
-
-                            processor.OutputStream.BaseStream.Write(buffer, 0, bytesRead);
-                            totalBytesSent += bytesRead;
-                        }
-                        catch (IOException ioEx) when (ioEx.InnerException is SocketException)
-                        {
-                            Log.WriteLine(LogLevel.Info, "Client disconnected during image transfer for book {0} after {1} bytes", bookID, totalBytesSent);
-                            break;
-                        }
-                        catch (ObjectDisposedException)
-                        {
-                            Log.WriteLine(LogLevel.Info, "Stream disposed during image transfer for book {0} after {1} bytes", bookID, totalBytesSent);
-                            break;
-                        }
-                    }
-
-                    if (processor.OutputStream.BaseStream.CanWrite && totalBytesSent == imageStream.Length)
-                    {
-                        processor.OutputStream.BaseStream.Flush();
-                        ServerStatistics.IncrementImagesSent();
-                        Log.WriteLine(LogLevel.Info, "Successfully sent {0} image for book {1} ({2} bytes)",
-                            getCover ? "cover" : "thumbnail", bookID, totalBytesSent);
-                    }
-                }
-                else
-                {
-                    Log.WriteLine(LogLevel.Warning, "No image stream available for book {0}", bookID);
-                    processor.WriteFailure();
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                Log.WriteLine(LogLevel.Info, "Image sending cancelled for book {0}", bookID);
-                throw;
-            }
-            finally
-            {
-                imageStream?.Dispose();
-            }
-        }
-
-        #endregion
-
-        #region Reader Handler
-
-        private void HandleReaderRequest(HttpProcessor processor, string request)
-        {
-            try
-            {
-                // Extract book ID from /reader/{bookId}
-                string bookId = request.Substring(8); // Remove "/reader/"
-
-                // Clean up GUID encoding
-                bookId = bookId.Replace("%7B", "{").Replace("%7D", "}");
-
-                Log.WriteLine(LogLevel.Info, "Reader request for book: {0}", bookId);
-
-                Book book = Library.GetBook(bookId);
-                if (book == null)
-                {
-                    Log.WriteLine(LogLevel.Warning, "Book {0} not found for reader", bookId);
-                    HandleBookNotFoundForReader(processor, bookId);
-                    return;
-                }
-
-                // Get book content with cancellation support for better performance
-                using (var memStream = new MemoryStream())
-                {
-                    // Create a cancellation token with 30 second timeout for reader requests
-                    using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30)))
-                    {
-                        if (!ExtractBookContentWithCancellation(book, memStream, cts.Token))
-                        {
-                            HandleBookFileNotFoundForReader(processor, book);
-                            return;
-                        }
-                    }
-
-                    // Prepare book data as base64
-                    memStream.Position = 0;
-                    byte[] bookData = memStream.ToArray();
-                    string base64Data = Convert.ToBase64String(bookData);
-
-                    // Determine MIME type
-                    string mimeType = book.BookType == BookType.FB2 ? "application/x-fictionbook+xml" : "application/epub+zip";
-
-                    // Prepare file name
-                    string fileName = Transliteration.Front(
-                        string.Format("{0}_{1}.{2}",
-                            book.Authors.FirstOrDefault() ?? "Unknown",
-                            book.Title,
-                            book.BookType == BookType.FB2 ? "fb2" : "epub"));
-
-                    // Create modified HTML with embedded book
-                    string html = PrepareReaderHtml(base64Data, mimeType, fileName, book.Title, book.Authors.FirstOrDefault());
-
-                    if (!string.IsNullOrEmpty(html))
-                    {
-                        processor.WriteSuccess("text/html; charset=utf-8");
-                        processor.OutputStream.Write(html);
-
-                        Log.WriteLine(LogLevel.Info, "Successfully served reader for book: {0}", book.Title);
-                    }
-                    else
-                    {
-                        processor.WriteFailure();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.WriteLine(LogLevel.Error, "Reader request error: {0}", ex.Message);
                 processor.WriteFailure();
             }
         }
 
-        private void HandleBookNotFoundForReader(HttpProcessor processor, string bookId)
+        /// <summary>
+        /// Determines download format from request path
+        /// </summary>
+        private string DetermineDownloadFormat(string request)
         {
-            try
+            // Determine format from path structure: /download/{guid}/fb2 or /download/{guid}/epub
+            if (request.Contains("/fb2"))
             {
-                if (string.IsNullOrEmpty(readerHtml))
-                {
-                    LoadReaderHtml();
-                }
-
-                string html = readerHtml ?? GetFallbackReaderHtml();
-
-                // Create error message in reader
-                string errorMessage = "Book not found";
-                string errorHtml = html.Replace(
-                    "<div class=\"book-content light font-serif\" id=\"bookContent\"></div>",
-                    $"<div class=\"book-content light font-serif\" id=\"bookContent\"><div class=\"error\">{errorMessage}</div></div>"
-                );
-
-                // Set error title
-                errorHtml = errorHtml.Replace("Reader", $"Reader - {errorMessage}");
-
-                processor.WriteSuccess("text/html; charset=utf-8");
-                processor.OutputStream.Write(errorHtml);
-
-                Log.WriteLine(LogLevel.Info, "Served book not found error for book ID: {0}", bookId);
+                return ".zip"; // FB2 always comes as ZIP
             }
-            catch (Exception ex)
+            else if (request.Contains("/epub"))
             {
-                Log.WriteLine(LogLevel.Error, "Error handling book not found: {0}", ex.Message);
-                processor.WriteFailure();
+                return ".epub";
             }
-        }
-
-        private void HandleBookFileNotFoundForReader(HttpProcessor processor, Book book)
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(readerHtml))
-                {
-                    LoadReaderHtml();
-                }
-
-                string html = readerHtml ?? GetFallbackReaderHtml();
-
-                // Create error message in reader with book info
-                string errorMessage = "Book file not found";
-                string bookInfo = $"<h1>{book.Title}</h1><p class=\"author\">{book.Authors.FirstOrDefault() ?? "Unknown Author"}</p>";
-                string errorHtml = html.Replace(
-                    "<div class=\"book-content light font-serif\" id=\"bookContent\"></div>",
-                    $"<div class=\"book-content light font-serif\" id=\"bookContent\">{bookInfo}<div class=\"error\">{errorMessage}<br><small>File: {book.FilePath}</small></div></div>"
-                );
-
-                // Set error title with book title
-                errorHtml = errorHtml.Replace("Reader", $"Reader - {book.Title}");
-
-                processor.WriteSuccess("text/html; charset=utf-8");
-                processor.OutputStream.Write(errorHtml);
-
-                Log.WriteLine(LogLevel.Info, "Served book file not found error for book: {0} (file: {1})", book.Title, book.FilePath);
-            }
-            catch (Exception ex)
-            {
-                Log.WriteLine(LogLevel.Error, "Error handling book file not found: {0}", ex.Message);
-                processor.WriteFailure();
-            }
-        }
-
-        private string GetFallbackReaderHtml()
-        {
-            return @"<!DOCTYPE html>
-<html><head><title>Reader - Error</title><meta charset=""UTF-8""></head>
-<body><div class=""error"">Error loading reader interface</div></body></html>";
-        }
-
-        private string PrepareReaderHtml(string base64Data, string mimeType, string fileName, string bookTitle, string author)
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(readerHtml))
-                {
-                    LoadReaderHtml();
-                    if (string.IsNullOrEmpty(readerHtml))
-                    {
-                        Log.WriteLine(LogLevel.Error, "Reader HTML template not available");
-                        return null;
-                    }
-                }
-
-                // Create a copy of the reader HTML
-                string html = readerHtml;
-
-                // Prepare localization strings as JSON
-                var locStrings = new StringBuilder();
-                locStrings.Append("{");
-                locStrings.AppendFormat("'tableOfContents':'{0}',", EscapeJsString(Localizer.Text("Table of Contents")));
-                locStrings.AppendFormat("'openBook':'{0}',", EscapeJsString(Localizer.Text("Open Book")));
-                locStrings.AppendFormat("'decreaseFont':'{0}',", EscapeJsString(Localizer.Text("Decrease Font")));
-                locStrings.AppendFormat("'increaseFont':'{0}',", EscapeJsString(Localizer.Text("Increase Font")));
-                locStrings.AppendFormat("'changeFont':'{0}',", EscapeJsString(Localizer.Text("Change Font")));
-                locStrings.AppendFormat("'changeTheme':'{0}',", EscapeJsString(Localizer.Text("Change Theme")));
-                locStrings.AppendFormat("'decreaseMargins':'{0}',", EscapeJsString(Localizer.Text("Decrease Margins")));
-                locStrings.AppendFormat("'increaseMargins':'{0}',", EscapeJsString(Localizer.Text("Increase Margins")));
-                locStrings.AppendFormat("'standardWidth':'{0}',", EscapeJsString(Localizer.Text("Standard Width")));
-                locStrings.AppendFormat("'fullWidth':'{0}',", EscapeJsString(Localizer.Text("Full Width")));
-                locStrings.AppendFormat("'fullscreen':'{0}',", EscapeJsString(Localizer.Text("Fullscreen")));
-                locStrings.AppendFormat("'loading':'{0}',", EscapeJsString(Localizer.Text("Loading...")));
-                locStrings.AppendFormat("'errorLoading':'{0}',", EscapeJsString(Localizer.Text("Error loading file")));
-                locStrings.AppendFormat("'noTitle':'{0}',", EscapeJsString(Localizer.Text("Untitled")));
-                locStrings.AppendFormat("'unknownAuthor':'{0}',", EscapeJsString(Localizer.Text("Unknown Author")));
-                locStrings.AppendFormat("'noChapters':'{0}'", EscapeJsString(Localizer.Text("No chapters available")));
-                locStrings.Append("}");
-
-                // Inject book data and localization into the HTML
-                string scriptInjection = string.Format(@"
-<script>
-// Injected book data
-window.tinyOPDSBook = {{
-    data: 'data:{0};base64,{1}',
-    fileName: '{2}',
-    title: '{3}',
-    author: '{4}'
-}};
-
-// Injected localization
-localStorage.setItem('tinyopds-localization', JSON.stringify({5}));
-
-// Auto-load the book after page loads
-document.addEventListener('DOMContentLoaded', function() {{
-    setTimeout(function() {{
-        // Create a blob from the data URL
-        var dataUrl = window.tinyOPDSBook.data;
-        fetch(dataUrl)
-            .then(res => res.blob())
-            .then(blob => {{
-                // Create a File object
-                var file = new File([blob], window.tinyOPDSBook.fileName, {{
-                    type: blob.type
-                }});
-                
-                // Find the reader instance and load the file
-                if (window.universalReader) {{
-                    window.universalReader.handleFileSelect(file);
-                }}
-            }});
-    }}, 500);
-}});
-</script>
-</head>",
-                    mimeType,
-                    base64Data,
-                    EscapeJsString(fileName),
-                    EscapeJsString(bookTitle),
-                    EscapeJsString(author ?? ""),
-                    locStrings.ToString()
-                );
-
-                // Replace </head> with our script injection
-                html = html.Replace("</head>", scriptInjection);
-
-                // Modify the reader initialization to expose the instance globally
-                html = html.Replace(
-                    "new UniversalReader();",
-                    "window.universalReader = new UniversalReader();"
-                );
-
-                return html;
-            }
-            catch (Exception ex)
-            {
-                Log.WriteLine(LogLevel.Error, "Error preparing reader HTML: {0}", ex.Message);
-                return null;
-            }
-        }
-
-        private string EscapeJsString(string str)
-        {
-            if (string.IsNullOrEmpty(str)) return "";
-
-            return str.Replace("\\", "\\\\")
-                     .Replace("'", "\\'")
-                     .Replace("\"", "\\\"")
-                     .Replace("\r", "\\r")
-                     .Replace("\n", "\\n");
-        }
-
-        #endregion
-
-        #region Request Processing Helpers
-
-        private string GetClientIP(HttpProcessor processor)
-        {
-            try
-            {
-                return ((IPEndPoint)processor.Socket.Client.RemoteEndPoint).Address.ToString();
-            }
-            catch
-            {
-                return "unknown";
-            }
-        }
-
-        private string NormalizeRequest(string httpUrl)
-        {
-            string request = httpUrl;
-            Log.WriteLine(LogLevel.Info, "Original request: {0}", request);
-
-            // Special handling for opensearch which must be at root
-            if (!request.Contains("opds-opensearch.xml"))
-            {
-                // Remove OPDS prefix if present to normalize the request path
-                if (!string.IsNullOrEmpty(Properties.Settings.Default.RootPrefix) &&
-                    request.StartsWith("/" + Properties.Settings.Default.RootPrefix))
-                {
-                    request = request.Substring(Properties.Settings.Default.RootPrefix.Length + 1);
-                    if (!request.StartsWith("/"))
-                        request = "/" + request;
-                }
-            }
-
-            while (request.Contains("//"))
-                request = request.Replace("//", "/");
-
-            if (!request.StartsWith("/"))
-                request = "/" + request;
-
-            // Handle parameters specially - don't decode them yet as they may contain encoded data
-            int paramPos = request.IndexOf('?');
-            if (paramPos >= 0)
-            {
-                if (request.Contains("pageNumber") || request.Contains("searchTerm"))
-                {
-                    int endParam = request.IndexOf('&', paramPos + 1);
-                    if (endParam > 0 && !request.Substring(endParam).Contains("pageNumber") && !request.Substring(endParam).Contains("searchTerm"))
-                    {
-                        request = request.Substring(0, endParam);
-                    }
-                }
-                else
-                {
-                    request = request.Substring(0, paramPos);
-                }
-            }
-
-            Log.WriteLine(LogLevel.Info, "Normalized request: {0}", request);
-            return request;
-        }
-
-        private string GetFileExtension(string request)
-        {
-            string ext = Path.GetExtension(request).ToLower();
-            return extensions.Contains(ext) ? ext : string.Empty;
-        }
-
-        private bool IsValidRequest(string request)
-        {
-            return !string.IsNullOrEmpty(request) && request.Length <= 2048;
-        }
-
-        private bool IsOPDSRequest(string httpUrl)
-        {
-            // Simple logic: if URL contains /opds prefix, it's an OPDS request
-            if (!string.IsNullOrEmpty(Properties.Settings.Default.RootPrefix) &&
-                httpUrl.StartsWith("/" + Properties.Settings.Default.RootPrefix))
-            {
-                return true;
-            }
-            return false;
-        }
-
-        private bool DetectFB2Support(string userAgent)
-        {
-            return Utils.DetectFB2Reader(userAgent);
-        }
-
-        #endregion
-
-        #region OPDS Request Handlers
-
-        private void HandleOPDSRequest(HttpProcessor processor, string request, bool isOPDSRequest, bool acceptFB2, int threshold)
-        {
-            try
-            {
-                LoadOPDSStructure();
-
-                string xml = GenerateOPDSResponse(request, acceptFB2, threshold);
-
-                if (string.IsNullOrEmpty(xml))
-                {
-                    processor.WriteFailure();
-                    return;
-                }
-
-                xml = FixNamespace(xml);
-                xml = ApplyUriPrefixes(xml, isOPDSRequest);
-
-                if (isOPDSRequest)
-                {
-                    // OPDS request - always return XML
-                    processor.WriteSuccess("application/atom+xml;charset=utf-8");
-                    processor.OutputStream.Write(xml);
-                }
-                else
-                {
-                    // Web request - transform to HTML
-                    string html = TransformToHtml(xml);
-                    if (!string.IsNullOrEmpty(html))
-                    {
-                        processor.WriteSuccess("text/html");
-                        processor.OutputStream.Write(html);
-                    }
-                    else
-                    {
-                        processor.WriteFailure();
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                Log.WriteLine(LogLevel.Error, "OPDS catalog exception: {0}", e.Message);
-                processor.WriteFailure();
-            }
-        }
-
-        private string GenerateOPDSResponse(string request, bool acceptFB2, int threshold)
-        {
-            Log.WriteLine(LogLevel.Info, "Generating OPDS response for: {0}", request);
-
-            string[] pathParts = request.Split(new char[] { '?', '=', '&' }, StringSplitOptions.RemoveEmptyEntries);
-
-            if (request.Equals("/"))
-            {
-                return new RootCatalogWithStructure(opdsStructure).GetCatalog().ToStringWithDeclaration();
-            }
-            else if (request.StartsWith("/newdate") && IsRouteEnabled("newdate"))
-            {
-                return new NewBooksCatalog().GetCatalog(request.Substring(8), true, acceptFB2, threshold).ToStringWithDeclaration();
-            }
-            else if (request.StartsWith("/newtitle") && IsRouteEnabled("newtitle"))
-            {
-                return new NewBooksCatalog().GetCatalog(request.Substring(9), false, acceptFB2, threshold).ToStringWithDeclaration();
-            }
-            else if (request.StartsWith("/authorsindex") && IsRouteEnabled("authorsindex"))
-            {
-                int numChars = request.StartsWith("/authorsindex/") ? 14 : 13;
-                string searchPattern = request.Substring(numChars);
-
-                // Important: Pass the URL-encoded pattern to catalog - let it handle decoding
-                Log.WriteLine(LogLevel.Info, "AuthorsIndex search pattern (raw): '{0}'", searchPattern);
-
-                return new AuthorsCatalog().GetCatalog(searchPattern, false, threshold).ToStringWithDeclaration();
-            }
-            else if (request.StartsWith("/author-details/") && IsRouteEnabled("author-details"))
-            {
-                string authorParam = request.Substring(16);
-                Log.WriteLine(LogLevel.Info, "Author details parameter (raw): '{0}'", authorParam);
-
-                return new AuthorDetailsCatalogWithStructure(opdsStructure).GetCatalog(authorParam).ToStringWithDeclaration();
-            }
-            else if (request.StartsWith("/author-series/") && IsRouteEnabled("author-series"))
-            {
-                string authorParam = request.Substring(15);
-                Log.WriteLine(LogLevel.Info, "Author series parameter (raw): '{0}'", authorParam);
-
-                return new AuthorBooksCatalog().GetSeriesCatalog(authorParam, acceptFB2, threshold).ToStringWithDeclaration();
-            }
-            else if (request.StartsWith("/author-no-series/") && IsRouteEnabled("author-no-series"))
-            {
-                string authorParam = request.Substring(18);
-                Log.WriteLine(LogLevel.Info, "Author no-series parameter (raw): '{0}'", authorParam);
-
-                return new AuthorBooksCatalog().GetBooksCatalog(authorParam, AuthorBooksCatalog.ViewType.NoSeries, acceptFB2, threshold).ToStringWithDeclaration();
-            }
-            else if (request.StartsWith("/author-alphabetic/") && IsRouteEnabled("author-alphabetic"))
-            {
-                string authorParam = request.Substring(19);
-                Log.WriteLine(LogLevel.Info, "Author alphabetic parameter (raw): '{0}'", authorParam);
-
-                return new AuthorBooksCatalog().GetBooksCatalog(authorParam, AuthorBooksCatalog.ViewType.Alphabetic, acceptFB2, threshold).ToStringWithDeclaration();
-            }
-            else if (request.StartsWith("/author-by-date/") && IsRouteEnabled("author-by-date"))
-            {
-                string authorParam = request.Substring(16);
-                Log.WriteLine(LogLevel.Info, "Author by-date parameter (raw): '{0}'", authorParam);
-
-                return new AuthorBooksCatalog().GetBooksCatalog(authorParam, AuthorBooksCatalog.ViewType.ByDate, acceptFB2, threshold).ToStringWithDeclaration();
-            }
-            else if (request.StartsWith("/author/"))
-            {
-                string authorParam = request.Substring(8);
-                Log.WriteLine(LogLevel.Info, "Author parameter (raw): '{0}'", authorParam);
-
-                if (IsRouteEnabled("author-details"))
-                {
-                    return new AuthorDetailsCatalogWithStructure(opdsStructure).GetCatalog(authorParam).ToStringWithDeclaration();
-                }
-                else
-                {
-                    return new AuthorBooksCatalog().GetBooksCatalog(authorParam, AuthorBooksCatalog.ViewType.Alphabetic, acceptFB2, threshold).ToStringWithDeclaration();
-                }
-            }
-            else if (request.StartsWith("/sequencesindex") && IsRouteEnabled("sequencesindex"))
-            {
-                int numChars = request.StartsWith("/sequencesindex/") ? 16 : 15;
-                string searchPattern = request.Substring(numChars);
-                Log.WriteLine(LogLevel.Info, "SequencesIndex search pattern (raw): '{0}'", searchPattern);
-
-                return new SequencesCatalog().GetCatalog(searchPattern, threshold).ToStringWithDeclaration();
-            }
-            else if (request.Contains("/sequence/"))
-            {
-                string sequenceParam = request.Substring(request.IndexOf("/sequence/") + 10);
-                Log.WriteLine(LogLevel.Info, "Sequence parameter (raw): '{0}'", sequenceParam);
-
-                return new BooksCatalog().GetCatalogBySequence(sequenceParam, acceptFB2, threshold).ToStringWithDeclaration();
-            }
-            else if (request.StartsWith("/genres") && IsRouteEnabled("genres"))
-            {
-                int numChars = request.Contains("/genres/") ? 8 : 7;
-                string genreParam = request.Substring(numChars);
-                Log.WriteLine(LogLevel.Info, "Genres parameter (raw): '{0}'", genreParam);
-
-                return new GenresCatalog().GetCatalog(genreParam).ToStringWithDeclaration();
-            }
-            else if (request.StartsWith("/genre/"))
-            {
-                string genreParam = request.Substring(7);
-                Log.WriteLine(LogLevel.Info, "Genre parameter (raw): '{0}'", genreParam);
-
-                return new BooksCatalog().GetCatalogByGenre(genreParam, acceptFB2, threshold).ToStringWithDeclaration();
-            }
-            else if (request.StartsWith("/search"))
-            {
-                return HandleSearchRequest(pathParts, acceptFB2);
-            }
-
-            Log.WriteLine(LogLevel.Warning, "No matching route found for request: {0}", request);
-            return null;
-        }
-
-        private string HandleSearchRequest(string[] pathParts, bool acceptFB2)
-        {
-            Log.WriteLine(LogLevel.Info, "Handling search request with {0} parts", pathParts.Length);
-
-            if (pathParts.Length > 1)
-            {
-                if (pathParts[1].Equals("searchTerm") && pathParts.Length > 2)
-                {
-                    string searchTerm = pathParts[2];
-                    Log.WriteLine(LogLevel.Info, "Simple search term: '{0}'", searchTerm);
-                    return new OpenSearch().Search(searchTerm, "", acceptFB2).ToStringWithDeclaration();
-                }
-                else if (pathParts[1].Equals("searchType") && pathParts.Length > 4)
-                {
-                    int pageNumber = 0;
-                    if (pathParts.Length > 6 && pathParts[5].Equals("pageNumber"))
-                    {
-                        int.TryParse(pathParts[6], out pageNumber);
-                    }
-                    string searchType = pathParts[2];
-                    string searchTerm = pathParts[4];
-                    Log.WriteLine(LogLevel.Info, "Advanced search - type: '{0}', term: '{1}', page: {2}", searchType, searchTerm, pageNumber);
-                    return new OpenSearch().Search(searchTerm, searchType, acceptFB2, pageNumber).ToStringWithDeclaration();
-                }
-            }
-            return null;
-        }
-
-        private string FixNamespace(string xml)
-        {
-            if (xml.Contains("<feed ") && !xml.Contains("xmlns=\"http://www.w3.org/2005/Atom\""))
-            {
-                int feedPos = xml.IndexOf("<feed ");
-                if (feedPos >= 0)
-                {
-                    xml = xml.Insert(feedPos + 5, " xmlns=\"http://www.w3.org/2005/Atom\"");
-                }
-            }
-            return xml;
-        }
-
-        private string ApplyUriPrefixes(string xml, bool isOPDSRequest)
-        {
-            try
-            {
-                // Always use relative paths for maximum compatibility and simplicity
-                // For OPDS requests, add the /opds prefix
-                // For web requests, no prefix needed
-                if (isOPDSRequest && !string.IsNullOrEmpty(Properties.Settings.Default.RootPrefix))
-                {
-                    string prefix = "/" + Properties.Settings.Default.RootPrefix;
-                    xml = xml.Replace("href=\"", "href=\"" + prefix);
-
-                    // Special case: opensearch.xml must always be at root
-                    xml = xml.Replace(prefix + "/opds-opensearch.xml", "/opds-opensearch.xml");
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.WriteLine(LogLevel.Warning, "Error applying URI prefixes: {0}", ex.Message);
-            }
-            return xml;
-        }
-
-        private string TransformToHtml(string xml)
-        {
-            try
-            {
-                lock (xslLock)
-                {
-#if DEBUG
-                    InitializeXslTransform();
-#endif
-                    using (var htmlStream = new MemoryStream())
-                    using (var stringReader = new StringReader(xml))
-                    {
-                        var xPathDoc = new XPathDocument(stringReader);
-                        var writer = new XmlTextWriter(htmlStream, null);
-
-                        XsltArgumentList args = new XsltArgumentList();
-                        args.AddParam("serverVersion", "", Utils.ServerVersionName.Replace("running on ", ""));
-                        var books = string.Format(Localizer.Text("Books: {0}"), Library.Count).ToLower().Split(':');
-                        string libName = $"{Properties.Settings.Default.ServerName}: {books[1]} {books[0]}";
-                        args.AddParam("libName", "", libName);
-
-                        // Add localized parameters for web interface
-                        args.AddParam("searchPlaceholder", "", Localizer.Text("Search authors or books..."));
-                        args.AddParam("searchButtonText", "", Localizer.Text("Search"));
-                        args.AddParam("formatText", "", Localizer.Text("Format:"));
-                        args.AddParam("sizeText", "", Localizer.Text("Size:"));
-                        args.AddParam("downloadText", "", Localizer.Text("Download"));
-                        args.AddParam("downloadEpubText", "", Localizer.Text("Download EPUB"));
-                        args.AddParam("readText", "", Localizer.Text("Read"));
-
-                        // Add reader localization strings as parameters
-                        args.AddParam("readerTableOfContents", "", Localizer.Text("Table of Contents"));
-                        args.AddParam("readerOpenBook", "", Localizer.Text("Open Book"));
-                        args.AddParam("readerDecreaseFont", "", Localizer.Text("Decrease Font"));
-                        args.AddParam("readerIncreaseFont", "", Localizer.Text("Increase Font"));
-                        args.AddParam("readerChangeFont", "", Localizer.Text("Change Font"));
-                        args.AddParam("readerChangeTheme", "", Localizer.Text("Change Theme"));
-                        args.AddParam("readerDecreaseMargins", "", Localizer.Text("Decrease Margins"));
-                        args.AddParam("readerIncreaseMargins", "", Localizer.Text("Increase Margins"));
-                        args.AddParam("readerStandardWidth", "", Localizer.Text("Standard Width"));
-                        args.AddParam("readerFullWidth", "", Localizer.Text("Full Width"));
-                        args.AddParam("readerFullscreen", "", Localizer.Text("Fullscreen"));
-                        args.AddParam("readerLoading", "", Localizer.Text("Loading..."));
-                        args.AddParam("readerErrorLoading", "", Localizer.Text("Error loading file"));
-                        args.AddParam("readerNoTitle", "", Localizer.Text("Untitled"));
-                        args.AddParam("readerUnknownAuthor", "", Localizer.Text("Unknown Author"));
-                        args.AddParam("readerNoChapters", "", Localizer.Text("No chapters available"));
-
-                        xslTransform.Transform(xPathDoc, args, writer);
-
-                        htmlStream.Position = 0;
-
-                        using (var streamReader = new StreamReader(htmlStream))
-                        {
-                            return streamReader.ReadToEnd();
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.WriteLine(LogLevel.Error, "XSL transformation error: {0}", ex.Message);
-                return null;
-            }
-        }
-
-        #endregion
-
-        #region Other Request Handlers
-
-        private void HandleOpenSearchRequest(HttpProcessor processor)
-        {
-            try
-            {
-                string xml = new OpenSearch().OpenSearchDescription().ToStringWithDeclaration();
-                xml = xml.Insert(xml.IndexOf("<OpenSearchDescription") + 22,
-                    " xmlns=\"http://a9.com/-/spec/opensearch/1.1/\"");
-
-                // OpenSearch always needs to be accessible from root
-                xml = ApplyUriPrefixes(xml, false);
-
-                processor.WriteSuccess("application/atom+xml;charset=utf-8");
-                processor.OutputStream.Write(xml);
-            }
-            catch (Exception ex)
-            {
-                Log.WriteLine(LogLevel.Error, "OpenSearch request error: {0}", ex.Message);
-                processor.WriteFailure();
-            }
-        }
-
-        private void HandleBookDownloadRequest(HttpProcessor processor, string request, string ext, bool acceptFB2)
-        {
-            try
-            {
-                string bookID = ExtractBookIdFromRequest(request);
-                if (string.IsNullOrEmpty(bookID))
-                {
-                    Log.WriteLine(LogLevel.Warning, "Invalid book ID in download request: {0}", request);
-                    processor.WriteBadRequest();
-                    return;
-                }
-
-                Book book = Library.GetBook(bookID);
-                if (book == null)
-                {
-                    Log.WriteLine(LogLevel.Warning, "Book {0} not found in library", bookID);
-                    processor.WriteFailure();
-                    return;
-                }
-
-                if (request.Contains("/fb2") || request.Contains(".fb2.zip"))
-                {
-                    HandleFB2Download(processor, book);
-                }
-                else if (request.Contains("/epub") || ext.Equals(".epub"))
-                {
-                    HandleEpubDownload(processor, book, acceptFB2);
-                }
-
-                ServerStatistics.IncrementBooksSent();
-            }
-            catch (Exception e)
-            {
-                Log.WriteLine(LogLevel.Error, "Book download error: {0}", e.Message);
-                processor.WriteFailure();
-            }
-        }
-
-        private string ExtractBookIdFromRequest(string request)
-        {
-            try
-            {
-                Log.WriteLine(LogLevel.Info, "Extracting book ID from request: {0}", request);
-
-                // Remove leading slash and split by slashes
-                if (request.StartsWith("/"))
-                    request = request.Substring(1);
-
-                string[] parts = request.Split('/');
-                Log.WriteLine(LogLevel.Info, "Request parts: [{0}]", string.Join(", ", parts));
-
-                // Expected: download/{guid}/fb2 or download/{guid}/epub 
-                if (parts.Length >= 3 && parts[0] == "download")
-                {
-                    string guid = parts[1];
-
-                    // Clean up common GUID encoding artifacts
-                    guid = guid.Replace("%7B", "{").Replace("%7D", "}");
-
-                    Log.WriteLine(LogLevel.Info, "Extracted book ID: {0}", guid);
-                    return guid;
-                }
-
-                Log.WriteLine(LogLevel.Warning, "Could not extract book ID from request: {0}", request);
-            }
-            catch (Exception ex)
-            {
-                Log.WriteLine(LogLevel.Warning, "Error extracting book ID from {0}: {1}", request, ex.Message);
-            }
-            return null;
-        }
-
-        private void HandleFB2Download(HttpProcessor processor, Book book)
-        {
-            using (var memStream = new MemoryStream())
-            {
-                // Use cancellation token with timeout for downloads
-                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60)))
-                {
-                    if (!ExtractBookContentWithCancellation(book, memStream, cts.Token))
-                    {
-                        processor.WriteFailure();
-                        return;
-                    }
-                }
-
-                // Use System.IO.Compression for creating ZIP files in .NET 4.8
-                using (var outputStream = new MemoryStream())
-                {
-                    using (var zipArchive = new System.IO.Compression.ZipArchive(outputStream, System.IO.Compression.ZipArchiveMode.Create, true))
-                    {
-                        string fileName = Transliteration.Front(
-                            $"{book.Authors.FirstOrDefault() ?? "Unknown"}_{book.Title}.fb2");
-
-                        var zipEntry = zipArchive.CreateEntry(fileName);
-                        using (var entryStream = zipEntry.Open())
-                        {
-                            memStream.Position = 0;
-                            memStream.CopyTo(entryStream);
-                        }
-                    }
-
-                    outputStream.Position = 0;
-
-                    // Set proper filename for download
-                    string downloadFileName = Transliteration.Front(
-                        $"{book.Authors.FirstOrDefault() ?? "Unknown"}_{book.Title}.fb2.zip");
-
-                    // Write response headers manually
-                    processor.OutputStream.WriteLine("HTTP/1.0 200 OK");
-                    processor.OutputStream.WriteLine("Content-Type: application/zip");
-                    processor.OutputStream.WriteLine($"Content-Disposition: attachment; filename=\"{downloadFileName}\"");
-                    processor.OutputStream.WriteLine($"Content-Length: {outputStream.Length}");
-                    processor.OutputStream.WriteLine("Connection: close");
-                    processor.OutputStream.WriteLine();
-
-                    outputStream.CopyTo(processor.OutputStream.BaseStream);
-                    processor.OutputStream.BaseStream.Flush();
-                }
-            }
-        }
-
-        private void HandleEpubDownload(HttpProcessor processor, Book book, bool acceptFB2)
-        {
-            using (var memStream = new MemoryStream())
-            {
-                // Use cancellation token with timeout for downloads
-                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60)))
-                {
-                    if (!ExtractBookContentWithCancellation(book, memStream, cts.Token))
-                    {
-                        processor.WriteFailure();
-                        return;
-                    }
-                }
-
-                if (book.BookType == BookType.FB2 && !acceptFB2)
-                {
-                    if (!ConvertFB2ToEpub(book, memStream))
-                    {
-                        processor.WriteFailure();
-                        return;
-                    }
-                }
-
-                // Set proper filename for download
-                string downloadFileName = Transliteration.Front(
-                    $"{book.Authors.FirstOrDefault() ?? "Unknown"}_{book.Title}.epub");
-
-                // Write response headers manually
-                processor.OutputStream.WriteLine("HTTP/1.0 200 OK");
-                processor.OutputStream.WriteLine("Content-Type: application/epub+zip");
-                processor.OutputStream.WriteLine($"Content-Disposition: attachment; filename=\"{downloadFileName}\"");
-                processor.OutputStream.WriteLine($"Content-Length: {memStream.Length}");
-                processor.OutputStream.WriteLine("Connection: close");
-                processor.OutputStream.WriteLine();
-
-                memStream.Position = 0;
-                memStream.CopyTo(processor.OutputStream.BaseStream);
-                processor.OutputStream.BaseStream.Flush();
-            }
-        }
-
-        private bool ExtractBookContent(Book book, MemoryStream memStream)
-        {
-            // Wrapper for legacy code - uses default cancellation token
-            return ExtractBookContentWithCancellation(book, memStream, CancellationToken.None);
-        }
-
-        private bool ExtractBookContentWithCancellation(Book book, MemoryStream memStream, CancellationToken cancellationToken)
-        {
-            try
-            {
-                // Build full path using library path if needed
-                string bookPath = book.FilePath;
-
-                // Check if path is relative and build full path
-                if (!Path.IsPathRooted(bookPath))
-                {
-                    string libraryPath = Properties.Settings.Default.LibraryPath;
-                    if (!string.IsNullOrEmpty(libraryPath))
-                    {
-                        bookPath = Path.Combine(libraryPath, bookPath);
-                    }
-                }
-
-                Log.WriteLine(LogLevel.Info, "Attempting to extract book content from: {0}", bookPath);
-
-                if (bookPath.ToLower().Contains(".zip@"))
-                {
-                    string[] pathParts = bookPath.Split('@');
-
-                    if (!File.Exists(pathParts[0]))
-                    {
-                        Log.WriteLine(LogLevel.Warning, "ZIP archive not found: {0}", pathParts[0]);
-                        return false;
-                    }
-
-                    // Check cancellation before opening ZIP
-                    cancellationToken.ThrowIfCancellationRequested();
-
-                    // Use System.IO.Compression.ZipFile for .NET 4.8
-                    using (var zipArchive = System.IO.Compression.ZipFile.OpenRead(pathParts[0]))
-                    {
-                        var entry = zipArchive.Entries.FirstOrDefault(e =>
-                            e.FullName.IndexOf(pathParts[1], StringComparison.OrdinalIgnoreCase) >= 0);
-
-                        if (entry != null)
-                        {
-                            // Check cancellation before extraction
-                            cancellationToken.ThrowIfCancellationRequested();
-
-                            using (var entryStream = entry.Open())
-                            {
-                                // Copy with cancellation support
-                                const int bufferSize = 81920; // 80KB buffer
-                                byte[] buffer = new byte[bufferSize];
-                                int bytesRead;
-
-                                while ((bytesRead = entryStream.Read(buffer, 0, bufferSize)) > 0)
-                                {
-                                    cancellationToken.ThrowIfCancellationRequested();
-                                    memStream.Write(buffer, 0, bytesRead);
-                                }
-
-                                memStream.Position = 0;
-                                Log.WriteLine(LogLevel.Info, "Successfully extracted book from ZIP: {0}", entry.FullName);
-                                return true;
-                            }
-                        }
-                        else
-                        {
-                            Log.WriteLine(LogLevel.Warning, "Entry not found in ZIP: {0}", pathParts[1]);
-                            return false;
-                        }
-                    }
-                }
-                else
-                {
-                    if (!File.Exists(bookPath))
-                    {
-                        Log.WriteLine(LogLevel.Warning, "Book file not found: {0}", bookPath);
-                        return false;
-                    }
-
-                    // Check cancellation before reading file
-                    cancellationToken.ThrowIfCancellationRequested();
-
-                    using (var stream = new FileStream(bookPath, FileMode.Open, FileAccess.Read, FileShare.Read))
-                    {
-                        // Copy with cancellation support
-                        const int bufferSize = 81920;
-                        byte[] buffer = new byte[bufferSize];
-                        int bytesRead;
-
-                        while ((bytesRead = stream.Read(buffer, 0, bufferSize)) > 0)
-                        {
-                            cancellationToken.ThrowIfCancellationRequested();
-                            memStream.Write(buffer, 0, bytesRead);
-                        }
-
-                        memStream.Position = 0;
-                        Log.WriteLine(LogLevel.Info, "Successfully extracted book from file: {0}", bookPath);
-                        return true;
-                    }
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                Log.WriteLine(LogLevel.Info, "Book extraction cancelled for: {0}", book.FilePath);
-                throw;
-            }
-            catch (Exception ex)
-            {
-                Log.WriteLine(LogLevel.Error, "Error extracting book content from {0}: {1}", book.FilePath, ex.Message);
-                return false;
-            }
-        }
-
-        private bool ConvertFB2ToEpub(Book book, MemoryStream memStream)
-        {
-            try
-            {
-                var converter = new FB2EpubConverter();
-
-                using (var epubStream = new MemoryStream())
-                {
-                    memStream.Position = 0;
-                    bool converted = converter.ConvertToEpubStream(book, memStream, epubStream);
-
-                    if (converted && epubStream.Length > 0)
-                    {
-                        memStream.SetLength(0);
-                        memStream.Position = 0;
-                        epubStream.Position = 0;
-                        epubStream.CopyTo(memStream);
-                        memStream.Position = 0;
-
-                        Log.WriteLine(LogLevel.Info, "Successfully converted {0} using FB2EpubConverter", book.FileName);
-                        return true;
-                    }
-                    else
-                    {
-                        Log.WriteLine(LogLevel.Warning, "FB2EpubConverter failed for {0}, falling back to external converter", book.FileName);
-                    }
-                }
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Log.WriteLine(LogLevel.Warning, "FB2EpubConverter error for {0}: {1}, falling back to external converter", book.FileName, ex.Message);
-            }
-            return false;
-        }
-
-        private string ExtractBookIdFromImageRequest(string request, bool isCover)
-        {
-            try
-            {
-                string prefix = isCover ? "/cover/" : "/thumbnail/";
-                int startPos = request.IndexOf(prefix) + prefix.Length;
-                int endPos = request.LastIndexOf(".jpeg");
-
-                if (startPos > 0 && endPos > startPos)
-                {
-                    return request.Substring(startPos, endPos - startPos)
-                        .Replace("%7B", "{").Replace("%7D", "}");
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.WriteLine(LogLevel.Warning, "Error extracting book ID from image request: {0}", ex.Message);
-            }
-            return null;
-        }
-
-        private void HandleIconRequest(HttpProcessor processor, string request)
-        {
-            try
-            {
-                string iconName = Path.GetFileName(request);
-                string resourceName = Assembly.GetExecutingAssembly().GetName().Name + ".Icons." + iconName;
-
-                using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
-                {
-                    if (stream != null && stream.Length > 0)
-                    {
-                        processor.WriteSuccess("image/x-icon");
-                        stream.CopyTo(processor.OutputStream.BaseStream);
-                        processor.OutputStream.BaseStream.Flush();
-                        return;
-                    }
-                }
-
-                Log.WriteLine(LogLevel.Warning, "Icon not found: {0}", iconName);
-                processor.WriteFailure();
-            }
-            catch (Exception ex)
-            {
-                Log.WriteLine(LogLevel.Error, "Icon request error: {0}", ex.Message);
-                processor.WriteFailure();
-            }
-        }
-
-        #endregion
-    }
-
-    // Helper classes for structure-aware catalogs
-    internal class RootCatalogWithStructure
-    {
-        private readonly Dictionary<string, bool> _opdsStructure;
-
-        public RootCatalogWithStructure(Dictionary<string, bool> opdsStructure)
-        {
-            _opdsStructure = opdsStructure;
-        }
-
-        public XDocument GetCatalog()
-        {
-            var rootCatalog = new RootCatalog().GetCatalog();
-
-            // Remove disabled entries from root catalog
-            var entries = rootCatalog.Root.Elements("entry").ToList();
-            foreach (var entry in entries)
-            {
-                var link = entry.Element("link");
-                if (link != null)
-                {
-                    string href = link.Attribute("href")?.Value;
-                    if (!string.IsNullOrEmpty(href))
-                    {
-                        bool shouldRemove = false;
-
-                        if (href.Contains("/newdate") && !IsEnabled("newdate")) shouldRemove = true;
-                        else if (href.Contains("/newtitle") && !IsEnabled("newtitle")) shouldRemove = true;
-                        else if (href.Contains("/authorsindex") && !IsEnabled("authorsindex")) shouldRemove = true;
-                        else if (href.Contains("/sequencesindex") && !IsEnabled("sequencesindex")) shouldRemove = true;
-                        else if (href.Contains("/genres") && !IsEnabled("genres")) shouldRemove = true;
-
-                        if (shouldRemove)
-                        {
-                            entry.Remove();
-                        }
-                    }
-                }
-            }
-
-            return rootCatalog;
-        }
-
-        private bool IsEnabled(string route)
-        {
-            return _opdsStructure.ContainsKey(route) && _opdsStructure[route];
-        }
-    }
-
-    internal class AuthorDetailsCatalogWithStructure
-    {
-        private readonly Dictionary<string, bool> _opdsStructure;
-
-        public AuthorDetailsCatalogWithStructure(Dictionary<string, bool> opdsStructure)
-        {
-            _opdsStructure = opdsStructure;
-        }
-
-        public XDocument GetCatalog(string author)
-        {
-            var authorDetails = new AuthorDetailsCatalog().GetCatalog(author);
-
-            // Remove disabled entries
-            var entries = authorDetails.Root.Elements("entry").ToList();
-            foreach (var entry in entries)
-            {
-                var link = entry.Element("link");
-                if (link != null)
-                {
-                    string href = link.Attribute("href")?.Value;
-                    if (!string.IsNullOrEmpty(href))
-                    {
-                        bool shouldRemove = false;
-
-                        if (href.Contains("/author-series/") && !IsEnabled("author-series")) shouldRemove = true;
-                        else if (href.Contains("/author-no-series/") && !IsEnabled("author-no-series")) shouldRemove = true;
-                        else if (href.Contains("/author-alphabetic/") && !IsEnabled("author-alphabetic")) shouldRemove = true;
-                        else if (href.Contains("/author-by-date/") && !IsEnabled("author-by-date")) shouldRemove = true;
-
-                        if (shouldRemove)
-                        {
-                            entry.Remove();
-                        }
-                    }
-                }
-            }
-
-            return authorDetails;
-        }
-
-        private bool IsEnabled(string route)
-        {
-            return _opdsStructure.ContainsKey(route) && _opdsStructure[route];
+            return "";
         }
     }
 }

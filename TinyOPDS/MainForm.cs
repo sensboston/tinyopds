@@ -159,7 +159,7 @@ namespace TinyOPDS
             watcher.IsEnabled = false;
 
             intLink.Text = string.Format(urlTemplate, upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, rootPrefix.Text);
-            intWebLink.Text = string.Format(urlTemplate, upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, webPrefix.Text);
+            intWebLink.Text = string.Format(urlTemplate, upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, string.Empty);
 
             // Start OPDS server
             StartHttpServer();
@@ -234,7 +234,7 @@ namespace TinyOPDS
                 BeginInvoke((MethodInvoker)delegate
                 {
                     extLink.Text = string.Format(urlTemplate, upnpController.ExternalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
-                    extWebLink.Text = string.Format(urlTemplate, upnpController.ExternalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.HttpPrefix);
+                    extWebLink.Text = string.Format(urlTemplate, upnpController.ExternalIP.ToString(), Properties.Settings.Default.ServerPort, string.Empty);
                     if (upnpController.UPnPReady)
                     {
                         openPort.Enabled = true;
@@ -768,15 +768,8 @@ namespace TinyOPDS
 
         private void UseUPnP_CheckStateChanged(object sender, EventArgs e)
         {
-            if (useUPnP.Checked)
-            {
-                // Re-detect IP addresses using UPnP
-                upnpController.DiscoverAsync(true);
-            }
-            else
-            {
-                openPort.Checked = openPort.Enabled = false;
-            }
+            // Re-detect IP addresses using UPnP
+            upnpController.DiscoverAsync(true);
         }
 
         private void OpenPort_CheckedChanged(object sender, EventArgs e)
@@ -805,7 +798,7 @@ namespace TinyOPDS
             {
                 upnpController.InterfaceIndex = interfaceCombo.SelectedIndex;
                 intLink.Text = string.Format(urlTemplate, upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, rootPrefix.Text);
-                intWebLink.Text = string.Format(urlTemplate, upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, webPrefix.Text);
+                intWebLink.Text = string.Format(urlTemplate, upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, string.Empty);
 
                 if (Properties.Settings.Default.UseUPnP && openPort.Checked)
                 {
@@ -961,12 +954,12 @@ namespace TinyOPDS
                 if (upnpController.LocalIP != null)
                 {
                     intLink.Text = string.Format(urlTemplate, upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, rootPrefix.Text);
-                    intWebLink.Text = string.Format(urlTemplate, upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, webPrefix.Text);
+                    intWebLink.Text = string.Format(urlTemplate, upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, string.Empty);
                 }
                 if (upnpController.ExternalIP != null)
                 {
                     extLink.Text = string.Format(urlTemplate, upnpController.ExternalIP.ToString(), Properties.Settings.Default.ServerPort, rootPrefix.Text);
-                    extWebLink.Text = string.Format(urlTemplate, upnpController.ExternalIP.ToString(), Properties.Settings.Default.ServerPort, webPrefix.Text);
+                    extWebLink.Text = string.Format(urlTemplate, upnpController.ExternalIP.ToString(), Properties.Settings.Default.ServerPort, string.Empty);
                 }
             }
         }
@@ -981,12 +974,6 @@ namespace TinyOPDS
             if (sender is TextBox && (sender as TextBox).CanUndo)
             {
                 if (rootPrefix.Text.EndsWith("/")) rootPrefix.Text = rootPrefix.Text.Remove(rootPrefix.Text.Length - 1);
-                if (webPrefix.Text.EndsWith("/")) webPrefix.Text = webPrefix.Text.Remove(webPrefix.Text.Length - 1);
-                if (rootPrefix.Text.ToLower().Equals(webPrefix.Text.ToLower()))
-                {
-                    MessageBox.Show(Localizer.Text("OPDS and web root prefixes can not be the same."), Localizer.Text("Warning"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    (sender as TextBox).Undo();
-                }
                 UpdateServerLinks();
             }
         }

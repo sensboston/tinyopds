@@ -65,9 +65,6 @@
     <Setting Name="LocalInterfaceIndex" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">0</Value>
     </Setting>
-    <Setting Name="HttpPrefix" Type="System.String" Scope="User">
-      <Value Profile="(Default)">lib</Value>
-    </Setting>
     <Setting Name="UseAbsoluteUri" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>

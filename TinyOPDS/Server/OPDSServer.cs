@@ -25,7 +25,6 @@ using System.Text;
 
 using TinyOPDS.OPDS;
 using TinyOPDS.Data;
-using System.Diagnostics;
 
 namespace TinyOPDS.Server
 {
@@ -249,9 +248,9 @@ namespace TinyOPDS.Server
                     return;
                 }
 
-                bool isWWWRequest = IsWebRequest(processor.HttpUrl, processor);
-                bool acceptFB2 = DetectFB2Support(processor.HttpHeaders["User-Agent"]) || isWWWRequest;
-                int threshold = isWWWRequest ? Properties.Settings.Default.ItemsPerWebPage : Properties.Settings.Default.ItemsPerOPDSPage;
+                bool isOPDSRequest = IsOPDSRequest(processor.HttpUrl);
+                bool acceptFB2 = DetectFB2Support(processor.HttpHeaders["User-Agent"]) || !isOPDSRequest;
+                int threshold = isOPDSRequest ? Properties.Settings.Default.ItemsPerOPDSPage : Properties.Settings.Default.ItemsPerWebPage;
 
                 // Handle reader requests
                 if (request.StartsWith("/reader/"))
@@ -298,7 +297,7 @@ namespace TinyOPDS.Server
 
                 if (string.IsNullOrEmpty(ext))
                 {
-                    HandleOPDSRequest(processor, request, isWWWRequest, acceptFB2, threshold);
+                    HandleOPDSRequest(processor, request, isOPDSRequest, acceptFB2, threshold);
                 }
                 else if (request.Contains("opds-opensearch.xml"))
                 {
@@ -603,13 +602,17 @@ document.addEventListener('DOMContentLoaded', function() {{
             string request = httpUrl;
             Log.WriteLine(LogLevel.Info, "Original request: {0}", request);
 
-            if (!request.Contains("opds-opensearch.xml") && !string.IsNullOrEmpty(Properties.Settings.Default.RootPrefix))
+            // Special handling for opensearch which must be at root
+            if (!request.Contains("opds-opensearch.xml"))
             {
-                request = request.Replace("/" + Properties.Settings.Default.RootPrefix, "");
-            }
-            if (!string.IsNullOrEmpty(Properties.Settings.Default.HttpPrefix))
-            {
-                request = request.Replace("/" + Properties.Settings.Default.HttpPrefix, "");
+                // Remove OPDS prefix if present to normalize the request path
+                if (!string.IsNullOrEmpty(Properties.Settings.Default.RootPrefix) &&
+                    request.StartsWith("/" + Properties.Settings.Default.RootPrefix))
+                {
+                    request = request.Substring(Properties.Settings.Default.RootPrefix.Length + 1);
+                    if (!request.StartsWith("/"))
+                        request = "/" + request;
+                }
             }
 
             while (request.Contains("//"))
@@ -651,18 +654,15 @@ document.addEventListener('DOMContentLoaded', function() {{
             return !string.IsNullOrEmpty(request) && request.Length <= 2048;
         }
 
-        private bool IsWebRequest(string httpUrl, HttpProcessor processor)
+        private bool IsOPDSRequest(string httpUrl)
         {
-            // If URL contains OPDS prefix, it's an OPDS request, not web
-            if (httpUrl.StartsWith("/" + Properties.Settings.Default.RootPrefix)) return false;
-
-            // If URL contains web prefix (HttpPrefix), it's a web request
-            if (httpUrl.StartsWith("/" + Properties.Settings.Default.HttpPrefix)) return true;
-
-            // Accept header check for browser vs OPDS client (for OpenSearch results)
-            string acceptHeader = processor.HttpHeaders.ContainsKey("Accept") ? processor.HttpHeaders["Accept"] : null;
-            bool acceptCheck = !string.IsNullOrEmpty(acceptHeader) && acceptHeader.Contains("text/html");
-            return acceptCheck;
+            // Simple logic: if URL contains /opds prefix, it's an OPDS request
+            if (!string.IsNullOrEmpty(Properties.Settings.Default.RootPrefix) &&
+                httpUrl.StartsWith("/" + Properties.Settings.Default.RootPrefix))
+            {
+                return true;
+            }
+            return false;
         }
 
         private bool DetectFB2Support(string userAgent)
@@ -674,7 +674,7 @@ document.addEventListener('DOMContentLoaded', function() {{
 
         #region OPDS Request Handlers
 
-        private void HandleOPDSRequest(HttpProcessor processor, string request, bool isWWWRequest, bool acceptFB2, int threshold)
+        private void HandleOPDSRequest(HttpProcessor processor, string request, bool isOPDSRequest, bool acceptFB2, int threshold)
         {
             try
             {
@@ -689,10 +689,17 @@ document.addEventListener('DOMContentLoaded', function() {{
                 }
 
                 xml = FixNamespace(xml);
-                xml = ApplyUriPrefixes(xml, processor, isWWWRequest);
+                xml = ApplyUriPrefixes(xml, processor, isOPDSRequest);
 
-                if (isWWWRequest)
+                if (isOPDSRequest)
                 {
+                    // OPDS request - always return XML
+                    processor.WriteSuccess("application/atom+xml;charset=utf-8");
+                    processor.OutputStream.Write(xml);
+                }
+                else
+                {
+                    // Web request - transform to HTML
                     string html = TransformToHtml(xml);
                     if (!string.IsNullOrEmpty(html))
                     {
@@ -703,11 +710,6 @@ document.addEventListener('DOMContentLoaded', function() {{
                     {
                         processor.WriteFailure();
                     }
-                }
-                else
-                {
-                    processor.WriteSuccess("application/atom+xml;charset=utf-8");
-                    processor.OutputStream.Write(xml);
                 }
             }
             catch (Exception e)
@@ -874,7 +876,7 @@ document.addEventListener('DOMContentLoaded', function() {{
             return xml;
         }
 
-        private string ApplyUriPrefixes(string xml, HttpProcessor processor, bool isWWWRequest)
+        private string ApplyUriPrefixes(string xml, HttpProcessor processor, bool isOPDSRequest)
         {
             try
             {
@@ -883,21 +885,21 @@ document.addEventListener('DOMContentLoaded', function() {{
                     string host = processor.HttpHeaders["Host"]?.ToString();
                     if (!string.IsNullOrEmpty(host))
                     {
-                        string prefix = isWWWRequest ?
-                            Properties.Settings.Default.HttpPrefix :
-                            Properties.Settings.Default.RootPrefix;
+                        // For OPDS requests, add the /opds prefix
+                        // For web requests, no prefix
+                        string prefix = isOPDSRequest ? Properties.Settings.Default.RootPrefix : "";
                         xml = xml.Replace("href=\"", $"href=\"http://{host.UrlCombine(prefix)}");
                     }
                 }
                 else
                 {
-                    string prefix = isWWWRequest ?
-                        Properties.Settings.Default.HttpPrefix :
-                        Properties.Settings.Default.RootPrefix;
-                    if (!string.IsNullOrEmpty(prefix))
+                    // For OPDS requests, add the /opds prefix
+                    // For web requests, no prefix
+                    if (isOPDSRequest && !string.IsNullOrEmpty(Properties.Settings.Default.RootPrefix))
                     {
-                        prefix = "/" + prefix;
+                        string prefix = "/" + Properties.Settings.Default.RootPrefix;
                         xml = xml.Replace("href=\"", "href=\"" + prefix);
+                        // Don't add prefix to opensearch as it needs to be at root
                         xml = xml.Replace(prefix + "/opds-opensearch.xml", "/opds-opensearch.xml");
                     }
                 }
@@ -987,6 +989,7 @@ document.addEventListener('DOMContentLoaded', function() {{
                 xml = xml.Insert(xml.IndexOf("<OpenSearchDescription") + 22,
                     " xmlns=\"http://a9.com/-/spec/opensearch/1.1/\"");
 
+                // OpenSearch always needs to be accessible from root
                 xml = ApplyUriPrefixes(xml, processor, false);
 
                 processor.WriteSuccess("application/atom+xml;charset=utf-8");

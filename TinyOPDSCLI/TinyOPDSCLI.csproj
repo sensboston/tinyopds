@@ -7,8 +7,8 @@
     <ProjectGuid>{5A92FA9B-B91C-48F4-9488-77103868D226}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>TinyOPDSConsole</RootNamespace>
-    <AssemblyName>TinyOPDSConsole</AssemblyName>
+    <RootNamespace>TinyOPDSCLI</RootNamespace>
+    <AssemblyName>TinyOPDSCLI</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <PublishUrl>publish\</PublishUrl>

@@ -5,7 +5,7 @@ VisualStudioVersion = 17.13.36105.23
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TinyOPDS", "TinyOPDS.csproj", "{D4508020-1E2C-4D8E-B879-77D5C213E8EC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TinyOPDSConsole", "..\TinyOPDSConsole\TinyOPDSConsole.csproj", "{5A92FA9B-B91C-48F4-9488-77103868D226}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TinyOPDSCLI", "..\TinyOPDSConsole\TinyOPDSCLI.csproj", "{5A92FA9B-B91C-48F4-9488-77103868D226}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

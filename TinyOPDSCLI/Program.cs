@@ -26,7 +26,7 @@ using TinyOPDS.Properties;
 using UPnP;
 using Bluegrams.Application;
 
-namespace TinyOPDSConsole
+namespace TinyOPDSCLI
 {
     class Program : ServiceBase
     {
@@ -44,7 +44,7 @@ namespace TinyOPDSConsole
         private static readonly UPnPController upnpController = new UPnPController();
         private static Timer upnpRefreshTimer = null;
 
-        private static readonly Mutex mutex = new Mutex(false, "tiny_opds_console_mutex");
+        private static readonly Mutex mutex = new Mutex(false, "tiny_opds_cli_mutex");
         private static int fb2Count, epubCount, skippedFiles, invalidFiles, dups;
 
         private static readonly List<Book> pendingBooks = new List<Book>();
@@ -139,9 +139,9 @@ namespace TinyOPDSConsole
             {
                 if (Utils.IsLinux)
                 {
-                    if (IsApplicationRunningOnMono("TinyOPDSConsole.exe"))
+                    if (IsApplicationRunningOnMono("TinyOPDSCLI.exe"))
                     {
-                        Console.WriteLine("TinyOPDS Console is already running.");
+                        Console.WriteLine("TinyOPDS CLI is already running.");
                         return -1;
                     }
                 }
@@ -149,7 +149,7 @@ namespace TinyOPDSConsole
                 {
                     if (!mutex.WaitOne(TimeSpan.FromSeconds(1), false))
                     {
-                        Console.WriteLine("TinyOPDS Console is already running.");
+                        Console.WriteLine("TinyOPDS CLI is already running.");
                         return -1;
                     }
                 }
@@ -179,7 +179,7 @@ namespace TinyOPDSConsole
 
                     // On Linux, we need clear console (terminal) window first
                     if (Utils.IsLinux) Console.Write("\u001b[1J\u001b[0;0H");
-                    Console.WriteLine("TinyOPDS console, {0}, copyright (c) 2013-2025 SeNSSoFT", string.Format(Localizer.Text("version {0}.{1} {2}"), Utils.Version.Major, Utils.Version.Minor, Utils.Version.Major == 0 ? " (beta)" : ""));
+                    Console.WriteLine("TinyOPDS Commnad Line Interface, {0}, copyright (c) 2013-2025 SeNSSoFT", string.Format(Localizer.Text("version {0}.{1} {2}"), Utils.Version.Major, Utils.Version.Minor, Utils.Version.Major == 0 ? " (beta)" : ""));
 
                     if (args.Length > 0)
                     {
@@ -228,7 +228,7 @@ namespace TinyOPDSConsole
                                             Console.WriteLine(SERVICE_DISPLAY_NAME + " uninstalled");
 
                                             // Let's close service process (except ourselves)
-                                            Process[] localByName = Process.GetProcessesByName("TinyOPDSConsole");
+                                            Process[] localByName = Process.GetProcessesByName("TinyOPDSCLI");
                                             foreach (Process p in localByName)
                                             {
                                                 // Don't kill ourselves!
@@ -345,7 +345,7 @@ namespace TinyOPDSConsole
                                     }
                                     else
                                     {
-                                        Console.WriteLine("Please provide a path to the library files (without closing slash), for example: TinyOPDSConsole.exe \"C:\\My Documents\\My ebooks\"");
+                                        Console.WriteLine("Please provide a path to the library files (without closing slash), for example: TinyOPDSCLI.exe \"C:\\My Documents\\My ebooks\"");
                                     }
                                     CleanupAndExit(0);
                                 }
@@ -354,7 +354,7 @@ namespace TinyOPDSConsole
                     }
 
                     bool l = Utils.IsLinux;
-                    Console.WriteLine("Use: TinyOPDSConsole.exe [command], where [command] is \n\n" +
+                    Console.WriteLine("Use: TinyOPDSCLI.exe [command], where [command] is \n\n" +
                                   (l ? "" : "\t install \t - install and run TinyOPDS service\n") +
                                   (l ? "" : "\t uninstall \t - uninstall TinyOPDS service\n") +
                                             "\t start \t\t - start service\n" +

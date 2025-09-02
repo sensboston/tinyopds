@@ -5,12 +5,12 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("TinyOPDSConsole")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("TinyOPDSCLI")]
+[assembly: AssemblyDescription("TinyOPDS Command Line Interface app")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("TinyOPDSConsole")]
-[assembly: AssemblyCopyright("Copyright ©  2013")]
+[assembly: AssemblyCompany("SeNSSoFT")]
+[assembly: AssemblyProduct("TinyOPDSCLI")]
+[assembly: AssemblyCopyright("Copyright © 2013-2025, SeNSSoFT")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

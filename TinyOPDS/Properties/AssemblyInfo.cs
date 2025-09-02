@@ -6,11 +6,11 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("TinyOPDS server")]
-[assembly: AssemblyDescription("Standalone lightweight OPDS server")]
+[assembly: AssemblyDescription("Standalone lightweight OPDS and HTTP server")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("SeNSSoFT")]
-[assembly: AssemblyProduct("TinyOPDS server")]
-[assembly: AssemblyCopyright("Copyright © 2013-2025, SeNSSoFT Ltd.")]
+[assembly: AssemblyProduct("TinyOPDS GUI server")]
+[assembly: AssemblyCopyright("Copyright © 2013-2025, SeNSSoFT")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

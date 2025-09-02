@@ -611,6 +611,7 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					}
 					}
 				</style>
+				<script src="/smart-header.js"/>
 				<script>
 					// Store reader localization strings in localStorage for reader.html
 					(function() {

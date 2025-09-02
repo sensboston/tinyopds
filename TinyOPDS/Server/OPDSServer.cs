@@ -138,6 +138,13 @@ namespace TinyOPDS.Server
                 return;
             }
 
+            // Handle smart header script
+            if (request.Equals("/smart-header.js"))
+            {
+                resourceHandlers.HandleSmartHeaderScript(processor);
+                return;
+            }
+
             // Handle OPDS catalog requests (no extension)
             if (string.IsNullOrEmpty(ext))
             {

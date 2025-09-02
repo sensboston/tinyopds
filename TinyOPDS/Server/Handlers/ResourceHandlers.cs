@@ -108,6 +108,37 @@ namespace TinyOPDS.Server
         }
 
         /// <summary>
+        /// Handles smart-header.js request
+        /// </summary>
+        public void HandleSmartHeaderScript(HttpProcessor processor)
+        {
+            try
+            {
+                string resourceName = Assembly.GetExecutingAssembly().GetName().Name + ".Resources.smart-header.js";
+
+                using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
+                {
+                    if (stream != null && stream.Length > 0)
+                    {
+                        processor.WriteSuccess("application/javascript");
+                        stream.CopyTo(processor.OutputStream.BaseStream);
+                        processor.OutputStream.BaseStream.Flush();
+                        Log.WriteLine(LogLevel.Info, "Served smart-header.js");
+                        return;
+                    }
+                }
+
+                Log.WriteLine(LogLevel.Warning, "smart-header.js not found in resources");
+                processor.WriteFailure();
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "smart-header.js request error: {0}", ex.Message);
+                processor.WriteFailure();
+            }
+        }
+
+        /// <summary>
         /// Applies URI prefixes to XML content
         /// </summary>
         private string ApplyUriPrefixes(string xml, bool isOPDSRequest)

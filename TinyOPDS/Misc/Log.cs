@@ -28,17 +28,70 @@ namespace TinyOPDS
         public static LogLevel VerbosityLevel = LogLevel.Info;
 
         /// <summary>
+        /// Flag indicating if running as system service
+        /// Should be set by service initialization code
+        /// </summary>
+        public static bool IsRunningAsService = false;
+
+        /// <summary>
         /// Enable or disable logging to file
         /// </summary>
         private static bool saveToFile = false;
         public static bool SaveToFile
         {
             get { return saveToFile; }
-            set 
+            set
             {
-                LogFileName = Path.Combine(Utils.ServiceFilesLocation, "TinyOPDS.log");
+                LogFileName = GetLogPath();
                 saveToFile = value;
             }
+        }
+
+        /// <summary>
+        /// Determine log file path based on execution context
+        /// </summary>
+        /// <returns>Full path to log file</returns>
+        private static string GetLogPath()
+        {
+            string logFileName = "TinyOPDS.log";
+
+            // If running as service on Unix/Linux, try system log directory
+            if (IsRunningAsService)
+            {
+                bool isRunningOnMono = Type.GetType("Mono.Runtime") != null;
+                if (isRunningOnMono)
+                {
+                    PlatformID platform = Environment.OSVersion.Platform;
+                    if (platform == PlatformID.Unix || platform == PlatformID.MacOSX || (int)platform == 128)
+                    {
+                        // Try /var/log/tinyopds/ for service mode
+                        string systemLogDir = "/var/log/tinyopds";
+                        try
+                        {
+                            if (!Directory.Exists(systemLogDir))
+                            {
+                                Directory.CreateDirectory(systemLogDir);
+                            }
+
+                            // Test write access
+                            string testFile = Path.Combine(systemLogDir, ".test");
+                            File.WriteAllText(testFile, "test");
+                            File.Delete(testFile);
+
+                            return Path.Combine(systemLogDir, logFileName);
+                        }
+                        catch
+                        {
+                            // Fall back to application directory
+                            Debug.WriteLine("Cannot write to /var/log/tinyopds/, falling back to application directory");
+                        }
+                    }
+                }
+            }
+
+            // Default: use application directory (portable mode)
+            // This covers: Windows, GUI mode, CLI user mode, and fallback for service mode
+            return Path.Combine(Utils.ServiceFilesLocation, logFileName);
         }
 
         /// <summary>

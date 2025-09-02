@@ -5,8 +5,8 @@
  * Copyright (c) 2013-2025 SeNSSoFT
  * SPDX-License-Identifier: MIT
  *
- * Enhanced OPDS HTTP server with improved stability and 
- * error handling
+ * Enhanced OPDS HTTP server with improved stability,
+ * error handling and request cancellation support
  * 
  */
 
@@ -22,6 +22,7 @@ using System.Reflection;
 using System.Collections.Generic;
 using System.Xml.Linq;
 using System.Text;
+using System.Threading;
 
 using TinyOPDS.OPDS;
 using TinyOPDS.Data;
@@ -235,6 +236,8 @@ namespace TinyOPDS.Server
         public override void HandleGETRequest(HttpProcessor processor)
         {
             string clientIP = GetClientIP(processor);
+            string clientHash = processor.ClientHash; // Get client hash for request cancellation
+
             Log.WriteLine("HTTP GET request from {0}: {1}", clientIP, processor.HttpUrl);
 
             try
@@ -246,6 +249,23 @@ namespace TinyOPDS.Server
                 {
                     processor.WriteBadRequest();
                     return;
+                }
+
+                // Determine request type for cancellation management
+                bool isImageRequest = ext.Equals(".jpeg") || ext.Equals(".png") ||
+                                     request.Contains("/cover/") || request.Contains("/thumbnail/");
+                bool isNavigationRequest = string.IsNullOrEmpty(ext) ||
+                                          request.StartsWith("/reader/") ||
+                                          request.Contains("opds-opensearch.xml") ||
+                                          request.StartsWith("/search") ||
+                                          request.StartsWith("/author") ||
+                                          request.StartsWith("/sequence") ||
+                                          request.StartsWith("/genre");
+
+                // Cancel pending image requests if this is a navigation request
+                if (isNavigationRequest && !string.IsNullOrEmpty(clientHash))
+                {
+                    RequestCancellationManager.OnNavigationRequest(clientHash);
                 }
 
                 bool isOPDSRequest = IsOPDSRequest(processor.HttpUrl);
@@ -309,7 +329,8 @@ namespace TinyOPDS.Server
                 }
                 else if (ext.Equals(".jpeg") || ext.Equals(".png"))
                 {
-                    HandleImageRequest(processor, request);
+                    // Handle image requests with cancellation support
+                    HandleImageRequestWithCancellation(processor, request, clientHash);
                 }
                 else if (ext.Equals(".ico"))
                 {
@@ -326,6 +347,229 @@ namespace TinyOPDS.Server
                 processor.WriteFailure();
             }
         }
+
+        #region Enhanced Image Handling with Cancellation
+
+        private void HandleImageRequestWithCancellation(HttpProcessor processor, string request, string clientHash)
+        {
+            CancellationToken cancellationToken = default(CancellationToken);
+            bool hasToken = false;
+            string bookID = null;
+
+            try
+            {
+                // Get cancellation token for this client
+                if (!string.IsNullOrEmpty(clientHash))
+                {
+                    cancellationToken = RequestCancellationManager.GetImageRequestToken(clientHash);
+                    hasToken = true;
+                }
+
+                // Check if already cancelled
+                if (hasToken && cancellationToken.IsCancellationRequested)
+                {
+                    Log.WriteLine(LogLevel.Info, "Image request cancelled before processing: {0}", request);
+                    processor.WriteFailure();
+                    return;
+                }
+
+                bool getCover = request.Contains("/cover/");
+                bookID = ExtractBookIdFromImageRequest(request, getCover);
+
+                if (string.IsNullOrEmpty(bookID))
+                {
+                    Log.WriteLine(LogLevel.Warning, "Invalid book ID in image request: {0}", request);
+                    processor.WriteBadRequest();
+                    return;
+                }
+
+                Book book = Library.GetBook(bookID);
+                if (book == null)
+                {
+                    Log.WriteLine(LogLevel.Warning, "Book {0} not found for image request", bookID);
+                    processor.WriteFailure();
+                    return;
+                }
+
+                // Check cancellation before expensive operations
+                if (hasToken && cancellationToken.IsCancellationRequested)
+                {
+                    Log.WriteLine(LogLevel.Info, "Image request cancelled before extraction for book {0}", bookID);
+                    return;
+                }
+
+                var imageObject = GetOrCreateCoverImageWithCancellation(bookID, book, cancellationToken);
+
+                if (imageObject != null)
+                {
+                    SendImageToClientWithCancellation(processor, imageObject, getCover, bookID, cancellationToken);
+                }
+                else
+                {
+                    Log.WriteLine(LogLevel.Warning, "No image available for book {0}", bookID);
+                    processor.WriteFailure();
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                Log.WriteLine(LogLevel.Info, "Image request cancelled for book {0}", bookID ?? "unknown");
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Image request error for book {0}: {1}", bookID ?? "unknown", ex.Message);
+                try
+                {
+                    processor.WriteFailure();
+                }
+                catch { }
+            }
+            finally
+            {
+                if (hasToken && !string.IsNullOrEmpty(clientHash))
+                {
+                    RequestCancellationManager.CompleteImageRequest(clientHash);
+                }
+            }
+        }
+
+        private object GetOrCreateCoverImageWithCancellation(string bookID, Book book, CancellationToken cancellationToken)
+        {
+            try
+            {
+                // Check cache first
+                if (ImagesCache.HasImage(bookID))
+                {
+                    return ImagesCache.GetImage(bookID);
+                }
+
+                // Check cancellation before extraction
+                cancellationToken.ThrowIfCancellationRequested();
+
+                // For now, use existing CoverImage class
+                // In production, you'd want to modify CoverImage to accept cancellation token
+                var image = new CoverImage(book);
+
+                // Simulate cancellation check points during image extraction
+                // In real implementation, pass cancellation token to CoverImage constructor
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (image != null && image.HasImages)
+                {
+                    ImagesCache.Add(image);
+                }
+
+                return image;
+            }
+            catch (OperationCanceledException)
+            {
+                throw; // Re-throw to handle at higher level
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error creating cover image for book {0}: {1}", bookID, ex.Message);
+                return null;
+            }
+        }
+
+        private void SendImageToClientWithCancellation(HttpProcessor processor, object imageObject, bool getCover, string bookID, CancellationToken cancellationToken)
+        {
+            Stream imageStream = null;
+            bool hasImages = false;
+
+            try
+            {
+                // Handle both CoverImage and CachedCoverImage types
+                if (imageObject is CachedCoverImage cachedImage)
+                {
+                    hasImages = cachedImage.HasImages;
+                    if (hasImages)
+                    {
+                        imageStream = getCover ? cachedImage.CoverImageStream : cachedImage.ThumbnailImageStream;
+                    }
+                }
+                else if (imageObject is CoverImage regularImage)
+                {
+                    hasImages = regularImage.HasImages;
+                    if (hasImages)
+                    {
+                        imageStream = getCover ? regularImage.CoverImageStream : regularImage.ThumbnailImageStream;
+                    }
+                }
+
+                if (hasImages && imageStream != null && imageStream.Length > 0)
+                {
+                    // Check cancellation before sending
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    if (!processor.OutputStream.BaseStream.CanWrite)
+                    {
+                        Log.WriteLine(LogLevel.Info, "Client disconnected before sending image for book {0}", bookID);
+                        return;
+                    }
+
+                    processor.WriteSuccess("image/jpeg");
+
+                    const int bufferSize = 8192;
+                    byte[] buffer = new byte[bufferSize];
+                    int bytesRead;
+                    long totalBytesSent = 0;
+
+                    imageStream.Position = 0;
+
+                    while ((bytesRead = imageStream.Read(buffer, 0, bufferSize)) > 0)
+                    {
+                        // Check cancellation during transfer
+                        cancellationToken.ThrowIfCancellationRequested();
+
+                        try
+                        {
+                            if (!processor.OutputStream.BaseStream.CanWrite)
+                            {
+                                Log.WriteLine(LogLevel.Info, "Client disconnected during image transfer for book {0} after {1} bytes", bookID, totalBytesSent);
+                                break;
+                            }
+
+                            processor.OutputStream.BaseStream.Write(buffer, 0, bytesRead);
+                            totalBytesSent += bytesRead;
+                        }
+                        catch (IOException ioEx) when (ioEx.InnerException is SocketException)
+                        {
+                            Log.WriteLine(LogLevel.Info, "Client disconnected during image transfer for book {0} after {1} bytes", bookID, totalBytesSent);
+                            break;
+                        }
+                        catch (ObjectDisposedException)
+                        {
+                            Log.WriteLine(LogLevel.Info, "Stream disposed during image transfer for book {0} after {1} bytes", bookID, totalBytesSent);
+                            break;
+                        }
+                    }
+
+                    if (processor.OutputStream.BaseStream.CanWrite && totalBytesSent == imageStream.Length)
+                    {
+                        processor.OutputStream.BaseStream.Flush();
+                        ServerStatistics.IncrementImagesSent();
+                        Log.WriteLine(LogLevel.Info, "Successfully sent {0} image for book {1} ({2} bytes)",
+                            getCover ? "cover" : "thumbnail", bookID, totalBytesSent);
+                    }
+                }
+                else
+                {
+                    Log.WriteLine(LogLevel.Warning, "No image stream available for book {0}", bookID);
+                    processor.WriteFailure();
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                Log.WriteLine(LogLevel.Info, "Image sending cancelled for book {0}", bookID);
+                throw;
+            }
+            finally
+            {
+                imageStream?.Dispose();
+            }
+        }
+
+        #endregion
 
         #region Reader Handler
 
@@ -349,13 +593,17 @@ namespace TinyOPDS.Server
                     return;
                 }
 
-                // Get book content
+                // Get book content with cancellation support for better performance
                 using (var memStream = new MemoryStream())
                 {
-                    if (!ExtractBookContent(book, memStream))
+                    // Create a cancellation token with 30 second timeout for reader requests
+                    using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30)))
                     {
-                        HandleBookFileNotFoundForReader(processor, book);
-                        return;
+                        if (!ExtractBookContentWithCancellation(book, memStream, cts.Token))
+                        {
+                            HandleBookFileNotFoundForReader(processor, book);
+                            return;
+                        }
                     }
 
                     // Prepare book data as base64
@@ -1066,10 +1314,14 @@ document.addEventListener('DOMContentLoaded', function() {{
         {
             using (var memStream = new MemoryStream())
             {
-                if (!ExtractBookContent(book, memStream))
+                // Use cancellation token with timeout for downloads
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60)))
                 {
-                    processor.WriteFailure();
-                    return;
+                    if (!ExtractBookContentWithCancellation(book, memStream, cts.Token))
+                    {
+                        processor.WriteFailure();
+                        return;
+                    }
                 }
 
                 // Use System.IO.Compression for creating ZIP files in .NET 4.8
@@ -1112,10 +1364,14 @@ document.addEventListener('DOMContentLoaded', function() {{
         {
             using (var memStream = new MemoryStream())
             {
-                if (!ExtractBookContent(book, memStream))
+                // Use cancellation token with timeout for downloads
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60)))
                 {
-                    processor.WriteFailure();
-                    return;
+                    if (!ExtractBookContentWithCancellation(book, memStream, cts.Token))
+                    {
+                        processor.WriteFailure();
+                        return;
+                    }
                 }
 
                 if (book.BookType == BookType.FB2 && !acceptFB2)
@@ -1147,6 +1403,12 @@ document.addEventListener('DOMContentLoaded', function() {{
 
         private bool ExtractBookContent(Book book, MemoryStream memStream)
         {
+            // Wrapper for legacy code - uses default cancellation token
+            return ExtractBookContentWithCancellation(book, memStream, CancellationToken.None);
+        }
+
+        private bool ExtractBookContentWithCancellation(Book book, MemoryStream memStream, CancellationToken cancellationToken)
+        {
             try
             {
                 // Build full path using library path if needed
@@ -1174,6 +1436,9 @@ document.addEventListener('DOMContentLoaded', function() {{
                         return false;
                     }
 
+                    // Check cancellation before opening ZIP
+                    cancellationToken.ThrowIfCancellationRequested();
+
                     // Use System.IO.Compression.ZipFile for .NET 4.8
                     using (var zipArchive = System.IO.Compression.ZipFile.OpenRead(pathParts[0]))
                     {
@@ -1182,9 +1447,22 @@ document.addEventListener('DOMContentLoaded', function() {{
 
                         if (entry != null)
                         {
+                            // Check cancellation before extraction
+                            cancellationToken.ThrowIfCancellationRequested();
+
                             using (var entryStream = entry.Open())
                             {
-                                entryStream.CopyTo(memStream);
+                                // Copy with cancellation support
+                                const int bufferSize = 81920; // 80KB buffer
+                                byte[] buffer = new byte[bufferSize];
+                                int bytesRead;
+
+                                while ((bytesRead = entryStream.Read(buffer, 0, bufferSize)) > 0)
+                                {
+                                    cancellationToken.ThrowIfCancellationRequested();
+                                    memStream.Write(buffer, 0, bytesRead);
+                                }
+
                                 memStream.Position = 0;
                                 Log.WriteLine(LogLevel.Info, "Successfully extracted book from ZIP: {0}", entry.FullName);
                                 return true;
@@ -1205,14 +1483,32 @@ document.addEventListener('DOMContentLoaded', function() {{
                         return false;
                     }
 
+                    // Check cancellation before reading file
+                    cancellationToken.ThrowIfCancellationRequested();
+
                     using (var stream = new FileStream(bookPath, FileMode.Open, FileAccess.Read, FileShare.Read))
                     {
-                        stream.CopyTo(memStream);
+                        // Copy with cancellation support
+                        const int bufferSize = 81920;
+                        byte[] buffer = new byte[bufferSize];
+                        int bytesRead;
+
+                        while ((bytesRead = stream.Read(buffer, 0, bufferSize)) > 0)
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            memStream.Write(buffer, 0, bytesRead);
+                        }
+
                         memStream.Position = 0;
                         Log.WriteLine(LogLevel.Info, "Successfully extracted book from file: {0}", bookPath);
                         return true;
                     }
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                Log.WriteLine(LogLevel.Info, "Book extraction cancelled for: {0}", book.FilePath);
+                throw;
             }
             catch (Exception ex)
             {
@@ -1257,159 +1553,6 @@ document.addEventListener('DOMContentLoaded', function() {{
             return false;
         }
 
-        private void HandleImageRequest(HttpProcessor processor, string request)
-        {
-            string bookID = null;
-            try
-            {
-                bool getCover = request.Contains("/cover/");
-                bookID = ExtractBookIdFromImageRequest(request, getCover);
-
-                if (string.IsNullOrEmpty(bookID))
-                {
-                    Log.WriteLine(LogLevel.Warning, "Invalid book ID in image request: {0}", request);
-                    processor.WriteBadRequest();
-                    return;
-                }
-
-                Book book = Library.GetBook(bookID);
-                if (book == null)
-                {
-                    Log.WriteLine(LogLevel.Warning, "Book {0} not found for image request", bookID);
-                    processor.WriteFailure();
-                    return;
-                }
-
-                var imageObject = GetOrCreateCoverImage(bookID, book);
-
-                if (imageObject != null)
-                {
-                    Stream imageStream = null;
-                    bool hasImages = false;
-
-                    // Handle both CoverImage and CachedCoverImage types
-                    if (imageObject is CachedCoverImage cachedImage)
-                    {
-                        hasImages = cachedImage.HasImages;
-                        if (hasImages)
-                        {
-                            imageStream = getCover ? cachedImage.CoverImageStream : cachedImage.ThumbnailImageStream;
-                        }
-                    }
-                    else if (imageObject is CoverImage regularImage)
-                    {
-                        hasImages = regularImage.HasImages;
-                        if (hasImages)
-                        {
-                            imageStream = getCover ? regularImage.CoverImageStream : regularImage.ThumbnailImageStream;
-                        }
-                    }
-
-                    if (hasImages && imageStream != null && imageStream.Length > 0)
-                    {
-                        try
-                        {
-                            if (!processor.OutputStream.BaseStream.CanWrite)
-                            {
-                                Log.WriteLine(LogLevel.Info, "Client disconnected before sending image for book {0}", bookID);
-                                return;
-                            }
-
-                            processor.WriteSuccess("image/jpeg");
-
-                            const int bufferSize = 8192;
-                            byte[] buffer = new byte[bufferSize];
-                            int bytesRead;
-                            long totalBytesSent = 0;
-
-                            imageStream.Position = 0;
-
-                            while ((bytesRead = imageStream.Read(buffer, 0, bufferSize)) > 0)
-                            {
-                                try
-                                {
-                                    if (!processor.OutputStream.BaseStream.CanWrite)
-                                    {
-                                        Log.WriteLine(LogLevel.Info, "Client disconnected during image transfer for book {0} after {1} bytes", bookID, totalBytesSent);
-                                        break;
-                                    }
-
-                                    processor.OutputStream.BaseStream.Write(buffer, 0, bytesRead);
-                                    totalBytesSent += bytesRead;
-                                }
-                                catch (IOException ioEx) when (ioEx.InnerException is SocketException)
-                                {
-                                    Log.WriteLine(LogLevel.Info, "Client disconnected during image transfer for book {0} after {1} bytes", bookID, totalBytesSent);
-                                    break;
-                                }
-                                catch (ObjectDisposedException)
-                                {
-                                    Log.WriteLine(LogLevel.Info, "Stream disposed during image transfer for book {0} after {1} bytes", bookID, totalBytesSent);
-                                    break;
-                                }
-                            }
-
-                            if (processor.OutputStream.BaseStream.CanWrite && totalBytesSent == imageStream.Length)
-                            {
-                                processor.OutputStream.BaseStream.Flush();
-                                ServerStatistics.IncrementImagesSent();
-                                Log.WriteLine(LogLevel.Info, "Successfully sent {0} image for book {1} ({2} bytes)",
-                                    getCover ? "cover" : "thumbnail", bookID, totalBytesSent);
-                            }
-                        }
-                        catch (IOException ioEx) when (ioEx.InnerException is SocketException)
-                        {
-                            Log.WriteLine(LogLevel.Info, "Client disconnected while preparing image for book {0}: {1}", bookID, ioEx.Message);
-                        }
-                        catch (ObjectDisposedException)
-                        {
-                            Log.WriteLine(LogLevel.Info, "Stream disposed while preparing image for book {0}", bookID);
-                        }
-                        catch (Exception imgEx)
-                        {
-                            Log.WriteLine(LogLevel.Error, "Unexpected error sending image for book {0}: {1}", bookID, imgEx.Message);
-
-                            try
-                            {
-                                if (processor.OutputStream.BaseStream.CanWrite)
-                                {
-                                    processor.WriteFailure();
-                                }
-                            }
-                            catch
-                            {
-                            }
-                        }
-                        finally
-                        {
-                            imageStream?.Dispose();
-                        }
-                    }
-                    else
-                    {
-                        Log.WriteLine(LogLevel.Warning, "No image available for book {0}", bookID);
-                        processor.WriteFailure();
-                    }
-                }
-                else
-                {
-                    Log.WriteLine(LogLevel.Warning, "No image available for book {0}", bookID);
-                    processor.WriteFailure();
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.WriteLine(LogLevel.Error, "Image request error for book {0}: {1}", bookID ?? "unknown", ex.Message);
-                try
-                {
-                    processor.WriteFailure();
-                }
-                catch
-                {
-                }
-            }
-        }
-
         private string ExtractBookIdFromImageRequest(string request, bool isCover)
         {
             try
@@ -1429,31 +1572,6 @@ document.addEventListener('DOMContentLoaded', function() {{
                 Log.WriteLine(LogLevel.Warning, "Error extracting book ID from image request: {0}", ex.Message);
             }
             return null;
-        }
-
-        private object GetOrCreateCoverImage(string bookID, Book book)
-        {
-            try
-            {
-                if (ImagesCache.HasImage(bookID))
-                {
-                    return ImagesCache.GetImage(bookID);
-                }
-
-                var image = new CoverImage(book);
-
-                if (image != null && image.HasImages)
-                {
-                    ImagesCache.Add(image);
-                }
-
-                return image;
-            }
-            catch (Exception ex)
-            {
-                Log.WriteLine(LogLevel.Error, "Error creating cover image for book {0}: {1}", bookID, ex.Message);
-                return null;
-            }
         }
 
         private void HandleIconRequest(HttpProcessor processor, string request)
@@ -1528,44 +1646,6 @@ document.addEventListener('DOMContentLoaded', function() {{
             }
 
             return rootCatalog;
-        }
-
-        private bool IsEnabled(string route)
-        {
-            return _opdsStructure.ContainsKey(route) && _opdsStructure[route];
-        }
-    }
-
-    internal class AuthorsCatalogWithStructure
-    {
-        private readonly Dictionary<string, bool> _opdsStructure;
-
-        public AuthorsCatalogWithStructure(Dictionary<string, bool> opdsStructure)
-        {
-            _opdsStructure = opdsStructure;
-        }
-
-        public XDocument GetCatalog(string searchPattern, bool isOpenSearch, int threshold)
-        {
-            var authorsCatalog = new AuthorsCatalog().GetCatalog(searchPattern, isOpenSearch, threshold);
-
-            // If author-details is disabled, modify links to go directly to alphabetic books
-            if (!IsEnabled("author-details"))
-            {
-                var entries = authorsCatalog.Root.Elements("entry").ToList();
-                foreach (var entry in entries)
-                {
-                    var link = entry.Element("link");
-                    if (link != null && link.Attribute("href")?.Value?.Contains("/author-details/") == true)
-                    {
-                        string href = link.Attribute("href").Value;
-                        string author = href.Replace("/author-details/", "");
-                        link.SetAttributeValue("href", "/author-alphabetic/" + author);
-                    }
-                }
-            }
-
-            return authorsCatalog;
         }
 
         private bool IsEnabled(string route)

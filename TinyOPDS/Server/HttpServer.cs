@@ -7,12 +7,14 @@
  *
  * This module contains improved HTTP processor implementation
  * and abstract class for HTTP server with enhanced stability
+ * and request cancellation support
  * 
  */
 
 using System;
 using System.Linq;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -32,7 +34,154 @@ namespace TinyOPDS.Server
     }
 
     /// <summary>
-    /// Simple HTTP processor
+    /// Manages cancellation of requests per client
+    /// </summary>
+    public static class RequestCancellationManager
+    {
+        // Store CancellationTokenSource for each client's active requests
+        private static readonly ConcurrentDictionary<string, ClientRequestContext> clientContexts =
+            new ConcurrentDictionary<string, ClientRequestContext>();
+
+        // Cleanup old contexts periodically
+        private static readonly Timer cleanupTimer = new Timer(CleanupOldContexts, null,
+            TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
+
+        private class ClientRequestContext
+        {
+            public CancellationTokenSource ImageRequestsCts { get; set; }
+            public DateTime LastActivity { get; set; }
+            public int ActiveImageRequests { get; set; }
+            public readonly object Lock = new object();
+        }
+
+        /// <summary>
+        /// Gets or creates a cancellation token for image requests from a client
+        /// </summary>
+        public static CancellationToken GetImageRequestToken(string clientHash)
+        {
+            var context = clientContexts.GetOrAdd(clientHash, _ => new ClientRequestContext
+            {
+                ImageRequestsCts = new CancellationTokenSource(),
+                LastActivity = DateTime.Now,
+                ActiveImageRequests = 0
+            });
+
+            lock (context.Lock)
+            {
+                context.LastActivity = DateTime.Now;
+                context.ActiveImageRequests++;
+
+                if (context.ImageRequestsCts.IsCancellationRequested)
+                {
+                    // Create new CTS if the old one was cancelled
+                    context.ImageRequestsCts = new CancellationTokenSource();
+                }
+
+                return context.ImageRequestsCts.Token;
+            }
+        }
+
+        /// <summary>
+        /// Decrements active image request counter
+        /// </summary>
+        public static void CompleteImageRequest(string clientHash)
+        {
+            if (clientContexts.TryGetValue(clientHash, out var context))
+            {
+                lock (context.Lock)
+                {
+                    if (context.ActiveImageRequests > 0)
+                        context.ActiveImageRequests--;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Called when client makes a navigation request (non-image)
+        /// Cancels all pending image requests for this client
+        /// </summary>
+        public static void OnNavigationRequest(string clientHash)
+        {
+            if (clientContexts.TryGetValue(clientHash, out var context))
+            {
+                lock (context.Lock)
+                {
+                    try
+                    {
+                        // Cancel all pending image requests
+                        if (!context.ImageRequestsCts.IsCancellationRequested)
+                        {
+                            context.ImageRequestsCts.Cancel();
+                            Log.WriteLine(LogLevel.Info,
+                                "Cancelled {0} pending image requests for client {1}",
+                                context.ActiveImageRequests, clientHash);
+                        }
+
+                        // Create new CTS for future requests
+                        context.ImageRequestsCts = new CancellationTokenSource();
+                        context.ActiveImageRequests = 0;
+                        context.LastActivity = DateTime.Now;
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.WriteLine(LogLevel.Warning,
+                            "Error cancelling requests for client {0}: {1}",
+                            clientHash, ex.Message);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Checks if a cancellation was requested for this client
+        /// </summary>
+        public static bool IsCancellationRequested(string clientHash)
+        {
+            if (clientContexts.TryGetValue(clientHash, out var context))
+            {
+                return context.ImageRequestsCts.IsCancellationRequested;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Cleanup contexts that haven't been active for more than 10 minutes
+        /// </summary>
+        private static void CleanupOldContexts(object state)
+        {
+            var cutoffTime = DateTime.Now.AddMinutes(-10);
+            var keysToRemove = new System.Collections.Generic.List<string>();
+
+            foreach (var kvp in clientContexts)
+            {
+                lock (kvp.Value.Lock)
+                {
+                    if (kvp.Value.LastActivity < cutoffTime && kvp.Value.ActiveImageRequests == 0)
+                    {
+                        keysToRemove.Add(kvp.Key);
+                        try
+                        {
+                            kvp.Value.ImageRequestsCts?.Dispose();
+                        }
+                        catch { }
+                    }
+                }
+            }
+
+            foreach (var key in keysToRemove)
+            {
+                clientContexts.TryRemove(key, out _);
+            }
+
+            if (keysToRemove.Count > 0)
+            {
+                Log.WriteLine(LogLevel.Info, "Cleaned up {0} inactive client contexts", keysToRemove.Count);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Simple HTTP processor with client tracking
     /// </summary>
     public class HttpProcessor : IDisposable
     {
@@ -46,6 +195,9 @@ namespace TinyOPDS.Server
         public string HttpUrl;
         public string HttpProtocolVersion;
         public Dictionary<string, string> HttpHeaders = new Dictionary<string, string>();
+
+        // Client identification for request cancellation
+        public string ClientHash { get; private set; }
 
         public static BindingList<Credential> Credentials = new BindingList<Credential>();
         public static List<string> AuthorizedClients = new List<string>();
@@ -184,6 +336,9 @@ namespace TinyOPDS.Server
                 clientHash += remoteIP;
                 clientHash = Utils.CreateGuid(Utils.IsoOidNamespace, clientHash).ToString();
 
+                // Store client hash for request cancellation support
+                this.ClientHash = clientHash;
+
                 if (Properties.Settings.Default.UseHTTPAuth)
                 {
                     authorized = false;
@@ -305,8 +460,9 @@ namespace TinyOPDS.Server
         private void CleanupConnection()
         {
             try { Socket?.Close(); } catch { }
-            try { inputStream?.Dispose(); OutputStream?.Dispose(); } catch { }
-            finally 
+            try { inputStream?.Dispose(); OutputStream?.Dispose(); }
+            catch { }
+            finally
             {
                 inputStream = null;
                 OutputStream = null;
@@ -495,7 +651,7 @@ namespace TinyOPDS.Server
         public int SuccessfulLoginAttempts { get { return successfulLoginAttempts; } set { successfulLoginAttempts = value; StatisticsUpdated?.Invoke(this, null); } }
         public int WrongLoginAttempts { get { return wrongLoginAttempts; } set { wrongLoginAttempts = value; StatisticsUpdated?.Invoke(this, null); } }
         public int UniqueClientsCount { get { return uniqueClients.Count; } }
-        public int BannedClientsCount { get { lock (HttpProcessor.BannedClients) { return HttpProcessor.BannedClients.Count(client => client.Value >=  Properties.Settings.Default.WrongAttemptsCount); } } }
+        public int BannedClientsCount { get { lock (HttpProcessor.BannedClients) { return HttpProcessor.BannedClients.Count(client => client.Value >= Properties.Settings.Default.WrongAttemptsCount); } } }
 
         public void AddClient(string newClient)
         {

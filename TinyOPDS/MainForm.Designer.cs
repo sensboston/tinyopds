@@ -561,7 +561,7 @@
             // 
             // intWebLink
             // 
-            this.intWebLink.Location = new System.Drawing.Point(697, 297);
+            this.intWebLink.Location = new System.Drawing.Point(697, 286);
             this.intWebLink.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.intWebLink.Name = "intWebLink";
             this.intWebLink.Size = new System.Drawing.Size(541, 31);
@@ -583,7 +583,7 @@
             // label35
             // 
             this.label35.AutoSize = true;
-            this.label35.Location = new System.Drawing.Point(697, 262);
+            this.label35.Location = new System.Drawing.Point(697, 251);
             this.label35.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label35.Name = "label35";
             this.label35.Size = new System.Drawing.Size(213, 32);
@@ -704,7 +704,7 @@
             // 
             // intLink
             // 
-            this.intLink.Location = new System.Drawing.Point(44, 297);
+            this.intLink.Location = new System.Drawing.Point(44, 286);
             this.intLink.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.intLink.Name = "intLink";
             this.intLink.Size = new System.Drawing.Size(571, 31);
@@ -736,7 +736,7 @@
             // intIPlabel
             // 
             this.intIPlabel.AutoSize = true;
-            this.intIPlabel.Location = new System.Drawing.Point(37, 262);
+            this.intIPlabel.Location = new System.Drawing.Point(37, 251);
             this.intIPlabel.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.intIPlabel.Name = "intIPlabel";
             this.intIPlabel.Size = new System.Drawing.Size(241, 32);

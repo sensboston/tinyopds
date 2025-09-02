@@ -305,6 +305,13 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					line-height: 1.4;
 					color: #555;
 					margin-bottom: 15px;
+					text-align: justify;
+					hyphens: auto !important;
+					-webkit-hyphens: auto !important;
+					-moz-hyphens: auto !important;
+					-ms-hyphens: auto !important;
+					word-wrap: break-word;
+					overflow-wrap: break-word;
 					}
 
 					.download-section {
@@ -529,6 +536,12 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					line-height: 1.5;
 					margin: 0;
 					text-align: justify;
+					hyphens: auto;
+					-webkit-hyphens: auto;
+					-moz-hyphens: auto;
+					-ms-hyphens: auto;
+					word-wrap: break-word;
+					overflow-wrap: break-word;
 					}
 					}
 
@@ -762,7 +775,7 @@ xmlns:x="http://www.w3.org/2005/Atom">
 												<xsl:value-of select="x:author/x:name"/>
 											</a>
 
-											<div class="book-descr">
+											<div class="book-descr" lang="ru">
 												<xsl:value-of select="x:content"/>
 											</div>
 										</div>

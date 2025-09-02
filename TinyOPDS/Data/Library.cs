@@ -781,7 +781,27 @@ namespace TinyOPDS.Data
         #region Author Aliases Management
 
         /// <summary>
+        /// Check if string contains Cyrillic characters
+        /// </summary>
+        /// <param name="text">Text to check</param>
+        /// <returns>True if text contains at least one Cyrillic character</returns>
+        private static bool ContainsCyrillic(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+                return false;
+
+            // Check for Cyrillic characters (Unicode range 0x0400-0x04FF)
+            foreach (char c in text)
+            {
+                if (c >= 0x0400 && c <= 0x04FF)
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>
         /// Apply author aliases to book before saving to database
+        /// Only applies aliases if at least one author name contains Cyrillic characters
         /// </summary>
         /// <param name="book">Book to process</param>
         private static void ApplyAliasesToBookAuthors(Book book)
@@ -789,12 +809,30 @@ namespace TinyOPDS.Data
             if (!Properties.Settings.Default.UseAuthorsAliases || book.Authors == null)
                 return;
 
-            for (int i = 0; i < book.Authors.Count; i++)
+            // Check if any author contains Cyrillic characters
+            bool hasCyrillicAuthor = false;
+            foreach (string author in book.Authors)
             {
-                string originalAuthor = book.Authors[i];
-                if (aliases.ContainsKey(originalAuthor))
+                if (ContainsCyrillic(author))
                 {
-                    book.Authors[i] = aliases[originalAuthor];
+                    hasCyrillicAuthor = true;
+                    break;
+                }
+            }
+
+            // Only apply aliases if we have at least one Cyrillic author
+            if (hasCyrillicAuthor)
+            {
+                for (int i = 0; i < book.Authors.Count; i++)
+                {
+                    string originalAuthor = book.Authors[i];
+                    // Apply alias only if the author name is in Cyrillic
+                    if (ContainsCyrillic(originalAuthor) && aliases.ContainsKey(originalAuthor))
+                    {
+                        book.Authors[i] = aliases[originalAuthor];
+                        Log.WriteLine(LogLevel.Info, "Applied alias for Cyrillic author: '{0}' -> '{1}'",
+                            originalAuthor, aliases[originalAuthor]);
+                    }
                 }
             }
         }

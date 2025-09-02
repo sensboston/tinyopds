@@ -107,8 +107,8 @@
 		</property>
 		<property form="MainForm" ctrl="label12">
 			<text lang="en">Scan rate:</text>
-			<text lang="ru">Скорость сканирования:</text>
-			<text lang="uk">Швидкість сканування:</text>
+			<text lang="ru">Скорость обработки:</text>
+			<text lang="uk">Швидкість обробки:</text>
 			<text lang="de">Scanrate:</text>
 			<text lang="es">Velocidad de escaneo:</text>
 			<text lang="fr">Vitesse de balayage:</text>
@@ -474,12 +474,12 @@
 			<text lang="fr">Se souvenir des clients autorisés</text>
 		</property>
 		<property form="MainForm" ctrl="label22">
-			<text lang="en">Log verbosity level</text>
-			<text lang="ru">Детализация лог-файла</text>
-			<text lang="uk">Деталізація лог-файлу</text>
-			<text lang="de">Log-Detailgrad</text>
-			<text lang="es">Nivel de detalle del log</text>
-			<text lang="fr">Niveau de détail du log</text>
+			<text lang="en">Log verbosity level:</text>
+			<text lang="ru">Детализация лог-файла:</text>
+			<text lang="uk">Деталізація лог-файлу:</text>
+			<text lang="de">Log-Detailgrad:</text>
+			<text lang="es">Nivel de detalle del log:</text>
+			<text lang="fr">Niveau de détail du log:</text>
 		</property>
 		<property form="MainForm" ctrl="label23">
 			<text lang="en">Total requests:</text>
@@ -885,24 +885,24 @@
 		</property>
 		<property>
 			<text lang="en">Info, warnings and errors</text>
-			<text lang="ru">Информация, предупреждения и ошибки</text>
-			<text lang="uk">Інформація, попередження та помилки</text>
+			<text lang="ru">Инфо, предупреждения, ошибки</text>
+			<text lang="uk">Інфо, попередження, помилки</text>
 			<text lang="de">Info, Warnungen und Fehler</text>
 			<text lang="es">Información, advertencias y errores</text>
 			<text lang="fr">Informations, avertissements et erreurs</text>
 		</property>
 		<property>
 			<text lang="en">Warnings and errors</text>
-			<text lang="ru">Предупреждения и ошибки</text>
-			<text lang="uk">Попередження та помилки</text>
+			<text lang="ru">Предупреждения, ошибки</text>
+			<text lang="uk">Попередження, помилки</text>
 			<text lang="de">Warnungen und Fehler</text>
 			<text lang="es">Advertencias y errores</text>
 			<text lang="fr">Avertissements et erreurs</text>
 		</property>
 		<property>
 			<text lang="en">Errors only</text>
-			<text lang="ru">Только ошибки</text>
-			<text lang="uk">Тільки помилки</text>
+			<text lang="ru">Ошибки</text>
+			<text lang="uk">Помилки</text>
 			<text lang="de">Nur Fehler</text>
 			<text lang="es">Solo errores</text>
 			<text lang="fr">Erreurs seulement</text>

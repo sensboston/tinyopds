@@ -904,7 +904,6 @@ namespace TinyOPDS
             }
         }
 
-
         private void CacheType_CheckedChanged(object sender, EventArgs e)
         {
             if (sender != null)

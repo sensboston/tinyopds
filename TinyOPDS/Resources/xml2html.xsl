@@ -277,12 +277,34 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					.book-info {
 					font-size: 12px;
 					color: #666;
-					text-align: right;
-					white-space: nowrap;
-					flex-shrink: 0;
 					background: #f8f9fa;
-					padding: 4px 8px;
-					border-radius: 4px;
+					padding: 6px 8px;
+					border-radius: 6px;
+					margin-top: 3px;
+					margin-bottom: 2px;
+					line-height: 1.4;
+					width: 100%;
+					box-sizing: border-box;
+					}
+
+					.book-info .info-line {
+					margin-bottom: 2px;
+					display: flex;
+					justify-content: space-between;
+					align-items: center;
+					}
+
+					.book-info .info-line:last-child {
+					margin-bottom: 0;
+					}
+
+					.book-info .info-line strong {
+					font-weight: 600;
+					}
+
+					.book-info .info-line span {
+					text-align: right;
+					font-weight: 600;
 					}
 
 					.book-author {
@@ -335,7 +357,7 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					box-sizing: border-box;
 					background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 					color: white;
-					margin-top: 8px;
+					margin-top: 2px;
 					transition: all 0.3s ease;
 					box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
 					}
@@ -352,7 +374,7 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					display: flex;
 					flex-direction: row;
 					gap: 4px;
-					margin-top: 12px;
+					margin-top: 6px;
 					width: 120px;
 					}
 
@@ -408,26 +430,26 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					/* Mobile Responsive Design */
 					@media (max-width: 768px) {
 					body {
-					padding-top: 140px;
+					padding-top: 130px;
 					}
 
 					.header-content {
-					padding: 12px 16px;
+					padding: 10px 16px;
 					flex-direction: column;
 					align-items: flex-start;
-					gap: 12px;
+					gap: 10px;
 					}
 
 					.header-main {
 					display: flex;
 					align-items: center;
-					gap: 16px;
+					gap: 14px;
 					width: 100%;
 					}
 
 					.header-icon {
-					width: 60px;
-					height: 60px;
+					width: 56px;
+					height: 56px;
 					}
 
 					.server-title {
@@ -481,7 +503,7 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					width: 100px;
 					height: 150px;
 					margin-right: 0;
-					margin-bottom: 8px;
+					margin-bottom: 4px;
 					}
 
 					.download-section {
@@ -518,9 +540,34 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					}
 
 					.book-info {
-					text-align: left;
-					display: inline-block;
-					margin-top: 4px;
+					font-size: 11px;
+					padding: 4px 6px;
+					margin-top: 2px;
+					margin-bottom: 2px;
+					width: 100%;
+					box-sizing: border-box;
+					}
+
+					.book-info .info-line {
+					display: flex;
+					justify-content: space-between;
+					margin-bottom: 2px;
+					}
+
+					.book-info .info-line:last-child {
+					margin-bottom: 0;
+					}
+
+					.book-info .info-line span {
+					font-weight: 600;
+					}
+
+					.read-button {
+					margin-top: 2px;
+					}
+
+					.download-links {
+					margin-top: 6px;
 					}
 
 					.book-author {
@@ -696,6 +743,26 @@ xmlns:x="http://www.w3.org/2005/Atom">
 												</xsl:attribute>
 											</img>
 
+											<!-- Book info moved here from header -->
+											<div class="book-info">
+												<div class="info-line">
+													<strong>
+														<xsl:value-of select="$formatText"/>
+													</strong>
+													<span>
+														<xsl:value-of select="x:format"/>
+													</span>
+												</div>
+												<div class="info-line">
+													<strong>
+														<xsl:value-of select="$sizeText"/>
+													</strong>
+													<span>
+														<xsl:value-of select="x:size"/>
+													</span>
+												</div>
+											</div>
+
 											<!-- Extract book ID from download links -->
 											<xsl:variable name="bookId">
 												<xsl:choose>
@@ -753,19 +820,7 @@ xmlns:x="http://www.w3.org/2005/Atom">
 												<div class="book-title">
 													<xsl:value-of select="x:title" />
 												</div>
-												<div class="book-info">
-													<strong>
-														<xsl:value-of select="$formatText"/>
-													</strong>
-													<xsl:text> </xsl:text>
-													<xsl:value-of select="x:format"/>
-													<br/>
-													<strong>
-														<xsl:value-of select="$sizeText"/>
-													</strong>
-													<xsl:text> </xsl:text>
-													<xsl:value-of select="x:size"/>
-												</div>
+												<!-- Book info removed from here -->
 											</div>
 
 											<a class="book-author">

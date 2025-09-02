@@ -60,7 +60,7 @@ body.theme-sepia {
 }
 
 .book-content p:first-of-type {
-    text-indent: 0;
+    text-indent: 1.5em;
 }
 
 .book-content .author {

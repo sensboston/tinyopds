@@ -6,6 +6,7 @@
  * SPDX-License-Identifier: MIT
  *
  * Database schema and SQL queries for SQLite with FTS5 support
+ * OPTIMIZED: Added performance-critical indexes for large databases
  *
  */
 
@@ -136,9 +137,10 @@ namespace TinyOPDS.Data
 
         #endregion
 
-        #region Indexes
+        #region Indexes - OPTIMIZED
 
         public const string CreateIndexes = @"
+            -- Basic indexes on Books table
             CREATE INDEX IF NOT EXISTS idx_books_filename ON Books(FileName);
             CREATE INDEX IF NOT EXISTS idx_books_title ON Books(Title);
             CREATE INDEX IF NOT EXISTS idx_books_sequence ON Books(Sequence);
@@ -147,17 +149,49 @@ namespace TinyOPDS.Data
             CREATE INDEX IF NOT EXISTS idx_books_replacedby ON Books(ReplacedByID);
             CREATE INDEX IF NOT EXISTS idx_books_trusted_id ON Books(ID, DocumentIDTrusted) WHERE DocumentIDTrusted = 1;
             
+            -- OPTIMIZED: Composite index for active books (most queries filter by ReplacedByID IS NULL)
+            CREATE INDEX IF NOT EXISTS idx_books_active_composite ON Books(ReplacedByID, AddedDate DESC) WHERE ReplacedByID IS NULL;
+            
+            -- OPTIMIZED: Index for counting FB2 and EPUB books
+            CREATE INDEX IF NOT EXISTS idx_books_filename_replaced ON Books(FileName, ReplacedByID) WHERE ReplacedByID IS NULL;
+            
+            -- Authors indexes
             CREATE INDEX IF NOT EXISTS idx_authors_name ON Authors(Name);
             CREATE INDEX IF NOT EXISTS idx_authors_lastname ON Authors(LastName);
             CREATE INDEX IF NOT EXISTS idx_authors_searchname ON Authors(SearchName);
             CREATE INDEX IF NOT EXISTS idx_authors_soundex ON Authors(LastNameSoundex);
             CREATE INDEX IF NOT EXISTS idx_authors_translit ON Authors(NameTranslit);
             
+            -- Genres indexes  
             CREATE INDEX IF NOT EXISTS idx_genres_parentname ON Genres(ParentName);
             CREATE INDEX IF NOT EXISTS idx_genres_name ON Genres(Name);
             
+            -- OPTIMIZED: Critical indexes for join operations
+            CREATE INDEX IF NOT EXISTS idx_bookauthors_bookid ON BookAuthors(BookID);
+            CREATE INDEX IF NOT EXISTS idx_bookauthors_authorid ON BookAuthors(AuthorID);
             CREATE INDEX IF NOT EXISTS idx_bookauthors_composite ON BookAuthors(AuthorID, BookID);
+            
+            CREATE INDEX IF NOT EXISTS idx_bookgenres_bookid ON BookGenres(BookID);
+            CREATE INDEX IF NOT EXISTS idx_bookgenres_genretag ON BookGenres(GenreTag);
             CREATE INDEX IF NOT EXISTS idx_bookgenres_composite ON BookGenres(GenreTag, BookID);
+            
+            -- OPTIMIZED: Index for sequences counting
+            CREATE INDEX IF NOT EXISTS idx_books_sequence_active ON Books(Sequence) WHERE ReplacedByID IS NULL AND Sequence IS NOT NULL AND Sequence != '';
+        ";
+
+        // Additional optimization commands to run after indexes are created
+        public const string OptimizeDatabase = @"
+            -- Update SQLite statistics for query planner
+            ANALYZE;
+            
+            -- Set optimal pragmas for read-heavy workload
+            PRAGMA cache_size = 10000;
+            PRAGMA temp_store = MEMORY;
+            PRAGMA mmap_size = 268435456;  -- 256MB memory map
+            PRAGMA page_size = 4096;
+            PRAGMA synchronous = NORMAL;
+            PRAGMA journal_mode = WAL;
+            PRAGMA wal_autocheckpoint = 1000;
         ";
 
         #endregion
@@ -470,7 +504,7 @@ namespace TinyOPDS.Data
 
         #endregion
 
-        #region Count Queries
+        #region Count Queries - OPTIMIZED
 
         public const string CountBooks = @"SELECT COUNT(*) FROM Books WHERE ReplacedByID IS NULL";
 
@@ -510,12 +544,16 @@ namespace TinyOPDS.Data
             GROUP BY g.Tag, g.ParentName, g.Name, g.Translation
             ORDER BY g.ParentName, g.Name";
 
+        // OPTIMIZED: More efficient count query using indexes
         public const string SelectAuthorsCount = @"
             SELECT COUNT(DISTINCT a.ID) FROM Authors a
-            INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
-            INNER JOIN Books b ON ba.BookID = b.ID
-            WHERE b.ReplacedByID IS NULL";
+            WHERE EXISTS (
+                SELECT 1 FROM BookAuthors ba 
+                INNER JOIN Books b ON ba.BookID = b.ID 
+                WHERE ba.AuthorID = a.ID AND b.ReplacedByID IS NULL
+            )";
 
+        // OPTIMIZED: More efficient count using specialized index
         public const string SelectSequencesCount = @"
             SELECT COUNT(DISTINCT Sequence) FROM Books 
             WHERE Sequence IS NOT NULL AND Sequence != '' AND ReplacedByID IS NULL";
@@ -535,7 +573,7 @@ namespace TinyOPDS.Data
             SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
                    Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate
             FROM Books 
-            WHERE AddedDate >= @FromDate
+            WHERE AddedDate >= @FromDate AND ReplacedByID IS NULL
             ORDER BY AddedDate DESC
             LIMIT @Limit OFFSET @Offset";
 
@@ -543,7 +581,7 @@ namespace TinyOPDS.Data
             SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
                    Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate
             FROM Books 
-            WHERE AddedDate >= @FromDate
+            WHERE AddedDate >= @FromDate AND ReplacedByID IS NULL
             ORDER BY Title COLLATE NOCASE
             LIMIT @Limit OFFSET @Offset";
 

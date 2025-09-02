@@ -262,7 +262,7 @@ body {
     border-radius: 8px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     font-size: 16px;
-    line-height: 1.8;
+    line-height: 1.5;
     display: block;
     transition: all 0.3s ease;
     min-height: calc(100vh - 40px);

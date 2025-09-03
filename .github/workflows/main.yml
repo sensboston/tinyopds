@@ -12,115 +12,58 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Clear NuGet cache
-      shell: powershell
-      run: nuget locals all -clear
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
 
-    - name: Find Solution and Project Files
-      id: find_files
-      shell: powershell
-      run: |
-        $solutionFile = Get-ChildItem -Path $Env:GITHUB_WORKSPACE -Filter '*.sln' -Recurse | Select-Object -First 1 -ExpandProperty FullName
-        if (-not $solutionFile) {
-          Write-Error "Solution file not found."
-          exit 1
-        } else {
-          Write-Host "Found solution file: $solutionFile"
-        }
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
 
-        $projectFile = Get-ChildItem -Path $Env:GITHUB_WORKSPACE -Filter '*.csproj' -Recurse | Select-Object -First 1 -ExpandProperty FullName
-        if (-not $projectFile) {
-          Write-Error "Project file not found."
-          exit 1
-        } else {
-          Write-Host "Found project file: $projectFile"
-        }
+      # Cache packages at TinyOPDS\packages because .csproj imports expect this relative path
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: TinyOPDS\packages
+          key: nuget-${{ hashFiles('**/packages.config') }}
+          restore-keys: |
+            nuget-
 
-        echo "solution_file=$solutionFile" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-        echo "project_file=$projectFile" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+      # Restore packages exactly where the projects expect them: TinyOPDS\packages\...
+      - name: Restore NuGet packages
+        run: nuget restore TinyOPDS.sln -PackagesDirectory TinyOPDS\packages
 
-    - name: Restore NuGet packages
-      shell: powershell
-      run: |
-        nuget restore "${{ steps.find_files.outputs.solution_file }}"
+      - name: Build (Release)
+        run: msbuild TinyOPDS.sln /p:Configuration=Release /m
 
-    - name: Locate MSBuild
-      id: msbuild
-      shell: powershell
-      run: |
-        $vsInstallPath = & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" `
-          -latest `
-          -products * `
-          -requires Microsoft.Component.MSBuild `
-          -property installationPath
-        $msbuildPath = Join-Path $vsInstallPath 'MSBuild\Current\Bin\MSBuild.exe'
-        Write-Host "MSBuild path: $msbuildPath"
-        echo "msbuild_path=$msbuildPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-
-    - name: Build solution
-      shell: powershell
-      run: |
-        & "${{ steps.msbuild.outputs.msbuild_path }}" "${{ steps.find_files.outputs.solution_file }}" /p:Configuration=Release /p:Platform="Any CPU"
-
-    - name: Determine Output Executable Name and Type
-      id: exe_info
-      shell: powershell
-      run: |
-        $projectFile = "${{ steps.find_files.outputs.project_file }}"
-        [xml]$csprojXml = Get-Content $projectFile
-
-        $assemblyName = $null
-        $outputType = $null
-
-        foreach ($pg in $csprojXml.Project.PropertyGroup) {
-          if (-not $assemblyName -and $pg.AssemblyName) {
-            $assemblyName = $pg.AssemblyName
+      # Optional sanity check to ensure binaries exist
+      - name: Verify executables
+        shell: pwsh
+        run: |
+          $paths = @(
+            "TinyOPDS\bin\Release\TinyOPDS.exe",
+            "TinyOPDSCLI\bin\Release\TinyOPDSCLI.exe"
+          )
+          $missing = @()
+          foreach ($p in $paths) {
+            if (Test-Path $p) {
+              Write-Host "OK: $p"
+            } else {
+              $missing += $p
+            }
           }
-          if (-not $outputType -and $pg.OutputType) {
-            $outputType = $pg.OutputType
-          }
-          if ($assemblyName -and $outputType) { break }
-        }
-
-        if (-not $assemblyName) {
-          $assemblyName = [System.IO.Path]::GetFileNameWithoutExtension($projectFile)
-        }
-
-        if (-not $outputType) {
-          Write-Error "OutputType not specified in project file."
-          exit 1
-        }
-
-        switch ($outputType.ToLower()) {
-          "winexe" { $extension = ".exe" }
-          "exe"    { $extension = ".exe" }
-          "library"{ $extension = ".dll" }
-          default  {
-            Write-Error "Unknown OutputType: $outputType"
+          if ($missing.Count -gt 0) {
+            Write-Error "Missing build outputs:`n$($missing -join "`n")"
             exit 1
           }
-        }
 
-        $exeName = "$assemblyName$extension"
-        echo "exe_name=$exeName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-
-    - name: Verify Executable Exists
-      shell: powershell
-      run: |
-        $exePath = "bin/Release/${{ steps.exe_info.outputs.exe_name }}"
-        if (!(Test-Path -Path $exePath)) {
-          Write-Error "Executable not found at $exePath"
-          exit 1
-        } else {
-          Write-Host "Executable found at $exePath"
-        }
-
-    - name: Upload release asset
-      uses: softprops/action-gh-release@v1
-      with:
-        files: 'bin/Release/${{ steps.exe_info.outputs.exe_name }}'
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Upload both executables as release assets
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            TinyOPDS\bin\Release\TinyOPDS.exe
+            TinyOPDSCLI\bin\Release\TinyOPDSCLI.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

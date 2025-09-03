@@ -21,8 +21,13 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      # Cache packages at TinyOPDS\packages because .csproj imports expect this relative path
-      - name: Cache NuGet packages
+      - name: NuGet diagnostics (clear caches)
+        shell: pwsh
+        run: |
+          nuget locals all -clear
+          nuget sources list
+
+      - name: Cache NuGet packages (packages.config layout)
         uses: actions/cache@v4
         with:
           path: TinyOPDS\packages
@@ -30,35 +35,32 @@ jobs:
           restore-keys: |
             nuget-
 
-      # Restore packages exactly where the projects expect them: TinyOPDS\packages\...
-      - name: Restore NuGet packages
-        run: nuget restore TinyOPDS.sln -PackagesDirectory TinyOPDS\packages
+      # Restore packages exactly where .csproj expects: TinyOPDS\packages relative to the solution root
+      - name: Restore TinyOPDS packages
+        run: nuget restore TinyOPDS\TinyOPDS.csproj -NonInteractive -PackagesDirectory TinyOPDS\packages -Source https://api.nuget.org/v3/index.json
+
+      - name: Restore TinyOPDSCLI packages
+        run: nuget restore TinyOPDSCLI\TinyOPDSCLI.csproj -NonInteractive -PackagesDirectory TinyOPDS\packages -Source https://api.nuget.org/v3/index.json
 
       - name: Build (Release)
         run: msbuild TinyOPDS.sln /p:Configuration=Release /m
 
-      # Optional sanity check to ensure binaries exist
       - name: Verify executables
         shell: pwsh
         run: |
           $paths = @(
-            "TinyOPDS\bin\Release\TinyOPDS.exe",
-            "TinyOPDSCLI\bin\Release\TinyOPDSCLI.exe"
+            'TinyOPDS\bin\Release\TinyOPDS.exe',
+            'TinyOPDSCLI\bin\Release\TinyOPDSCLI.exe'
           )
           $missing = @()
           foreach ($p in $paths) {
-            if (Test-Path $p) {
-              Write-Host "OK: $p"
-            } else {
-              $missing += $p
-            }
+            if (Test-Path $p) { Write-Host "OK: $p" } else { $missing += $p }
           }
           if ($missing.Count -gt 0) {
-            Write-Error "Missing build outputs:`n$($missing -join "`n")"
+            Write-Error ("Missing build outputs:`n" + ($missing -join "`n"))
             exit 1
           }
 
-      # Upload both executables as release assets
       - name: Upload release assets
         uses: softprops/action-gh-release@v2
         with:

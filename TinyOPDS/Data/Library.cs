@@ -624,7 +624,7 @@ namespace TinyOPDS.Data
             System.Threading.Tasks.Task.Run(() => InitializeCacheAsync());
         }
 
-        #endregion
+#endregion
 
         #region All other properties and methods remain the same
 

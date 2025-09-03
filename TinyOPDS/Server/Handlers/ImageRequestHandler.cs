@@ -19,36 +19,19 @@ using TinyOPDS.Data;
 namespace TinyOPDS.Server
 {
     /// <summary>
-    /// Handles image requests (covers and thumbnails) with cancellation support
+    /// Handles image requests (covers and thumbnails)
     /// </summary>
     public class ImageRequestHandler
     {
         /// <summary>
-        /// Main entry point for handling image requests with cancellation support
+        /// Main entry point for handling image requests
         /// </summary>
-        public void HandleImageRequestWithCancellation(HttpProcessor processor, string request, string clientHash)
+        public void HandleImageRequest(HttpProcessor processor, string request, string clientHash)
         {
-            CancellationToken cancellationToken = default(CancellationToken);
-            bool hasToken = false;
             string bookID = null;
 
             try
             {
-                // Get cancellation token for this client
-                if (!string.IsNullOrEmpty(clientHash))
-                {
-                    cancellationToken = RequestCancellationManager.GetImageRequestToken(clientHash);
-                    hasToken = true;
-                }
-
-                // Check if already cancelled
-                if (hasToken && cancellationToken.IsCancellationRequested)
-                {
-                    Log.WriteLine(LogLevel.Info, "Image request cancelled before processing: {0}", request);
-                    processor.WriteFailure();
-                    return;
-                }
-
                 bool getCover = request.Contains("/cover/");
                 bookID = ExtractBookIdFromImageRequest(request, getCover);
 
@@ -67,18 +50,11 @@ namespace TinyOPDS.Server
                     return;
                 }
 
-                // Check cancellation before expensive operations
-                if (hasToken && cancellationToken.IsCancellationRequested)
-                {
-                    Log.WriteLine(LogLevel.Info, "Image request cancelled before extraction for book {0}", bookID);
-                    return;
-                }
-
-                var imageObject = GetOrCreateCoverImageWithCancellation(bookID, book, cancellationToken);
+                var imageObject = GetOrCreateCoverImageWithCancellation(bookID, book);
 
                 if (imageObject != null)
                 {
-                    SendImageToClientWithCancellation(processor, imageObject, getCover, bookID, cancellationToken);
+                    SendImageToClient(processor, imageObject, getCover, bookID);
                 }
                 else
                 {
@@ -101,10 +77,6 @@ namespace TinyOPDS.Server
             }
             finally
             {
-                if (hasToken && !string.IsNullOrEmpty(clientHash))
-                {
-                    RequestCancellationManager.CompleteImageRequest(clientHash);
-                }
             }
         }
 
@@ -184,7 +156,7 @@ namespace TinyOPDS.Server
         /// <summary>
         /// Gets or creates cover image with cancellation support
         /// </summary>
-        private object GetOrCreateCoverImageWithCancellation(string bookID, Book book, CancellationToken cancellationToken)
+        private object GetOrCreateCoverImageWithCancellation(string bookID, Book book)
         {
             try
             {
@@ -194,16 +166,9 @@ namespace TinyOPDS.Server
                     return ImagesCache.GetImage(bookID);
                 }
 
-                // Check cancellation before extraction
-                cancellationToken.ThrowIfCancellationRequested();
-
                 // For now, use existing CoverImage class
                 // In production, you'd want to modify CoverImage to accept cancellation token
                 var image = new CoverImage(book);
-
-                // Simulate cancellation check points during image extraction
-                // In real implementation, pass cancellation token to CoverImage constructor
-                cancellationToken.ThrowIfCancellationRequested();
 
                 if (image != null && image.HasImages)
                 {
@@ -211,10 +176,6 @@ namespace TinyOPDS.Server
                 }
 
                 return image;
-            }
-            catch (OperationCanceledException)
-            {
-                throw; // Re-throw to handle at higher level
             }
             catch (Exception ex)
             {
@@ -248,107 +209,6 @@ namespace TinyOPDS.Server
             {
                 Log.WriteLine(LogLevel.Error, "Error creating cover image for book {0}: {1}", bookID, ex.Message);
                 return null;
-            }
-        }
-
-        /// <summary>
-        /// Sends image to client with cancellation support
-        /// </summary>
-        private void SendImageToClientWithCancellation(HttpProcessor processor, object imageObject, bool getCover, string bookID, CancellationToken cancellationToken)
-        {
-            Stream imageStream = null;
-            bool hasImages = false;
-
-            try
-            {
-                // Handle both CoverImage and CachedCoverImage types
-                if (imageObject is CachedCoverImage cachedImage)
-                {
-                    hasImages = cachedImage.HasImages;
-                    if (hasImages)
-                    {
-                        imageStream = getCover ? cachedImage.CoverImageStream : cachedImage.ThumbnailImageStream;
-                    }
-                }
-                else if (imageObject is CoverImage regularImage)
-                {
-                    hasImages = regularImage.HasImages;
-                    if (hasImages)
-                    {
-                        imageStream = getCover ? regularImage.CoverImageStream : regularImage.ThumbnailImageStream;
-                    }
-                }
-
-                if (hasImages && imageStream != null && imageStream.Length > 0)
-                {
-                    // Check cancellation before sending
-                    cancellationToken.ThrowIfCancellationRequested();
-
-                    if (!processor.OutputStream.BaseStream.CanWrite)
-                    {
-                        Log.WriteLine(LogLevel.Info, "Client disconnected before sending image for book {0}", bookID);
-                        return;
-                    }
-
-                    processor.WriteSuccess("image/jpeg");
-
-                    const int bufferSize = 8192;
-                    byte[] buffer = new byte[bufferSize];
-                    int bytesRead;
-                    long totalBytesSent = 0;
-
-                    imageStream.Position = 0;
-
-                    while ((bytesRead = imageStream.Read(buffer, 0, bufferSize)) > 0)
-                    {
-                        // Check cancellation during transfer
-                        cancellationToken.ThrowIfCancellationRequested();
-
-                        try
-                        {
-                            if (!processor.OutputStream.BaseStream.CanWrite)
-                            {
-                                Log.WriteLine(LogLevel.Info, "Client disconnected during image transfer for book {0} after {1} bytes", bookID, totalBytesSent);
-                                break;
-                            }
-
-                            processor.OutputStream.BaseStream.Write(buffer, 0, bytesRead);
-                            totalBytesSent += bytesRead;
-                        }
-                        catch (IOException ioEx) when (ioEx.InnerException is SocketException)
-                        {
-                            Log.WriteLine(LogLevel.Info, "Client disconnected during image transfer for book {0} after {1} bytes", bookID, totalBytesSent);
-                            break;
-                        }
-                        catch (ObjectDisposedException)
-                        {
-                            Log.WriteLine(LogLevel.Info, "Stream disposed during image transfer for book {0} after {1} bytes", bookID, totalBytesSent);
-                            break;
-                        }
-                    }
-
-                    if (processor.OutputStream.BaseStream.CanWrite && totalBytesSent == imageStream.Length)
-                    {
-                        processor.OutputStream.BaseStream.Flush();
-                        HttpServer.ServerStatistics.IncrementImagesSent();
-                        Log.WriteLine(LogLevel.Info, "Successfully sent {0} image for book {1} ({2} bytes)",
-                            getCover ? "cover" : "thumbnail", bookID, totalBytesSent);
-                    }
-                }
-                else
-                {
-                    Log.WriteLine(LogLevel.Warning, "No image stream available for book {0}", bookID);
-                    processor.WriteFailure();
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                Log.WriteLine(LogLevel.Info, "Image sending cancelled for book {0}", bookID);
-                throw;
-            }
-            finally
-            {
-                imageStream?.Dispose();
             }
         }
 

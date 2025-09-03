@@ -78,12 +78,6 @@ namespace TinyOPDS.Server
                 bool isImageRequest = utilities.IsImageRequest(request, ext);
                 bool isNavigationRequest = utilities.IsNavigationRequest(request, ext);
 
-                // Cancel pending image requests if this is a navigation request
-                if (isNavigationRequest && !string.IsNullOrEmpty(clientHash))
-                {
-                    RequestCancellationManager.OnNavigationRequest(clientHash);
-                }
-
                 // Determine if this is OPDS (XML) or Web (HTML) request
                 bool isOPDSRequest = utilities.IsOPDSRequest(processor.HttpUrl);
 
@@ -166,7 +160,7 @@ namespace TinyOPDS.Server
                 // Use cancellation-aware handler if client hash is available
                 if (!string.IsNullOrEmpty(clientHash))
                 {
-                    imageHandler.HandleImageRequestWithCancellation(processor, request, clientHash);
+                    imageHandler.HandleImageRequest(processor, request, clientHash);
                 }
                 else
                 {

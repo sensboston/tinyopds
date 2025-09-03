@@ -27,14 +27,22 @@ namespace TinyOPDS.Data
     /// </summary>
     public class CoverImage
     {
-        public static Size CoverSize = new Size(480, 800);
-        public static Size ThumbnailSize = new Size(48, 80);
+        // Backward-compatible public sizes
+        public static readonly Size CoverSize = new Size(240, 400);
+        public static readonly Size ThumbnailSize = new Size(48, 80);
+
+        // Internal design size for default cover
+        public static readonly Size DefaultDesignSize = new Size(480, 800);
+
+        private const long CoverJpegQuality = 60L;
+        private const long ThumbnailJpegQuality = 60L;
 
         private readonly Image cover;
-        private Image Thumbnail { get { return cover?.Resize(ThumbnailSize); } }
-        public Stream CoverImageStream { get { return cover.ToStream(ImageFormat.Jpeg); } }
-        public Stream ThumbnailImageStream { get { return Thumbnail.ToStream(ImageFormat.Jpeg); } }
-        public bool HasImages { get { return cover != null; } }
+        private Image Thumbnail => cover?.Resize(ThumbnailSize);
+
+        public Stream CoverImageStream => cover.ToJpegStream(CoverJpegQuality);
+        public Stream ThumbnailImageStream => Thumbnail.ToJpegStream(ThumbnailJpegQuality);
+        public bool HasImages => cover != null;
         public string ID { get; set; }
 
         public CoverImage(Book book)
@@ -45,12 +53,11 @@ namespace TinyOPDS.Data
 
             try
             {
-                using (MemoryStream memStream = new MemoryStream())
+                using (var memStream = new MemoryStream())
                 {
                     if (book.FilePath.ToLower().Contains(".zip@"))
                     {
-                        // FIXED: Use System.IO.Compression.ZipFile for .NET 4.8
-                        string[] pathParts = book.FilePath.Split('@');
+                        var pathParts = book.FilePath.Split('@');
                         Log.WriteLine(LogLevel.Info, "Processing archive: {0}, entry: {1}", pathParts[0], pathParts[1]);
 
                         if (!File.Exists(pathParts[0]))
@@ -61,7 +68,6 @@ namespace TinyOPDS.Data
 
                         using (var zipArchive = System.IO.Compression.ZipFile.OpenRead(pathParts[0]))
                         {
-                            // Find entry by name (case-insensitive search)
                             var entry = zipArchive.Entries.FirstOrDefault(e =>
                                 e.FullName.IndexOf(pathParts[1], StringComparison.OrdinalIgnoreCase) >= 0);
 
@@ -82,7 +88,6 @@ namespace TinyOPDS.Data
                     }
                     else
                     {
-                        // For regular files, check existence
                         if (!File.Exists(book.FilePath))
                         {
                             Log.WriteLine(LogLevel.Error, "Book file not found: {0}", book.FilePath);
@@ -104,17 +109,16 @@ namespace TinyOPDS.Data
 
                     Log.WriteLine(LogLevel.Info, "Processing {0} book type", book.BookType);
 
-                    cover = (book.BookType == BookType.EPUB) ?
-                        new ePubParser().GetCoverImage(memStream, book.FilePath)
+                    var extracted = (book.BookType == BookType.EPUB)
+                        ? new ePubParser().GetCoverImage(memStream, book.FilePath)
                         : new FB2Parser().GetCoverImage(memStream, book.FilePath);
 
-                    if (cover != null)
+                    if (extracted != null)
                     {
-                        Log.WriteLine(LogLevel.Info, "Cover image extracted successfully, size: {0}x{1}", cover.Width, cover.Height);
-                    }
-                    else
-                    {
-                        Log.WriteLine(LogLevel.Warning, "No cover image found in book");
+                        Log.WriteLine(LogLevel.Info, "Cover image extracted: {0}x{1}", extracted.Width, extracted.Height);
+                        var fitted = extracted.Resize(CoverSize, preserveAspectRatio: true);
+                        extracted.Dispose();
+                        cover = fitted;
                     }
                 }
             }
@@ -122,20 +126,19 @@ namespace TinyOPDS.Data
             {
                 Log.WriteLine(LogLevel.Error, "Exception in CoverImage constructor for file {0}: {1}", book.FilePath, e.Message);
                 Log.WriteLine(LogLevel.Error, "Stack trace: {0}", e.StackTrace);
-                cover = null;
             }
 
-            // Generate default cover if no cover was found
             if (cover == null)
             {
                 Log.WriteLine(LogLevel.Info, "No cover found, generating default cover for: {0}", book.Title);
                 try
                 {
                     string author = book.Authors.FirstOrDefault() ?? "Unknown Author";
-                    cover = GenerateDefaultCover(author, book.Title);
-                    if (cover != null)
+                    var generated = GenerateDefaultCover(author, book.Title);
+                    if (generated != null)
                     {
-                        Log.WriteLine(LogLevel.Info, "Default cover generated successfully");
+                        Log.WriteLine(LogLevel.Info, "Default cover generated");
+                        cover = generated;
                     }
                 }
                 catch (Exception ex)
@@ -145,68 +148,45 @@ namespace TinyOPDS.Data
             }
         }
 
-        /// <summary>
-        /// Generate a default cover image with author and title text
-        /// </summary>
-        /// <param name="author">Author name</param>
-        /// <param name="title">Book title</param>
-        /// <returns>Generated cover image</returns>
         private Image GenerateDefaultCover(string author, string title)
         {
             try
             {
-                // Load background image from embedded resource
                 Image backgroundImage = LoadBackgroundImage();
                 if (backgroundImage == null)
                 {
-                    Log.WriteLine(LogLevel.Warning, "Could not load background image, creating solid color background");
-                    backgroundImage = new Bitmap(CoverSize.Width, CoverSize.Height);
+                    backgroundImage = new Bitmap(DefaultDesignSize.Width, DefaultDesignSize.Height);
                     using (Graphics tempG = Graphics.FromImage(backgroundImage))
-                    {
-                        // Create a dark leather-like background
-                        using (var brush = new SolidBrush(Color.FromArgb(45, 35, 25)))
-                        {
-                            tempG.FillRectangle(brush, 0, 0, CoverSize.Width, CoverSize.Height);
-                        }
-                    }
+                    using (var brush = new SolidBrush(Color.FromArgb(45, 35, 25)))
+                        tempG.FillRectangle(brush, 0, 0, DefaultDesignSize.Width, DefaultDesignSize.Height);
                 }
 
-                // Resize background to cover size if needed
-                Image resizedBackground = backgroundImage.Resize(CoverSize, false);
+                Image design = backgroundImage.Resize(DefaultDesignSize, preserveAspectRatio: false);
                 backgroundImage.Dispose();
 
-                // Create graphics object for drawing text
-                using (Graphics g = Graphics.FromImage(resizedBackground))
+                using (Graphics g = Graphics.FromImage(design))
                 {
-                    // Set high quality rendering
                     g.SmoothingMode = SmoothingMode.AntiAlias;
                     g.TextRenderingHint = TextRenderingHint.AntiAlias;
                     g.CompositingQuality = CompositingQuality.HighQuality;
 
-                    // Define colors - "golden" ones
-                    Color goldColor = Color.FromArgb(236, 216, 145);
-                    Color shadowColor = Color.FromArgb(100, 80, 60, 40);
+                    Color gold = Color.FromArgb(236, 216, 145);
+                    Color shadow = Color.FromArgb(100, 80, 60, 40);
 
-                    // Create fonts
-                    Font authorFont = GetBestFont("Times New Roman", 18, FontStyle.Bold | FontStyle.Italic);
-                    Font titleFont = GetBestFont("Times New Roman", 22, FontStyle.Bold);
+                    using (Font authorFont = GetBestFont("Times New Roman", 16, FontStyle.Bold | FontStyle.Italic))
+                    using (Font titleFont = GetBestFont("Times New Roman", 20, FontStyle.Bold))
+                    {
+                        Rectangle authorArea = new Rectangle(40, 120, DefaultDesignSize.Width - 80, 200);
+                        Rectangle titleArea = new Rectangle(30, DefaultDesignSize.Height - 360, DefaultDesignSize.Width - 60, 300);
 
-                    // Calculate text areas
-                    Rectangle authorArea = new Rectangle(40, 120, CoverSize.Width - 80, 200);
-                    Rectangle titleArea = new Rectangle(30, CoverSize.Height - 360, CoverSize.Width - 60, 300);
-
-                    // Draw author text (top, moved down)
-                    DrawTextWithShadow(g, author, authorFont, goldColor, shadowColor, authorArea, true);
-
-                    // Draw title text (bottom, moved up)
-                    DrawTextWithShadow(g, title, titleFont, goldColor, shadowColor, titleArea, false);
-
-                    // Clean up fonts
-                    authorFont.Dispose();
-                    titleFont.Dispose();
+                        DrawTextWithShadow(g, author, authorFont, gold, shadow, authorArea, true);
+                        DrawTextWithShadow(g, title, titleFont, gold, shadow, titleArea, false);
+                    }
                 }
 
-                return resizedBackground;
+                Image finalFitted = design.Resize(CoverSize, preserveAspectRatio: true);
+                design.Dispose();
+                return finalFitted;
             }
             catch (Exception ex)
             {
@@ -215,49 +195,20 @@ namespace TinyOPDS.Data
             }
         }
 
-        /// <summary>
-        /// Load background image from embedded resource
-        /// </summary>
-        /// <returns>Background image or null if not found</returns>
         private Image LoadBackgroundImage()
         {
             try
             {
-                // Get all manifest resource names to find the correct one
                 string[] resourceNames = Assembly.GetExecutingAssembly().GetManifestResourceNames();
-                string resourceName = null;
-
-                // Look for book_cover.jpg in Resources folder
-                foreach (string name in resourceNames)
-                {
-                    if (name.EndsWith("Resources.book_cover.jpg"))
-                    {
-                        resourceName = name;
-                        break;
-                    }
-                }
-
-                // Fallback: look for any book_cover.jpg
-                if (resourceName == null)
-                {
-                    foreach (string name in resourceNames)
-                    {
-                        if (name.EndsWith("book_cover.jpg"))
-                        {
-                            resourceName = name;
-                            break;
-                        }
-                    }
-                }
+                string resourceName = resourceNames.FirstOrDefault(n => n.EndsWith("Resources.book_cover.jpg"))
+                                   ?? resourceNames.FirstOrDefault(n => n.EndsWith("book_cover.jpg"));
 
                 if (resourceName != null)
                 {
                     using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
                     {
                         if (stream != null && stream.Length > 0)
-                        {
                             return Image.FromStream(stream);
-                        }
                     }
                 }
                 else
@@ -272,96 +223,45 @@ namespace TinyOPDS.Data
             return null;
         }
 
-        /// <summary>
-        /// Get the best available font, falling back to defaults if needed
-        /// </summary>
-        /// <param name="fontName">Preferred font name</param>
-        /// <param name="size">Font size</param>
-        /// <param name="style">Font style</param>
-        /// <returns>Font object</returns>
         private Font GetBestFont(string fontName, float size, FontStyle style)
         {
-            try
-            {
-                return new Font(fontName, size, style);
-            }
+            try { return new Font(fontName, size, style); }
             catch
             {
-                try
-                {
-                    // Fallback to Georgia
-                    return new Font("Georgia", size, style);
-                }
+                try { return new Font("Georgia", size, style); }
                 catch
                 {
-                    try
-                    {
-                        // Final fallback to system serif font
-                        return new Font(FontFamily.GenericSerif, size, style);
-                    }
-                    catch
-                    {
-                        // Last resort - default font
-                        return new Font(FontFamily.GenericSansSerif, size, style);
-                    }
+                    try { return new Font(FontFamily.GenericSerif, size, style); }
+                    catch { return new Font(FontFamily.GenericSansSerif, size, style); }
                 }
             }
         }
 
-        /// <summary>
-        /// Draw text with shadow effect
-        /// </summary>
-        /// <param name="g">Graphics object</param>
-        /// <param name="text">Text to draw</param>
-        /// <param name="font">Font to use</param>
-        /// <param name="textColor">Main text color</param>
-        /// <param name="shadowColor">Shadow color</param>
-        /// <param name="area">Area to draw in</param>
-        /// <param name="isAuthor">True if this is author text (top), false for title (bottom)</param>
         private void DrawTextWithShadow(Graphics g, string text, Font font, Color textColor, Color shadowColor, Rectangle area, bool isAuthor)
         {
             if (string.IsNullOrEmpty(text)) return;
 
-            // Create brushes
             using (Brush textBrush = new SolidBrush(textColor))
             using (Brush shadowBrush = new SolidBrush(shadowColor))
             {
-                // Set text alignment
-                StringFormat format = new StringFormat
+                var format = new StringFormat
                 {
                     Alignment = StringAlignment.Center,
                     LineAlignment = isAuthor ? StringAlignment.Near : StringAlignment.Center,
-                    Trimming = StringTrimming.Word,
-                    FormatFlags = 0
+                    Trimming = StringTrimming.Word
                 };
 
-                // Calculate optimal font size for the text area
                 Font scaledFont = GetOptimalFontSize(g, text, font, area, !isAuthor);
 
-                // Draw shadow (offset by 2 pixels)
                 Rectangle shadowArea = new Rectangle(area.X + 2, area.Y + 2, area.Width, area.Height);
                 g.DrawString(text, scaledFont, shadowBrush, shadowArea, format);
-
-                // Draw main text
                 g.DrawString(text, scaledFont, textBrush, area, format);
 
-                // Clean up
-                if (scaledFont != font)
-                    scaledFont.Dispose();
-
+                if (scaledFont != font) scaledFont.Dispose();
                 format.Dispose();
             }
         }
 
-        /// <summary>
-        /// Calculate optimal font size to fit text in given area
-        /// </summary>
-        /// <param name="g">Graphics object</param>
-        /// <param name="text">Text to measure</param>
-        /// <param name="baseFont">Base font to scale</param>
-        /// <param name="area">Target area</param>
-        /// <param name="isTitle">True if this is title text (to apply size reduction)</param>
-        /// <returns>Optimally sized font</returns>
         private Font GetOptimalFontSize(Graphics g, string text, Font baseFont, Rectangle area, bool isTitle = false)
         {
             float fontSize = baseFont.Size;
@@ -369,10 +269,7 @@ namespace TinyOPDS.Data
 
             try
             {
-                // Measure text with current font
                 SizeF textSize = g.MeasureString(text, testFont, area.Width);
-
-                // Scale down if text is too large
                 while ((textSize.Width > area.Width || textSize.Height > area.Height) && fontSize > 8)
                 {
                     fontSize -= 1;
@@ -381,7 +278,6 @@ namespace TinyOPDS.Data
                     textSize = g.MeasureString(text, testFont, area.Width);
                 }
 
-                // Force reduce title font size by 2 points
                 if (isTitle && fontSize > 10)
                 {
                     fontSize -= 2;
@@ -401,67 +297,116 @@ namespace TinyOPDS.Data
 
     public static class ImageExtensions
     {
-        public static Stream ToStream(this Image image, ImageFormat format)
+        public static Stream ToJpegStream(this Image image, long quality)
         {
-            MemoryStream stream = null;
+            if (image == null) return null;
+
+            var stream = new MemoryStream();
             try
             {
-                stream = new MemoryStream();
-                if (image != null)
+                var jpegCodec = ImageCodecInfo.GetImageEncoders()
+                    .FirstOrDefault(c => c.FormatID == ImageFormat.Jpeg.Guid);
+
+                if (jpegCodec == null)
+                {
+                    image.Save(stream, ImageFormat.Jpeg);
+                }
+                else
+                {
+                    using (var encParams = new EncoderParameters(1))
+                    {
+                        encParams.Param[0] = new EncoderParameter(Encoder.Quality, quality);
+                        image.Save(stream, jpegCodec, encParams);
+                    }
+                }
+                stream.Position = 0;
+                return stream;
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error converting image to JPEG stream: {0}", ex.Message);
+                stream.Dispose();
+                return null;
+            }
+        }
+
+        // Backward-compatible method
+        public static Stream ToStream(this Image image, ImageFormat format)
+        {
+            if (image == null) return null;
+
+            var stream = new MemoryStream();
+            try
+            {
+                if (format.Guid == ImageFormat.Jpeg.Guid)
+                {
+                    var jpegCodec = ImageCodecInfo.GetImageEncoders()
+                        .FirstOrDefault(c => c.FormatID == ImageFormat.Jpeg.Guid);
+                    if (jpegCodec != null)
+                    {
+                        using (var encParams = new EncoderParameters(1))
+                        {
+                            encParams.Param[0] = new EncoderParameter(Encoder.Quality, 60L);
+                            image.Save(stream, jpegCodec, encParams);
+                        }
+                    }
+                    else
+                    {
+                        image.Save(stream, ImageFormat.Jpeg);
+                    }
+                }
+                else
                 {
                     image.Save(stream, format);
-                    stream.Position = 0;
                 }
+
+                stream.Position = 0;
+                return stream;
             }
             catch (Exception ex)
             {
                 Log.WriteLine(LogLevel.Error, "Error converting image to stream: {0}", ex.Message);
-                if (stream != null)
-                {
-                    stream.Dispose();
-                    stream = null;
-                }
+                stream.Dispose();
+                return null;
             }
-            return stream;
         }
 
-        public static Image Resize(this Image image, Size size, bool preserveAspectRatio = true)
+        public static Image Resize(this Image image, Size box, bool preserveAspectRatio = true)
         {
             if (image == null) return null;
+
             int newWidth, newHeight;
             if (preserveAspectRatio)
             {
-                int originalWidth = image.Width;
-                int originalHeight = image.Height;
-                float percentWidth = size.Width / (float)originalWidth;
-                float percentHeight = size.Height / (float)originalHeight;
-                float percent = percentHeight < percentWidth ? percentHeight : percentWidth;
-                newWidth = (int)(originalWidth * percent);
-                newHeight = (int)(originalHeight * percent);
+                float pw = box.Width / (float)image.Width;
+                float ph = box.Height / (float)image.Height;
+                float p = Math.Min(pw, ph);
+                newWidth = Math.Max(1, (int)Math.Round(image.Width * p));
+                newHeight = Math.Max(1, (int)Math.Round(image.Height * p));
             }
             else
             {
-                newWidth = size.Width;
-                newHeight = size.Height;
+                newWidth = box.Width;
+                newHeight = box.Height;
             }
+
             Image newImage = null;
             try
             {
                 newImage = new Bitmap(newWidth, newHeight);
-                using (Graphics graphicsHandle = Graphics.FromImage(newImage))
+                using (Graphics g = Graphics.FromImage(newImage))
                 {
-                    graphicsHandle.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                    graphicsHandle.DrawImage(image, 0, 0, newWidth, newHeight);
+                    g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                    g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                    g.CompositingQuality = CompositingQuality.HighQuality;
+                    g.DrawImage(image, 0, 0, newWidth, newHeight);
                 }
             }
             catch (Exception ex)
             {
                 Log.WriteLine(LogLevel.Error, "Error resizing image: {0}", ex.Message);
-                if (newImage != null)
-                {
-                    newImage.Dispose();
-                    newImage = null;
-                }
+                newImage?.Dispose();
+                newImage = null;
             }
             return newImage;
         }

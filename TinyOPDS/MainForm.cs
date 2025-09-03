@@ -692,8 +692,8 @@ namespace TinyOPDS
         private void InternalUpdateInfo(bool IsScanFinished)
         {
             var (Total, FB2, EPUB) = GetLibraryStats();
-            booksInDB.Text = $"{Total}           fb2: {FB2}       epub: {EPUB}";
-            booksFound.Text = $"fb2: {FB2}   epub: {EPUB}";
+            if (Total > 0) booksInDB.Text = $"{Total}           fb2: {FB2}       epub: {EPUB}";
+            booksFound.Text = $"fb2: {fb2Count}   epub: {epubCount}";
             skippedBooks.Text = skippedFiles.ToString();
             invalidBooks.Text = invalidFiles.ToString();
             duplicates.Text = dups.ToString();

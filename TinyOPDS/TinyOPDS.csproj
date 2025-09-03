@@ -116,6 +116,7 @@
   <!-- Source Files -->
   <ItemGroup>
     <!-- Main Application -->
+    <Compile Include="Misc\UpdateChecker.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>

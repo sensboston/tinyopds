@@ -35,7 +35,15 @@ jobs:
           restore-keys: |
             nuget-
 
-      # Restore packages exactly where .csproj expects: TinyOPDS\packages relative to the solution root
+      # Explicitly install the exact package expected by .csproj imports
+      - name: Preinstall System.Data.SQLite.Core.FTS5 (exact version)
+        run: nuget install System.Data.SQLite.Core.FTS5 -Version 1.0.114.1 -OutputDirectory TinyOPDS\packages -NonInteractive -Source https://api.nuget.org/v3/index.json
+
+      # (Optional) Install base Core in case it's also referenced
+      - name: Preinstall System.Data.SQLite.Core (matching toolset)
+        run: nuget install System.Data.SQLite.Core -Version 1.0.114.1 -OutputDirectory TinyOPDS\packages -NonInteractive -Source https://api.nuget.org/v3/index.json
+
+      # Restore remaining packages for both projects into TinyOPDS\packages
       - name: Restore TinyOPDS packages
         run: nuget restore TinyOPDS\TinyOPDS.csproj -NonInteractive -PackagesDirectory TinyOPDS\packages -Source https://api.nuget.org/v3/index.json
 

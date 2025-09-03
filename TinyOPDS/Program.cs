@@ -1,7 +1,7 @@
 ﻿/***********************************************************
  * This file is a part of TinyOPDS server project
  * 
- * Copyright (c) 2013 SeNSSoFT
+ * Copyright (c) 2013-2025 SeNSSoFT
  *
  * This code is licensed under the Microsoft Public License, 
  * see http://tinyopds.codeplex.com/license for the details.

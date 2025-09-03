@@ -221,11 +221,11 @@ body {
     cursor: pointer;
     opacity: 0;
     transition: opacity 0.2s;
-}
-
-.click-area:hover {
-    opacity: 0.02;
-    background: #007acc;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
 .click-area.top {

@@ -42,7 +42,7 @@ body.theme-sepia {
     font-size: 20px;
 }
 
-.book-content p {
+/*.book-content p {
     margin: 15px 0;
     text-align: justify;
     text-indent: 1.5em;
@@ -57,6 +57,17 @@ body.theme-sepia {
     -moz-hyphenate-limit-chars: 6 3 2;
     -ms-hyphenate-limit-chars: 6 3 2;
     hyphenate-limit-chars: 6 3 2;
+}
+*/
+
+.book-content p {
+    margin: 15px 0;
+    text-align: justify;
+    text-indent: 1.5em;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+    -moz-hyphens: auto;
+    -ms-hyphens: auto;
 }
 
 .book-content p:first-of-type {
@@ -79,7 +90,7 @@ body.theme-sepia {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.book-content p,
+/*.book-content p,
 .book-content div,
 .book-content span,
 .book-content h1,
@@ -100,6 +111,24 @@ body.theme-sepia {
     -ms-hyphenate-limit-chars: 5 2 2;
     hyphenate-limit-chars: 5 2 2;
 }
+*/
+
+.book-content p,
+.book-content div,
+.book-content span,
+.book-content h1,
+.book-content h2,
+.book-content h3,
+.book-content h4,
+.book-content h5,
+.book-content h6 {
+    hyphens: auto !important;
+    -webkit-hyphens: auto !important;
+    -moz-hyphens: auto !important;
+    -ms-hyphens: auto !important;
+}
+
+
 
 .book-content[lang="ru"] p,
 .book-content[lang="ru"] div {

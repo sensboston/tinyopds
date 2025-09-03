@@ -265,7 +265,7 @@ class UniversalReader {
     updateCurrentChapter() {
         if (this.chapters.length === 0) return;
 
-        const scrollTop = window.pageYOffset;
+        const scrollTop = window.scrollY;
         let newChapterIndex = -1;
 
         for (let i = this.chapters.length - 1; i >= 0; i--) {
@@ -502,7 +502,7 @@ class UniversalReader {
     }
 
     changeFontSize(delta) {
-        this.fontSize = Math.max(12, Math.min(24, this.fontSize + delta));
+        this.fontSize = Math.max(12, Math.min(32, this.fontSize + delta));
         this.applyFontSize();
         this.savePreferences();
     }
@@ -576,7 +576,7 @@ class UniversalReader {
     }
 
     updateProgress() {
-        const scrollTop = window.pageYOffset;
+        const scrollTop = window.scrollY;
         const scrollHeight = document.body.scrollHeight - window.innerHeight;
         const progress = (scrollTop / scrollHeight) * 100;
         this.progressBar.style.width = Math.min(100, Math.max(0, progress)) + '%';

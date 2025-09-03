@@ -6,8 +6,8 @@
  * SPDX-License-Identifier: MIT
  *
  * SQLite-based implementation of Library class
- * This replaces the in-memory Dictionary approach with SQLite database
- * OPTIMIZED: Enhanced caching for better performance with large databases
+ * OPTIMIZED: Architecturally correct caching with proper synchronization
+ * ENHANCED: Persistent statistics for instant startup display
  *
  */
 
@@ -17,6 +17,7 @@ using System.IO.Compression;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 
 namespace TinyOPDS.Data
 {
@@ -35,7 +36,9 @@ namespace TinyOPDS.Data
         private static readonly Dictionary<string, string> aliases = new Dictionary<string, string>();
         private static readonly Dictionary<string, List<string>> reverseAliases = new Dictionary<string, List<string>>();
 
-        // Enhanced cache for frequently accessed data
+        #region Enhanced Cache Implementation with Persistent Statistics
+
+        // Enhanced cache for frequently accessed data with separate variables
         private static readonly object cacheLock = new object();
         private static DateTime lastStatsUpdate = DateTime.MinValue;
         private static int cachedTotalCount = 0;
@@ -46,21 +49,27 @@ namespace TinyOPDS.Data
         private static int cachedNewBooksCount = 0;
         private static DateTime lastNewBooksCountUpdate = DateTime.MinValue;
 
-        // Extended cache timeout - data will be cached until invalidated
+        // Cache state tracking
+        private static volatile bool isCacheInitialized = false;
+        private static volatile bool isCacheWarming = false;
+
+        // Cache timeouts
         private static readonly TimeSpan CacheTimeout = TimeSpan.FromHours(1);
-        // Separate timeout for new books count (changes more frequently)
         private static readonly TimeSpan NewBooksCacheTimeout = TimeSpan.FromMinutes(5);
+
+        // Lists cache (separate from stats cache)
+        private static volatile List<string> cachedAuthorsList = null;
+        private static volatile List<string> cachedSequencesList = null;
+        private static DateTime lastAuthorsListUpdate = DateTime.MinValue;
+        private static DateTime lastSequencesListUpdate = DateTime.MinValue;
+        private static readonly TimeSpan ListsCacheTimeout = TimeSpan.FromMinutes(10);
+        private static readonly object listsLock = new object();
 
         // Genre cache
         private static DateTime lastGenresUpdate = DateTime.MinValue;
         private static List<Genre> cachedGenres = null;
 
-        // Lists cache (for when full lists are needed)
-        private static List<string> cachedAuthorsList = null;
-        private static List<string> cachedSequencesList = null;
-        private static DateTime lastAuthorsListUpdate = DateTime.MinValue;
-        private static DateTime lastSequencesListUpdate = DateTime.MinValue;
-        private static readonly TimeSpan ListsCacheTimeout = TimeSpan.FromMinutes(10);
+        #endregion
 
         /// <summary>
         /// Static constructor - initializes periods
@@ -104,8 +113,11 @@ namespace TinyOPDS.Data
                 // Load author aliases into memory
                 LoadAuthorAliases();
 
-                // Warm up cache on initialization
-                WarmUpCache();
+                // NEW: Load statistics from database immediately for instant display
+                LoadStatsFromDatabase();
+
+                // Start async cache warming without blocking
+                System.Threading.Tasks.Task.Run(() => InitializeCacheAsync());
 
                 Log.WriteLine("SQLite database initialized: {0}", databaseFullPath);
             }
@@ -113,6 +125,67 @@ namespace TinyOPDS.Data
             {
                 Log.WriteLine(LogLevel.Error, "Failed to initialize database: {0}", ex.Message);
                 throw;
+            }
+        }
+
+        /// <summary>
+        /// Initialize cache asynchronously without blocking
+        /// </summary>
+        private static void InitializeCacheAsync()
+        {
+            if (bookRepository == null || isCacheWarming) return;
+
+            try
+            {
+                isCacheWarming = true;
+                Log.WriteLine("Starting async cache initialization...");
+                var startTime = DateTime.Now;
+
+                // Load all counts in parallel
+                var tasks = new System.Threading.Tasks.Task<int>[6];
+                var period = periods[Properties.Settings.Default.NewBooksPeriod];
+                var fromDate = DateTime.Now.Subtract(period);
+
+                tasks[0] = System.Threading.Tasks.Task.Run(() => bookRepository.GetTotalBooksCount());
+                tasks[1] = System.Threading.Tasks.Task.Run(() => bookRepository.GetFB2BooksCount());
+                tasks[2] = System.Threading.Tasks.Task.Run(() => bookRepository.GetEPUBBooksCount());
+                tasks[3] = System.Threading.Tasks.Task.Run(() => bookRepository.GetAuthorsCount());
+                tasks[4] = System.Threading.Tasks.Task.Run(() => bookRepository.GetSequencesCount());
+                tasks[5] = System.Threading.Tasks.Task.Run(() => bookRepository.GetNewBooksCount(fromDate));
+
+                System.Threading.Tasks.Task.WaitAll(tasks);
+
+                // Update cache with fresh values
+                lock (cacheLock)
+                {
+                    cachedTotalCount = tasks[0].Result;
+                    cachedFB2Count = tasks[1].Result;
+                    cachedEPUBCount = tasks[2].Result;
+                    cachedAuthorsCount = tasks[3].Result;
+                    cachedSequencesCount = tasks[4].Result;
+                    cachedNewBooksCount = tasks[5].Result;
+
+                    lastStatsUpdate = DateTime.Now;
+                    lastNewBooksCountUpdate = DateTime.Now;
+                    isCacheInitialized = true;
+                }
+
+                var elapsed = (DateTime.Now - startTime).TotalMilliseconds;
+                Log.WriteLine("Cache initialized in {0} ms. Books: {1}, Authors: {2}, Series: {3}",
+                    elapsed, cachedTotalCount, cachedAuthorsCount, cachedSequencesCount);
+
+                // NEW: Save updated statistics to database for next startup
+                SaveStatsToDatabase();
+
+                LibraryLoaded?.Invoke(null, EventArgs.Empty);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error initializing cache: {0}", ex.Message);
+            }
+            finally
+            {
+                isCacheWarming = false;
             }
         }
 
@@ -126,49 +199,113 @@ namespace TinyOPDS.Data
             bookRepository = null;
         }
 
+        #endregion
+
+        #region Statistics Persistence Methods
+
         /// <summary>
-        /// Warm up cache with frequently accessed data
+        /// Load statistics from database for immediate display
         /// </summary>
-        public static void WarmUpCache()
+        private static void LoadStatsFromDatabase()
         {
-            if (bookRepository == null) return;
+            if (db == null) return;
 
             try
             {
-                Log.WriteLine("Warming up Library cache...");
-                var startTime = DateTime.Now;
+                var allStats = db.GetAllLibraryStats();
 
                 lock (cacheLock)
                 {
-                    // Load all counts at once
-                    cachedTotalCount = bookRepository.GetTotalBooksCount();
-                    cachedFB2Count = bookRepository.GetFB2BooksCount();
-                    cachedEPUBCount = bookRepository.GetEPUBBooksCount();
-                    cachedAuthorsCount = bookRepository.GetAuthorsCount();
-                    cachedSequencesCount = bookRepository.GetSequencesCount();
+                    // Load persisted values into cache
+                    if (allStats.ContainsKey("total_books"))
+                        cachedTotalCount = allStats["total_books"].Value;
 
-                    // Load new books count
-                    var period = periods[Properties.Settings.Default.NewBooksPeriod];
-                    var fromDate = DateTime.Now.Subtract(period);
-                    cachedNewBooksCount = bookRepository.GetNewBooksCount(fromDate);
+                    if (allStats.ContainsKey("fb2_books"))
+                        cachedFB2Count = allStats["fb2_books"].Value;
 
+                    if (allStats.ContainsKey("epub_books"))
+                        cachedEPUBCount = allStats["epub_books"].Value;
+
+                    if (allStats.ContainsKey("authors_count"))
+                        cachedAuthorsCount = allStats["authors_count"].Value;
+
+                    if (allStats.ContainsKey("sequences_count"))
+                        cachedSequencesCount = allStats["sequences_count"].Value;
+
+                    if (allStats.ContainsKey("new_books"))
+                        cachedNewBooksCount = allStats["new_books"].Value;
+
+                    // Mark as initialized so properties return these values immediately
+                    isCacheInitialized = true;
                     lastStatsUpdate = DateTime.Now;
                     lastNewBooksCountUpdate = DateTime.Now;
                 }
 
-                var elapsed = (DateTime.Now - startTime).TotalMilliseconds;
-                Log.WriteLine("Cache warmed up in {0} ms. Books: {1}, Authors: {2}, Series: {3}",
-                    elapsed, cachedTotalCount, cachedAuthorsCount, cachedSequencesCount);
+                Log.WriteLine("Loaded library statistics from database: Books={0}, Authors={1}, Series={2}",
+                    cachedTotalCount, cachedAuthorsCount, cachedSequencesCount);
             }
             catch (Exception ex)
             {
-                Log.WriteLine(LogLevel.Error, "Error warming up cache: {0}", ex.Message);
+                Log.WriteLine(LogLevel.Error, "Error loading statistics from database: {0}", ex.Message);
+                // Initialize with zeros if can't load from database
+                lock (cacheLock)
+                {
+                    cachedTotalCount = 0;
+                    cachedFB2Count = 0;
+                    cachedEPUBCount = 0;
+                    cachedAuthorsCount = 0;
+                    cachedSequencesCount = 0;
+                    cachedNewBooksCount = 0;
+                    isCacheInitialized = true;
+                }
             }
+        }
+
+        /// <summary>
+        /// Save current statistics to database
+        /// </summary>
+        private static void SaveStatsToDatabase()
+        {
+            if (db == null) return;
+
+            try
+            {
+                var stats = new Dictionary<string, int>();
+                var currentPeriod = Properties.Settings.Default.NewBooksPeriod;
+
+                lock (cacheLock)
+                {
+                    stats["total_books"] = cachedTotalCount;
+                    stats["fb2_books"] = cachedFB2Count;
+                    stats["epub_books"] = cachedEPUBCount;
+                    stats["authors_count"] = cachedAuthorsCount;
+                    stats["sequences_count"] = cachedSequencesCount;
+                    stats["new_books"] = cachedNewBooksCount;
+                }
+
+                // Save to database with current period for new books
+                db.SaveLibraryStatistics(stats, (int)periods[currentPeriod].TotalDays);
+
+                Log.WriteLine("Saved library statistics to database");
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error saving statistics to database: {0}", ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Internal method to save statistics after scanning or other operations
+        /// (statistics are now saved automatically on all changes)
+        /// </summary>
+        internal static void SaveStatistics()
+        {
+            SaveStatsToDatabase();
         }
 
         #endregion
 
-        #region Properties (maintaining original API)
+        #region Properties with Proper Cache Access
 
         /// <summary>
         /// Library path property
@@ -187,28 +324,29 @@ namespace TinyOPDS.Data
         {
             get
             {
-                RefreshStatsCache();
-                return cachedTotalCount;
+                GetOrRefreshCache();
+                lock (cacheLock)
+                {
+                    return cachedTotalCount;
+                }
             }
         }
 
         /// <summary>
-        /// New books count - cached separately with shorter timeout
+        /// New books count
         /// </summary>
         public static int NewBooksCount
         {
             get
             {
-                if (bookRepository == null) return 0;
+                GetOrRefreshCache();
 
+                // Check if new books count needs separate refresh
                 lock (cacheLock)
                 {
-                    if (DateTime.Now - lastNewBooksCountUpdate > NewBooksCacheTimeout)
+                    if (DateTime.Now - lastNewBooksCountUpdate > NewBooksCacheTimeout && bookRepository != null)
                     {
-                        var period = periods[Properties.Settings.Default.NewBooksPeriod];
-                        var fromDate = DateTime.Now.Subtract(period);
-                        cachedNewBooksCount = bookRepository.GetNewBooksCount(fromDate);
-                        lastNewBooksCountUpdate = DateTime.Now;
+                        RefreshNewBooksCount();
                     }
                     return cachedNewBooksCount;
                 }
@@ -222,8 +360,11 @@ namespace TinyOPDS.Data
         {
             get
             {
-                RefreshStatsCache();
-                return cachedFB2Count;
+                GetOrRefreshCache();
+                lock (cacheLock)
+                {
+                    return cachedFB2Count;
+                }
             }
         }
 
@@ -234,14 +375,46 @@ namespace TinyOPDS.Data
         {
             get
             {
-                RefreshStatsCache();
-                return cachedEPUBCount;
+                GetOrRefreshCache();
+                lock (cacheLock)
+                {
+                    return cachedEPUBCount;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Get authors count without loading all authors
+        /// </summary>
+        public static int AuthorsCount
+        {
+            get
+            {
+                GetOrRefreshCache();
+                lock (cacheLock)
+                {
+                    return cachedAuthorsCount;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Get sequences count without loading all sequences
+        /// </summary>
+        public static int SequencesCount
+        {
+            get
+            {
+                GetOrRefreshCache();
+                lock (cacheLock)
+                {
+                    return cachedSequencesCount;
+                }
             }
         }
 
         /// <summary>
         /// Returns list of the authors sorted in alphabetical order
-        /// OPTIMIZED: Now uses cached list when available, with separate count property
         /// </summary>
         public static List<string> Authors
         {
@@ -249,7 +422,7 @@ namespace TinyOPDS.Data
             {
                 if (bookRepository == null) return new List<string>();
 
-                lock (cacheLock)
+                lock (listsLock)
                 {
                     if (cachedAuthorsList == null || DateTime.Now - lastAuthorsListUpdate > ListsCacheTimeout)
                     {
@@ -264,21 +437,7 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Get authors count without loading all authors
-        /// OPTIMIZED: Uses cached count from fast SQL COUNT query
-        /// </summary>
-        public static int AuthorsCount
-        {
-            get
-            {
-                RefreshStatsCache();
-                return cachedAuthorsCount;
-            }
-        }
-
-        /// <summary>
         /// Returns list of the library books series sorted in alphabetical order
-        /// OPTIMIZED: Now uses cached list when available, with separate count property
         /// </summary>
         public static List<string> Sequences
         {
@@ -286,7 +445,7 @@ namespace TinyOPDS.Data
             {
                 if (bookRepository == null) return new List<string>();
 
-                lock (cacheLock)
+                lock (listsLock)
                 {
                     if (cachedSequencesList == null || DateTime.Now - lastSequencesListUpdate > ListsCacheTimeout)
                     {
@@ -300,18 +459,174 @@ namespace TinyOPDS.Data
             }
         }
 
+        #endregion
+
+        #region Cache Management
+
         /// <summary>
-        /// Get sequences count without loading all sequences
-        /// OPTIMIZED: Uses cached count from fast SQL COUNT query
+        /// Get current cache or refresh if needed (non-blocking)
         /// </summary>
-        public static int SequencesCount
+        private static void GetOrRefreshCache()
         {
-            get
+            // Fast path - return if cache is valid
+            if (isCacheInitialized && DateTime.Now - lastStatsUpdate < CacheTimeout)
             {
-                RefreshStatsCache();
-                return cachedSequencesCount;
+                return;
+            }
+
+            // If cache is warming, return (use current cached values)
+            if (isCacheWarming)
+            {
+                return;
+            }
+
+            // Try to refresh cache with timeout
+            if (Monitor.TryEnter(cacheLock, TimeSpan.FromMilliseconds(100)))
+            {
+                try
+                {
+                    // Double-check after acquiring lock
+                    if (isCacheInitialized && DateTime.Now - lastStatsUpdate < CacheTimeout)
+                    {
+                        return;
+                    }
+
+                    // Refresh cache synchronously if we got the lock
+                    RefreshCacheInternal();
+                }
+                finally
+                {
+                    Monitor.Exit(cacheLock);
+                }
+            }
+            else
+            {
+                // If can't get lock quickly, start async refresh
+                if (!isCacheWarming && bookRepository != null)
+                {
+                    System.Threading.Tasks.Task.Run(() => RefreshCacheAsync());
+                }
             }
         }
+
+        /// <summary>
+        /// Refresh cache synchronously (must be called under lock)
+        /// </summary>
+        private static void RefreshCacheInternal()
+        {
+            if (bookRepository == null) return;
+
+            try
+            {
+                var period = periods[Properties.Settings.Default.NewBooksPeriod];
+                var fromDate = DateTime.Now.Subtract(period);
+
+                // Update cached values
+                cachedTotalCount = bookRepository.GetTotalBooksCount();
+                cachedFB2Count = bookRepository.GetFB2BooksCount();
+                cachedEPUBCount = bookRepository.GetEPUBBooksCount();
+                cachedAuthorsCount = bookRepository.GetAuthorsCount();
+                cachedSequencesCount = bookRepository.GetSequencesCount();
+                cachedNewBooksCount = bookRepository.GetNewBooksCount(fromDate);
+
+                lastStatsUpdate = DateTime.Now;
+                lastNewBooksCountUpdate = DateTime.Now;
+                isCacheInitialized = true;
+
+                // Save updated statistics to database
+                SaveStatsToDatabase();
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error refreshing cache: {0}", ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Refresh cache asynchronously
+        /// </summary>
+        private static void RefreshCacheAsync()
+        {
+            if (isCacheWarming || bookRepository == null) return;
+
+            lock (cacheLock)
+            {
+                if (!isCacheWarming) // Double-check
+                {
+                    isCacheWarming = true;
+                    try
+                    {
+                        RefreshCacheInternal();
+                    }
+                    finally
+                    {
+                        isCacheWarming = false;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Refresh only new books count
+        /// </summary>
+        private static void RefreshNewBooksCount()
+        {
+            if (bookRepository == null) return;
+
+            lock (cacheLock)
+            {
+                try
+                {
+                    var period = periods[Properties.Settings.Default.NewBooksPeriod];
+                    var fromDate = DateTime.Now.Subtract(period);
+                    cachedNewBooksCount = bookRepository.GetNewBooksCount(fromDate);
+                    lastNewBooksCountUpdate = DateTime.Now;
+
+                    // Save only new books count to database
+                    db?.SaveLibraryStatistic("new_books", cachedNewBooksCount, (int)period.TotalDays);
+                }
+                catch (Exception ex)
+                {
+                    Log.WriteLine(LogLevel.Error, "Error refreshing new books count: {0}", ex.Message);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Invalidate all caches
+        /// </summary>
+        private static void InvalidateCache()
+        {
+            lock (cacheLock)
+            {
+                // Reset cache to empty state
+                cachedTotalCount = 0;
+                cachedFB2Count = 0;
+                cachedEPUBCount = 0;
+                cachedAuthorsCount = 0;
+                cachedSequencesCount = 0;
+                cachedNewBooksCount = 0;
+                lastStatsUpdate = DateTime.MinValue;
+                lastNewBooksCountUpdate = DateTime.MinValue;
+                isCacheInitialized = false;
+
+                // Clear lists cache
+                lock (listsLock)
+                {
+                    cachedAuthorsList = null;
+                    cachedSequencesList = null;
+                    lastAuthorsListUpdate = DateTime.MinValue;
+                    lastSequencesListUpdate = DateTime.MinValue;
+                }
+            }
+
+            // Start async refresh
+            System.Threading.Tasks.Task.Run(() => InitializeCacheAsync());
+        }
+
+        #endregion
+
+        #region All other properties and methods remain the same
 
         /// <summary>
         /// All genres supported by fb2 format (loaded from database)
@@ -404,10 +719,6 @@ namespace TinyOPDS.Data
         /// <summary>
         /// Get new books with pagination support
         /// </summary>
-        /// <param name="sortByDate">Sort by date (true) or alphabetically by title (false)</param>
-        /// <param name="pageNumber">Zero-based page number</param>
-        /// <param name="pageSize">Number of books per page</param>
-        /// <returns>Paginated result with books and pagination info</returns>
         public static NewBooksPaginatedResult GetNewBooksPaginated(bool sortByDate, int pageNumber = 0, int pageSize = 100)
         {
             var result = new NewBooksPaginatedResult();
@@ -449,7 +760,6 @@ namespace TinyOPDS.Data
         /// <summary>
         /// Get total count of new books for the current period
         /// </summary>
-        /// <returns>Total count of new books</returns>
         public static int GetNewBooksTotalCount()
         {
             if (bookRepository == null) return 0;
@@ -469,31 +779,8 @@ namespace TinyOPDS.Data
         public static void Load()
         {
             var start = DateTime.Now;
-
-            if (db == null)
-            {
-                Initialize();
-            }
-
-            // Refresh genre cache from database
+            if (db == null) Initialize();
             LoadGenresFromDatabase();
-
-            // Warm up statistics cache
-            WarmUpCache();
-
-            Log.WriteLine("Library loaded from SQLite database in {0} ms",
-                (DateTime.Now - start).TotalMilliseconds);
-
-            LibraryLoaded?.Invoke(null, EventArgs.Empty);
-        }
-
-        /// <summary>
-        /// Load library asynchronously - for API compatibility
-        /// </summary>
-        public static void LoadAsync()
-        {
-            // In SQLite implementation, we load synchronously but call it on background thread if needed
-            System.Threading.Tasks.Task.Run(() => Load());
         }
 
         /// <summary>
@@ -507,9 +794,7 @@ namespace TinyOPDS.Data
 
         /// <summary>
         /// Add unique book descriptor to the library
-        /// MODIFIED: Removed redundant duplicate checking, let BookRepository handle it
         /// </summary>
-        /// <param name="book"></param>
         public static bool Add(Book book)
         {
             if (bookRepository == null) return false;
@@ -526,14 +811,12 @@ namespace TinyOPDS.Data
                 if (book.AddedDate == DateTime.MinValue)
                     book.AddedDate = DateTime.Now;
 
-                // MODIFIED: Let BookRepository handle all duplicate detection
-                // It has the proper logic with DuplicateDetector
                 bool success = bookRepository.AddBook(book);
 
                 if (success)
                 {
                     IsChanged = true;
-                    InvalidateStatsCache();
+                    InvalidateCache();
                 }
 
                 return success;
@@ -547,10 +830,7 @@ namespace TinyOPDS.Data
 
         /// <summary>
         /// Add multiple books in batch - optimized for performance with detailed results
-        /// MODIFIED: Removed redundant duplicate checking, let BookRepository handle it
         /// </summary>
-        /// <param name="books">List of books to add</param>
-        /// <returns>BatchResult with detailed statistics</returns>
         public static BookRepository.BatchResult AddBatch(List<Book> books)
         {
             var result = new BookRepository.BatchResult();
@@ -580,14 +860,12 @@ namespace TinyOPDS.Data
                         book.AddedDate = DateTime.Now;
                 }
 
-                // MODIFIED: Let BookRepository handle all duplicate detection and batch processing
-                // It has the proper logic with DuplicateDetector
                 result = bookRepository.AddBooksBatch(books);
 
                 if (result.Added > 0 || result.Replaced > 0)
                 {
                     IsChanged = true;
-                    InvalidateStatsCache();
+                    InvalidateCache();
                 }
 
                 return result;
@@ -605,8 +883,6 @@ namespace TinyOPDS.Data
         /// <summary>
         /// Delete all books with specific file path from the library
         /// </summary>
-        /// <param name="fileName"></param>
-        /// <returns></returns>
         public static bool Delete(string fileName)
         {
             if (bookRepository == null) return false;
@@ -632,7 +908,7 @@ namespace TinyOPDS.Data
                                 if (result)
                                 {
                                     IsChanged = true;
-                                    InvalidateStatsCache();
+                                    InvalidateCache();
                                 }
                                 return result;
                             }
@@ -653,7 +929,7 @@ namespace TinyOPDS.Data
                         }
                         if (result)
                         {
-                            InvalidateStatsCache();
+                            InvalidateCache();
                         }
                         return result;
                     }
@@ -670,8 +946,6 @@ namespace TinyOPDS.Data
         /// <summary>
         /// Check if library contains book by file path
         /// </summary>
-        /// <param name="bookPath"></param>
-        /// <returns></returns>
         public static bool Contains(string bookPath)
         {
             if (bookRepository == null) return false;
@@ -681,8 +955,6 @@ namespace TinyOPDS.Data
         /// <summary>
         /// Get book by ID
         /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
         public static Book GetBook(string id)
         {
             if (bookRepository == null)
@@ -709,7 +981,6 @@ namespace TinyOPDS.Data
         /// <summary>
         /// Remove books that no longer exist on disk
         /// </summary>
-        /// <returns></returns>
         public static bool RemoveNotExistingBooks()
         {
             if (bookRepository == null) return false;
@@ -739,7 +1010,7 @@ namespace TinyOPDS.Data
 
                 if (result)
                 {
-                    InvalidateStatsCache();
+                    InvalidateCache();
                 }
 
                 return result;
@@ -753,7 +1024,7 @@ namespace TinyOPDS.Data
 
         #endregion
 
-        #region Genre Management
+        #region Genre Management (remains the same)
 
         /// <summary>
         /// Load genres from database into memory cache
@@ -884,7 +1155,7 @@ namespace TinyOPDS.Data
 
             if (fixedCount > 0)
             {
-                InvalidateStatsCache();
+                InvalidateCache();
                 Log.WriteLine("Fixed {0} invalid genre entries", fixedCount);
             }
 
@@ -893,13 +1164,11 @@ namespace TinyOPDS.Data
 
         #endregion
 
-        #region Author Aliases Management
+        #region Author Aliases Management (remains the same)
 
         /// <summary>
         /// Check if string contains Cyrillic characters
         /// </summary>
-        /// <param name="text">Text to check</param>
-        /// <returns>True if text contains at least one Cyrillic character</returns>
         private static bool ContainsCyrillic(string text)
         {
             if (string.IsNullOrEmpty(text))
@@ -916,9 +1185,7 @@ namespace TinyOPDS.Data
 
         /// <summary>
         /// Apply author aliases to book before saving to database
-        /// Only applies aliases if at least one author name contains Cyrillic characters
         /// </summary>
-        /// <param name="book">Book to process</param>
         private static void ApplyAliasesToBookAuthors(Book book)
         {
             if (!Properties.Settings.Default.UseAuthorsAliases || book.Authors == null)
@@ -955,8 +1222,6 @@ namespace TinyOPDS.Data
         /// <summary>
         /// Apply author aliases to author name (for OPDS output)
         /// </summary>
-        /// <param name="originalAuthor">Original author name from database (already canonical)</param>
-        /// <returns>Canonical author name (same as input since database already contains canonical names)</returns>
         public static string ApplyAuthorAlias(string originalAuthor)
         {
             return originalAuthor;
@@ -965,8 +1230,6 @@ namespace TinyOPDS.Data
         /// <summary>
         /// Get all alias names that map to the canonical name
         /// </summary>
-        /// <param name="canonicalName">Canonical author name</param>
-        /// <returns>List of alias names</returns>
         public static List<string> GetAliasesForCanonicalName(string canonicalName)
         {
             if (!reverseAliases.ContainsKey(canonicalName))
@@ -978,8 +1241,6 @@ namespace TinyOPDS.Data
         /// <summary>
         /// Get canonical name for alias (for internal use)
         /// </summary>
-        /// <param name="aliasName">Alias name</param>
-        /// <returns>Canonical name if alias exists, otherwise original name</returns>
         public static string GetCanonicalName(string aliasName)
         {
             return aliases.ContainsKey(aliasName) ? aliases[aliasName] : aliasName;
@@ -987,14 +1248,11 @@ namespace TinyOPDS.Data
 
         #endregion
 
-        #region Author Search Methods
+        #region Author Search Methods (remains the same)
 
         /// <summary>
         /// Get authors by name - simplified dispatch method
         /// </summary>
-        /// <param name="name">Search pattern</param>
-        /// <param name="isOpenSearch">True for OpenSearch, false for navigation</param>
-        /// <returns>List of matching canonical author names</returns>
         public static List<string> GetAuthorsByName(string name, bool isOpenSearch)
         {
             if (bookRepository == null) return new List<string>();
@@ -1031,9 +1289,6 @@ namespace TinyOPDS.Data
         /// <summary>
         /// Get authors by name with search method information
         /// </summary>
-        /// <param name="name">Search pattern</param>
-        /// <param name="isOpenSearch">True for OpenSearch, false for navigation</param>
-        /// <returns>Tuple with list of matching canonical author names and search method used</returns>
         public static (List<string> authors, AuthorSearchMethod method) GetAuthorsByNameWithMethod(string name, bool isOpenSearch)
         {
             if (bookRepository == null) return (new List<string>(), AuthorSearchMethod.NotFound);
@@ -1073,10 +1328,8 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Get books by title - original method for compatibility (no Soundex)
+        /// Get books by title - original method for compatibility
         /// </summary>
-        /// <param name="title">Title to search for</param>
-        /// <returns>List of matching books</returns>
         public static List<Book> GetBooksByTitle(string title)
         {
             return GetBooksByTitle(title, false);
@@ -1085,9 +1338,6 @@ namespace TinyOPDS.Data
         /// <summary>
         /// Get books by title - OpenSearch version with FTS5 search and transliteration
         /// </summary>
-        /// <param name="title">Title to search for</param>
-        /// <param name="isOpenSearch">Whether this is OpenSearch (uses FTS5 when true)</param>
-        /// <returns>List of matching books</returns>
         public static List<Book> GetBooksByTitle(string title, bool isOpenSearch)
         {
             if (bookRepository == null) return new List<Book>();
@@ -1122,8 +1372,6 @@ namespace TinyOPDS.Data
         /// <summary>
         /// Return number of books by specific author
         /// </summary>
-        /// <param name="author"></param>
-        /// <returns></returns>
         public static int GetBooksByAuthorCount(string author)
         {
             if (bookRepository == null) return 0;
@@ -1133,8 +1381,6 @@ namespace TinyOPDS.Data
         /// <summary>
         /// Return list of books by selected author(s)
         /// </summary>
-        /// <param name="author"></param>
-        /// <returns></returns>
         public static List<Book> GetBooksByAuthor(string author)
         {
             if (bookRepository == null) return new List<Book>();
@@ -1144,8 +1390,6 @@ namespace TinyOPDS.Data
         /// <summary>
         /// Return list of books by selected sequence
         /// </summary>
-        /// <param name="sequence"></param>
-        /// <returns></returns>
         public static List<Book> GetBooksBySequence(string sequence)
         {
             if (bookRepository == null) return new List<Book>();
@@ -1155,8 +1399,6 @@ namespace TinyOPDS.Data
         /// <summary>
         /// Return list of books by selected genre
         /// </summary>
-        /// <param name="genre"></param>
-        /// <returns></returns>
         public static List<Book> GetBooksByGenre(string genre)
         {
             if (bookRepository == null) return new List<Book>();
@@ -1166,7 +1408,6 @@ namespace TinyOPDS.Data
         /// <summary>
         /// Get access to BookRepository for internal use by catalogs
         /// </summary>
-        /// <returns>BookRepository instance or null if not initialized</returns>
         internal static BookRepository GetBookRepository()
         {
             return bookRepository;
@@ -1175,37 +1416,6 @@ namespace TinyOPDS.Data
         #endregion
 
         #region Helper Methods
-
-        private static void RefreshStatsCache()
-        {
-            if (bookRepository == null) return;
-
-            lock (cacheLock)
-            {
-                if (DateTime.Now - lastStatsUpdate > CacheTimeout)
-                {
-                    cachedTotalCount = bookRepository.GetTotalBooksCount();
-                    cachedFB2Count = bookRepository.GetFB2BooksCount();
-                    cachedEPUBCount = bookRepository.GetEPUBBooksCount();
-                    cachedAuthorsCount = bookRepository.GetAuthorsCount();
-                    cachedSequencesCount = bookRepository.GetSequencesCount();
-                    lastStatsUpdate = DateTime.Now;
-                }
-            }
-        }
-
-        private static void InvalidateStatsCache()
-        {
-            lock (cacheLock)
-            {
-                lastStatsUpdate = DateTime.MinValue;
-                lastNewBooksCountUpdate = DateTime.MinValue;
-                lastAuthorsListUpdate = DateTime.MinValue;
-                lastSequencesListUpdate = DateTime.MinValue;
-                cachedAuthorsList = null;
-                cachedSequencesList = null;
-            }
-        }
 
         /// <summary>
         /// Load author aliases into memory - much faster than database lookups

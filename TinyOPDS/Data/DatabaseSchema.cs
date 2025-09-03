@@ -7,6 +7,7 @@
  *
  * Database schema and SQL queries for SQLite with FTS5 support
  * OPTIMIZED: Added performance-critical indexes for large databases
+ * ENHANCED: Added library statistics persistence table
  *
  */
 
@@ -87,6 +88,15 @@ namespace TinyOPDS.Data
                 PRIMARY KEY (BookID, TranslatorID),
                 FOREIGN KEY (BookID) REFERENCES Books(ID) ON DELETE CASCADE,
                 FOREIGN KEY (TranslatorID) REFERENCES Translators(ID) ON DELETE CASCADE
+            )";
+
+        // NEW: Library statistics persistence table
+        public const string CreateLibraryStatsTable = @"
+            CREATE TABLE IF NOT EXISTS LibraryStats (
+                key TEXT PRIMARY KEY,
+                value INTEGER NOT NULL DEFAULT 0,
+                updated_at INTEGER NOT NULL DEFAULT 0,  -- DateTime as ticks
+                period_days INTEGER DEFAULT NULL        -- For new_books_count - which period was used
             )";
 
         // FTS5 tables for full-text search
@@ -177,6 +187,9 @@ namespace TinyOPDS.Data
             
             -- OPTIMIZED: Index for sequences counting
             CREATE INDEX IF NOT EXISTS idx_books_sequence_active ON Books(Sequence) WHERE ReplacedByID IS NULL AND Sequence IS NOT NULL AND Sequence != '';
+
+            -- NEW: Index for LibraryStats table
+            CREATE INDEX IF NOT EXISTS idx_librarystats_updated ON LibraryStats(updated_at);
         ";
 
         // Additional optimization commands to run after indexes are created
@@ -296,6 +309,42 @@ namespace TinyOPDS.Data
         public const string InsertBookTranslator = @"
             INSERT OR IGNORE INTO BookTranslators (BookID, TranslatorID) 
             VALUES (@BookID, (SELECT ID FROM Translators WHERE Name = @TranslatorName))";
+
+        #endregion
+
+        #region Library Statistics Queries
+
+        // Insert or update library statistic
+        public const string UpsertLibraryStats = @"
+            INSERT OR REPLACE INTO LibraryStats (key, value, updated_at, period_days) 
+            VALUES (@Key, @Value, @UpdatedAt, @PeriodDays)";
+
+        // Get library statistic by key
+        public const string SelectLibraryStats = @"
+            SELECT key, value, updated_at, period_days 
+            FROM LibraryStats 
+            WHERE key = @Key";
+
+        // Get all library statistics
+        public const string SelectAllLibraryStats = @"
+            SELECT key, value, updated_at, period_days 
+            FROM LibraryStats 
+            ORDER BY key";
+
+        // Initialize default library stats on first run
+        public const string InitializeLibraryStats = @"
+            INSERT OR IGNORE INTO LibraryStats (key, value, updated_at, period_days) VALUES
+            ('total_books', 0, 0, NULL),
+            ('fb2_books', 0, 0, NULL),
+            ('epub_books', 0, 0, NULL),
+            ('authors_count', 0, 0, NULL),
+            ('sequences_count', 0, 0, NULL),
+            ('new_books', 0, 0, 7)";
+
+        // Check if stats table needs initialization
+        public const string CheckLibraryStatsExist = @"
+            SELECT COUNT(*) FROM LibraryStats WHERE key IN 
+            ('total_books', 'fb2_books', 'epub_books', 'authors_count', 'sequences_count', 'new_books')";
 
         #endregion
 

@@ -6,6 +6,7 @@
  * SPDX-License-Identifier: MIT
  *
  * Database manager for SQLite operations with FTS5 support
+ * ENHANCED: Added library statistics persistence support
  *
  */
 
@@ -69,6 +70,9 @@ namespace TinyOPDS.Data
                 ExecuteNonQuery(DatabaseSchema.CreateBookGenresTable);
                 ExecuteNonQuery(DatabaseSchema.CreateBookTranslatorsTable);
 
+                // NEW: Create library statistics table
+                ExecuteNonQuery(DatabaseSchema.CreateLibraryStatsTable);
+
                 // Create FTS5 tables
                 ExecuteNonQuery(DatabaseSchema.CreateBooksFTSTable);
                 ExecuteNonQuery(DatabaseSchema.CreateAuthorsFTSTable);
@@ -94,7 +98,10 @@ namespace TinyOPDS.Data
                 // Initialize genres from XML if table is empty
                 InitializeGenres();
 
-                Log.WriteLine("Database schema initialized with FTS5 support, triggers and genres");
+                // NEW: Initialize library statistics if table is empty
+                InitializeLibraryStats();
+
+                Log.WriteLine("Database schema initialized with FTS5 support, triggers, genres and statistics");
             }
             catch (Exception ex)
             {
@@ -177,6 +184,163 @@ namespace TinyOPDS.Data
                 // Don't throw - genres are not critical for basic operation
             }
         }
+
+        /// <summary>
+        /// Initialize library statistics table with default values
+        /// </summary>
+        private void InitializeLibraryStats()
+        {
+            try
+            {
+                // Check if stats table needs initialization
+                var count = ExecuteScalar(DatabaseSchema.CheckLibraryStatsExist);
+                if (Convert.ToInt32(count) >= 6)
+                {
+                    Log.WriteLine("Library statistics table already initialized");
+                    return;
+                }
+
+                Log.WriteLine("Initializing library statistics with default values...");
+                ExecuteNonQuery(DatabaseSchema.InitializeLibraryStats);
+                Log.WriteLine("Library statistics initialized");
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error initializing library stats: {0}", ex.Message);
+                // Don't throw - stats are not critical for basic operation
+            }
+        }
+
+        #region Library Statistics Methods
+
+        /// <summary>
+        /// Get library statistic value by key
+        /// </summary>
+        /// <param name="key">Statistic key (e.g., 'total_books', 'authors_count')</param>
+        /// <returns>Statistic value, or 0 if not found</returns>
+        public int GetLibraryStatistic(string key)
+        {
+            try
+            {
+                var result = ExecuteScalar(DatabaseSchema.SelectLibraryStats, CreateParameter("@Key", key));
+                if (result != null && result != DBNull.Value)
+                {
+                    using (var reader = ExecuteReader(DatabaseSchema.SelectLibraryStats, CreateParameter("@Key", key)))
+                    {
+                        if (reader.Read())
+                        {
+                            return GetInt32(reader, "value");
+                        }
+                    }
+                }
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error getting library statistic '{0}': {1}", key, ex.Message);
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Save library statistic value
+        /// </summary>
+        /// <param name="key">Statistic key</param>
+        /// <param name="value">Statistic value</param>
+        /// <param name="periodDays">For new_books statistic - period in days</param>
+        public void SaveLibraryStatistic(string key, int value, int? periodDays = null)
+        {
+            try
+            {
+                ExecuteNonQuery(DatabaseSchema.UpsertLibraryStats,
+                    CreateParameter("@Key", key),
+                    CreateParameter("@Value", value),
+                    CreateParameter("@UpdatedAt", DateTime.Now.ToBinary()),
+                    CreateParameter("@PeriodDays", periodDays));
+
+                Log.WriteLine(LogLevel.Info, "Saved library statistic '{0}' = {1}", key, value);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error saving library statistic '{0}': {1}", key, ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Get all library statistics
+        /// </summary>
+        /// <returns>Dictionary of all statistics</returns>
+        public Dictionary<string, LibraryStatistic> GetAllLibraryStats()
+        {
+            var stats = new Dictionary<string, LibraryStatistic>();
+
+            try
+            {
+                using (var reader = ExecuteReader(DatabaseSchema.SelectAllLibraryStats))
+                {
+                    while (reader.Read())
+                    {
+                        var stat = new LibraryStatistic
+                        {
+                            Key = GetString(reader, "key"),
+                            Value = GetInt32(reader, "value"),
+                            UpdatedAt = GetDateTime(reader, "updated_at") ?? DateTime.MinValue,
+                            PeriodDays = reader.IsDBNull(reader.GetOrdinal("period_days"))
+                                ? (int?)null
+                                : GetInt32(reader, "period_days")
+                        };
+
+                        stats[stat.Key] = stat;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error getting all library statistics: {0}", ex.Message);
+            }
+
+            return stats;
+        }
+
+        /// <summary>
+        /// Update multiple library statistics in a transaction
+        /// </summary>
+        /// <param name="statistics">Dictionary of statistics to save</param>
+        public void SaveLibraryStatistics(Dictionary<string, int> statistics, int? newBooksPeriod = null)
+        {
+            if (statistics == null || statistics.Count == 0) return;
+
+            try
+            {
+                BeginTransaction();
+                try
+                {
+                    foreach (var stat in statistics)
+                    {
+                        int? periodDays = stat.Key == "new_books" ? newBooksPeriod : null;
+                        ExecuteNonQuery(DatabaseSchema.UpsertLibraryStats,
+                            CreateParameter("@Key", stat.Key),
+                            CreateParameter("@Value", stat.Value),
+                            CreateParameter("@UpdatedAt", DateTime.Now.ToBinary()),
+                            CreateParameter("@PeriodDays", periodDays));
+                    }
+
+                    CommitTransaction();
+                    Log.WriteLine("Successfully saved {0} library statistics", statistics.Count);
+                }
+                catch
+                {
+                    RollbackTransaction();
+                    throw;
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error saving library statistics: {0}", ex.Message);
+            }
+        }
+
+        #endregion
 
         public void ReloadGenres()
         {
@@ -488,5 +652,16 @@ namespace TinyOPDS.Data
         {
             Dispose(false);
         }
+    }
+
+    /// <summary>
+    /// Library statistic data structure
+    /// </summary>
+    public class LibraryStatistic
+    {
+        public string Key { get; set; }
+        public int Value { get; set; }
+        public DateTime UpdatedAt { get; set; }
+        public int? PeriodDays { get; set; }  // For new_books statistic - period in days
     }
 }

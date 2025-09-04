@@ -263,12 +263,10 @@ namespace TinyOPDS
             {
                 // Determine database paths
                 string libraryPath = Settings.Default.LibraryPath.SanitizePathName();
-                string binaryDbPath = GetBinaryDatabasePath(libraryPath);
                 string sqliteDbPath = GetSQLiteDatabasePath();
 
                 Log.WriteLine("Initializing SQLite database...");
                 Log.WriteLine("Library path: {0}", libraryPath);
-                Log.WriteLine("Binary database: {0}", binaryDbPath);
                 Log.WriteLine("SQLite database: {0}", sqliteDbPath);
 
                 // Initialize SQLite

@@ -333,50 +333,67 @@ namespace TinyOPDS.Data
 
         /// <summary>
         /// Normalize string for duplicate key generation
-        /// ENHANCED: Aggressive normalization of typographic symbols to catch more duplicates
+        /// FIXED: Don't remove content if entire title is in brackets
         /// </summary>
         private string NormalizeForDuplicateKey(string text)
         {
             if (string.IsNullOrEmpty(text)) return string.Empty;
 
-            // Convert to lowercase
+            string originalText = text;
             text = text.ToLowerInvariant();
 
-            // Quick check - if text doesn't contain special chars, skip expensive operations
-            bool hasSpecialChars = text.IndexOfAny(new[] { '(', '[', '«', '"', '–', '—', '…' }) >= 0;
+            // CRITICAL FIX: Check if entire title is in brackets
+            bool wholeTitleInBrackets = false;
+            string textWithoutOuterBrackets = text.Trim();
+
+            if ((textWithoutOuterBrackets.StartsWith("[") && textWithoutOuterBrackets.EndsWith("]")) ||
+                (textWithoutOuterBrackets.StartsWith("(") && textWithoutOuterBrackets.EndsWith(")")))
+            {
+                wholeTitleInBrackets = true;
+                // Remove only the outer brackets, keep the content
+                textWithoutOuterBrackets = textWithoutOuterBrackets.Substring(1, textWithoutOuterBrackets.Length - 2).Trim();
+                text = textWithoutOuterBrackets;
+            }
 
             string volumeNormalized = "";
             string translatorNormalized = "";
             string editionNormalized = "";
             bool collectionMarker = false;
 
-            // Only extract if parentheses/brackets present
-            if (text.Contains('(') || text.Contains('['))
+            // Only process inner brackets if the whole title wasn't in brackets
+            if (!wholeTitleInBrackets && (text.Contains('(') || text.Contains('[')))
             {
                 var (original, normalized) = ExtractVolumeInfo(text);
                 if (!string.IsNullOrEmpty(original))
                 {
-                    text = text.Replace(original, "");
+                    text = text.Replace(original.ToLowerInvariant(), "");
                     volumeNormalized = normalized;
                 }
 
                 var translatorInfo = ExtractTranslatorInfo(text);
                 if (!string.IsNullOrEmpty(translatorInfo.original))
                 {
-                    text = text.Replace(translatorInfo.original, "");
+                    text = text.Replace(translatorInfo.original.ToLowerInvariant(), "");
                     translatorNormalized = translatorInfo.normalized;
                 }
 
                 var editionInfo = ExtractEditionInfo(text);
                 if (!string.IsNullOrEmpty(editionInfo.original))
                 {
-                    text = text.Replace(editionInfo.original, "");
+                    text = text.Replace(editionInfo.original.ToLowerInvariant(), "");
                     editionNormalized = editionInfo.normalized;
                 }
 
-                // Remove remaining parentheses
-                text = ParenthesesRegex.Replace(text, " ");
+                // Remove remaining parentheses ONLY if we still have substantial content
+                string testRemoval = ParenthesesRegex.Replace(text, " ").Trim();
+                if (testRemoval.Length > 5) // Keep brackets content if removal would leave too little
+                {
+                    text = testRemoval;
+                }
             }
+
+            // Quick check for special chars to optimize
+            bool hasSpecialChars = text.IndexOfAny(new[] { '«', '"', '–', '—', '…' }) >= 0;
 
             // Only do expensive replacements if special chars detected
             if (hasSpecialChars)
@@ -410,9 +427,16 @@ namespace TinyOPDS.Data
             if (collectionMarker)
                 result += " _collection_";
 
+            // Final check - ensure we have meaningful content
+            if (string.IsNullOrWhiteSpace(result) || result.Length < 3)
+            {
+                // Emergency fallback - use original with minimal normalization
+                result = originalText.ToLowerInvariant().Replace("[", "").Replace("]", "").Replace("(", "").Replace(")", "").Trim();
+                Log.WriteLine(LogLevel.Warning, "NormalizeForDuplicateKey produced short result for '{0}', using fallback", originalText);
+            }
+
             return result.Trim();
         }
-
 
         /// <summary>
         /// Extract volume/tome/book/part information

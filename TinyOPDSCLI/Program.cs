@@ -620,6 +620,8 @@ namespace TinyOPDSCLI
                 {
                     Log.WriteLine("Flushing {0} remaining books at scan completion", pendingBooks.Count);
                     FlushPendingBooks();
+                    TimeSpan dt = DateTime.Now.Subtract(scanStartTime);
+                    Log.WriteLine($"Scan completed, elapsed time {dt:hh\\:mm\\:ss}");
                 }
             }
         }
@@ -962,23 +964,15 @@ namespace TinyOPDSCLI
         {
             try
             {
-                int totalBooksProcessed = fb2Count + epubCount + skippedFiles + invalidFiles + dups;
+                int totalProcessed = fb2Count + epubCount + skippedFiles + invalidFiles + dups;
 
                 // Always show info - no additional checks
-                var (Total, FB2, EPUB) = GetLibraryStats();
+                var (TotalBooks, FB2, EPUB) = GetLibraryStats();
                 TimeSpan dt = DateTime.Now.Subtract(scanStartTime);
-                string rate = (dt.TotalSeconds) > 0 ? string.Format("{0:0.} books/min", totalBooksProcessed / dt.TotalSeconds * 60) : "---";
+                string rate = (dt.TotalSeconds) > 0 ? string.Format("{0:0.} books/min", totalProcessed / dt.TotalSeconds * 60) : "---";
 
                 string info = string.Format("Elapsed: {0}, rate: {1}, found fb2: {2}, epub: {3}, skipped: {4}, dups: {5}, invalid: {6}, total: {7}, in DB: {8}     ",
-                    dt.ToString(@"hh\:mm\:ss"),
-                    rate,
-                    FB2,
-                    EPUB,
-                    skippedFiles,
-                    dups,
-                    invalidFiles,
-                    totalBooksProcessed,
-                    Total);
+                    dt.ToString(@"hh\:mm\:ss"), rate, FB2, EPUB, skippedFiles, dups, invalidFiles, totalProcessed, TotalBooks);
 
                 if (!Utils.IsLinux)
                 {

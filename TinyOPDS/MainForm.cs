@@ -412,6 +412,8 @@ namespace TinyOPDS
                 {
                     Log.WriteLine("Flushing {0} remaining books at scan completion", pendingBooks.Count);
                     FlushPendingBooks();
+                    TimeSpan dt = DateTime.Now.Subtract(scanStartTime);
+                    Log.WriteLine($"Scan completed, elapsed time {dt:hh\\:mm\\:ss}");
                 }
             }
         }
@@ -697,12 +699,12 @@ namespace TinyOPDS
             skippedBooks.Text = skippedFiles.ToString();
             invalidBooks.Text = invalidFiles.ToString();
             duplicates.Text = dups.ToString();
-            int totalBooksProcessed = fb2Count + epubCount + skippedFiles + invalidFiles + dups;
-            booksProcessed.Text = totalBooksProcessed.ToString();
+            int totalProcessed = fb2Count + epubCount + skippedFiles + invalidFiles + dups;
+            booksProcessed.Text = totalProcessed.ToString();
 
             TimeSpan dt = DateTime.Now.Subtract(scanStartTime);
             elapsedTime.Text = dt.ToString(@"hh\:mm\:ss");
-            rate.Text = (dt.TotalSeconds) > 0 ? string.Format("{0:0.} books/min", totalBooksProcessed / dt.TotalSeconds * 60) : "---";
+            rate.Text = (dt.TotalSeconds) > 0 ? string.Format("{0:0.} books/min", totalProcessed / dt.TotalSeconds * 60) : "---";
             if (scannerButton.Enabled)
             {
                 status.Text = IsScanFinished ? Localizer.Text("FINISHED") : (scanner.Status == FileScannerStatus.SCANNING ? Localizer.Text("SCANNING") : Localizer.Text("STOPPED"));

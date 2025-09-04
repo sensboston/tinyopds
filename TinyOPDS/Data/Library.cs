@@ -1107,8 +1107,6 @@ namespace TinyOPDS.Data
                     if (!normalizedGenres.Contains(normalizedTag))
                     {
                         normalizedGenres.Add(normalizedTag);
-                        Log.WriteLine(LogLevel.Info, "Normalized genre '{0}' to '{1}' using soundex",
-                            genreTag, normalizedTag);
                     }
                 }
                 else
@@ -1212,8 +1210,6 @@ namespace TinyOPDS.Data
                     if (ContainsCyrillic(originalAuthor) && aliases.ContainsKey(originalAuthor))
                     {
                         book.Authors[i] = aliases[originalAuthor];
-                        Log.WriteLine(LogLevel.Info, "Applied alias for Cyrillic author: '{0}' -> '{1}'",
-                            originalAuthor, aliases[originalAuthor]);
                     }
                 }
             }

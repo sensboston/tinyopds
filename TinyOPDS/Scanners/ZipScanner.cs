@@ -55,8 +55,6 @@ namespace TinyOPDS.Scanner
         public void Scan()
         {
             Status = FileScannerStatus.SCANNING;
-            string entryFileName = string.Empty;
-
             try
             {
                 using (var zipArchive = ZipFile.OpenRead(ZipFileName))
@@ -67,7 +65,7 @@ namespace TinyOPDS.Scanner
 
                         if (!string.IsNullOrEmpty(entry.FullName))
                         {
-                            entryFileName = entry.FullName;
+                            string entryFileName = entry.FullName;
 
                             // Process accepted files
                             try
@@ -78,7 +76,7 @@ namespace TinyOPDS.Scanner
                                 if (Library.Contains(ZipFileName.Substring(Library.LibraryPath.Length + 1) + "@" + entryFileName))
                                 {
                                     SkippedFiles++;
-                                    if (OnFileSkipped != null) OnFileSkipped(this, new FileSkippedEventArgs(SkippedFiles));
+                                    OnFileSkipped?.Invoke(this, new FileSkippedEventArgs(SkippedFiles));
                                 }
                                 else if (ext.Contains(".epub"))
                                 {
@@ -128,7 +126,7 @@ namespace TinyOPDS.Scanner
                             catch (Exception e)
                             {
                                 Log.WriteLine(LogLevel.Error, ".ScanDirectory: exception {0} on file: {1}", e.Message, ZipFileName + "@" + entryFileName);
-                                if (OnInvalidBook != null) OnInvalidBook(this, new InvalidBookEventArgs(ZipFileName + "@" + entryFileName));
+                                OnInvalidBook?.Invoke(this, new InvalidBookEventArgs(ZipFileName + "@" + entryFileName));
                             }
                         }
                     }

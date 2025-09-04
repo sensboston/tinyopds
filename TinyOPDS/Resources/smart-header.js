@@ -18,8 +18,8 @@
         var isHeaderHidden = false;
         var idleTimer = null;
         var touchStartY = 0;
-        var scrollThreshold = 10;
-        var hideThreshold = 30;
+        var scrollThreshold = 5;
+        var hideThreshold = 10;
 
         // Add transition style if not present
         if (!header.style.transition) {

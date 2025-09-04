@@ -79,7 +79,7 @@ namespace TinyOPDS.Server
                 bool isNavigationRequest = utilities.IsNavigationRequest(request, ext);
 
                 // Determine if this is OPDS (XML) or Web (HTML) request
-                bool isOPDSRequest = utilities.IsOPDSRequest(processor.HttpUrl);
+                bool isOPDSRequest = utilities.IsOPDSRequest(processor);
 
                 // Detect client capabilities
                 string userAgent = processor.HttpHeaders.ContainsKey("User-Agent") ?

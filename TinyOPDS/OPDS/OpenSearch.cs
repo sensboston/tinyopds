@@ -40,10 +40,10 @@ namespace TinyOPDS.OPDS
             return doc;
         }
 
-        public XDocument Search(string searchPattern, string searchType = "", bool fb2Only = false, int pageNumber = 0, int threshold = 100)
+        public XDocument Search(string searchPattern, string searchType = "", bool fb2Only = false, int pageNumber = 0)
         {
             if (!string.IsNullOrEmpty(searchPattern))
-                searchPattern = Uri.UnescapeDataString(searchPattern).Replace('+', ' ').ToLower();
+                searchPattern = Uri.UnescapeDataString(searchPattern).Replace('+', ' ').Trim().ToLower();
 
             Log.WriteLine(LogLevel.Info, "OpenSearch.Search: pattern='{0}', searchType='{1}'", searchPattern, searchType);
 

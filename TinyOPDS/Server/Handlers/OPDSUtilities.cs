@@ -107,14 +107,50 @@ namespace TinyOPDS.Server
         /// <summary>
         /// Determines if the request is for OPDS (XML) or web (HTML) format
         /// </summary>
-        public bool IsOPDSRequest(string httpUrl)
+        /// <summary>
+        /// Determines if the request is for OPDS (XML) or web (HTML) format
+        /// </summary>
+        /// <summary>
+        /// Determines if the request is for OPDS (XML) or web (HTML) format
+        /// </summary>
+        public bool IsOPDSRequest(HttpProcessor processor)
         {
-            // Simple logic: if URL contains /opds prefix, it's an OPDS request
+            // Standard OPDS requests with prefix
             if (!string.IsNullOrEmpty(Properties.Settings.Default.RootPrefix) &&
-                httpUrl.StartsWith("/" + Properties.Settings.Default.RootPrefix))
+                processor.HttpUrl.StartsWith("/" + Properties.Settings.Default.RootPrefix))
             {
                 return true;
             }
+
+            // Special handling for /search endpoint
+            if (processor.HttpUrl.StartsWith("/search"))
+            {
+                // First check Accept header - most reliable
+                if (processor.HttpHeaders.ContainsKey("Accept"))
+                {
+                    string accept = processor.HttpHeaders["Accept"].ToLower();
+
+                    // Explicit OPDS request
+                    if (accept.Contains("application/atom+xml"))
+                        return true;
+
+                    // Explicit HTML request
+                    if (accept.Contains("text/html") && !accept.Contains("application/atom+xml"))
+                        return false;
+                }
+
+                // Fallback to User-Agent check
+                if (processor.HttpHeaders.ContainsKey("User-Agent"))
+                {
+                    string userAgent = processor.HttpHeaders["User-Agent"];
+                    // Check for browser patterns (not just Mozilla/)
+                    bool isBrowser = userAgent.Contains("Mozilla/") && 
+                                     new[] { "Chrome/", "Firefox/", "Safari/", "Edg/", "OPR/" }
+                                     .Any(sig => userAgent.Contains(sig));
+                    return !isBrowser;
+                }
+            }
+
             return false;
         }
 

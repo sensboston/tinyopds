@@ -66,20 +66,26 @@ namespace TinyOPDS.Data
                 ExecuteNonQuery(DatabaseSchema.CreateAuthorsTable);
                 ExecuteNonQuery(DatabaseSchema.CreateGenresTable);
                 ExecuteNonQuery(DatabaseSchema.CreateTranslatorsTable);
+                ExecuteNonQuery(DatabaseSchema.CreateSequencesTable); // NEW: Create sequences table
+
+                // Create relationship tables
                 ExecuteNonQuery(DatabaseSchema.CreateBookAuthorsTable);
                 ExecuteNonQuery(DatabaseSchema.CreateBookGenresTable);
                 ExecuteNonQuery(DatabaseSchema.CreateBookTranslatorsTable);
+                ExecuteNonQuery(DatabaseSchema.CreateBookSequencesTable); // NEW: Create book-sequences relationship table
 
-                // NEW: Create library statistics table
+                // Create library statistics table
                 ExecuteNonQuery(DatabaseSchema.CreateLibraryStatsTable);
 
                 // Create FTS5 tables
                 ExecuteNonQuery(DatabaseSchema.CreateBooksFTSTable);
                 ExecuteNonQuery(DatabaseSchema.CreateAuthorsFTSTable);
+                ExecuteNonQuery(DatabaseSchema.CreateSequencesFTSTable); // NEW: Create sequences FTS table
 
                 // Create views
                 ExecuteNonQuery(DatabaseSchema.CreateAuthorStatisticsView);
                 ExecuteNonQuery(DatabaseSchema.CreateGenreStatisticsView);
+                ExecuteNonQuery(DatabaseSchema.CreateSequenceStatisticsView); // NEW: Create sequences statistics view
 
                 // Create indexes
                 ExecuteNonQuery(DatabaseSchema.CreateIndexes);
@@ -95,10 +101,15 @@ namespace TinyOPDS.Data
                 ExecuteNonQuery(DatabaseSchema.CreateAuthorUpdateTrigger);
                 ExecuteNonQuery(DatabaseSchema.CreateAuthorDeleteTrigger);
 
+                // NEW: Sequences triggers for FTS synchronization
+                ExecuteNonQuery(DatabaseSchema.CreateSequenceInsertTrigger);
+                ExecuteNonQuery(DatabaseSchema.CreateSequenceUpdateTrigger);
+                ExecuteNonQuery(DatabaseSchema.CreateSequenceDeleteTrigger);
+
                 // Initialize genres from XML if table is empty
                 InitializeGenres();
 
-                // NEW: Initialize library statistics if table is empty
+                // Initialize library statistics if table is empty
                 InitializeLibraryStats();
 
                 Log.WriteLine("Database schema initialized with FTS5 support, triggers, genres and statistics");

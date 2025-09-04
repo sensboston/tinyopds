@@ -26,6 +26,21 @@ namespace TinyOPDS.Data
     }
 
     /// <summary>
+    /// Book sequence information
+    /// </summary>
+    public class BookSequenceInfo
+    {
+        public string Name { get; set; }
+        public uint NumberInSequence { get; set; }
+
+        public BookSequenceInfo(string name, uint number = 0)
+        {
+            Name = name;
+            NumberInSequence = number;
+        }
+    }
+
+    /// <summary>
     /// Base data class
     /// </summary>
     public class Book
@@ -38,12 +53,12 @@ namespace TinyOPDS.Data
             {
                 FileName = FileName.Substring(Library.LibraryPath.Length + 1);
             }
-            Title = Sequence = Annotation = Language = string.Empty;
+            Title = Annotation = Language = string.Empty;
             BookDate = DocumentDate = DateTime.MinValue;
-            NumberInSequence = 0;
             Authors = new List<string>();
             Translators = new List<string>();
             Genres = new List<string>();
+            Sequences = new List<BookSequenceInfo>();  // NEW: List of sequences
             DocumentIDTrusted = false;
             DuplicateKey = string.Empty;
             ReplacedByID = null;
@@ -87,8 +102,45 @@ namespace TinyOPDS.Data
         public string Language { get; set; }
         public DateTime BookDate { get; set; }
         public DateTime DocumentDate { get; set; }
-        public string Sequence { get; set; }
-        public UInt32 NumberInSequence { get; set; }
+
+        // NEW: Replaced single Sequence/NumberInSequence with list
+        public List<BookSequenceInfo> Sequences { get; set; }
+
+        // LEGACY COMPATIBILITY: Properties for backward compatibility
+        // These will be used during data migration from old format
+        public string Sequence
+        {
+            get { return Sequences?.FirstOrDefault()?.Name ?? string.Empty; }
+            set
+            {
+                if (!string.IsNullOrEmpty(value))
+                {
+                    // If sequences list doesn't exist, create it
+                    if (Sequences == null) Sequences = new List<BookSequenceInfo>();
+
+                    // If no sequences or first sequence is different, set it
+                    if (Sequences.Count == 0)
+                        Sequences.Add(new BookSequenceInfo(value, 0));
+                    else if (Sequences[0].Name != value)
+                        Sequences[0] = new BookSequenceInfo(value, Sequences[0].NumberInSequence);
+                }
+            }
+        }
+
+        public uint NumberInSequence
+        {
+            get { return Sequences?.FirstOrDefault()?.NumberInSequence ?? 0; }
+            set
+            {
+                if (Sequences == null) Sequences = new List<BookSequenceInfo>();
+
+                if (Sequences.Count == 0)
+                    Sequences.Add(new BookSequenceInfo(string.Empty, value));
+                else
+                    Sequences[0].NumberInSequence = value;
+            }
+        }
+
         public string Annotation { get; set; }
         public UInt32 DocumentSize { get; set; }
         public List<string> Authors { get; set; }
@@ -168,12 +220,18 @@ namespace TinyOPDS.Data
             }
 
             // Include sequence and number if present to distinguish series books
+            // MODIFIED: Work with new Sequences list
             string sequenceInfo = "";
-            if (!string.IsNullOrEmpty(Sequence))
+            if (Sequences != null && Sequences.Count > 0)
             {
-                sequenceInfo = NormalizeForDuplicateKey(Sequence);
-                if (NumberInSequence > 0)
-                    sequenceInfo += "_" + NumberInSequence.ToString();
+                // Use first sequence for duplicate key (primary sequence)
+                var firstSequence = Sequences.First();
+                if (!string.IsNullOrEmpty(firstSequence.Name))
+                {
+                    sequenceInfo = NormalizeForDuplicateKey(firstSequence.Name);
+                    if (firstSequence.NumberInSequence > 0)
+                        sequenceInfo += "_" + firstSequence.NumberInSequence.ToString();
+                }
             }
 
             // MODIFIED: Only add volume info if it was explicitly found in the title

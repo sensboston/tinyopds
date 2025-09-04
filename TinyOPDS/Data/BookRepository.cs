@@ -6,6 +6,7 @@
  * SPDX-License-Identifier: MIT
  *
  * Repository for Book operations with SQLite database with FTS5 support
+ * MODIFIED: Support for normalized sequences in separate tables
  *
  */
 
@@ -99,7 +100,7 @@ namespace TinyOPDS.Data
             public List<string> ErrorMessages { get; set; } = new List<string>();
             public List<string> InvalidGenreTags { get; set; } = new List<string>();
             public List<string> ReplacedBooks { get; set; } = new List<string>();
-            public int UncertainDuplicatesAdded { get; set; } = 0;  // NEW: Track uncertain duplicates that were added
+            public int UncertainDuplicatesAdded { get; set; } = 0;
 
             public bool IsSuccess => Added > 0 || Duplicates > 0 || Replaced > 0;
         }
@@ -128,8 +129,6 @@ namespace TinyOPDS.Data
 
                     if (duplicateResult.IsDuplicate)
                     {
-                        // MODIFIED: ProcessDuplicate now returns true for uncertain cases
-                        // allowing the book to be added
                         if (!duplicateDetector.ProcessDuplicate(book, duplicateResult))
                         {
                             // Only return false if it's a definite duplicate that shouldn't be added
@@ -154,7 +153,7 @@ namespace TinyOPDS.Data
 
                 db.BeginTransaction();
 
-                // Insert or update book with new duplicate detection fields
+                // MODIFIED: Insert book WITHOUT Sequence/NumberInSequence fields
                 var bookParams = new[]
                 {
                     DatabaseManager.CreateParameter("@ID", book.ID),
@@ -164,8 +163,6 @@ namespace TinyOPDS.Data
                     DatabaseManager.CreateParameter("@Language", book.Language),
                     DatabaseManager.CreateParameter("@BookDate", book.BookDate),
                     DatabaseManager.CreateParameter("@DocumentDate", book.DocumentDate),
-                    DatabaseManager.CreateParameter("@Sequence", book.Sequence),
-                    DatabaseManager.CreateParameter("@NumberInSequence", (long)book.NumberInSequence),
                     DatabaseManager.CreateParameter("@Annotation", book.Annotation),
                     DatabaseManager.CreateParameter("@DocumentSize", (long)book.DocumentSize),
                     DatabaseManager.CreateParameter("@AddedDate", book.AddedDate),
@@ -183,6 +180,10 @@ namespace TinyOPDS.Data
                 db.ExecuteNonQuery("DELETE FROM BookGenres WHERE BookID = @BookID",
                     DatabaseManager.CreateParameter("@BookID", book.ID));
                 db.ExecuteNonQuery("DELETE FROM BookTranslators WHERE BookID = @BookID",
+                    DatabaseManager.CreateParameter("@BookID", book.ID));
+
+                // NEW: Clear existing sequences
+                db.ExecuteNonQuery("DELETE FROM BookSequences WHERE BookID = @BookID",
                     DatabaseManager.CreateParameter("@BookID", book.ID));
 
                 // Add authors with enhanced fields
@@ -245,6 +246,28 @@ namespace TinyOPDS.Data
                         DatabaseManager.CreateParameter("@TranslatorName", translatorName));
                 }
 
+                // NEW: Add sequences
+                if (book.Sequences != null)
+                {
+                    foreach (var sequenceInfo in book.Sequences)
+                    {
+                        if (!string.IsNullOrEmpty(sequenceInfo.Name))
+                        {
+                            // Insert sequence if not exists
+                            string searchName = NormalizeForSearch(sequenceInfo.Name);
+                            db.ExecuteNonQuery(DatabaseSchema.InsertSequence,
+                                DatabaseManager.CreateParameter("@Name", sequenceInfo.Name),
+                                DatabaseManager.CreateParameter("@SearchName", searchName));
+
+                            // Link book to sequence
+                            db.ExecuteNonQuery(DatabaseSchema.InsertBookSequence,
+                                DatabaseManager.CreateParameter("@BookID", book.ID),
+                                DatabaseManager.CreateParameter("@SequenceName", sequenceInfo.Name),
+                                DatabaseManager.CreateParameter("@NumberInSequence", (long)sequenceInfo.NumberInSequence));
+                        }
+                    }
+                }
+
                 db.CommitTransaction();
                 return true;
             }
@@ -258,7 +281,6 @@ namespace TinyOPDS.Data
 
         /// <summary>
         /// Add multiple books in batch with FTS5 synchronization and duplicate detection
-        /// MODIFIED: Enhanced logging for uncertain duplicates
         /// </summary>
         public BatchResult AddBooksBatch(List<Book> books)
         {
@@ -285,7 +307,7 @@ namespace TinyOPDS.Data
 
                 foreach (var book in books)
                 {
-                    DuplicateCheckResult duplicateResult = null;  // Declare outside try block
+                    DuplicateCheckResult duplicateResult = null;
 
                     try
                     {
@@ -309,7 +331,6 @@ namespace TinyOPDS.Data
 
                             if (duplicateResult.IsDuplicate)
                             {
-                                // MODIFIED: Use ProcessDuplicate to determine action
                                 bool shouldAdd = duplicateDetector.ProcessDuplicate(book, duplicateResult);
 
                                 if (!shouldAdd)
@@ -322,7 +343,7 @@ namespace TinyOPDS.Data
                                 {
                                     // Mark as replacement AND as duplicate (since old book is being replaced)
                                     result.Replaced++;
-                                    result.Duplicates++;  // The replaced book is essentially a duplicate
+                                    result.Duplicates++;
                                     result.ReplacedBooks.Add($"{duplicateResult.ExistingBook.FileName} -> {book.FileName}");
                                 }
                                 else
@@ -337,7 +358,7 @@ namespace TinyOPDS.Data
                             fileStream?.Dispose();
                         }
 
-                        // Insert book with duplicate detection fields
+                        // MODIFIED: Insert book WITHOUT Sequence/NumberInSequence fields
                         var bookParams = new[]
                         {
                             DatabaseManager.CreateParameter("@ID", book.ID),
@@ -347,8 +368,6 @@ namespace TinyOPDS.Data
                             DatabaseManager.CreateParameter("@Language", book.Language),
                             DatabaseManager.CreateParameter("@BookDate", book.BookDate),
                             DatabaseManager.CreateParameter("@DocumentDate", book.DocumentDate),
-                            DatabaseManager.CreateParameter("@Sequence", book.Sequence),
-                            DatabaseManager.CreateParameter("@NumberInSequence", (long)book.NumberInSequence),
                             DatabaseManager.CreateParameter("@Annotation", book.Annotation),
                             DatabaseManager.CreateParameter("@DocumentSize", (long)book.DocumentSize),
                             DatabaseManager.CreateParameter("@AddedDate", book.AddedDate),
@@ -413,8 +432,29 @@ namespace TinyOPDS.Data
                                 DatabaseManager.CreateParameter("@TranslatorName", translatorName));
                         }
 
+                        // NEW: Insert sequences
+                        if (book.Sequences != null)
+                        {
+                            foreach (var sequenceInfo in book.Sequences)
+                            {
+                                if (!string.IsNullOrEmpty(sequenceInfo.Name))
+                                {
+                                    // Insert sequence if not exists
+                                    string searchName = NormalizeForSearch(sequenceInfo.Name);
+                                    db.ExecuteNonQuery(DatabaseSchema.InsertSequence,
+                                        DatabaseManager.CreateParameter("@Name", sequenceInfo.Name),
+                                        DatabaseManager.CreateParameter("@SearchName", searchName));
+
+                                    // Link book to sequence
+                                    db.ExecuteNonQuery(DatabaseSchema.InsertBookSequence,
+                                        DatabaseManager.CreateParameter("@BookID", book.ID),
+                                        DatabaseManager.CreateParameter("@SequenceName", sequenceInfo.Name),
+                                        DatabaseManager.CreateParameter("@NumberInSequence", (long)sequenceInfo.NumberInSequence));
+                                }
+                            }
+                        }
+
                         // Only count as added if it's not a replacement
-                        // Replacements don't increase the total book count
                         if (duplicateResult == null || !duplicateResult.IsDuplicate || !duplicateResult.ShouldReplace)
                         {
                             result.Added++;
@@ -569,10 +609,24 @@ namespace TinyOPDS.Data
             return books;
         }
 
+        // MODIFIED: Now uses optimized query with JOIN
         public List<Book> GetBooksBySequence(string sequence)
         {
-            var books = db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksBySequence, MapBook,
-                DatabaseManager.CreateParameter("@Sequence", sequence));
+            var books = db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksBySequence,
+                reader => {
+                    var book = MapBook(reader);
+                    // Get NumberInSequence from the joined query
+                    try
+                    {
+                        var number = DatabaseManager.GetUInt32(reader, "NumberInSequence");
+                        if (book.Sequences == null)
+                            book.Sequences = new List<BookSequenceInfo>();
+                        book.Sequences.Add(new BookSequenceInfo(sequence, number));
+                    }
+                    catch { }
+                    return book;
+                },
+                DatabaseManager.CreateParameter("@SequenceName", sequence));
 
             foreach (var book in books)
             {
@@ -719,9 +773,10 @@ namespace TinyOPDS.Data
 
         public List<Book> GetBooksByFileNamePrefix(string fileNamePrefix)
         {
+            // MODIFIED: Query without Sequence/NumberInSequence fields
             var books = db.ExecuteQuery<Book>(@"
                 SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
-                       Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate
+                       Annotation, DocumentSize, AddedDate
                 FROM Books 
                 WHERE FileName LIKE @FileNamePrefix || '%'",
                 MapBook,
@@ -732,6 +787,64 @@ namespace TinyOPDS.Data
                 LoadBookRelations(book);
             }
             return books;
+        }
+
+        #endregion
+
+        #region Sequence Methods - NEW
+
+        /// <summary>
+        /// Get all sequences for navigation
+        /// </summary>
+        public List<string> GetSequencesForNavigation(string searchPattern)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(searchPattern))
+                {
+                    return db.ExecuteQuery<string>(DatabaseSchema.SelectSequences,
+                        reader => reader.GetString(0));
+                }
+
+                return db.ExecuteQuery<string>(DatabaseSchema.SelectSequencesByPrefix,
+                    reader => reader.GetString(0),
+                    DatabaseManager.CreateParameter("@Pattern", searchPattern));
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error in GetSequencesForNavigation {0}: {1}", searchPattern, ex.Message);
+                return new List<string>();
+            }
+        }
+
+        /// <summary>
+        /// Get sequences with book count
+        /// </summary>
+        public List<(string Name, int BookCount)> GetSequencesWithCount(string searchPattern = null)
+        {
+            try
+            {
+                List<(string, int)> result;
+
+                if (string.IsNullOrEmpty(searchPattern))
+                {
+                    result = db.ExecuteQuery<(string, int)>(DatabaseSchema.SelectSequencesWithCount,
+                        reader => (reader.GetString(0), reader.GetInt32(1)));
+                }
+                else
+                {
+                    result = db.ExecuteQuery<(string, int)>(DatabaseSchema.SelectSequencesWithCountByPrefix,
+                        reader => (reader.GetString(0), reader.GetInt32(1)),
+                        DatabaseManager.CreateParameter("@Pattern", searchPattern));
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error in GetSequencesWithCount: {0}", ex.Message);
+                return new List<(string, int)>();
+            }
         }
 
         #endregion
@@ -1083,6 +1196,7 @@ namespace TinyOPDS.Data
             return db.ExecuteQuery<string>(DatabaseSchema.SelectAuthors, reader => reader.GetString(0));
         }
 
+        // MODIFIED: Now gets sequences from Sequences table
         public List<string> GetAllSequences()
         {
             return db.ExecuteQuery<string>(DatabaseSchema.SelectSequences, reader => reader.GetString(0));
@@ -1119,6 +1233,24 @@ namespace TinyOPDS.Data
             catch (Exception ex)
             {
                 Log.WriteLine(LogLevel.Error, "Error counting books for genre {0}: {1}", genreTag, ex.Message);
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Get count of books by sequence
+        /// </summary>
+        public int GetBooksBySequenceCount(string sequenceName)
+        {
+            try
+            {
+                var result = db.ExecuteScalar(DatabaseSchema.CountBooksBySequence,
+                    DatabaseManager.CreateParameter("@SequenceName", sequenceName));
+                return Convert.ToInt32(result);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error counting books for sequence {0}: {1}", sequenceName, ex.Message);
                 return 0;
             }
         }
@@ -1195,6 +1327,7 @@ namespace TinyOPDS.Data
 
         #region Helper Methods
 
+        // MODIFIED: MapBook no longer tries to read Sequence/NumberInSequence from database
         private Book MapBook(IDataReader reader)
         {
             var fileName = DatabaseManager.GetString(reader, "FileName");
@@ -1204,8 +1337,6 @@ namespace TinyOPDS.Data
                 Version = DatabaseManager.GetFloat(reader, "Version"),
                 Title = DatabaseManager.GetString(reader, "Title"),
                 Language = DatabaseManager.GetString(reader, "Language"),
-                Sequence = DatabaseManager.GetString(reader, "Sequence"),
-                NumberInSequence = DatabaseManager.GetUInt32(reader, "NumberInSequence"),
                 Annotation = DatabaseManager.GetString(reader, "Annotation"),
                 DocumentSize = DatabaseManager.GetUInt32(reader, "DocumentSize")
             };
@@ -1235,6 +1366,7 @@ namespace TinyOPDS.Data
             return book;
         }
 
+        // MODIFIED: LoadBookRelations now loads sequences from BookSequences table
         private void LoadBookRelations(Book book)
         {
             // Load authors
@@ -1248,6 +1380,16 @@ namespace TinyOPDS.Data
             // Load translators
             book.Translators = db.ExecuteQuery<string>(DatabaseSchema.SelectBookTranslators, reader => reader.GetString(0),
                 DatabaseManager.CreateParameter("@BookID", book.ID));
+
+            // NEW: Load sequences from BookSequences table
+            var sequences = db.ExecuteQuery<BookSequenceInfo>(DatabaseSchema.SelectBookSequences,
+                reader => new BookSequenceInfo(
+                    reader.GetString(0),  // Name
+                    DatabaseManager.GetUInt32(reader, "NumberInSequence")  // NumberInSequence
+                ),
+                DatabaseManager.CreateParameter("@BookID", book.ID));
+
+            book.Sequences = sequences;
         }
 
         /// <summary>

@@ -8,6 +8,7 @@
  * Database schema and SQL queries for SQLite with FTS5 support
  * OPTIMIZED: Added performance-critical indexes for large databases
  * ENHANCED: Added library statistics persistence table
+ * ENHANCED: Normalized sequences into separate table for better performance
  *
  */
 
@@ -17,6 +18,7 @@ namespace TinyOPDS.Data
     {
         #region Create Table Scripts
 
+        // MODIFIED: Removed Sequence and NumberInSequence fields
         public const string CreateBooksTable = @"
             CREATE TABLE IF NOT EXISTS Books (
                 ID TEXT PRIMARY KEY,
@@ -26,8 +28,6 @@ namespace TinyOPDS.Data
                 Language TEXT,
                 BookDate INTEGER,       -- DateTime as ticks
                 DocumentDate INTEGER,   -- DateTime as ticks  
-                Sequence TEXT,
-                NumberInSequence INTEGER NOT NULL DEFAULT 0,
                 Annotation TEXT,
                 DocumentSize INTEGER NOT NULL DEFAULT 0,
                 AddedDate INTEGER NOT NULL, -- DateTime as ticks
@@ -63,6 +63,14 @@ namespace TinyOPDS.Data
                 Name TEXT NOT NULL UNIQUE
             )";
 
+        // NEW: Sequences table
+        public const string CreateSequencesTable = @"
+            CREATE TABLE IF NOT EXISTS Sequences (
+                ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                Name TEXT NOT NULL UNIQUE,
+                SearchName TEXT                 -- Normalized for search (lowercase)
+            )";
+
         public const string CreateBookAuthorsTable = @"
             CREATE TABLE IF NOT EXISTS BookAuthors (
                 BookID TEXT NOT NULL,
@@ -90,7 +98,18 @@ namespace TinyOPDS.Data
                 FOREIGN KEY (TranslatorID) REFERENCES Translators(ID) ON DELETE CASCADE
             )";
 
-        // NEW: Library statistics persistence table
+        // NEW: Book-Sequences relationship table
+        public const string CreateBookSequencesTable = @"
+            CREATE TABLE IF NOT EXISTS BookSequences (
+                BookID TEXT NOT NULL,
+                SequenceID INTEGER NOT NULL,
+                NumberInSequence INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (BookID, SequenceID),
+                FOREIGN KEY (BookID) REFERENCES Books(ID) ON DELETE CASCADE,
+                FOREIGN KEY (SequenceID) REFERENCES Sequences(ID) ON DELETE CASCADE
+            )";
+
+        // Library statistics persistence table
         public const string CreateLibraryStatsTable = @"
             CREATE TABLE IF NOT EXISTS LibraryStats (
                 key TEXT PRIMARY KEY,
@@ -116,6 +135,15 @@ namespace TinyOPDS.Data
                 FullName,           -- 'FirstName LastName'
                 ReversedName,       -- 'LastName FirstName'
                 LastName,
+                tokenize='unicode61 remove_diacritics 1'
+            )";
+
+        // NEW: FTS5 table for sequences
+        public const string CreateSequencesFTSTable = @"
+            CREATE VIRTUAL TABLE IF NOT EXISTS SequencesFTS 
+            USING fts5(
+                SequenceID UNINDEXED,
+                Name,
                 tokenize='unicode61 remove_diacritics 1'
             )";
 
@@ -145,6 +173,17 @@ namespace TinyOPDS.Data
             LEFT JOIN BookGenres bg ON g.Tag = bg.GenreTag
             GROUP BY g.Tag, g.ParentName, g.Name, g.Translation";
 
+        // NEW: Sequences statistics view
+        public const string CreateSequenceStatisticsView = @"
+            CREATE VIEW IF NOT EXISTS SequenceStatistics AS
+            SELECT 
+                s.ID,
+                s.Name,
+                COUNT(bs.BookID) as BookCount
+            FROM Sequences s
+            LEFT JOIN BookSequences bs ON s.ID = bs.SequenceID
+            GROUP BY s.ID, s.Name";
+
         #endregion
 
         #region Indexes - OPTIMIZED
@@ -153,7 +192,6 @@ namespace TinyOPDS.Data
             -- Basic indexes on Books table
             CREATE INDEX IF NOT EXISTS idx_books_filename ON Books(FileName);
             CREATE INDEX IF NOT EXISTS idx_books_title ON Books(Title);
-            CREATE INDEX IF NOT EXISTS idx_books_sequence ON Books(Sequence);
             CREATE INDEX IF NOT EXISTS idx_books_addeddate ON Books(AddedDate);
             CREATE INDEX IF NOT EXISTS idx_books_duplicatekey ON Books(DuplicateKey);
             CREATE INDEX IF NOT EXISTS idx_books_replacedby ON Books(ReplacedByID);
@@ -185,8 +223,15 @@ namespace TinyOPDS.Data
             CREATE INDEX IF NOT EXISTS idx_bookgenres_genretag ON BookGenres(GenreTag);
             CREATE INDEX IF NOT EXISTS idx_bookgenres_composite ON BookGenres(GenreTag, BookID);
             
-            -- OPTIMIZED: Index for sequences counting
-            CREATE INDEX IF NOT EXISTS idx_books_sequence_active ON Books(Sequence) WHERE ReplacedByID IS NULL AND Sequence IS NOT NULL AND Sequence != '';
+            -- NEW: Sequences indexes
+            CREATE INDEX IF NOT EXISTS idx_sequences_name ON Sequences(Name);
+            CREATE INDEX IF NOT EXISTS idx_sequences_searchname ON Sequences(SearchName);
+            
+            -- NEW: BookSequences indexes for efficient joins
+            CREATE INDEX IF NOT EXISTS idx_booksequences_bookid ON BookSequences(BookID);
+            CREATE INDEX IF NOT EXISTS idx_booksequences_sequenceid ON BookSequences(SequenceID);
+            CREATE INDEX IF NOT EXISTS idx_booksequences_composite ON BookSequences(SequenceID, BookID);
+            CREATE INDEX IF NOT EXISTS idx_booksequences_number ON BookSequences(SequenceID, NumberInSequence);
 
             -- NEW: Index for LibraryStats table
             CREATE INDEX IF NOT EXISTS idx_librarystats_updated ON LibraryStats(updated_at);
@@ -211,7 +256,7 @@ namespace TinyOPDS.Data
 
         #region Triggers for FTS Synchronization
 
-        // Books triggers - separate constants for proper execution
+        // Books triggers
         public const string CreateBookInsertTrigger = @"
             CREATE TRIGGER IF NOT EXISTS books_ai AFTER INSERT ON Books BEGIN
                 INSERT INTO BooksFTS(BookID, Title, Annotation) 
@@ -230,7 +275,7 @@ namespace TinyOPDS.Data
                 DELETE FROM BooksFTS WHERE BookID = old.ID;
             END";
 
-        // Authors triggers - separate constants for proper execution
+        // Authors triggers
         public const string CreateAuthorInsertTrigger = @"
             CREATE TRIGGER IF NOT EXISTS authors_ai AFTER INSERT ON Authors BEGIN
                 INSERT INTO AuthorsFTS(AuthorID, FullName, ReversedName, LastName) 
@@ -272,19 +317,39 @@ namespace TinyOPDS.Data
                 DELETE FROM AuthorsFTS WHERE AuthorID = old.ID;
             END";
 
+        // NEW: Sequences triggers for FTS synchronization
+        public const string CreateSequenceInsertTrigger = @"
+            CREATE TRIGGER IF NOT EXISTS sequences_ai AFTER INSERT ON Sequences BEGIN
+                INSERT INTO SequencesFTS(SequenceID, Name) 
+                VALUES (new.ID, new.Name);
+            END";
+
+        public const string CreateSequenceUpdateTrigger = @"
+            CREATE TRIGGER IF NOT EXISTS sequences_au AFTER UPDATE ON Sequences BEGIN
+                UPDATE SequencesFTS 
+                SET Name = new.Name
+                WHERE SequenceID = new.ID;
+            END";
+
+        public const string CreateSequenceDeleteTrigger = @"
+            CREATE TRIGGER IF NOT EXISTS sequences_ad AFTER DELETE ON Sequences BEGIN
+                DELETE FROM SequencesFTS WHERE SequenceID = old.ID;
+            END";
+
         #endregion
 
         #region Insert Queries
 
+        // MODIFIED: Removed Sequence and NumberInSequence from book insert
         public const string InsertBook = @"
             INSERT OR REPLACE INTO Books 
             (ID, Version, FileName, Title, Language, BookDate, DocumentDate, 
-             Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate,
-             DocumentIDTrusted, DuplicateKey, ReplacedByID, ContentHash)
+             Annotation, DocumentSize, AddedDate, DocumentIDTrusted, 
+             DuplicateKey, ReplacedByID, ContentHash)
             VALUES 
             (@ID, @Version, @FileName, @Title, @Language, @BookDate, @DocumentDate,
-             @Sequence, @NumberInSequence, @Annotation, @DocumentSize, @AddedDate,
-             @DocumentIDTrusted, @DuplicateKey, @ReplacedByID, @ContentHash)";
+             @Annotation, @DocumentSize, @AddedDate, @DocumentIDTrusted, 
+             @DuplicateKey, @ReplacedByID, @ContentHash)";
 
         public const string InsertAuthor = @"
             INSERT OR IGNORE INTO Authors 
@@ -299,6 +364,11 @@ namespace TinyOPDS.Data
         public const string InsertTranslator = @"
             INSERT OR IGNORE INTO Translators (Name) VALUES (@Name)";
 
+        // NEW: Insert sequence
+        public const string InsertSequence = @"
+            INSERT OR IGNORE INTO Sequences (Name, SearchName) 
+            VALUES (@Name, @SearchName)";
+
         public const string InsertBookAuthor = @"
             INSERT OR IGNORE INTO BookAuthors (BookID, AuthorID) 
             VALUES (@BookID, (SELECT ID FROM Authors WHERE Name = @AuthorName))";
@@ -310,28 +380,29 @@ namespace TinyOPDS.Data
             INSERT OR IGNORE INTO BookTranslators (BookID, TranslatorID) 
             VALUES (@BookID, (SELECT ID FROM Translators WHERE Name = @TranslatorName))";
 
+        // NEW: Insert book-sequence relationship
+        public const string InsertBookSequence = @"
+            INSERT OR IGNORE INTO BookSequences (BookID, SequenceID, NumberInSequence) 
+            VALUES (@BookID, (SELECT ID FROM Sequences WHERE Name = @SequenceName), @NumberInSequence)";
+
         #endregion
 
         #region Library Statistics Queries
 
-        // Insert or update library statistic
         public const string UpsertLibraryStats = @"
             INSERT OR REPLACE INTO LibraryStats (key, value, updated_at, period_days) 
             VALUES (@Key, @Value, @UpdatedAt, @PeriodDays)";
 
-        // Get library statistic by key
         public const string SelectLibraryStats = @"
             SELECT key, value, updated_at, period_days 
             FROM LibraryStats 
             WHERE key = @Key";
 
-        // Get all library statistics
         public const string SelectAllLibraryStats = @"
             SELECT key, value, updated_at, period_days 
             FROM LibraryStats 
             ORDER BY key";
 
-        // Initialize default library stats on first run
         public const string InitializeLibraryStats = @"
             INSERT OR IGNORE INTO LibraryStats (key, value, updated_at, period_days) VALUES
             ('total_books', 0, 0, NULL),
@@ -341,7 +412,6 @@ namespace TinyOPDS.Data
             ('sequences_count', 0, 0, NULL),
             ('new_books', 0, 0, 7)";
 
-        // Check if stats table needs initialization
         public const string CheckLibraryStatsExist = @"
             SELECT COUNT(*) FROM LibraryStats WHERE key IN 
             ('total_books', 'fb2_books', 'epub_books', 'authors_count', 'sequences_count', 'new_books')";
@@ -350,54 +420,59 @@ namespace TinyOPDS.Data
 
         #region Select Queries - Books
 
+        // MODIFIED: Removed Sequence and NumberInSequence from select
         public const string SelectAllBooks = @"
             SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
-                   Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate,
-                   DocumentIDTrusted, DuplicateKey, ReplacedByID, ContentHash
+                   Annotation, DocumentSize, AddedDate, DocumentIDTrusted, 
+                   DuplicateKey, ReplacedByID, ContentHash
             FROM Books
             WHERE ReplacedByID IS NULL";
 
         public const string SelectBookById = @"
             SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
-                   Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate,
-                   DocumentIDTrusted, DuplicateKey, ReplacedByID, ContentHash
+                   Annotation, DocumentSize, AddedDate, DocumentIDTrusted, 
+                   DuplicateKey, ReplacedByID, ContentHash
             FROM Books WHERE ID = @ID";
 
         public const string SelectBookByFileName = @"
             SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
-                   Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate,
-                   DocumentIDTrusted, DuplicateKey, ReplacedByID, ContentHash
+                   Annotation, DocumentSize, AddedDate, DocumentIDTrusted, 
+                   DuplicateKey, ReplacedByID, ContentHash
             FROM Books WHERE FileName = @FileName";
 
         public const string SelectBooksByAuthor = @"
             SELECT b.ID, b.Version, b.FileName, b.Title, b.Language, b.BookDate, b.DocumentDate,
-                   b.Sequence, b.NumberInSequence, b.Annotation, b.DocumentSize, b.AddedDate,
-                   b.DocumentIDTrusted, b.DuplicateKey, b.ReplacedByID, b.ContentHash
+                   b.Annotation, b.DocumentSize, b.AddedDate, b.DocumentIDTrusted, 
+                   b.DuplicateKey, b.ReplacedByID, b.ContentHash
             FROM Books b
             INNER JOIN BookAuthors ba ON b.ID = ba.BookID
             INNER JOIN Authors a ON ba.AuthorID = a.ID
             WHERE a.Name = @AuthorName AND b.ReplacedByID IS NULL";
 
+        // NEW: Optimized query for books by sequence
         public const string SelectBooksBySequence = @"
-            SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
-                   Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate,
-                   DocumentIDTrusted, DuplicateKey, ReplacedByID, ContentHash
-            FROM Books 
-            WHERE Sequence LIKE '%' || @Sequence || '%' AND ReplacedByID IS NULL
-            ORDER BY NumberInSequence";
+            SELECT b.ID, b.Version, b.FileName, b.Title, b.Language, b.BookDate, b.DocumentDate,
+                   b.Annotation, b.DocumentSize, b.AddedDate, b.DocumentIDTrusted, 
+                   b.DuplicateKey, b.ReplacedByID, b.ContentHash,
+                   bs.NumberInSequence
+            FROM Books b
+            INNER JOIN BookSequences bs ON b.ID = bs.BookID
+            INNER JOIN Sequences s ON bs.SequenceID = s.ID
+            WHERE s.Name = @SequenceName AND b.ReplacedByID IS NULL
+            ORDER BY bs.NumberInSequence";
 
         public const string SelectBooksByGenre = @"
             SELECT b.ID, b.Version, b.FileName, b.Title, b.Language, b.BookDate, b.DocumentDate,
-                   b.Sequence, b.NumberInSequence, b.Annotation, b.DocumentSize, b.AddedDate,
-                   b.DocumentIDTrusted, b.DuplicateKey, b.ReplacedByID, b.ContentHash
+                   b.Annotation, b.DocumentSize, b.AddedDate, b.DocumentIDTrusted, 
+                   b.DuplicateKey, b.ReplacedByID, b.ContentHash
             FROM Books b
             INNER JOIN BookGenres bg ON b.ID = bg.BookID
             WHERE bg.GenreTag = @GenreTag AND b.ReplacedByID IS NULL";
 
-        // FTS5 search for books with wildcard support for partial matches
+        // FTS5 search for books with wildcard support
         public const string SelectBooksByTitleFTS = @"
             SELECT DISTINCT b.ID, b.Version, b.FileName, b.Title, b.Language, b.BookDate, b.DocumentDate,
-                   b.Sequence, b.NumberInSequence, b.Annotation, b.DocumentSize, b.AddedDate
+                   b.Annotation, b.DocumentSize, b.AddedDate
             FROM Books b
             INNER JOIN BooksFTS fts ON b.ID = fts.BookID
             WHERE BooksFTS MATCH @SearchPattern
@@ -409,36 +484,82 @@ namespace TinyOPDS.Data
         // Fallback LIKE search for books
         public const string SelectBooksByTitleLike = @"
             SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
-                   Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate
+                   Annotation, DocumentSize, AddedDate
             FROM Books 
             WHERE Title LIKE '%' || @Title || '%' COLLATE NOCASE
             ORDER BY Title";
 
         public const string SelectNewBooks = @"
             SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
-                   Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate
+                   Annotation, DocumentSize, AddedDate
             FROM Books 
             WHERE AddedDate >= @FromDate";
 
         #endregion
 
-        #region Select Queries - Authors (Cascading search)
+        #region Select Queries - Sequences
 
-        // Get all authors with books
+        // NEW: Get all sequences
+        public const string SelectSequences = @"
+            SELECT DISTINCT s.Name
+            FROM Sequences s
+            INNER JOIN BookSequences bs ON s.ID = bs.SequenceID
+            ORDER BY s.Name";
+
+        // NEW: Get sequences by prefix (for navigation)
+        public const string SelectSequencesByPrefix = @"
+            SELECT DISTINCT s.Name
+            FROM Sequences s
+            INNER JOIN BookSequences bs ON s.ID = bs.SequenceID
+            WHERE s.Name LIKE @Pattern || '%' COLLATE NOCASE
+            ORDER BY s.Name";
+
+        // NEW: Get sequences with book count
+        public const string SelectSequencesWithCount = @"
+            SELECT s.Name, COUNT(bs.BookID) as BookCount
+            FROM Sequences s
+            INNER JOIN BookSequences bs ON s.ID = bs.SequenceID
+            INNER JOIN Books b ON bs.BookID = b.ID
+            WHERE b.ReplacedByID IS NULL
+            GROUP BY s.ID, s.Name
+            ORDER BY s.Name";
+
+        // NEW: Get sequences with count by prefix
+        public const string SelectSequencesWithCountByPrefix = @"
+            SELECT s.Name, COUNT(bs.BookID) as BookCount
+            FROM Sequences s
+            INNER JOIN BookSequences bs ON s.ID = bs.SequenceID
+            INNER JOIN Books b ON bs.BookID = b.ID
+            WHERE s.Name LIKE @Pattern || '%' COLLATE NOCASE
+              AND b.ReplacedByID IS NULL
+            GROUP BY s.ID, s.Name
+            ORDER BY s.Name";
+
+        // NEW: FTS search for sequences
+        public const string SelectSequencesFTS = @"
+            SELECT DISTINCT s.Name
+            FROM Sequences s
+            INNER JOIN SequencesFTS fts ON s.ID = fts.SequenceID
+            INNER JOIN BookSequences bs ON s.ID = bs.SequenceID
+            WHERE SequencesFTS MATCH @SearchPattern
+            ORDER BY s.Name";
+
+        #endregion
+
+        #region Select Queries - Authors
+
         public const string SelectAuthors = @"
             SELECT DISTINCT a.Name
             FROM Authors a
             INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
             ORDER BY a.Name";
 
-        // Step 1: Exact match for full name
         public const string SelectAuthorByExactName = @"
             SELECT DISTINCT a.Name
             FROM Authors a
             INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
             WHERE a.Name = @Name COLLATE NOCASE";
 
-        // Step 1: Exact match by FirstName + LastName components  
         public const string SelectAuthorByExactComponents = @"
             SELECT DISTINCT a.Name
             FROM Authors a
@@ -446,7 +567,6 @@ namespace TinyOPDS.Data
             WHERE (a.FirstName = @FirstName COLLATE NOCASE AND a.LastName = @LastName COLLATE NOCASE)
                OR (a.FirstName = @LastName COLLATE NOCASE AND a.LastName = @FirstName COLLATE NOCASE)";
 
-        // Step 2: Partial match by LastName or FirstName
         public const string SelectAuthorsByPartialName = @"
             SELECT DISTINCT a.Name
             FROM Authors a
@@ -455,7 +575,6 @@ namespace TinyOPDS.Data
                OR a.FirstName LIKE '%' || @Pattern || '%' COLLATE NOCASE
             ORDER BY a.Name";
 
-        // Step 3: Search by transliterated name
         public const string SelectAuthorsByTranslit = @"
             SELECT DISTINCT a.Name
             FROM Authors a
@@ -463,7 +582,6 @@ namespace TinyOPDS.Data
             WHERE a.NameTranslit LIKE '%' || @Pattern || '%' COLLATE NOCASE
             ORDER BY a.Name";
 
-        // Step 4: Soundex search
         public const string SelectAuthorsBySoundex = @"
             SELECT DISTINCT a.Name
             FROM Authors a
@@ -471,7 +589,6 @@ namespace TinyOPDS.Data
             WHERE a.LastNameSoundex = @Soundex
             ORDER BY a.Name";
 
-        // Navigation search (prefix match)
         public const string SelectAuthorsByPrefix = @"
             SELECT DISTINCT a.Name
             FROM Authors a
@@ -536,15 +653,17 @@ namespace TinyOPDS.Data
             WHERE bt.BookID = @BookID
             ORDER BY t.Name";
 
+        // NEW: Select book sequences
+        public const string SelectBookSequences = @"
+            SELECT s.Name, bs.NumberInSequence
+            FROM Sequences s
+            INNER JOIN BookSequences bs ON s.ID = bs.SequenceID
+            WHERE bs.BookID = @BookID
+            ORDER BY s.Name";
+
         #endregion
 
         #region Select Queries - Other
-
-        public const string SelectSequences = @"
-            SELECT DISTINCT Sequence
-            FROM Books 
-            WHERE Sequence IS NOT NULL AND Sequence != ''
-            ORDER BY Sequence";
 
         public const string SelectGenreTags = @"
             SELECT DISTINCT GenreTag
@@ -593,7 +712,6 @@ namespace TinyOPDS.Data
             GROUP BY g.Tag, g.ParentName, g.Name, g.Translation
             ORDER BY g.ParentName, g.Name";
 
-        // OPTIMIZED: More efficient count query using indexes
         public const string SelectAuthorsCount = @"
             SELECT COUNT(DISTINCT a.ID) FROM Authors a
             WHERE EXISTS (
@@ -602,12 +720,22 @@ namespace TinyOPDS.Data
                 WHERE ba.AuthorID = a.ID AND b.ReplacedByID IS NULL
             )";
 
-        // OPTIMIZED: More efficient count using specialized index
+        // NEW: Optimized sequences count using new table
         public const string SelectSequencesCount = @"
-            SELECT COUNT(DISTINCT Sequence) FROM Books 
-            WHERE Sequence IS NOT NULL AND Sequence != '' AND ReplacedByID IS NULL";
+            SELECT COUNT(DISTINCT s.ID) FROM Sequences s
+            WHERE EXISTS (
+                SELECT 1 FROM BookSequences bs 
+                INNER JOIN Books b ON bs.BookID = b.ID 
+                WHERE bs.SequenceID = s.ID AND b.ReplacedByID IS NULL
+            )";
 
-        // Use view for author book counts
+        // NEW: Count books in sequence
+        public const string CountBooksBySequence = @"
+            SELECT COUNT(*) FROM Books b
+            INNER JOIN BookSequences bs ON b.ID = bs.BookID
+            INNER JOIN Sequences s ON bs.SequenceID = s.ID
+            WHERE s.Name = @SequenceName AND b.ReplacedByID IS NULL";
+
         public const string SelectAuthorBookCount = @"
             SELECT COUNT(*) FROM Books b
             INNER JOIN BookAuthors ba ON b.ID = ba.BookID
@@ -620,7 +748,7 @@ namespace TinyOPDS.Data
 
         public const string SelectNewBooksPaginatedByDate = @"
             SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
-                   Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate
+                   Annotation, DocumentSize, AddedDate
             FROM Books 
             WHERE AddedDate >= @FromDate AND ReplacedByID IS NULL
             ORDER BY AddedDate DESC
@@ -628,7 +756,7 @@ namespace TinyOPDS.Data
 
         public const string SelectNewBooksPaginatedByTitle = @"
             SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
-                   Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate
+                   Annotation, DocumentSize, AddedDate
             FROM Books 
             WHERE AddedDate >= @FromDate AND ReplacedByID IS NULL
             ORDER BY Title COLLATE NOCASE
@@ -656,29 +784,31 @@ namespace TinyOPDS.Data
 
         public const string OptimizeAuthorsFTS = @"INSERT INTO AuthorsFTS(AuthorsFTS) VALUES('optimize')";
 
+
+
         #endregion
 
         #region Duplicate Detection Queries
 
         public const string SelectBookByTrustedID = @"
             SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
-                   Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate,
-                   DocumentIDTrusted, DuplicateKey, ReplacedByID, ContentHash
+                   Annotation, DocumentSize, AddedDate, DocumentIDTrusted, 
+                   DuplicateKey, ReplacedByID, ContentHash
             FROM Books 
             WHERE ID = @ID AND DocumentIDTrusted = 1 AND ReplacedByID IS NULL";
 
         public const string SelectBooksByDuplicateKey = @"
             SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
-                   Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate,
-                   DocumentIDTrusted, DuplicateKey, ReplacedByID, ContentHash
+                   Annotation, DocumentSize, AddedDate, DocumentIDTrusted, 
+                   DuplicateKey, ReplacedByID, ContentHash
             FROM Books 
             WHERE DuplicateKey = @DuplicateKey AND ReplacedByID IS NULL
             ORDER BY DocumentDate DESC, Version DESC, DocumentSize DESC";
 
         public const string SelectBookByContentHash = @"
             SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
-                   Sequence, NumberInSequence, Annotation, DocumentSize, AddedDate,
-                   DocumentIDTrusted, DuplicateKey, ReplacedByID, ContentHash
+                   Annotation, DocumentSize, AddedDate, DocumentIDTrusted, 
+                   DuplicateKey, ReplacedByID, ContentHash
             FROM Books 
             WHERE ContentHash = @ContentHash AND ReplacedByID IS NULL";
 

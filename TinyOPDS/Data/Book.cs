@@ -72,8 +72,7 @@ namespace TinyOPDS.Data
             set
             {
                 // Book ID always must be in GUID form
-                Guid guid;
-                if (!string.IsNullOrEmpty(value) && Guid.TryParse(value, out guid))
+                if (!string.IsNullOrEmpty(value) && Guid.TryParse(value, out Guid guid))
                 {
                     id = value;
                     // Check if this is a trusted ID (not a placeholder)
@@ -157,6 +156,38 @@ namespace TinyOPDS.Data
         public string ContentHash { get; set; }
 
         /// <summary>
+        /// Extract archive priority from filename (for archives with numbered ranges)
+        /// Returns the ending number from patterns like "fb2-000024-030559.zip"
+        /// </summary>
+        public int GetArchivePriority()
+        {
+            if (string.IsNullOrEmpty(FileName))
+                return 0;
+
+            // Extract archive name from composite filename (e.g., "fb2-000024-030559.zip@book.fb2")
+            string archiveName = FileName;
+            int atIndex = FileName.IndexOf('@');
+            if (atIndex > 0)
+            {
+                archiveName = FileName.Substring(0, atIndex);
+            }
+
+            // Pattern for numbered FB2 archives: fb2-NNNNNN-NNNNNN.zip
+            var match = Regex.Match(archiveName, @"fb2-(\d+)-(\d+)\.zip", RegexOptions.IgnoreCase);
+            if (match.Success)
+            {
+                // Return the ending number as priority (higher = newer)
+                if (int.TryParse(match.Groups[2].Value, out int endNumber))
+                {
+                    return endNumber;
+                }
+            }
+
+            // Not from a numbered archive
+            return 0;
+        }
+
+        /// <summary>
         /// Check if GUID is trusted (not a placeholder from bad converters)
         /// MODIFIED: Less aggressive checking to avoid false positives
         /// </summary>
@@ -203,7 +234,7 @@ namespace TinyOPDS.Data
                 return string.Empty;
 
             // Extract volume info if present
-            var volumeInfo = ExtractVolumeInfo(Title);
+            var (original, normalized) = ExtractVolumeInfo(Title);
 
             string normalizedTitle = NormalizeForDuplicateKey(Title);
             string firstAuthor = Authors.First();
@@ -236,9 +267,9 @@ namespace TinyOPDS.Data
 
             // MODIFIED: Only add volume info if it was explicitly found in the title
             // Don't add "vol0" to all books without volume info
-            if (!string.IsNullOrEmpty(volumeInfo.normalized))
+            if (!string.IsNullOrEmpty(normalized))
             {
-                normalizedTitle += " " + volumeInfo.normalized;
+                normalizedTitle += " " + normalized;
             }
 
             // Add translator info if present
@@ -293,9 +324,16 @@ namespace TinyOPDS.Data
             }
         }
 
+        private static readonly Regex DashesRegex = new Regex(@"[‐‑‒–—―−⸺⸻﹘﹣－ｰ─━]", RegexOptions.Compiled);
+        private static readonly Regex QuotesRegex = new Regex(@"[\u0022\u0027\u2018\u2019\u201C\u201D\u00AB\u00BB\u201E\u201A\u0060\u00B4\u2032\u2033\u2039\u203A]", RegexOptions.Compiled);
+        private static readonly Regex ParenthesesRegex = new Regex(@"\([^)]*\)|\[[^\]]*\]", RegexOptions.Compiled);
+        private static readonly Regex PunctuationRegex = new Regex(@"[^\w\s'-]", RegexOptions.Compiled);
+        private static readonly Regex EdgePunctuationRegex = new Regex(@"(\s|^)[-']|[-'](\s|$)", RegexOptions.Compiled);
+        private static readonly Regex MultiSpaceRegex = new Regex(@"\s+", RegexOptions.Compiled);
+
         /// <summary>
         /// Normalize string for duplicate key generation
-        /// MODIFIED: More careful normalization to preserve important differences
+        /// ENHANCED: Aggressive normalization of typographic symbols to catch more duplicates
         /// </summary>
         private string NormalizeForDuplicateKey(string text)
         {
@@ -304,52 +342,77 @@ namespace TinyOPDS.Data
             // Convert to lowercase
             text = text.ToLowerInvariant();
 
-            // Extract and preserve critical information from parentheses
-            var volumeInfo = ExtractVolumeInfo(text);
-            var translatorInfo = ExtractTranslatorInfo(text);
-            var editionInfo = ExtractEditionInfo(text);
-            var collectionMarker = DetectCollection(text);
+            // Quick check - if text doesn't contain special chars, skip expensive operations
+            bool hasSpecialChars = text.IndexOfAny(new[] { '(', '[', '«', '"', '–', '—', '…' }) >= 0;
 
-            // Remove the extracted parts from the main text to avoid duplication
-            if (!string.IsNullOrEmpty(volumeInfo.original))
-                text = text.Replace(volumeInfo.original, "");
-            if (!string.IsNullOrEmpty(translatorInfo.original))
-                text = text.Replace(translatorInfo.original, "");
-            if (!string.IsNullOrEmpty(editionInfo.original))
-                text = text.Replace(editionInfo.original, "");
+            string volumeNormalized = "";
+            string translatorNormalized = "";
+            string editionNormalized = "";
+            bool collectionMarker = false;
 
-            // Now remove remaining parentheses content (like years, etc.)
-            text = Regex.Replace(text, @"\([^)]*\)", " ");
-            text = Regex.Replace(text, @"\[[^\]]*\]", " ");
+            // Only extract if parentheses/brackets present
+            if (text.Contains('(') || text.Contains('['))
+            {
+                var (original, normalized) = ExtractVolumeInfo(text);
+                if (!string.IsNullOrEmpty(original))
+                {
+                    text = text.Replace(original, "");
+                    volumeNormalized = normalized;
+                }
 
-            // Remove punctuation except hyphens and apostrophes within words
-            text = Regex.Replace(text, @"[^\w\s'-]", " ");
-            text = Regex.Replace(text, @"(\s|^)[-']|[-'](\s|$)", " ");
+                var translatorInfo = ExtractTranslatorInfo(text);
+                if (!string.IsNullOrEmpty(translatorInfo.original))
+                {
+                    text = text.Replace(translatorInfo.original, "");
+                    translatorNormalized = translatorInfo.normalized;
+                }
 
-            // Remove multiple spaces
-            text = Regex.Replace(text, @"\s+", " ").Trim();
+                var editionInfo = ExtractEditionInfo(text);
+                if (!string.IsNullOrEmpty(editionInfo.original))
+                {
+                    text = text.Replace(editionInfo.original, "");
+                    editionNormalized = editionInfo.normalized;
+                }
 
-            // Build the final normalized key with preserved critical info
+                // Remove remaining parentheses
+                text = ParenthesesRegex.Replace(text, " ");
+            }
+
+            // Only do expensive replacements if special chars detected
+            if (hasSpecialChars)
+            {
+                text = DashesRegex.Replace(text, "-");
+                text = QuotesRegex.Replace(text, " ");
+                text = text.Replace("…", "...");
+                text = text.Replace("№", " ").Replace("#", " ").Replace("§", " ");
+            }
+
+            // These are always needed
+            text = PunctuationRegex.Replace(text, " ");
+            text = EdgePunctuationRegex.Replace(text, " ");
+            text = MultiSpaceRegex.Replace(text, " ").Trim();
+
+            // Check for collection only if keywords might be present
+            if (text.Contains("сбор") || text.Contains("собр") || text.Contains("избр") ||
+                text.Contains("антол") || text.Contains("collect") || text.Contains("anthol"))
+            {
+                collectionMarker = DetectCollection(text);
+            }
+
+            // Build result
             var result = text;
-
-            // Append volume/part/book number if present
-            if (!string.IsNullOrEmpty(volumeInfo.normalized))
-                result += " " + volumeInfo.normalized;
-
-            // Append translator info if present
-            if (!string.IsNullOrEmpty(translatorInfo.normalized))
-                result += " " + translatorInfo.normalized;
-
-            // Append edition info if present
-            if (!string.IsNullOrEmpty(editionInfo.normalized))
-                result += " " + editionInfo.normalized;
-
-            // Append collection marker if detected
+            if (!string.IsNullOrEmpty(volumeNormalized))
+                result += " " + volumeNormalized;
+            if (!string.IsNullOrEmpty(translatorNormalized))
+                result += " " + translatorNormalized;
+            if (!string.IsNullOrEmpty(editionNormalized))
+                result += " " + editionNormalized;
             if (collectionMarker)
                 result += " _collection_";
 
             return result.Trim();
         }
+
 
         /// <summary>
         /// Extract volume/tome/book/part information
@@ -561,7 +624,7 @@ namespace TinyOPDS.Data
 
         /// <summary>
         /// Compare two books to determine which is better/newer
-        /// MODIFIED: Lower threshold for replacement decision
+        /// MODIFIED: Added archive priority comparison
         /// Returns: positive if this book is better, negative if other is better, 0 if equal
         /// </summary>
         public int CompareTo(Book other)
@@ -569,6 +632,20 @@ namespace TinyOPDS.Data
             if (other == null) return 1;
 
             int score = 0;
+
+            // FIRST: Check archive priority for numbered FB2 archives
+            int thisPriority = this.GetArchivePriority();
+            int otherPriority = other.GetArchivePriority();
+
+            // If both books are from numbered archives, prefer the one from newer archive
+            if (thisPriority > 0 && otherPriority > 0)
+            {
+                if (thisPriority > otherPriority)
+                    return 10;  // Strong preference for newer archive
+                else if (thisPriority < otherPriority)
+                    return -10; // Strong preference against older archive
+                // If same archive priority, continue to other comparisons
+            }
 
             // For books with trusted IDs (from FictionBookEditor)
             if (this.DocumentIDTrusted && other.DocumentIDTrusted && this.ID == other.ID)

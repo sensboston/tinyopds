@@ -784,7 +784,10 @@ namespace TinyOPDS.Data
 
         public const string OptimizeAuthorsFTS = @"INSERT INTO AuthorsFTS(AuthorsFTS) VALUES('optimize')";
 
+        // NEW: Sequences FTS maintenance
+        public const string RebuildSequencesFTS = @"INSERT INTO SequencesFTS(SequencesFTS) VALUES('rebuild')";
 
+        public const string OptimizeSequencesFTS = @"INSERT INTO SequencesFTS(SequencesFTS) VALUES('optimize')";
 
         #endregion
 
@@ -812,9 +815,6 @@ namespace TinyOPDS.Data
             FROM Books 
             WHERE ContentHash = @ContentHash AND ReplacedByID IS NULL";
 
-        public const string UpdateBookAsReplaced = @"
-            UPDATE Books SET ReplacedByID = @NewID WHERE ID = @OldID";
-
         public const string SelectReplacedBooks = @"
             SELECT ID, FileName, Title, ReplacedByID, AddedDate
             FROM Books 
@@ -828,6 +828,15 @@ namespace TinyOPDS.Data
             FROM BookGenres bg
             LEFT JOIN Genres g ON bg.GenreTag = g.Tag
             WHERE g.Tag IS NULL";
+
+        #endregion
+
+        #region Update Queries
+
+        public const string UpdateBookAsReplaced = @"
+            UPDATE Books 
+            SET ReplacedByID = @NewID 
+            WHERE ID = @OldID";
 
         #endregion
     }

@@ -5,7 +5,7 @@
  * Copyright (c) 2013-2025 SeNSSoFT
  * SPDX-License-Identifier: MIT
  *
- * FB2 parser implementation - FIXED for duplicate ID issues
+ * FB2 parser implementation - FIXED for duplicate ID issues and Russian dates
  *
  */
 
@@ -49,6 +49,7 @@ namespace TinyOPDS.Parsers
         /// <summary>
         /// Parse FB2 book from stream - supports both seekable and non-seekable streams
         /// MODIFIED: Always generates unique ID to avoid duplicate ID conflicts
+        /// MODIFIED: Uses RussianDateParser for intelligent date handling
         /// </summary>
         /// <param name="stream"></param>
         /// <param name="fileName"></param>
@@ -108,19 +109,15 @@ namespace TinyOPDS.Parsers
                         if (fb2.DocumentInfo.DocumentVersion != null)
                             book.Version = (float)fb2.DocumentInfo.DocumentVersion;
 
-                        // Safe DateTime parsing for DocumentDate
+                        // Parse DocumentDate with intelligent Russian date support
                         if (fb2.DocumentInfo.DocumentDate != null)
                         {
-                            try
-                            {
-                                book.DocumentDate = fb2.DocumentInfo.DocumentDate.DateValue;
-                            }
-                            catch (Exception ex)
-                            {
-                                Log.WriteLine(LogLevel.Warning, "Invalid DocumentDate in {0}, using current date: {1}",
-                                    fileName, ex.Message);
-                                book.DocumentDate = DateTime.Now;
-                            }
+                            book.DocumentDate = DateParser.ParseFB2Date(fb2.DocumentInfo.DocumentDate, fileName);
+                        }
+                        else
+                        {
+                            // Use file date as fallback
+                            book.DocumentDate = DateParser.GetFileDate(fileName);
                         }
                     }
                     else
@@ -128,6 +125,7 @@ namespace TinyOPDS.Parsers
                         // No DocumentInfo - generate ID anyway
                         book.ID = Guid.NewGuid().ToString();
                         book.DocumentIDTrusted = false;
+                        book.DocumentDate = DateParser.GetFileDate(fileName);
                     }
 
                     if (fb2.TitleInfo != null)
@@ -144,24 +142,15 @@ namespace TinyOPDS.Parsers
                         }
                         if (fb2.TitleInfo.Language != null) book.Language = fb2.TitleInfo.Language;
 
-                        // MODIFIED: Accept any valid date for BookDate (no year restrictions)
+                        // Parse BookDate with intelligent Russian date support
                         if (fb2.TitleInfo.BookDate != null)
                         {
-                            try
-                            {
-                                book.BookDate = fb2.TitleInfo.BookDate.DateValue;
-
-                                // Only validate that it's a reasonable date for storage
-                                if (book.BookDate < new DateTime(1, 1, 1) ||
-                                    book.BookDate > new DateTime(9999, 12, 31))
-                                {
-                                    book.BookDate = DateTime.Now;
-                                }
-                            }
-                            catch
-                            {
-                                book.BookDate = DateTime.Now;
-                            }
+                            book.BookDate = DateParser.ParseFB2Date(fb2.TitleInfo.BookDate, fileName);
+                        }
+                        else
+                        {
+                            // No date specified - use file date as fallback
+                            book.BookDate = DateParser.GetFileDate(fileName);
                         }
 
                         // Process authors using structured FB2 data

@@ -117,6 +117,7 @@
   <ItemGroup>
     <!-- Main Application -->
     <Compile Include="Misc\UpdateChecker.cs" />
+    <Compile Include="Parsers\DateParser.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>

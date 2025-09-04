@@ -5,7 +5,7 @@
  * Copyright (c) 2013-2025 SeNSSoFT
  * SPDX-License-Identifier: MIT
  *
- * Smart duplicate detection for books - FIXED to remove trusted ID dependency
+ * Smart duplicate detection for books - FIXED with archive priority support
  */
 
 using System;
@@ -43,22 +43,21 @@ namespace TinyOPDS.Data
 
     /// <summary>
     /// Smart duplicate detector for books
-    /// MODIFIED: Removed trusted ID check since all IDs are now unique
+    /// MODIFIED: Improved archive priority handling and lowered replacement threshold
     /// </summary>
     public class DuplicateDetector
     {
         private readonly DatabaseManager db;
-        private const int REPLACEMENT_THRESHOLD = 2;  // Raised back to 2 for more conservative replacement
+        private const int REPLACEMENT_THRESHOLD = 0;
 
-        public DuplicateDetector(DatabaseManager database, bool aggressive = false)
+        public DuplicateDetector(DatabaseManager database)
         {
             db = database;
-            // Ignore aggressive parameter, always use normal mode
         }
 
         /// <summary>
         /// Check if book is duplicate and determine action
-        /// MODIFIED: Removed trusted ID check, improved duplicate key logic
+        /// MODIFIED: Improved handling of archive priorities and score=0 cases
         /// </summary>
         public DuplicateCheckResult CheckDuplicate(Book newBook, Stream fileStream = null)
         {
@@ -80,9 +79,6 @@ namespace TinyOPDS.Data
             if (fileStream != null && string.IsNullOrEmpty(newBook.ContentHash))
                 newBook.ContentHash = newBook.GenerateContentHash(fileStream);
 
-            // REMOVED: Trusted ID check - no longer relevant since all IDs are unique
-            // This was causing false positives when same FB2 ID was used for different books
-
             // Step 1: Check by content hash (exact file duplicate)
             if (!string.IsNullOrEmpty(newBook.ContentHash))
             {
@@ -102,7 +98,6 @@ namespace TinyOPDS.Data
             }
 
             // Step 2: Check by duplicate key (Title + Author + Language + Translator + Volume info)
-            // This is now the primary duplicate detection mechanism
             if (!string.IsNullOrEmpty(newBook.DuplicateKey))
             {
                 var keyMatches = FindByDuplicateKey(newBook.DuplicateKey);
@@ -134,28 +129,28 @@ namespace TinyOPDS.Data
                         result.MatchType = DuplicateMatchType.DuplicateKey;
                         result.ComparisonScore = bestScore;
 
-                        // Books with score 0 are too similar to determine which is better
-                        // Treat as NOT a duplicate to preserve both (could be different editions)
-                        if (bestScore == 0)
-                        {
-                            result.IsDuplicate = false;
-                            result.ExistingBook = null;
-                            result.MatchType = DuplicateMatchType.None;
-                            result.Reason = "Books too similar to determine duplicate (score: 0)";
+                        // MODIFIED: Changed logic for score = 0
+                        // Now we treat books with same metadata as duplicates
+                        // The archive priority is already considered in CompareTo method
 
-                            Log.WriteLine(LogLevel.Info,
-                                "Books have same key but equal score, treating as different: {0}",
-                                newBook.Title);
-                            return result;
-                        }
+                        // Check archive priorities for additional logging
+                        int newPriority = newBook.GetArchivePriority();
+                        int existingPriority = actualDuplicate.GetArchivePriority();
 
-                        // Only replace if new book is significantly better
+                        // Decide on replacement based on score (which includes archive priority)
                         result.ShouldReplace = bestScore > REPLACEMENT_THRESHOLD;
+
+                        // Build detailed reason
                         result.Reason = $"Matched by title/author: '{newBook.Title}' by {newBook.Authors.FirstOrDefault()}";
+
+                        if (newPriority > 0 && existingPriority > 0)
+                        {
+                            result.Reason += $" (archive: {newPriority} vs {existingPriority})";
+                        }
 
                         if (result.ShouldReplace)
                         {
-                            result.Reason += $" (newer/better version, score: {bestScore})";
+                            result.Reason += $" - replacing with newer/better version (score: {bestScore})";
 
                             // If there are multiple duplicates, mark older ones for replacement too
                             if (keyMatches.Count > 1)
@@ -172,7 +167,7 @@ namespace TinyOPDS.Data
                         }
                         else
                         {
-                            result.Reason += $" (existing is better/equal, score: {bestScore})";
+                            result.Reason += $" - keeping existing (score: {bestScore})";
                         }
 
                         Log.WriteLine(LogLevel.Info,
@@ -196,7 +191,7 @@ namespace TinyOPDS.Data
 
         /// <summary>
         /// Process duplicate - either skip, replace, or add as new
-        /// MODIFIED: More lenient for uncertain duplicates to prevent data loss
+        /// MODIFIED: Simplified logic with archive priority support
         /// </summary>
         public bool ProcessDuplicate(Book newBook, DuplicateCheckResult checkResult)
         {
@@ -208,38 +203,10 @@ namespace TinyOPDS.Data
 
             if (!checkResult.ShouldReplace)
             {
-                // For certain duplicate types, we still skip
-                if (checkResult.MatchType == DuplicateMatchType.ContentHash)
-                {
-                    // Exact same file - definitely skip
-                    Log.WriteLine(LogLevel.Info, "Skipping exact duplicate: {0} - {1}",
-                        newBook.FileName, checkResult.Reason);
-                    return false;
-                }
-
-                // For uncertain cases (score near 0 or slightly negative), allow adding
-                // This prevents loss of potentially different books
-                if (Math.Abs(checkResult.ComparisonScore) <= 1)
-                {
-                    Log.WriteLine(LogLevel.Info,
-                        "Adding potentially different book despite key match: {0} - {1}",
-                        newBook.FileName, checkResult.Reason);
-                    return true;  // Allow adding
-                }
-
-                // Skip only if existing is clearly better (score < -1)
-                if (checkResult.ComparisonScore < -1)
-                {
-                    Log.WriteLine(LogLevel.Info, "Skipping duplicate: {0} - {1}",
-                        newBook.FileName, checkResult.Reason);
-                    return false;
-                }
-
-                // Default: allow adding when uncertain
-                Log.WriteLine(LogLevel.Info,
-                    "Adding book with uncertain duplicate status: {0} - {1}",
+                // Skip duplicate - existing is better or same
+                Log.WriteLine(LogLevel.Info, "Skipping duplicate: {0} - {1}",
                     newBook.FileName, checkResult.Reason);
-                return true;
+                return false;
             }
 
             // Replace the existing book
@@ -261,13 +228,6 @@ namespace TinyOPDS.Data
         }
 
         #region Database queries
-
-        // DEPRECATED: No longer used since trusted IDs are not reliable
-        private Book FindByTrustedID(string id)
-        {
-            // This method is kept for backward compatibility but should not be used
-            return null;
-        }
 
         private Book FindByContentHash(string hash)
         {

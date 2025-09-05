@@ -131,6 +131,7 @@
             this.startMinimized = new System.Windows.Forms.CheckBox();
             this.startWithWindows = new System.Windows.Forms.CheckBox();
             this.tabPage4 = new System.Windows.Forms.TabPage();
+            this.pictureBox2 = new System.Windows.Forms.PictureBox();
             this.linkLabel6 = new System.Windows.Forms.LinkLabel();
             this.linkLabel5 = new System.Windows.Forms.LinkLabel();
             this.linkLabel3 = new System.Windows.Forms.LinkLabel();
@@ -143,7 +144,6 @@
             this.appVersion = new System.Windows.Forms.Label();
             this.appName = new System.Windows.Forms.Label();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
-            this.donateButton = new System.Windows.Forms.Button();
             this.contextMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.windowMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.serverMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -162,6 +162,7 @@
             ((System.ComponentModel.ISupportInitialize)(this.wrongAttemptsCount)).BeginInit();
             this.tabPage3.SuspendLayout();
             this.tabPage4.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.contextMenuStrip.SuspendLayout();
             this.SuspendLayout();
@@ -1384,6 +1385,7 @@
             // tabPage4
             // 
             this.tabPage4.BackColor = System.Drawing.SystemColors.Control;
+            this.tabPage4.Controls.Add(this.pictureBox2);
             this.tabPage4.Controls.Add(this.linkLabel6);
             this.tabPage4.Controls.Add(this.linkLabel5);
             this.tabPage4.Controls.Add(this.linkLabel3);
@@ -1396,14 +1398,24 @@
             this.tabPage4.Controls.Add(this.appVersion);
             this.tabPage4.Controls.Add(this.appName);
             this.tabPage4.Controls.Add(this.pictureBox1);
-            this.tabPage4.Controls.Add(this.donateButton);
             this.tabPage4.Location = new System.Drawing.Point(10, 40);
             this.tabPage4.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.tabPage4.Name = "tabPage4";
             this.tabPage4.Padding = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.tabPage4.Size = new System.Drawing.Size(1267, 806);
             this.tabPage4.TabIndex = 3;
-            this.tabPage4.Text = "About program";
+            this.tabPage4.Text = "About";
+            // 
+            // pictureBox2
+            // 
+            this.pictureBox2.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox2.Image")));
+            this.pictureBox2.Location = new System.Drawing.Point(35, 592);
+            this.pictureBox2.Name = "pictureBox2";
+            this.pictureBox2.Size = new System.Drawing.Size(261, 132);
+            this.pictureBox2.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.pictureBox2.TabIndex = 14;
+            this.pictureBox2.TabStop = false;
+            this.pictureBox2.Click += new System.EventHandler(this.DonateButton_Click);
             // 
             // linkLabel6
             // 
@@ -1540,18 +1552,6 @@
             this.pictureBox1.TabIndex = 1;
             this.pictureBox1.TabStop = false;
             // 
-            // donateButton
-            // 
-            this.donateButton.BackColor = System.Drawing.SystemColors.Control;
-            this.donateButton.Image = ((System.Drawing.Image)(resources.GetObject("donateButton.Image")));
-            this.donateButton.Location = new System.Drawing.Point(27, 608);
-            this.donateButton.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.donateButton.Name = "donateButton";
-            this.donateButton.Size = new System.Drawing.Size(269, 134);
-            this.donateButton.TabIndex = 0;
-            this.donateButton.UseVisualStyleBackColor = false;
-            this.donateButton.Click += new System.EventHandler(this.DonateButton_Click);
-            // 
             // contextMenuStrip
             // 
             this.contextMenuStrip.ImageScalingSize = new System.Drawing.Size(40, 40);
@@ -1627,6 +1627,7 @@
             this.tabPage3.PerformLayout();
             this.tabPage4.ResumeLayout(false);
             this.tabPage4.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             this.contextMenuStrip.ResumeLayout(false);
             this.ResumeLayout(false);
@@ -1686,7 +1687,6 @@
         private System.Windows.Forms.Label label13;
         private System.Windows.Forms.CheckBox useWatcher;
         private System.Windows.Forms.TabPage tabPage4;
-        private System.Windows.Forms.Button donateButton;
         private System.Windows.Forms.PictureBox pictureBox1;
         private System.Windows.Forms.Label label19;
         private System.Windows.Forms.LinkLabel linkLabel2;
@@ -1752,6 +1752,7 @@
         private System.Windows.Forms.RadioButton radioButton2;
         private System.Windows.Forms.RadioButton radioButton1;
         private System.Windows.Forms.CheckBox oneInstance;
+        private System.Windows.Forms.PictureBox pictureBox2;
     }
 }
 

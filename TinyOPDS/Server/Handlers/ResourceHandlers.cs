@@ -56,29 +56,29 @@ namespace TinyOPDS.Server
         /// <summary>
         /// Handles logo.png request
         /// </summary>
-        public void HandleLogoRequest(HttpProcessor processor)
+        public void HandleLogoRequest(HttpProcessor processor, string imageName)
         {
             try
             {
-                string resourceName = Assembly.GetExecutingAssembly().GetName().Name + ".Resources.logo.png";
+                string resourceName = Assembly.GetExecutingAssembly().GetName().Name + $".Resources.{imageName}";
 
                 using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
                 {
                     if (stream != null && stream.Length > 0)
                     {
-                        processor.WriteSuccess("image/png");
+                        processor.WriteSuccess(imageName.Contains("png") ? "image/png" : "image/jpeg");
                         stream.CopyTo(processor.OutputStream.BaseStream);
                         processor.OutputStream.BaseStream.Flush();
                         return;
                     }
                 }
 
-                Log.WriteLine(LogLevel.Warning, "Logo not found in resources");
+                Log.WriteLine(LogLevel.Warning, "Image not found in resources");
                 processor.WriteFailure();
             }
             catch (Exception ex)
             {
-                Log.WriteLine(LogLevel.Error, "Logo request error: {0}", ex.Message);
+                Log.WriteLine(LogLevel.Error, "Image request error: {0}", ex.Message);
                 processor.WriteFailure();
             }
         }

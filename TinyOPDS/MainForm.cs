@@ -66,9 +66,10 @@ namespace TinyOPDS
             InitializeComponent();
 
             // Fix TabControl height for high DPI displays
+            float dpiScale = 1.0f;
             using (Graphics g = CreateGraphics())
             {
-                float dpiScale = g.DpiX / 96f;
+                dpiScale = g.DpiX / 96f;
                 if (dpiScale > 1.0f)
                 {
                     tabControl1.SizeMode = TabSizeMode.Normal;
@@ -83,8 +84,8 @@ namespace TinyOPDS
             }
 
             treeViewOPDS.ShowLines = true;
-            treeViewOPDS.Indent = 80;
-            treeViewOPDS.ItemHeight = 50;
+            treeViewOPDS.Indent = (int) (treeViewOPDS.Indent * dpiScale * 2);
+            treeViewOPDS.ItemHeight = (int) (22 * dpiScale);
 
             // Assign combo data source to the list of all available interfaces
             interfaceCombo.DataSource = UPnPController.LocalInterfaces;
@@ -280,18 +281,7 @@ namespace TinyOPDS
                 Log.WriteLine(LogLevel.Error, "Error initializing SQLite: {0}", ex.Message);
             }
         }
-
-        /// <summary>
-        /// Get binary database path (same logic as original)
-        /// </summary>
-        /// <param name="libraryPath"></param>
-        /// <returns></returns>
-        private string GetBinaryDatabasePath(string libraryPath)
-        {
-            string dbFileName = Utils.CreateGuid(Utils.IsoOidNamespace, libraryPath).ToString() + ".db";
-            return Path.Combine(Utils.ServiceFilesLocation, dbFileName);
-        }
-
+                
         /// <summary>
         /// Get SQLite database path
         /// </summary>

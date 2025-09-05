@@ -203,9 +203,6 @@ namespace TinyOPDS.Data
 
             if (!checkResult.ShouldReplace)
             {
-                // Skip duplicate - existing is better or same
-                Log.WriteLine(LogLevel.Info, "Skipping duplicate: {0} - {1}",
-                    newBook.FileName, checkResult.Reason);
                 return false;
             }
 

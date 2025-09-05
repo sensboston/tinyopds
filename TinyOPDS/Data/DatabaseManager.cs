@@ -571,13 +571,6 @@ namespace TinyOPDS.Data
             {
                 try
                 {
-                    // Validate DateTime range before converting to binary
-                    if (value.Value < new DateTime(1900, 1, 1) || value.Value > new DateTime(2100, 12, 31))
-                    {
-                        Log.WriteLine(LogLevel.Warning, "DateTime parameter '{0}' out of valid range ({1}), using current date instead", name, value.Value);
-                        return CreateParameter(name, DateTime.Now.ToBinary());
-                    }
-
                     return CreateParameter(name, value.Value.ToBinary());
                 }
                 catch (ArgumentOutOfRangeException ex)

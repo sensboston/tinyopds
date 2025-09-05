@@ -126,9 +126,9 @@ namespace TinyOPDS.Server
             }
 
             // Handle logo request
-            if (request.Equals("/logo.png"))
+            if (request.Equals("/logo.png") || request.Equals("/book_cover.jpg"))
             {
-                resourceHandlers.HandleLogoRequest(processor);
+                resourceHandlers.HandleLogoRequest(processor, request.Substring(1));
                 return;
             }
 

@@ -317,10 +317,6 @@ namespace TinyOPDS.Parsers
                     {
                         DateTime fallback = GetFileDate(fileName);
                         DateTime parsedDate = ParseDate(dateText, fallback);
-
-                        Log.WriteLine(LogLevel.Info, "Parsed Russian date '{0}' -> {1:yyyy-MM-dd}",
-                            dateText, parsedDate);
-
                         return parsedDate;
                     }
 

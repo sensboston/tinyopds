@@ -249,6 +249,9 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					border-radius: 8px;
 					object-fit: cover;
 					box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+					/* Placeholder background image */
+					background: url('/book_cover.jpg') center/cover no-repeat;
+					background-color: #f0f0f0;
 					}
 
 					.book-details {
@@ -504,6 +507,9 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					height: 150px;
 					margin-right: 0;
 					margin-bottom: 4px;
+					/* Keep placeholder background for mobile too */
+					background: url('/book_cover.jpg') center/cover no-repeat;
+					background-color: #f0f0f0;
 					}
 
 					.download-section {

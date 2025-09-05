@@ -543,30 +543,6 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Refresh cache asynchronously
-        /// </summary>
-        private static void RefreshCacheAsync()
-        {
-            if (isCacheWarming || bookRepository == null) return;
-
-            lock (cacheLock)
-            {
-                if (!isCacheWarming) // Double-check
-                {
-                    isCacheWarming = true;
-                    try
-                    {
-                        RefreshCacheInternal();
-                    }
-                    finally
-                    {
-                        isCacheWarming = false;
-                    }
-                }
-            }
-        }
-
-        /// <summary>
         /// Refresh only new books count
         /// </summary>
         private static void RefreshNewBooksCount()
@@ -595,22 +571,23 @@ namespace TinyOPDS.Data
         /// <summary>
         /// Invalidate all caches
         /// </summary>
+        /// <summary>
+        /// Invalidate all caches without zeroing values
+        /// </summary>
         private static void InvalidateCache()
         {
             lock (cacheLock)
             {
-                // Reset cache to empty state
-                cachedTotalCount = 0;
-                cachedFB2Count = 0;
-                cachedEPUBCount = 0;
-                cachedAuthorsCount = 0;
-                cachedSequencesCount = 0;
-                cachedNewBooksCount = 0;
+                // DO NOT zero out cached values - just invalidate timestamps
+                // This prevents returning 0 books during scanning
                 lastStatsUpdate = DateTime.MinValue;
                 lastNewBooksCountUpdate = DateTime.MinValue;
-                isCacheInitialized = false;
 
-                // Clear lists cache
+                // Keep isCacheInitialized as true if it was already initialized
+                // This ensures properties continue returning cached values
+                // isCacheInitialized remains unchanged
+
+                // Clear lists cache - these are not critical and can be reloaded
                 lock (listsLock)
                 {
                     cachedAuthorsList = null;
@@ -620,11 +597,61 @@ namespace TinyOPDS.Data
                 }
             }
 
-            // Start async refresh
-            System.Threading.Tasks.Task.Run(() => InitializeCacheAsync());
+            // Start async refresh - it will update values when ready
+            System.Threading.Tasks.Task.Run(() => RefreshCacheAsync());
         }
 
-#endregion
+        /// <summary>
+        /// Refresh cache asynchronously
+        /// </summary>
+        private static void RefreshCacheAsync()
+        {
+            if (isCacheWarming || bookRepository == null) return;
+
+            try
+            {
+                isCacheWarming = true;
+
+                // Load new values
+                var period = periods[Properties.Settings.Default.NewBooksPeriod];
+                var fromDate = DateTime.Now.Subtract(period);
+
+                int newTotalCount = bookRepository.GetTotalBooksCount();
+                int newFB2Count = bookRepository.GetFB2BooksCount();
+                int newEPUBCount = bookRepository.GetEPUBBooksCount();
+                int newAuthorsCount = bookRepository.GetAuthorsCount();
+                int newSequencesCount = bookRepository.GetSequencesCount();
+                int newNewBooksCount = bookRepository.GetNewBooksCount(fromDate);
+
+                // Update cache atomically with new values
+                lock (cacheLock)
+                {
+                    cachedTotalCount = newTotalCount;
+                    cachedFB2Count = newFB2Count;
+                    cachedEPUBCount = newEPUBCount;
+                    cachedAuthorsCount = newAuthorsCount;
+                    cachedSequencesCount = newSequencesCount;
+                    cachedNewBooksCount = newNewBooksCount;
+
+                    lastStatsUpdate = DateTime.Now;
+                    lastNewBooksCountUpdate = DateTime.Now;
+                    isCacheInitialized = true; // Ensure it stays initialized
+                }
+
+                // Save updated statistics to database
+                SaveStatsToDatabase();
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error refreshing cache: {0}", ex.Message);
+            }
+            finally
+            {
+                isCacheWarming = false;
+            }
+        }
+
+        #endregion
 
         #region All other properties and methods remain the same
 
@@ -778,7 +805,6 @@ namespace TinyOPDS.Data
         /// </summary>
         public static void Load()
         {
-            var start = DateTime.Now;
             if (db == null) Initialize();
             LoadGenresFromDatabase();
         }

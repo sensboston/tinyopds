@@ -438,6 +438,13 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					font-weight: 600;
 					}
 
+					@media (min-width: 769px) and (max-width: 1100px) {
+					.cover { width: 160px; height: 240px; }
+					.download-section { width: 160px; }
+					.download-links { width: 100%; }
+					.download-link { width: calc(50% - 4px); }
+					}
+
 					/* Mobile Responsive Design */
 					@media (max-width: 768px) {
 					body {

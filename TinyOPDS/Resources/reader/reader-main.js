@@ -271,17 +271,13 @@ class UniversalReader {
     }
 
     navigateToChapter(chapterId) {
-        console.log('Navigating to chapter:', chapterId); // Debug log
         const element = document.getElementById(chapterId);
-        console.log('Found element:', element); // Debug log
 
         if (element) {
             this.isScrolling = true;
 
             const elementTop = element.offsetTop;
-            const offset = 100;
-
-            console.log('Scrolling to position:', elementTop - offset); // Debug log
+            const offset = 0;
 
             window.scrollTo({
                 top: elementTop - offset,
@@ -295,7 +291,7 @@ class UniversalReader {
 
             this.hideTOC();
         } else {
-            console.error('Chapter element not found:', chapterId); // Debug log
+            console.error('Chapter element not found:', chapterId);
         }
     }
 
@@ -396,10 +392,7 @@ class UniversalReader {
             reader.onload = (e) => {
                 const arrayBuffer = e.target.result;
                 const uint8Array = new Uint8Array(arrayBuffer);
-
                 const encoding = this.formatConverter.detectEncoding(uint8Array);
-                console.log('Detected encoding:', encoding);
-
                 const text = this.formatConverter.decodeText(uint8Array, encoding);
                 resolve(text);
             };

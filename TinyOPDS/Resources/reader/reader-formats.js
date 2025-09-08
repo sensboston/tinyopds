@@ -506,10 +506,88 @@ class FormatConverter {
         return fb2;
     }
 
-    // FB2 to HTML conversion
+    // Extract FB2 TOC with tree structure
+    extractFB2TOC(xmlDoc) {
+        let sectionCounter = 0;
+
+        // Helper function to extract title text from title element
+        const getTitleText = (titleElement) => {
+            if (!titleElement) return null;
+            // Get text content, removing extra whitespace
+            return titleElement.textContent.trim().replace(/\s+/g, ' ');
+        };
+
+        // Recursive function to process sections
+        const processSections = (parentElement, level = 0) => {
+            const sections = [];
+
+            // Only process direct child elements
+            for (let child of parentElement.children) {
+                if (child.tagName.toLowerCase() === 'section') {
+                    // Generate ID for this section
+                    const sectionId = `section_${sectionCounter++}`;
+
+                    // CRITICAL FIX: Set the ID as an attribute on the XML element
+                    // This allows convertFB2ToHTML to find and use the same ID
+                    child.setAttribute('data-toc-id', sectionId);
+
+                    // Find direct child title element (not nested in subsections)
+                    let titleElement = null;
+                    for (let el of child.children) {
+                        if (el.tagName.toLowerCase() === 'title') {
+                            titleElement = el;
+                            break;
+                        }
+                    }
+
+                    const titleText = getTitleText(titleElement);
+
+                    const sectionData = {
+                        id: sectionId,
+                        title: titleText || `Section ${sectionCounter}`,
+                        level: level,
+                        children: []
+                    };
+
+                    // Process nested sections recursively
+                    const nestedSections = processSections(child, level + 1);
+                    if (nestedSections.length > 0) {
+                        sectionData.children = nestedSections;
+                    }
+
+                    sections.push(sectionData);
+                }
+            }
+
+            return sections;
+        };
+
+        // Find the main body element - the one WITHOUT name attribute
+        const bodies = xmlDoc.getElementsByTagName('body');
+        let mainBody = null;
+
+        for (let i = 0; i < bodies.length; i++) {
+            const body = bodies[i];
+            // Main body is the one without 'name' attribute
+            if (!body.hasAttribute('name')) {
+                mainBody = body;
+                break;
+            }
+        }
+
+        if (!mainBody) {
+            console.warn('No main body found in FB2 document');
+            return [];
+        }
+
+        // Extract TOC from main body only
+        const toc = processSections(mainBody);
+        return toc;
+    }
+
+    // FB2 to HTML conversion with TOC support
     convertFB2ToHTML(element) {
         let html = '';
-        let sectionIndex = 0;
 
         for (const child of element.childNodes) {
             if (child.nodeType === Node.TEXT_NODE) {
@@ -530,7 +608,14 @@ class FormatConverter {
                         html += `<strong>${this.convertFB2ToHTML(child)}</strong>`;
                         break;
                     case 'section':
-                        html += `<div id="section_${sectionIndex++}" class="section">${this.convertFB2ToHTML(child)}</div>`;
+                        // Use the ID that was set by extractFB2TOC
+                        const tocId = child.getAttribute('data-toc-id');
+                        if (tocId) {
+                            html += `<div id="${tocId}" class="section" style="scroll-margin-top: 3em;">${this.convertFB2ToHTML(child)}</div>`;
+                        } else {
+                            // Fallback if no TOC ID was set (shouldn't happen for main body sections)
+                            html += `<div class="section" style="scroll-margin-top: 3em;">${this.convertFB2ToHTML(child)}</div>`;
+                        }
                         break;
                     case 'image':
                         const href = child.getAttribute('l:href') || child.getAttribute('xlink:href');
@@ -548,6 +633,30 @@ class FormatConverter {
             }
         }
 
+        return html;
+    }
+
+    // Generate HTML for tree-structured TOC
+    generateTOCHTML(tocItems) {
+        if (!tocItems || tocItems.length === 0) {
+            return '';
+        }
+
+        let html = '<ul class="toc-tree">';
+
+        for (const item of tocItems) {
+            html += '<li>';
+            html += `<a href="#${item.id}" class="toc-link">${this.escapeXml(item.title)}</a>`;
+
+            // Add nested children if they exist
+            if (item.children && item.children.length > 0) {
+                html += this.generateTOCHTML(item.children);
+            }
+
+            html += '</li>';
+        }
+
+        html += '</ul>';
         return html;
     }
 

@@ -20,7 +20,7 @@ class UniversalReader {
         this.currentChapterIndex = -1;
         this.isScrolling = false;
         this.detectedLanguage = 'en';
-        
+
         // Create format converter instance
         this.formatConverter = new FormatConverter();
 
@@ -50,7 +50,7 @@ class UniversalReader {
         this.loadPreferences();
         this.checkMobile();
         this.applyLocalization();
-        
+
         // Auto-load book if data is injected
         this.checkForInjectedBook();
     }
@@ -212,26 +212,43 @@ class UniversalReader {
         this.tocOverlay.classList.remove('visible');
     }
 
+    // New method to render tree-structured TOC
     renderTOC() {
         if (this.chapters.length === 0) {
             this.tocContent.innerHTML = `<div class="toc-empty">${this.strings.noChapters}</div>`;
             return;
         }
 
-        let tocHTML = '';
-        this.chapters.forEach((chapter, index) => {
-            const isCurrent = index === this.currentChapterIndex;
-            tocHTML += `
-                <div class="toc-item ${isCurrent ? 'current' : ''}"
-                     data-chapter-id="${chapter.id}"
-                     data-chapter-index="${index}">
-                    ${chapter.title}
-                </div>
-            `;
-        });
+        // Helper function to render tree structure
+        const renderTOCItems = (items, level = 0) => {
+            let html = '';
 
-        this.tocContent.innerHTML = tocHTML;
+            for (const item of items) {
+                const isCurrent = this.isCurrentChapter(item.id);
+                const indent = level * 20; // Indentation for nested items
 
+                html += `
+                    <div class="toc-item ${isCurrent ? 'current' : ''}"
+                         style="padding-left: ${indent}px;"
+                         data-chapter-id="${item.id}"
+                         data-level="${level}">
+                        <span class="toc-item-text">${item.title}</span>
+                    </div>
+                `;
+
+                // Render children if they exist
+                if (item.children && item.children.length > 0) {
+                    html += renderTOCItems(item.children, level + 1);
+                }
+            }
+
+            return html;
+        };
+
+        // Render the TOC tree
+        this.tocContent.innerHTML = renderTOCItems(this.chapters);
+
+        // Add click handlers
         this.tocContent.querySelectorAll('.toc-item').forEach(item => {
             item.onclick = () => {
                 const chapterId = item.getAttribute('data-chapter-id');
@@ -240,13 +257,31 @@ class UniversalReader {
         });
     }
 
-    navigateToChapter(chapterId) {
+    // Helper method to check if a chapter is current
+    isCurrentChapter(chapterId) {
+        // This is a simplified check - you might want to enhance this
         const element = document.getElementById(chapterId);
+        if (element) {
+            const scrollTop = window.scrollY;
+            const elementTop = element.offsetTop;
+            const elementBottom = elementTop + element.offsetHeight;
+            return scrollTop >= elementTop - 150 && scrollTop < elementBottom;
+        }
+        return false;
+    }
+
+    navigateToChapter(chapterId) {
+        console.log('Navigating to chapter:', chapterId); // Debug log
+        const element = document.getElementById(chapterId);
+        console.log('Found element:', element); // Debug log
+
         if (element) {
             this.isScrolling = true;
 
             const elementTop = element.offsetTop;
             const offset = 100;
+
+            console.log('Scrolling to position:', elementTop - offset); // Debug log
 
             window.scrollTo({
                 top: elementTop - offset,
@@ -259,36 +294,24 @@ class UniversalReader {
             }, 500);
 
             this.hideTOC();
+        } else {
+            console.error('Chapter element not found:', chapterId); // Debug log
         }
     }
 
     updateCurrentChapter() {
         if (this.chapters.length === 0) return;
 
-        const scrollTop = window.scrollY;
-        let newChapterIndex = -1;
-
-        for (let i = this.chapters.length - 1; i >= 0; i--) {
-            const element = document.getElementById(this.chapters[i].id);
-            if (element && element.offsetTop <= scrollTop + 150) {
-                newChapterIndex = i;
-                break;
-            }
-        }
-
-        if (newChapterIndex !== this.currentChapterIndex) {
-            this.currentChapterIndex = newChapterIndex;
-
-            if (this.tocVisible) {
-                this.renderTOC();
-            }
+        // Update current chapter highlighting in TOC if it's visible
+        if (this.tocVisible) {
+            this.renderTOC();
         }
     }
 
     scrollPage(direction) {
-	const viewportHeight = window.innerHeight;
+        const viewportHeight = window.innerHeight;
         const lineHeight = this.fontSize * 1.8;
-	const scrollAmount = (viewportHeight * 0.9) + (lineHeight * 1.5);
+        const scrollAmount = (viewportHeight * 0.9) + (lineHeight * 1.5);
 
         const oldScrollBehavior = document.body.style.scrollBehavior;
         document.body.style.scrollBehavior = 'smooth';
@@ -387,8 +410,8 @@ class UniversalReader {
 
     async parseFB2(content) {
         const parser = new DOMParser();
-	content = content.replace(/<h[1-6]\s+xmlns=""[^>]*>.*?<\/h[1-6]>/gi, '');
-	content = content.replace(/<(div|span|p)\s+xmlns=""[^>]*>.*?<\/\1>/gi, '');
+        content = content.replace(/<h[1-6]\s+xmlns=""[^>]*>.*?<\/h[1-6]>/gi, '');
+        content = content.replace(/<(div|span|p)\s+xmlns=""[^>]*>.*?<\/\1>/gi, '');
         const xmlDoc = parser.parseFromString(content, 'text/xml');
 
         if (xmlDoc.getElementsByTagName('parsererror').length > 0) {
@@ -431,29 +454,21 @@ class UniversalReader {
             }
         }
 
-        // Extract chapters
-        this.chapters = [];
-        const sections = xmlDoc.querySelectorAll('body > section');
-        sections.forEach((section, index) => {
-            const titleEl = section.querySelector('title');
-            if (titleEl) {
-                const chapterId = `section_${index}`;
-                this.chapters.push({
-                    title: titleEl.textContent.trim(),
-                    id: chapterId
-                });
-            }
-        });
+        // IMPORTANT: Extract TOC FIRST - this sets up the ID map
+        this.chapters = this.formatConverter.extractFB2TOC(xmlDoc);
 
-        // Convert to HTML
+        // THEN Convert to HTML - using the same body element
+        // Find the main body (without name attribute) - same logic as in extractFB2TOC
         const bodyNodes = xmlDoc.querySelectorAll('body');
         let htmlContent = `<h1>${title}</h1><p class="author">${author}</p>${coverHtml}`;
 
-        bodyNodes.forEach(body => {
-            if (!body.getAttribute('name')) {
+        for (let body of bodyNodes) {
+            if (!body.hasAttribute('name')) {
+                // This is the main body - same one processed by extractFB2TOC
                 htmlContent += this.formatConverter.convertFB2ToHTML(body);
+                break; // Only process the first body without name attribute
             }
-        });
+        }
 
         return {
             title,

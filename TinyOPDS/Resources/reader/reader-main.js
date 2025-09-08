@@ -134,10 +134,12 @@ class UniversalReader {
             }
         };
 
-        // Handle browser back button for TOC
+        // Handle browser back button for TOC and menu
         window.addEventListener('popstate', (e) => {
             if (this.tocVisible) {
                 this.hideTOC();
+            } else if (this.menuVisible) {
+                this.toggleMenu();
             }
         });
 

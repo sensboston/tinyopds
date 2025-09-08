@@ -293,6 +293,9 @@ class UniversalReader {
             const elementTop = element.offsetTop;
             const offset = 0;
 
+            // Replace current state to avoid adding to history
+            history.replaceState({ tocOpen: true }, '');
+
             window.scrollTo({
                 top: elementTop - offset,
                 behavior: 'smooth'

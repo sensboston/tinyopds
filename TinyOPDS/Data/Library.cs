@@ -69,6 +69,14 @@ namespace TinyOPDS.Data
         private static DateTime lastGenresUpdate = DateTime.MinValue;
         private static List<Genre> cachedGenres = null;
 
+        // Authors alphabetical cache for fast OPDS navigation
+        private static Dictionary<string, List<string>> cachedAuthorsByFirstLetter = null;
+        private static List<string> cachedAuthorsFirstLetters = null;
+        private static DateTime lastAuthorsByLetterUpdate = DateTime.MinValue;
+        private static readonly TimeSpan AuthorsByLetterCacheTimeout = TimeSpan.FromHours(2);
+        private static readonly object authorsByLetterLock = new object();
+        private static bool isAuthorsCacheLoading = false;
+
         #endregion
 
         /// <summary>
@@ -118,6 +126,9 @@ namespace TinyOPDS.Data
 
                 // Start async cache warming without blocking
                 System.Threading.Tasks.Task.Run(() => InitializeCacheAsync());
+
+                // Initialize authors alphabetical cache
+                System.Threading.Tasks.Task.Run(() => InitializeAuthorsCacheAsync());
 
                 Log.WriteLine("SQLite database initialized: {0}", databaseFullPath);
             }
@@ -187,6 +198,80 @@ namespace TinyOPDS.Data
             {
                 isCacheWarming = false;
             }
+        }
+
+        /// <summary>
+        /// Initialize authors alphabetical cache asynchronously
+        /// </summary>
+        private static void InitializeAuthorsCacheAsync()
+        {
+            if (bookRepository == null || isAuthorsCacheLoading) return;
+
+            try
+            {
+                isAuthorsCacheLoading = true;
+                Log.WriteLine("Starting authors alphabetical cache initialization...");
+                var startTime = DateTime.Now;
+
+                // Load all authors from repository
+                var allAuthors = bookRepository.GetAllAuthors();
+
+                // Build alphabetical cache
+                var authorsByLetter = new Dictionary<string, List<string>>();
+                var firstLetters = new HashSet<string>();
+                var comparer = new OPDSComparer(Properties.Settings.Default.SortOrder > 0);
+
+                foreach (var author in allAuthors.Where(a => !string.IsNullOrEmpty(a) && a.Length > 1))
+                {
+                    // Get first character (uppercase)
+                    string firstChar = author.Substring(0, 1).ToUpper();
+
+                    firstLetters.Add(firstChar);
+
+                    if (!authorsByLetter.ContainsKey(firstChar))
+                        authorsByLetter[firstChar] = new List<string>();
+
+                    authorsByLetter[firstChar].Add(author);
+                }
+
+                // Sort authors within each letter group
+                foreach (var key in authorsByLetter.Keys.ToList())
+                {
+                    authorsByLetter[key] = authorsByLetter[key]
+                        .Distinct()
+                        .OrderBy(a => a, comparer)
+                        .ToList();
+                }
+
+                // Update cache atomically
+                lock (authorsByLetterLock)
+                {
+                    cachedAuthorsByFirstLetter = authorsByLetter;
+                    cachedAuthorsFirstLetters = firstLetters.OrderBy(l => l, comparer).ToList();
+                    lastAuthorsByLetterUpdate = DateTime.Now;
+                }
+
+                var elapsed = (DateTime.Now - startTime).TotalMilliseconds;
+                Log.WriteLine("Authors alphabetical cache initialized in {0} ms. Letters: {1}",
+                    elapsed, firstLetters.Count);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error initializing authors cache: {0}", ex.Message);
+            }
+            finally
+            {
+                isAuthorsCacheLoading = false;
+            }
+        }
+
+        /// <summary>
+        /// Refresh authors alphabetical cache
+        /// </summary>
+        private static void RefreshAuthorsCacheAsync()
+        {
+            if (isAuthorsCacheLoading) return;
+            System.Threading.Tasks.Task.Run(() => InitializeAuthorsCacheAsync());
         }
 
         /// <summary>
@@ -569,9 +654,6 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Invalidate all caches
-        /// </summary>
-        /// <summary>
         /// Invalidate all caches without zeroing values
         /// </summary>
         private static void InvalidateCache()
@@ -595,10 +677,19 @@ namespace TinyOPDS.Data
                     lastAuthorsListUpdate = DateTime.MinValue;
                     lastSequencesListUpdate = DateTime.MinValue;
                 }
+
+                // Invalidate authors alphabetical cache
+                lock (authorsByLetterLock)
+                {
+                    lastAuthorsByLetterUpdate = DateTime.MinValue;
+                }
             }
 
             // Start async refresh - it will update values when ready
             System.Threading.Tasks.Task.Run(() => RefreshCacheAsync());
+
+            // Refresh authors cache
+            RefreshAuthorsCacheAsync();
         }
 
         /// <summary>
@@ -1270,10 +1361,10 @@ namespace TinyOPDS.Data
 
         #endregion
 
-        #region Author Search Methods (remains the same)
+        #region Author Search Methods (MODIFIED for cache optimization)
 
         /// <summary>
-        /// Get authors by name - simplified dispatch method
+        /// Get authors by name - optimized with cache for short patterns
         /// </summary>
         public static List<string> GetAuthorsByName(string name, bool isOpenSearch)
         {
@@ -1283,6 +1374,13 @@ namespace TinyOPDS.Data
             {
                 Log.WriteLine(LogLevel.Info, "Searching authors by name: '{0}', isOpenSearch: {1}", name, isOpenSearch);
 
+                // Use cache for short patterns (0 or 1 character) in non-OpenSearch mode
+                if (!isOpenSearch && name != null && name.Length <= 1)
+                {
+                    return GetAuthorsFromCache(name);
+                }
+
+                // For longer patterns or OpenSearch, use database
                 List<string> authors;
 
                 if (isOpenSearch)
@@ -1306,6 +1404,93 @@ namespace TinyOPDS.Data
                 Log.WriteLine(LogLevel.Error, "Error in GetAuthorsByName: {0}", ex.Message);
                 return new List<string>();
             }
+        }
+
+        /// <summary>
+        /// Get authors from cache for short patterns
+        /// </summary>
+        private static List<string> GetAuthorsFromCache(string pattern)
+        {
+            // Ensure cache is loaded
+            if (cachedAuthorsByFirstLetter == null || DateTime.Now - lastAuthorsByLetterUpdate > AuthorsByLetterCacheTimeout)
+            {
+                // Try to get lock without blocking
+                if (Monitor.TryEnter(authorsByLetterLock, TimeSpan.FromMilliseconds(100)))
+                {
+                    try
+                    {
+                        // Double-check after acquiring lock
+                        if (cachedAuthorsByFirstLetter == null || DateTime.Now - lastAuthorsByLetterUpdate > AuthorsByLetterCacheTimeout)
+                        {
+                            // Need to refresh cache - do it async
+                            RefreshAuthorsCacheAsync();
+
+                            // For now, fall back to database
+                            return GetAuthorsFromDatabase(pattern);
+                        }
+                    }
+                    finally
+                    {
+                        Monitor.Exit(authorsByLetterLock);
+                    }
+                }
+                else
+                {
+                    // Could not get lock, fall back to database
+                    return GetAuthorsFromDatabase(pattern);
+                }
+            }
+
+            // Use cache
+            lock (authorsByLetterLock)
+            {
+                if (string.IsNullOrEmpty(pattern))
+                {
+                    // For empty pattern, AuthorsCatalog expects ALL authors to build the alphabet
+                    // We need to return all authors from all letters
+                    if (cachedAuthorsByFirstLetter != null)
+                    {
+                        var allAuthors = new List<string>();
+                        foreach (var letterGroup in cachedAuthorsByFirstLetter.Values)
+                        {
+                            allAuthors.AddRange(letterGroup);
+                        }
+
+                        // Sort all authors
+                        var comparer = new OPDSComparer(Properties.Settings.Default.SortOrder > 0);
+                        var result = allAuthors.Distinct().OrderBy(a => a, comparer).ToList();
+
+                        Log.WriteLine(LogLevel.Info, "Returning {0} total authors from cache for alphabet building", result.Count);
+                        return result;
+                    }
+                }
+                else if (pattern.Length == 1)
+                {
+                    // Return authors for specific letter
+                    string upperPattern = pattern.ToUpper();
+                    if (cachedAuthorsByFirstLetter != null && cachedAuthorsByFirstLetter.ContainsKey(upperPattern))
+                    {
+                        var authors = cachedAuthorsByFirstLetter[upperPattern];
+                        Log.WriteLine(LogLevel.Info, "Returning {0} authors for letter '{1}' from cache", authors.Count, upperPattern);
+                        return new List<string>(authors);
+                    }
+                }
+
+                // Fall back to database if cache miss
+                return GetAuthorsFromDatabase(pattern);
+            }
+        }
+
+        /// <summary>
+        /// Helper method to get authors from database (fallback)
+        /// </summary>
+        private static List<string> GetAuthorsFromDatabase(string pattern)
+        {
+            if (bookRepository == null) return new List<string>();
+
+            var authors = bookRepository.GetAuthorsForNavigation(pattern);
+            var comparer = new OPDSComparer(Properties.Settings.Default.SortOrder > 0);
+            return authors.Where(a => a.Length > 1).Distinct().OrderBy(a => a, comparer).ToList();
         }
 
         /// <summary>
@@ -1333,13 +1518,11 @@ namespace TinyOPDS.Data
                 else
                 {
                     // Navigation doesn't use advanced search methods
-                    var authors = bookRepository.GetAuthorsForNavigation(name);
-                    var comparer = new OPDSComparer(Properties.Settings.Default.SortOrder > 0);
-                    var result = authors.Where(a => a.Length > 1).Distinct().OrderBy(a => a, comparer).ToList();
+                    var authors = GetAuthorsByName(name, false); // This will use cache for short patterns
 
                     // For navigation, we don't track method, but if found, it's partial match
-                    var method = result.Count > 0 ? AuthorSearchMethod.PartialMatch : AuthorSearchMethod.NotFound;
-                    return (result, method);
+                    var method = authors.Count > 0 ? AuthorSearchMethod.PartialMatch : AuthorSearchMethod.NotFound;
+                    return (authors, method);
                 }
             }
             catch (Exception ex)

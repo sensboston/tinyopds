@@ -134,6 +134,13 @@ class UniversalReader {
             }
         };
 
+        // Handle browser back button for TOC
+        window.addEventListener('popstate', (e) => {
+            if (this.tocVisible) {
+                this.hideTOC();
+            }
+        });
+
         this.fileInput.onchange = (e) => this.handleFileSelect(e.target.files[0]);
 
         document.getElementById('decreaseFont').onclick = () => this.changeFontSize(-2);
@@ -202,12 +209,17 @@ class UniversalReader {
         this.tocOverlay.classList.add('visible');
         this.renderTOC();
 
+        // Add history state for TOC
+        history.pushState({ tocOpen: true }, '');
+
         if (this.menuVisible) {
             this.toggleMenu();
         }
     }
 
     hideTOC() {
+        if (!this.tocVisible) return;  // Prevent double closing
+
         this.tocVisible = false;
         this.tocOverlay.classList.remove('visible');
     }

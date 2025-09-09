@@ -839,5 +839,33 @@ namespace TinyOPDS.Data
             WHERE ID = @OldID";
 
         #endregion
+
+        // Optimized query to get books with authors and translators in single query
+        public const string SelectBooksWithDetailsByDuplicateKey = @"
+            SELECT 
+                b.ID, b.Version, b.FileName, b.Title, b.Language, b.BookDate, b.DocumentDate,
+                b.Annotation, b.DocumentSize, b.AddedDate, b.DocumentIDTrusted, 
+                b.DuplicateKey, b.ReplacedByID, b.ContentHash,
+                'AUTHOR' as ItemType,
+                a.Name as ItemName
+            FROM Books b
+            LEFT JOIN BookAuthors ba ON b.ID = ba.BookID
+            LEFT JOIN Authors a ON ba.AuthorID = a.ID
+            WHERE b.DuplicateKey = @DuplicateKey AND b.ReplacedByID IS NULL
+    
+            UNION ALL
+    
+            SELECT 
+                b.ID, b.Version, b.FileName, b.Title, b.Language, b.BookDate, b.DocumentDate,
+                b.Annotation, b.DocumentSize, b.AddedDate, b.DocumentIDTrusted, 
+                b.DuplicateKey, b.ReplacedByID, b.ContentHash,
+                'TRANSLATOR' as ItemType,
+                t.Name as ItemName
+            FROM Books b
+            LEFT JOIN BookTranslators bt ON b.ID = bt.BookID
+            LEFT JOIN Translators t ON bt.TranslatorID = t.ID
+            WHERE b.DuplicateKey = @DuplicateKey AND b.ReplacedByID IS NULL
+    
+            ORDER BY b.ID, ItemType";
     }
 }

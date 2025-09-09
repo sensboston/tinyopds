@@ -120,6 +120,7 @@
   <ItemGroup>
     <!-- Main Application -->
     <Compile Include="Misc\UpdateChecker.cs" />
+    <Compile Include="OPDS\DownloadCatalog.cs" />
     <Compile Include="Parsers\DateParser.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="MainForm.cs">
@@ -131,8 +132,8 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
-      <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
     <Compile Include="Properties\Settings.Designer.cs">
       <AutoGen>True</AutoGen>
@@ -206,8 +207,8 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
       <SubType>Designer</SubType>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
   <!-- Configuration Files -->
@@ -240,10 +241,10 @@
     <EmbeddedResource Include="Resources\reader\reader-themes.css" />
     <EmbeddedResource Include="Resources\reader\reader.css" />
     <!-- Icons -->
-    <EmbeddedResource Include="Icons\authors.ico" />
-    <EmbeddedResource Include="Icons\books.ico" />
-    <EmbeddedResource Include="Icons\favicon.ico" />
-    <EmbeddedResource Include="Icons\genres.ico" />
+    <EmbeddedResource Include="Resources\icons\authors.ico" />
+    <EmbeddedResource Include="Resources\icons\books.ico" />
+    <EmbeddedResource Include="Resources\icons\favicon.ico" />
+    <EmbeddedResource Include="Resources\icons\genres.ico" />
     <!-- Embedded Libraries -->
     <EmbeddedResource Include="Libs\FB2Library.dll" />
     <EmbeddedResource Include="Libs\System.Data.SQLite.dll" />
@@ -255,13 +256,13 @@
   <ItemGroup>
     <EmbeddedResource Include="Resources\smart-header.js" />
     <EmbeddedResource Include="Libs\SgmlReaderDll.dll" />
+    <EmbeddedResource Include="Resources\icons\opds.ico" />
     <Content Include="TinyOPDS.ico" />
-    <Content Include="Icons\lib.png" />
-    <Content Include="Icons\TinyOPDS.ico" />
+    <Content Include="Resources\TinyOPDS.ico" />
     <Content Include="License.txt" />
     <None Include="TinyOPDS.png" />
     <None Include="Resources\donate.png" />
-    <None Include="Icons\folder.png" />
+    <EmbeddedResource Include="Resources\folder.png" />
     <None Include="Resources\trayIcon.ico" />
   </ItemGroup>
   <!-- Bootstrapper Packages -->

@@ -7,6 +7,7 @@
  *
  * This module handles embedded reader functionality
  * for FB2 and EPUB books
+ * ENHANCED: Added read event tracking to database
  * 
  */
 
@@ -93,6 +94,9 @@ namespace TinyOPDS.Server
                         processor.WriteSuccess("text/html; charset=utf-8");
                         processor.OutputStream.Write(html);
 
+                        // Record read event to database
+                        RecordReadEvent(bookId, book.BookType.ToString().ToLower(), processor.HttpHeaders);
+
                         Log.WriteLine(LogLevel.Info, "Successfully served reader for book: {0}", book.Title);
                     }
                     else
@@ -105,6 +109,47 @@ namespace TinyOPDS.Server
             {
                 Log.WriteLine(LogLevel.Error, "Reader request error: {0}", ex.Message);
                 processor.WriteFailure();
+            }
+        }
+
+        /// <summary>
+        /// Records book read event to database through Library
+        /// </summary>
+        private void RecordReadEvent(string bookId, string format, System.Collections.Generic.Dictionary<string, string> headers)
+        {
+            try
+            {
+                // Extract client info from headers if available
+                string clientInfo = null;
+                if (headers != null)
+                {
+                    string userAgent = headers.ContainsKey("User-Agent") ? headers["User-Agent"] : null;
+                    string clientIp = headers.ContainsKey("X-Forwarded-For") ? headers["X-Forwarded-For"] :
+                                      (headers.ContainsKey("REMOTE_ADDR") ? headers["REMOTE_ADDR"] : null);
+
+                    if (!string.IsNullOrEmpty(userAgent) || !string.IsNullOrEmpty(clientIp))
+                    {
+                        clientInfo = string.Format("{0}|{1}",
+                            userAgent ?? "Unknown",
+                            clientIp ?? "Unknown");
+
+                        // Limit client info length to prevent database issues
+                        if (clientInfo.Length > 255)
+                        {
+                            clientInfo = clientInfo.Substring(0, 255);
+                        }
+                    }
+                }
+
+                // Record as "read" event instead of "download"
+                Library.RecordDownload(bookId, "read", format, clientInfo);
+
+                Log.WriteLine(LogLevel.Info, "Recorded read event for book {0}, format: {1}", bookId, format);
+            }
+            catch (Exception ex)
+            {
+                // Don't fail the reader if we can't record the event
+                Log.WriteLine(LogLevel.Warning, "Failed to record read event for book {0}: {1}", bookId, ex.Message);
             }
         }
 

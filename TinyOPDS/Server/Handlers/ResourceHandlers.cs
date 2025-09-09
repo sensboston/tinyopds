@@ -56,7 +56,7 @@ namespace TinyOPDS.Server
         /// <summary>
         /// Handles logo.png request
         /// </summary>
-        public void HandleLogoRequest(HttpProcessor processor, string imageName)
+        public void HandleDummyCoverRequest(HttpProcessor processor, string imageName)
         {
             try
             {

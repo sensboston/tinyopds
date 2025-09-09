@@ -7,6 +7,7 @@
  *
  * This module defines the OPDS RootCatalog class
  * OPTIMIZED: Now uses cached count properties instead of loading full lists
+ * ENHANCED: Added downloaded books catalog entry with /downstat path
  *
  */
 
@@ -30,6 +31,9 @@ namespace TinyOPDS.OPDS
             int totalBooksCount = Library.Count;
             int newBooksCount = Library.NewBooksCount;
 
+            // Get downloads count from library
+            int downloadsCount = Library.GetUniqueDownloadsCount();
+
             return new XDocument(
                 // Add root element with namespaces
                 new XElement("feed", new XAttribute(XNamespace.Xmlns + "dc", Namespaces.dc),
@@ -40,7 +44,7 @@ namespace TinyOPDS.OPDS
                       new XElement("title", Properties.Settings.Default.ServerName),
                       new XElement("subtitle", Utils.ServerVersionName),
                       new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                      new XElement("icon", "/favicon.ico"),
+                      new XElement("icon", "/TinyOPDS.ico"),
 
                       // Add links
                       Links.opensearch,
@@ -92,6 +96,19 @@ namespace TinyOPDS.OPDS
                           new XElement("title", Localizer.Text("By genres"), new XAttribute("type", "text")),
                           new XElement("content", Localizer.Text("Books grouped by genres"), new XAttribute("type", "text")),
                           new XElement("link", new XAttribute("href", "/genres"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
+                      ),
+
+                      // Add download statistics entry (always show, even if empty - user can see their history status)
+                      new XElement("entry",
+                          new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
+                          new XElement("id", "tag:root:downstat"),
+                          new XElement("title", Localizer.Text("Downloaded books"), new XAttribute("type", "text")),
+                          new XElement("content",
+                              downloadsCount > 0
+                                ? string.Format(Localizer.Text("{0} downloaded books"), downloadsCount)
+                                : Localizer.Text("Your download history"),
+                              new XAttribute("type", "text")),
+                          new XElement("link", new XAttribute("href", "/downstat"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                       )
                   )
               );

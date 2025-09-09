@@ -121,7 +121,7 @@ namespace TinyOPDS.Data
                 // Load author aliases into memory
                 LoadAuthorAliases();
 
-                // NEW: Load statistics from database immediately for instant display
+                // Load statistics from database immediately for instant display
                 LoadStatsFromDatabase();
 
                 // Start async cache warming without blocking
@@ -185,7 +185,7 @@ namespace TinyOPDS.Data
                 Log.WriteLine("Cache initialized in {0} ms. Books: {1}, Authors: {2}, Series: {3}",
                     elapsed, cachedTotalCount, cachedAuthorsCount, cachedSequencesCount);
 
-                // NEW: Save updated statistics to database for next startup
+                // Save updated statistics to database for next startup
                 SaveStatsToDatabase();
 
                 LibraryLoaded?.Invoke(null, EventArgs.Empty);
@@ -1619,6 +1619,64 @@ namespace TinyOPDS.Data
         }
 
         #endregion
+
+        #region Downloads Management
+
+        /// <summary>
+        /// Record a book download or read event
+        /// </summary>
+        public static void RecordDownload(string bookId, string downloadType, string format = null, string clientInfo = null)
+        {
+            if (db == null) return;
+
+            try
+            {
+                db.RecordDownload(bookId, downloadType, format, clientInfo);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error recording download: {0}", ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Get count of unique downloaded books
+        /// </summary>
+        public static int GetUniqueDownloadsCount()
+        {
+            if (db == null) return 0;
+            return db.GetUniqueDownloadsCount();
+        }
+
+        /// <summary>
+        /// Get recently downloaded books with pagination
+        /// </summary>
+        public static List<Book> GetRecentDownloads(int limit, int offset)
+        {
+            if (db == null) return new List<Book>();
+            return db.GetRecentDownloads(limit, offset);
+        }
+
+        /// <summary>
+        /// Get downloaded books sorted alphabetically with pagination
+        /// </summary>
+        public static List<Book> GetDownloadsAlphabetic(int limit, int offset)
+        {
+            if (db == null) return new List<Book>();
+            return db.GetDownloadsAlphabetic(limit, offset);
+        }
+
+        /// <summary>
+        /// Clear all download history
+        /// </summary>
+        public static void ClearDownloadHistory()
+        {
+            if (db == null) return;
+            db.ClearDownloadHistory();
+        }
+
+        #endregion
+
 
         #region Helper Methods
 

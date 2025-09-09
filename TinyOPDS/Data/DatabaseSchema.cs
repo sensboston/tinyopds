@@ -9,6 +9,7 @@
  * OPTIMIZED: Added performance-critical indexes for large databases
  * ENHANCED: Added library statistics persistence table
  * ENHANCED: Normalized sequences into separate table for better performance
+ * ENHANCED: Added Downloads table for tracking downloaded/read books
  *
  */
 
@@ -63,12 +64,24 @@ namespace TinyOPDS.Data
                 Name TEXT NOT NULL UNIQUE
             )";
 
-        // NEW: Sequences table
+        // Sequences table
         public const string CreateSequencesTable = @"
             CREATE TABLE IF NOT EXISTS Sequences (
                 ID INTEGER PRIMARY KEY AUTOINCREMENT,
                 Name TEXT NOT NULL UNIQUE,
                 SearchName TEXT                 -- Normalized for search (lowercase)
+            )";
+
+        // Table to track downloaded/opened books
+        public const string CreateDownloadsTable = @"
+            CREATE TABLE IF NOT EXISTS Downloads (
+                ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                BookID TEXT NOT NULL,
+                DownloadDate INTEGER NOT NULL,  -- DateTime as ticks
+                DownloadType TEXT NOT NULL,     -- 'download' or 'read'
+                Format TEXT,                     -- 'fb2', 'epub', null for read
+                ClientInfo TEXT,                 -- Optional client information
+                FOREIGN KEY (BookID) REFERENCES Books(ID) ON DELETE CASCADE
             )";
 
         public const string CreateBookAuthorsTable = @"
@@ -98,7 +111,7 @@ namespace TinyOPDS.Data
                 FOREIGN KEY (TranslatorID) REFERENCES Translators(ID) ON DELETE CASCADE
             )";
 
-        // NEW: Book-Sequences relationship table
+        // Book-Sequences relationship table
         public const string CreateBookSequencesTable = @"
             CREATE TABLE IF NOT EXISTS BookSequences (
                 BookID TEXT NOT NULL,
@@ -138,7 +151,7 @@ namespace TinyOPDS.Data
                 tokenize='unicode61 remove_diacritics 1'
             )";
 
-        // NEW: FTS5 table for sequences
+        // FTS5 table for sequences
         public const string CreateSequencesFTSTable = @"
             CREATE VIRTUAL TABLE IF NOT EXISTS SequencesFTS 
             USING fts5(
@@ -173,7 +186,7 @@ namespace TinyOPDS.Data
             LEFT JOIN BookGenres bg ON g.Tag = bg.GenreTag
             GROUP BY g.Tag, g.ParentName, g.Name, g.Translation";
 
-        // NEW: Sequences statistics view
+        // Sequences statistics view
         public const string CreateSequenceStatisticsView = @"
             CREATE VIEW IF NOT EXISTS SequenceStatistics AS
             SELECT 
@@ -214,7 +227,7 @@ namespace TinyOPDS.Data
             CREATE INDEX IF NOT EXISTS idx_genres_parentname ON Genres(ParentName);
             CREATE INDEX IF NOT EXISTS idx_genres_name ON Genres(Name);
             
-            -- OPTIMIZED: Critical indexes for join operations
+            -- Critical indexes for join operations
             CREATE INDEX IF NOT EXISTS idx_bookauthors_bookid ON BookAuthors(BookID);
             CREATE INDEX IF NOT EXISTS idx_bookauthors_authorid ON BookAuthors(AuthorID);
             CREATE INDEX IF NOT EXISTS idx_bookauthors_composite ON BookAuthors(AuthorID, BookID);
@@ -223,18 +236,23 @@ namespace TinyOPDS.Data
             CREATE INDEX IF NOT EXISTS idx_bookgenres_genretag ON BookGenres(GenreTag);
             CREATE INDEX IF NOT EXISTS idx_bookgenres_composite ON BookGenres(GenreTag, BookID);
             
-            -- NEW: Sequences indexes
+            -- Sequences indexes
             CREATE INDEX IF NOT EXISTS idx_sequences_name ON Sequences(Name);
             CREATE INDEX IF NOT EXISTS idx_sequences_searchname ON Sequences(SearchName);
             
-            -- NEW: BookSequences indexes for efficient joins
+            -- BookSequences indexes for efficient joins
             CREATE INDEX IF NOT EXISTS idx_booksequences_bookid ON BookSequences(BookID);
             CREATE INDEX IF NOT EXISTS idx_booksequences_sequenceid ON BookSequences(SequenceID);
             CREATE INDEX IF NOT EXISTS idx_booksequences_composite ON BookSequences(SequenceID, BookID);
             CREATE INDEX IF NOT EXISTS idx_booksequences_number ON BookSequences(SequenceID, NumberInSequence);
 
-            -- NEW: Index for LibraryStats table
+            -- Index for LibraryStats table
             CREATE INDEX IF NOT EXISTS idx_librarystats_updated ON LibraryStats(updated_at);
+            
+            -- Downloads indexes for faster queries
+            CREATE INDEX IF NOT EXISTS idx_downloads_date ON Downloads(DownloadDate DESC);
+            CREATE INDEX IF NOT EXISTS idx_downloads_book ON Downloads(BookID);
+            CREATE INDEX IF NOT EXISTS idx_downloads_composite ON Downloads(BookID, DownloadDate DESC);
         ";
 
         // Additional optimization commands to run after indexes are created
@@ -317,7 +335,7 @@ namespace TinyOPDS.Data
                 DELETE FROM AuthorsFTS WHERE AuthorID = old.ID;
             END";
 
-        // NEW: Sequences triggers for FTS synchronization
+        // Sequences triggers for FTS synchronization
         public const string CreateSequenceInsertTrigger = @"
             CREATE TRIGGER IF NOT EXISTS sequences_ai AFTER INSERT ON Sequences BEGIN
                 INSERT INTO SequencesFTS(SequenceID, Name) 
@@ -364,7 +382,7 @@ namespace TinyOPDS.Data
         public const string InsertTranslator = @"
             INSERT OR IGNORE INTO Translators (Name) VALUES (@Name)";
 
-        // NEW: Insert sequence
+        // Insert sequence
         public const string InsertSequence = @"
             INSERT OR IGNORE INTO Sequences (Name, SearchName) 
             VALUES (@Name, @SearchName)";
@@ -380,10 +398,15 @@ namespace TinyOPDS.Data
             INSERT OR IGNORE INTO BookTranslators (BookID, TranslatorID) 
             VALUES (@BookID, (SELECT ID FROM Translators WHERE Name = @TranslatorName))";
 
-        // NEW: Insert book-sequence relationship
+        // Insert book-sequence relationship
         public const string InsertBookSequence = @"
             INSERT OR IGNORE INTO BookSequences (BookID, SequenceID, NumberInSequence) 
             VALUES (@BookID, (SELECT ID FROM Sequences WHERE Name = @SequenceName), @NumberInSequence)";
+
+        // Insert download record
+        public const string InsertDownload = @"
+            INSERT INTO Downloads (BookID, DownloadDate, DownloadType, Format, ClientInfo)
+            VALUES (@BookID, @DownloadDate, @DownloadType, @Format, @ClientInfo)";
 
         #endregion
 
@@ -449,7 +472,7 @@ namespace TinyOPDS.Data
             INNER JOIN Authors a ON ba.AuthorID = a.ID
             WHERE a.Name = @AuthorName AND b.ReplacedByID IS NULL";
 
-        // NEW: Optimized query for books by sequence
+        // Optimized query for books by sequence
         public const string SelectBooksBySequence = @"
             SELECT b.ID, b.Version, b.FileName, b.Title, b.Language, b.BookDate, b.DocumentDate,
                    b.Annotation, b.DocumentSize, b.AddedDate, b.DocumentIDTrusted, 
@@ -497,16 +520,48 @@ namespace TinyOPDS.Data
 
         #endregion
 
+        #region Select Queries - Downloads
+
+        // UPDATED: Get recently downloaded books with download date
+        public const string SelectRecentDownloads = @"
+            SELECT DISTINCT b.*, MAX(d.DownloadDate) as LastDownloadDate
+            FROM Books b
+            INNER JOIN Downloads d ON b.ID = d.BookID
+            WHERE b.ReplacedByID IS NULL
+            GROUP BY b.ID
+            ORDER BY LastDownloadDate DESC
+            LIMIT @Limit OFFSET @Offset";
+
+        // UPDATED: Get downloaded books sorted alphabetically with download date
+        public const string SelectDownloadsAlphabetic = @"
+            SELECT DISTINCT b.*, MAX(d.DownloadDate) as LastDownloadDate
+            FROM Books b
+            INNER JOIN Downloads d ON b.ID = d.BookID
+            WHERE b.ReplacedByID IS NULL
+            GROUP BY b.ID
+            ORDER BY b.Title COLLATE NOCASE
+            LIMIT @Limit OFFSET @Offset";
+
+        // Get all downloads with details
+        public const string SelectDownloadHistory = @"
+            SELECT d.*, b.Title, b.FileName
+            FROM Downloads d
+            INNER JOIN Books b ON d.BookID = b.ID
+            ORDER BY d.DownloadDate DESC
+            LIMIT @Limit OFFSET @Offset";
+
+        #endregion
+
         #region Select Queries - Sequences
 
-        // NEW: Get all sequences
+        // Get all sequences
         public const string SelectSequences = @"
             SELECT DISTINCT s.Name
             FROM Sequences s
             INNER JOIN BookSequences bs ON s.ID = bs.SequenceID
             ORDER BY s.Name";
 
-        // NEW: Get sequences by prefix (for navigation)
+        // Get sequences by prefix (for navigation)
         public const string SelectSequencesByPrefix = @"
             SELECT DISTINCT s.Name
             FROM Sequences s
@@ -514,7 +569,7 @@ namespace TinyOPDS.Data
             WHERE s.Name LIKE @Pattern || '%' COLLATE NOCASE
             ORDER BY s.Name";
 
-        // NEW: Get sequences with book count
+        // Get sequences with book count
         public const string SelectSequencesWithCount = @"
             SELECT s.Name, COUNT(bs.BookID) as BookCount
             FROM Sequences s
@@ -524,7 +579,7 @@ namespace TinyOPDS.Data
             GROUP BY s.ID, s.Name
             ORDER BY s.Name";
 
-        // NEW: Get sequences with count by prefix
+        // Get sequences with count by prefix
         public const string SelectSequencesWithCountByPrefix = @"
             SELECT s.Name, COUNT(bs.BookID) as BookCount
             FROM Sequences s
@@ -535,7 +590,7 @@ namespace TinyOPDS.Data
             GROUP BY s.ID, s.Name
             ORDER BY s.Name";
 
-        // NEW: FTS search for sequences
+        // FTS search for sequences
         public const string SelectSequencesFTS = @"
             SELECT DISTINCT s.Name
             FROM Sequences s
@@ -653,7 +708,7 @@ namespace TinyOPDS.Data
             WHERE bt.BookID = @BookID
             ORDER BY t.Name";
 
-        // NEW: Select book sequences
+        // Select book sequences
         public const string SelectBookSequences = @"
             SELECT s.Name, bs.NumberInSequence
             FROM Sequences s
@@ -720,7 +775,7 @@ namespace TinyOPDS.Data
                 WHERE ba.AuthorID = a.ID AND b.ReplacedByID IS NULL
             )";
 
-        // NEW: Optimized sequences count using new table
+        // Optimized sequences count using new table
         public const string SelectSequencesCount = @"
             SELECT COUNT(DISTINCT s.ID) FROM Sequences s
             WHERE EXISTS (
@@ -729,7 +784,7 @@ namespace TinyOPDS.Data
                 WHERE bs.SequenceID = s.ID AND b.ReplacedByID IS NULL
             )";
 
-        // NEW: Count books in sequence
+        // Count books in sequence
         public const string CountBooksBySequence = @"
             SELECT COUNT(*) FROM Books b
             INNER JOIN BookSequences bs ON b.ID = bs.BookID
@@ -741,6 +796,18 @@ namespace TinyOPDS.Data
             INNER JOIN BookAuthors ba ON b.ID = ba.BookID
             INNER JOIN Authors a ON ba.AuthorID = a.ID
             WHERE a.Name = @AuthorName AND b.ReplacedByID IS NULL";
+
+        // Count unique downloaded books
+        public const string CountUniqueDownloads = @"
+            SELECT COUNT(DISTINCT d.BookID)
+            FROM Downloads d
+            INNER JOIN Books b ON d.BookID = b.ID
+            WHERE b.ReplacedByID IS NULL";
+
+        // Count total downloads (including multiple downloads of same book)
+        public const string CountTotalDownloads = @"
+            SELECT COUNT(*)
+            FROM Downloads";
 
         #endregion
 
@@ -772,6 +839,20 @@ namespace TinyOPDS.Data
 
         public const string DeleteAllGenres = @"DELETE FROM Genres";
 
+        // Clear all download history
+        public const string ClearDownloadHistory = @"
+            DELETE FROM Downloads";
+
+        // Clear download history older than specified date
+        public const string ClearOldDownloadHistory = @"
+            DELETE FROM Downloads
+            WHERE DownloadDate < @BeforeDate";
+
+        // Clear download history for specific book
+        public const string ClearBookDownloadHistory = @"
+            DELETE FROM Downloads
+            WHERE BookID = @BookID";
+
         #endregion
 
         #region FTS5 Maintenance
@@ -784,7 +865,7 @@ namespace TinyOPDS.Data
 
         public const string OptimizeAuthorsFTS = @"INSERT INTO AuthorsFTS(AuthorsFTS) VALUES('optimize')";
 
-        // NEW: Sequences FTS maintenance
+        // Sequences FTS maintenance
         public const string RebuildSequencesFTS = @"INSERT INTO SequencesFTS(SequencesFTS) VALUES('rebuild')";
 
         public const string OptimizeSequencesFTS = @"INSERT INTO SequencesFTS(SequencesFTS) VALUES('optimize')";

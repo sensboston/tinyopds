@@ -109,14 +109,13 @@ namespace TinyOPDS.OPDS
                     new XElement("id", catalogId),
                     new XElement("title", catalogTitle),
                     new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                    new XElement("icon", "/favicon.ico"),
+                    new XElement("icon", "/icons/books.ico"),  // Use standard books icon like BooksCatalog
                     Links.opensearch, Links.search, Links.start)
                 );
 
             // Get books from library
             int offset = pageNumber * threshold;
             System.Collections.Generic.List<Book> books;
-            int totalCount;
 
             if (sortByDate)
             {
@@ -126,7 +125,6 @@ namespace TinyOPDS.OPDS
             {
                 books = Library.GetDownloadsAlphabetic(threshold + 1, offset);
             }
-            totalCount = Library.GetUniqueDownloadsCount();
 
             // Check if there's a next page
             bool hasNextPage = books.Count > threshold;
@@ -158,12 +156,19 @@ namespace TinyOPDS.OPDS
                 new XAttribute("rel", "self"),
                 new XAttribute("type", "application/atom+xml;profile=opds-catalog")));
 
-            // Add book entries
+            bool useCyrillic = Properties.Settings.Default.SortOrder > 0;
+            var genres = Library.Genres;
+
+            // Add book entries - EXACT COPY FROM BooksCatalog
             foreach (var book in books)
             {
                 // Load full book data including authors, genres, sequences
                 Book fullBook = Library.GetBook(book.ID);
                 if (fullBook == null) continue;
+
+                // Transfer LastDownloadDate from the book returned by GetRecentDownloads/GetDownloadsAlphabetic
+                // to the fullBook object (which doesn't have this info)
+                fullBook.LastDownloadDate = book.LastDownloadDate;
 
                 XElement entry = new XElement("entry",
                     new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
@@ -174,61 +179,72 @@ namespace TinyOPDS.OPDS
                 // Add authors
                 foreach (string author in fullBook.Authors)
                 {
-                    entry.Add(new XElement("author",
-                        new XElement("name", author),
-                        new XElement("uri", "/author-details/" + Uri.EscapeDataString(author))
+                    entry.Add(
+                        new XElement("author",
+                            new XElement("name", author),
+                            new XElement("uri", "/author-details/" + Uri.EscapeDataString(author))
                     ));
                 }
 
                 // Add genres as categories
-                bool useCyrillic = Properties.Settings.Default.SortOrder > 0;
-                var genres = Library.Genres;
                 foreach (string genreStr in fullBook.Genres)
                 {
-                    var genre = genres.Where(g => g.Tag.Equals(genreStr)).FirstOrDefault();
+                    Genre genre = genres.Where(g => g.Tag.Equals(genreStr)).FirstOrDefault();
                     if (genre != null)
-                    {
                         entry.Add(new XElement("category",
-                            new XAttribute("term", useCyrillic ? genre.Translation : genre.Name),
-                            new XAttribute("label", useCyrillic ? genre.Translation : genre.Name)));
-                    }
+                            new XAttribute("term", (useCyrillic ? genre.Translation : genre.Name)),
+                            new XAttribute("label", (useCyrillic ? genre.Translation : genre.Name))));
                 }
 
-                // Build content with book info
+                // Build content entry - EXACT FORMAT FROM BooksCatalog
                 string bookInfo = string.Empty;
-                if (!string.IsNullOrEmpty(fullBook.Sequence))
+
+                // Add download date at the beginning (prominent position)
+                if (fullBook.LastDownloadDate.HasValue)
                 {
-                    bookInfo = string.Format("{0} - {1}", fullBook.Sequence, fullBook.NumberInSequence);
+                    // Format date based on user's locale settings
+                    string dateFormat = System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern + " HH:mm";
+                    bookInfo += string.Format("<b>{0}</b> {1}<br/>",
+                        Localizer.Text("Downloaded:"),
+                        fullBook.LastDownloadDate.Value.ToLocalTime().ToString(dateFormat));
+                    bookInfo += "<br/>"; // Extra line break for visual separation
                 }
-                if (fullBook.BookDate != DateTime.MinValue && fullBook.BookDate.Year > 1900)
-                {
-                    if (!string.IsNullOrEmpty(bookInfo)) bookInfo += "<br/>";
-                    bookInfo += fullBook.BookDate.Year.ToString();
-                }
-                if (!string.IsNullOrEmpty(fullBook.Language))
-                {
-                    if (!string.IsNullOrEmpty(bookInfo)) bookInfo += "<br/>";
-                    bookInfo += string.Format(Localizer.Text("Language: {0}"), fullBook.Language);
-                }
-                if (fullBook.DocumentSize > 0)
-                {
-                    if (!string.IsNullOrEmpty(bookInfo)) bookInfo += "<br/>";
-                    bookInfo += string.Format("{0} KB", (int)fullBook.DocumentSize / 1024);
-                }
+
                 if (!string.IsNullOrEmpty(fullBook.Annotation))
                 {
-                    if (!string.IsNullOrEmpty(bookInfo)) bookInfo += "<br/><br/>";
-                    string annotation = fullBook.Annotation;
-                    if (annotation.Length > 500)
-                    {
-                        annotation = annotation.Substring(0, 500) + "...";
-                    }
-                    bookInfo += annotation;
+                    bookInfo += string.Format(@"<p>{0}<br/></p>", System.Security.SecurityElement.Escape(fullBook.Annotation.Trim()));
+                }
+                if (fullBook.Translators != null && fullBook.Translators.Count > 0)
+                {
+                    bookInfo += string.Format("<b>{0} </b>", Localizer.Text("Translation:"));
+                    foreach (string translator in fullBook.Translators) bookInfo += translator + " ";
+                    bookInfo += "<br/>";
+                }
+                if (fullBook.BookDate != DateTime.MinValue)
+                {
+                    bookInfo += string.Format("<b>{0}</b> {1}<br/>", Localizer.Text("Year of publication:"), fullBook.BookDate.Year);
                 }
 
-                entry.Add(new XElement("content",
-                    new XAttribute("type", "text/html"),
-                    XElement.Parse("<div>" + bookInfo + "</div>")));
+                if (!string.IsNullOrEmpty(fullBook.Sequence))
+                {
+                    bookInfo += string.Format("<b>{0} {1} #{2}</b><br/>", Localizer.Text("Series:"), fullBook.Sequence, fullBook.NumberInSequence);
+                }
+
+                // Add all metadata elements - EXACT FORMAT FROM BooksCatalog
+                entry.Add(
+                    new XElement(Namespaces.dc + "language", fullBook.Language),
+                    new XElement(Namespaces.dc + "format", fullBook.BookType == BookType.FB2 ? "fb2+zip" : "epub+zip"),
+                    new XElement("content", new XAttribute("type", "text/html"), XElement.Parse("<div>" + bookInfo + "<br/></div>")),
+                    new XElement("format", fullBook.BookType == BookType.EPUB ? "epub" : "fb2"),
+                    new XElement("size", string.Format("{0} Kb", (int)fullBook.DocumentSize / 1024)));
+
+                // Add download date as a separate metadata field (will be displayed under cover like format/size)
+                if (fullBook.LastDownloadDate.HasValue)
+                {
+                    string dateFormat = "d/M/yyyy HH:mm";
+                    entry.Add(new XElement("downloaded",
+                        fullBook.LastDownloadDate.Value.ToLocalTime().ToString(dateFormat)));
+                }
 
                 // Add cover and thumbnail links
                 entry.Add(
@@ -250,7 +266,7 @@ namespace TinyOPDS.OPDS
                         new XAttribute("type", "image/jpeg"))
                 );
 
-                // Add download links
+                // Add download links - EXACT FORMAT FROM BooksCatalog
                 if (fullBook.BookType == BookType.EPUB || (fullBook.BookType == BookType.FB2 && !acceptFB2))
                 {
                     entry.Add(new XElement("link",

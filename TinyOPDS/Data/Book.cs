@@ -148,8 +148,8 @@ namespace TinyOPDS.Data
         public BookType BookType { get { return Path.GetExtension(FilePath).ToLower().Contains("epub") ? BookType.EPUB : Data.BookType.FB2; } }
         public bool IsValid { get { return (!string.IsNullOrEmpty(Title) && Title.IsValidUTF() && Authors.Count > 0 && Genres.Count > 0); } }
         public DateTime AddedDate { get; set; }
+        public DateTime? LastDownloadDate { get; set; }
 
-        // New fields for improved duplicate detection
         public bool DocumentIDTrusted { get; set; }
         public string DuplicateKey { get; set; }
         public string ReplacedByID { get; set; }

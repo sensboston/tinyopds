@@ -387,9 +387,12 @@ namespace TinyOPDS.Data
                 DocumentSize = GetUInt32(reader, "DocumentSize"),
                 AddedDate = GetDateTime(reader, "AddedDate") ?? DateTime.MinValue
             };
-
-            // Load related data (authors, genres, etc.) separately if needed
-            // This is a simplified version - you might want to load these relations too
+            try
+            {
+                var downloadDate = GetDateTime(reader, "LastDownloadDate");
+                if (downloadDate.HasValue) book.LastDownloadDate = downloadDate.Value;
+            }
+            catch {}
 
             return book;
         }

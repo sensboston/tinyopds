@@ -522,7 +522,7 @@ namespace TinyOPDS.Data
 
         #region Select Queries - Downloads
 
-        // Get recently downloaded books (unique, latest download per book)
+        // UPDATED: Get recently downloaded books with download date
         public const string SelectRecentDownloads = @"
             SELECT DISTINCT b.*, MAX(d.DownloadDate) as LastDownloadDate
             FROM Books b
@@ -532,9 +532,9 @@ namespace TinyOPDS.Data
             ORDER BY LastDownloadDate DESC
             LIMIT @Limit OFFSET @Offset";
 
-        // Get downloaded books sorted alphabetically (unique)
+        // UPDATED: Get downloaded books sorted alphabetically with download date
         public const string SelectDownloadsAlphabetic = @"
-            SELECT DISTINCT b.*
+            SELECT DISTINCT b.*, MAX(d.DownloadDate) as LastDownloadDate
             FROM Books b
             INNER JOIN Downloads d ON b.ID = d.BookID
             WHERE b.ReplacedByID IS NULL

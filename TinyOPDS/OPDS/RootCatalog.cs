@@ -7,7 +7,7 @@
  *
  * This module defines the OPDS RootCatalog class
  * OPTIMIZED: Now uses cached count properties instead of loading full lists
- * ENHANCED: Added downloaded books catalog entry
+ * ENHANCED: Added downloaded books catalog entry with /downstat path
  *
  */
 
@@ -98,17 +98,17 @@ namespace TinyOPDS.OPDS
                           new XElement("link", new XAttribute("href", "/genres"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                       ),
 
-                      // Add downloaded books entry (always show, even if empty - user can see their history status)
+                      // Add download statistics entry (always show, even if empty - user can see their history status)
                       new XElement("entry",
                           new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                          new XElement("id", "tag:root:downloads"),
+                          new XElement("id", "tag:root:downstat"),
                           new XElement("title", Localizer.Text("Downloaded books"), new XAttribute("type", "text")),
                           new XElement("content",
                               downloadsCount > 0
                                 ? string.Format(Localizer.Text("{0} downloaded books"), downloadsCount)
                                 : Localizer.Text("Your download history"),
                               new XAttribute("type", "text")),
-                          new XElement("link", new XAttribute("href", "/downloads"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
+                          new XElement("link", new XAttribute("href", "/downstat"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                       )
                   )
               );

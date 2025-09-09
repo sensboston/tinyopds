@@ -7,6 +7,7 @@
  *
  * This module defines the OPDS DownloadCatalog class
  * Provides access to downloaded/read books history
+ * Uses /downstat path to avoid confusion with /download
  *
  */
 
@@ -19,7 +20,7 @@ using TinyOPDS.Data;
 namespace TinyOPDS.OPDS
 {
     /// <summary>
-    /// Downloaded books catalog class
+    /// Downloaded books catalog class - provides download statistics
     /// </summary>
     public class DownloadCatalog
     {
@@ -36,11 +37,11 @@ namespace TinyOPDS.OPDS
                     new XAttribute(XNamespace.Xmlns + "dc", Namespaces.dc),
                     new XAttribute(XNamespace.Xmlns + "os", Namespaces.os),
                     new XAttribute(XNamespace.Xmlns + "opds", Namespaces.opds),
-                    new XElement("id", "tag:downloads"),
+                    new XElement("id", "tag:downstat"),
                     new XElement("title", Localizer.Text("Downloaded books")),
                     new XElement("subtitle", string.Format(Localizer.Text("{0} downloaded books"), downloadsCount)),
                     new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                    new XElement("icon", "/downloads.ico"),
+                    new XElement("icon", "/favicon.ico"),
                     Links.opensearch, Links.search, Links.start)
                 );
 
@@ -50,24 +51,24 @@ namespace TinyOPDS.OPDS
                 // Entry for books sorted by download date
                 doc.Root.Add(new XElement("entry",
                     new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                    new XElement("id", "tag:downloads:bydate"),
+                    new XElement("id", "tag:downstat:bydate"),
                     new XElement("title", Localizer.Text("By download date"), new XAttribute("type", "text")),
                     new XElement("content", string.Format(Localizer.Text("{0} books sorted by download date"), downloadsCount),
                         new XAttribute("type", "text")),
                     new XElement("link",
-                        new XAttribute("href", "/downloads/date"),
+                        new XAttribute("href", "/downstat/date"),
                         new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                 ));
 
                 // Entry for books sorted alphabetically
                 doc.Root.Add(new XElement("entry",
                     new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                    new XElement("id", "tag:downloads:alphabetic"),
+                    new XElement("id", "tag:downstat:alphabetic"),
                     new XElement("title", Localizer.Text("Alphabetically"), new XAttribute("type", "text")),
                     new XElement("content", string.Format(Localizer.Text("{0} books sorted alphabetically"), downloadsCount),
                         new XAttribute("type", "text")),
                     new XElement("link",
-                        new XAttribute("href", "/downloads/alpha"),
+                        new XAttribute("href", "/downstat/alpha"),
                         new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                 ));
             }
@@ -76,7 +77,7 @@ namespace TinyOPDS.OPDS
                 // Show message when no downloads
                 doc.Root.Add(new XElement("entry",
                     new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                    new XElement("id", "tag:downloads:empty"),
+                    new XElement("id", "tag:downstat:empty"),
                     new XElement("title", Localizer.Text("No downloaded books"), new XAttribute("type", "text")),
                     new XElement("content", Localizer.Text("Your download history is empty"),
                         new XAttribute("type", "text"))
@@ -95,7 +96,7 @@ namespace TinyOPDS.OPDS
         /// <param name="acceptFB2">Client accepts FB2 format</param>
         public XDocument GetCatalog(bool sortByDate, int pageNumber, int threshold, bool acceptFB2)
         {
-            string catalogId = sortByDate ? "tag:downloads:date" : "tag:downloads:alpha";
+            string catalogId = sortByDate ? "tag:downstat:date" : "tag:downstat:alpha";
             string catalogTitle = sortByDate
                 ? Localizer.Text("Downloaded books by date")
                 : Localizer.Text("Downloaded books alphabetically");
@@ -108,7 +109,7 @@ namespace TinyOPDS.OPDS
                     new XElement("id", catalogId),
                     new XElement("title", catalogTitle),
                     new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                    new XElement("icon", "/downloads.ico"),
+                    new XElement("icon", "/favicon.ico"),
                     Links.opensearch, Links.search, Links.start)
                 );
 
@@ -137,7 +138,7 @@ namespace TinyOPDS.OPDS
             // Add navigation link for next page
             if (hasNextPage)
             {
-                string nextUrl = string.Format("/downloads/{0}?pageNumber={1}",
+                string nextUrl = string.Format("/downstat/{0}?pageNumber={1}",
                     sortByDate ? "date" : "alpha",
                     pageNumber + 1);
 
@@ -148,7 +149,7 @@ namespace TinyOPDS.OPDS
             }
 
             // Add self link with current page
-            string selfUrl = string.Format("/downloads/{0}{1}",
+            string selfUrl = string.Format("/downstat/{0}{1}",
                 sortByDate ? "date" : "alpha",
                 pageNumber > 0 ? "?pageNumber=" + pageNumber : "");
 
@@ -288,7 +289,7 @@ namespace TinyOPDS.OPDS
                 doc.Root.Add(entry);
             }
 
-            Log.WriteLine(LogLevel.Info, "Generated download catalog: {0} books, page {1}, sorted by {2}",
+            Log.WriteLine(LogLevel.Info, "Generated download statistics catalog: {0} books, page {1}, sorted by {2}",
                 books.Count, pageNumber, sortByDate ? "date" : "alphabet");
 
             return doc;

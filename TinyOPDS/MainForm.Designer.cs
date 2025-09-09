@@ -89,6 +89,7 @@
             this.rootPrefix = new System.Windows.Forms.TextBox();
             this.serverName = new System.Windows.Forms.TextBox();
             this.tabPage6 = new System.Windows.Forms.TabPage();
+            this.clearDownloadsButton = new System.Windows.Forms.Button();
             this.label40 = new System.Windows.Forms.Label();
             this.comboBox1 = new System.Windows.Forms.ComboBox();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
@@ -149,7 +150,6 @@
             this.serverMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripSeparator();
             this.exitMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.clearDownloadsButton = new System.Windows.Forms.Button();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.tabPage2.SuspendLayout();
@@ -462,7 +462,7 @@
             // 
             // folderButton
             // 
-            this.folderButton.Image = global::TinyOPDS.Properties.Resources.folder;
+            this.folderButton.Image = ((System.Drawing.Image)(resources.GetObject("folderButton.Image")));
             this.folderButton.Location = new System.Drawing.Point(760, 83);
             this.folderButton.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.folderButton.Name = "folderButton";
@@ -805,7 +805,7 @@
             // rootPrefix
             // 
             this.rootPrefix.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::TinyOPDS.Properties.Settings.Default, "RootPrefix", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.rootPrefix.Location = new System.Drawing.Point(261, 166);
+            this.rootPrefix.Location = new System.Drawing.Point(382, 169);
             this.rootPrefix.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.rootPrefix.Name = "rootPrefix";
             this.rootPrefix.Size = new System.Drawing.Size(184, 38);
@@ -844,6 +844,16 @@
             this.tabPage6.Size = new System.Drawing.Size(1267, 806);
             this.tabPage6.TabIndex = 5;
             this.tabPage6.Text = "OPDS catalog";
+            // 
+            // clearDownloadsButton
+            // 
+            this.clearDownloadsButton.Location = new System.Drawing.Point(67, 566);
+            this.clearDownloadsButton.Name = "clearDownloadsButton";
+            this.clearDownloadsButton.Size = new System.Drawing.Size(463, 69);
+            this.clearDownloadsButton.TabIndex = 11;
+            this.clearDownloadsButton.Text = "Clear download history";
+            this.clearDownloadsButton.UseVisualStyleBackColor = true;
+            this.clearDownloadsButton.Click += new System.EventHandler(this.clearDownloadsButton_Click);
             // 
             // label40
             // 
@@ -1545,7 +1555,6 @@
             // pictureBox1
             // 
             this.pictureBox1.ErrorImage = null;
-            this.pictureBox1.Image = global::TinyOPDS.Properties.Resources.TinyOPDS;
             this.pictureBox1.Location = new System.Drawing.Point(21, 21);
             this.pictureBox1.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.pictureBox1.Name = "pictureBox1";
@@ -1590,16 +1599,6 @@
             this.exitMenuItem.Size = new System.Drawing.Size(270, 48);
             this.exitMenuItem.Text = "Exit";
             this.exitMenuItem.Click += new System.EventHandler(this.ExitMenuItem_Click);
-            // 
-            // clearDownloadsButton
-            // 
-            this.clearDownloadsButton.Location = new System.Drawing.Point(67, 566);
-            this.clearDownloadsButton.Name = "clearDownloadsButton";
-            this.clearDownloadsButton.Size = new System.Drawing.Size(463, 69);
-            this.clearDownloadsButton.TabIndex = 11;
-            this.clearDownloadsButton.Text = "Clear download history";
-            this.clearDownloadsButton.UseVisualStyleBackColor = true;
-            this.clearDownloadsButton.Click += new System.EventHandler(this.clearDownloadsButton_Click);
             // 
             // MainForm
             // 

@@ -41,7 +41,7 @@ namespace TinyOPDS.OPDS
                     new XElement("title", Localizer.Text("Downloaded books")),
                     new XElement("subtitle", string.Format(Localizer.Text("{0} downloaded books"), downloadsCount)),
                     new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                    new XElement("icon", "/favicon.ico"),
+                    new XElement("icon", "/TinyOPDS.ico"),
                     Links.opensearch, Links.search, Links.start)
                 );
 
@@ -238,11 +238,11 @@ namespace TinyOPDS.OPDS
                     new XElement("format", fullBook.BookType == BookType.EPUB ? "epub" : "fb2"),
                     new XElement("size", string.Format("{0} Kb", (int)fullBook.DocumentSize / 1024)));
 
-                // Add download date as a separate metadata field (will be displayed under cover like format/size)
+                // Add download date as a separate element (similar to format and size)
                 if (fullBook.LastDownloadDate.HasValue)
                 {
                     string dateFormat = "d/M/yyyy HH:mm";
-                    entry.Add(new XElement("downloaded",
+                    entry.Add(new XElement("lastDownload",
                         fullBook.LastDownloadDate.Value.ToLocalTime().ToString(dateFormat)));
                 }
 

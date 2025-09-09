@@ -125,10 +125,10 @@ namespace TinyOPDS.Server
                 }
             }
 
-            // Handle logo request
-            if (request.Equals("/logo.png") || request.Equals("/book_cover.jpg"))
+            // Handle dummy book cover request
+            if (request.Equals("/book_cover.jpg"))
             {
-                resourceHandlers.HandleLogoRequest(processor, request.Substring(1));
+                resourceHandlers.HandleDummyCoverRequest(processor, request.Substring(1));
                 return;
             }
 

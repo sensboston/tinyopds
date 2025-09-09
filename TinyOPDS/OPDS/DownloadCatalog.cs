@@ -41,7 +41,7 @@ namespace TinyOPDS.OPDS
                     new XElement("title", Localizer.Text("Downloaded books")),
                     new XElement("subtitle", string.Format(Localizer.Text("{0} downloaded books"), downloadsCount)),
                     new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                    new XElement("icon", "/TinyOPDS.ico"),
+                    new XElement("icon", "/opds.ico"),
                     Links.opensearch, Links.search, Links.start)
                 );
 
@@ -196,19 +196,8 @@ namespace TinyOPDS.OPDS
                             new XAttribute("label", (useCyrillic ? genre.Translation : genre.Name))));
                 }
 
-                // Build content entry - EXACT FORMAT FROM BooksCatalog
+                // Build content entry - REMOVED DOWNLOAD DATE FROM HERE
                 string bookInfo = string.Empty;
-
-                // Add download date at the beginning (prominent position)
-                if (fullBook.LastDownloadDate.HasValue)
-                {
-                    // Format date based on user's locale settings
-                    string dateFormat = System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern + " HH:mm";
-                    bookInfo += string.Format("<b>{0}</b> {1}<br/>",
-                        Localizer.Text("Downloaded:"),
-                        fullBook.LastDownloadDate.Value.ToLocalTime().ToString(dateFormat));
-                    bookInfo += "<br/>"; // Extra line break for visual separation
-                }
 
                 if (!string.IsNullOrEmpty(fullBook.Annotation))
                 {
@@ -238,7 +227,7 @@ namespace TinyOPDS.OPDS
                     new XElement("format", fullBook.BookType == BookType.EPUB ? "epub" : "fb2"),
                     new XElement("size", string.Format("{0} Kb", (int)fullBook.DocumentSize / 1024)));
 
-                // Add download date as a separate element (similar to format and size)
+                // Add download date as a separate element for XSL processing
                 if (fullBook.LastDownloadDate.HasValue)
                 {
                     string dateFormat = "d/M/yyyy HH:mm";

@@ -650,6 +650,40 @@
 		</property>
 
 		<property>
+			<text lang="en">Downloaded books alphabetically</text>
+			<text lang="ru">Загруженные книги по алфавиту</text>
+			<text lang="uk">Завантажені книги за алфавітом</text>
+			<text lang="de">Heruntergeladene Bücher alphabetisch</text>
+			<text lang="es">Libros descargados alfabéticamente</text>
+			<text lang="fr">Livres téléchargés par ordre alphabétique</text>
+		</property>
+		<property>
+			<text lang="en">Downloaded books by date</text>
+			<text lang="ru">Загруженные книги по дате</text>
+			<text lang="uk">Завантажені книги за датою</text>
+			<text lang="de">Heruntergeladene Bücher nach Datum</text>
+			<text lang="es">Libros descargados por fecha</text>
+			<text lang="fr">Livres téléchargés par date</text>
+		</property>
+		<property>
+			<text lang="en">{0} downloaded books</text>
+			<text lang="ru">{0} загруженных книг</text>
+			<text lang="uk">{0} завантажених книг</text>
+			<text lang="de">{0} heruntergeladene Bücher</text>
+			<text lang="es">{0} libros descargados</text>
+			<text lang="fr">{0} livres téléchargés</text>
+		</property>
+
+		<property>
+			<text lang="en">{0} books sorted by download date</text>
+			<text lang="ru">{0} книг, отсортированных по дате загрузки</text>
+			<text lang="uk">{0} книг, відсортованих за датою завантаження</text>
+			<text lang="de">{0} Bücher, sortiert nach Download-Datum</text>
+			<text lang="es">{0} libros ordenados por fecha de descarga</text>
+			<text lang="fr">{0} livres triés par date de téléchargement</text>
+		</property>
+		
+		<property>
 			<text lang="en">Books by authors</text>
 			<text lang="ru">Книги по авторам</text>
 			<text lang="uk">Книги за авторами</text>
@@ -729,6 +763,14 @@
 			<text lang="de">Nach Genres gruppierte Bücher</text>
 			<text lang="es">Libros agrupados por géneros</text>
 			<text lang="fr">Livres groupés par genres</text>
+		</property>
+		<property>
+			<text lang="en">Books by genres</text>
+			<text lang="ru">Книги по жанрам</text>
+			<text lang="uk">Книги за жанрами</text>
+			<text lang="de">Bücher nach Genres</text>
+			<text lang="es">Libros por géneros</text>
+			<text lang="fr">Livres par genres</text>
 		</property>
 		<property>
 			<text lang="en">Book series</text>

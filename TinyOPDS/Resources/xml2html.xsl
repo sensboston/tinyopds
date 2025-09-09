@@ -238,6 +238,20 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					border: 1px solid #f0f0f0;
 					}
 
+					.download-date {
+					position: absolute;
+					top: 12px;
+					right: 12px;
+					font-size: 11px;
+					color: #888;
+					background: rgba(255,255,255,0.95);
+					padding: 4px 8px;
+					border-radius: 6px;
+					box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+					font-weight: 500;
+					z-index: 1;
+					}
+
 					.book-item:hover {
 					box-shadow: 0 8px 24px rgba(0,0,0,0.12);
 					transform: translateY(-2px);
@@ -511,6 +525,13 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					overflow: hidden;
 					}
 
+					.download-date {
+					font-size: 10px;
+					padding: 3px 6px;
+					top: 8px;
+					right: 8px;
+					}
+
 					.book-content {
 					/* Remove flex on mobile */
 					display: block;
@@ -732,7 +753,7 @@ xmlns:x="http://www.w3.org/2005/Atom">
 						</ul>
 					</xsl:if>
 
-					<xsl:if test="$id != 'tag:root' and (($icon='/genres.ico') or ($icon='/series.ico') or ($icon='/authors.ico') or ($icon='/TinyOPDS.ico'))">
+					<xsl:if test="$id != 'tag:root' and (($icon='/genres.ico') or ($icon='/series.ico') or ($icon='/authors.ico') or ($icon='/opds.ico'))">
 						<h4>
 							<xsl:value-of select="$title" />
 						</h4>
@@ -759,6 +780,12 @@ xmlns:x="http://www.w3.org/2005/Atom">
 						<ul>
 							<xsl:for-each select="x:feed/x:entry">
 								<li class="book-item">
+									<!-- Display download date if available -->
+									<xsl:if test="x:lastDownload">
+										<div class="download-date">
+											<xsl:value-of select="x:lastDownload"/>
+										</div>
+									</xsl:if>
 									<div class="book-content">
 										<div class="download-section">
 											<img class="cover">

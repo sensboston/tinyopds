@@ -8,6 +8,7 @@ using System.Xml.Linq;
 
 namespace TinyOPDS
 {
+    #region String extensions
     public static class StringExtensions
     {
         public static string ToStringWithDeclaration(this XDocument doc)
@@ -83,7 +84,9 @@ namespace TinyOPDS
             return SoundexRuEn.Compute(word, 6);
         }
     }
+    #endregion
 
+    #region English/Russian improved Soundex
     public static class SoundexRuEn
     {
         public static string Compute(string input, int length = 6)
@@ -283,6 +286,7 @@ namespace TinyOPDS
             return sb.ToString().Normalize(NormalizationForm.FormC);
         }
     }
+    #endregion
 
     #region Transliteration
 

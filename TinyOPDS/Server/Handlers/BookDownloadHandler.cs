@@ -6,10 +6,12 @@
  * SPDX-License-Identifier: MIT
  *
  * This module handles books download requests (FB2 and EPUB)
+ * ENHANCED: Added download tracking to database
  * 
  */
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -45,14 +47,23 @@ namespace TinyOPDS.Server
                     return;
                 }
 
+                // Determine download format and type
+                string downloadFormat = null;
+                string downloadType = "download";
+
                 if (request.Contains("/fb2") || request.Contains(".fb2.zip"))
                 {
+                    downloadFormat = "fb2";
                     HandleFB2Download(processor, book);
                 }
                 else if (request.Contains("/epub") || ext.Equals(".epub"))
                 {
+                    downloadFormat = "epub";
                     HandleEpubDownload(processor, book, acceptFB2);
                 }
+
+                // Record download to database through Library
+                RecordDownload(bookID, downloadType, downloadFormat, processor.HttpHeaders);
 
                 HttpServer.ServerStatistics.IncrementBooksSent();
             }
@@ -60,6 +71,48 @@ namespace TinyOPDS.Server
             {
                 Log.WriteLine(LogLevel.Error, "Book download error: {0}", e.Message);
                 processor.WriteFailure();
+            }
+        }
+
+        /// <summary>
+        /// Records download to database through Library
+        /// </summary>
+        private void RecordDownload(string bookId, string downloadType, string format, Dictionary<string, string> headers)
+        {
+            try
+            {
+                // Extract client info from headers if available
+                string clientInfo = null;
+                if (headers != null)
+                {
+                    string userAgent = headers.ContainsKey("User-Agent") ? headers["User-Agent"] : null;
+                    string clientIp = headers.ContainsKey("X-Forwarded-For") ? headers["X-Forwarded-For"] : (headers.ContainsKey("REMOTE_ADDR") ? headers["REMOTE_ADDR"] : null);
+
+                    if (!string.IsNullOrEmpty(userAgent) || !string.IsNullOrEmpty(clientIp))
+                    {
+                        clientInfo = string.Format("{0}|{1}",
+                            userAgent ?? "Unknown",
+                            clientIp ?? "Unknown");
+
+                        // Limit client info length to prevent database issues
+                        if (clientInfo.Length > 255)
+                        {
+                            clientInfo = clientInfo.Substring(0, 255);
+                        }
+                    }
+                }
+
+                // Use Library method instead of creating new DatabaseManager
+                Library.RecordDownload(bookId, downloadType, format, clientInfo);
+
+                Log.WriteLine(LogLevel.Info, "Recorded {0} download for book {1}, format: {2}",
+                    downloadType, bookId, format ?? "n/a");
+            }
+            catch (Exception ex)
+            {
+                // Don't fail the download if we can't record it
+                Log.WriteLine(LogLevel.Warning, "Failed to record download for book {0}: {1}",
+                    bookId, ex.Message);
             }
         }
 

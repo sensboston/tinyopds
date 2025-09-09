@@ -7,6 +7,7 @@
  *
  * This module handles OPDS catalog request routing and
  * generation based on configurable structure
+ * ENHANCED: Added download statistics catalog routing (/downstat)
  * 
  */
 
@@ -102,6 +103,10 @@ namespace TinyOPDS.Server
             else if (request.StartsWith("/newtitle") && IsRouteEnabled("newtitle"))
             {
                 return new NewBooksCatalog().GetCatalog(request.Substring(9), false, acceptFB2, threshold).ToStringWithDeclaration();
+            }
+            else if (request.StartsWith("/downstat") && IsRouteEnabled("downloads"))  // Note: config key stays as "downloads" for compatibility
+            {
+                return HandleDownloadStatisticsRequest(request, acceptFB2, threshold);
             }
             else if (request.StartsWith("/authorsindex") && IsRouteEnabled("authorsindex"))
             {
@@ -202,6 +207,42 @@ namespace TinyOPDS.Server
         }
 
         /// <summary>
+        /// Handles download statistics catalog requests (/downstat path)
+        /// </summary>
+        private string HandleDownloadStatisticsRequest(string request, bool acceptFB2, int threshold)
+        {
+            // Extract page number if present
+            int pageNumber = 0;
+            if (request.Contains("?pageNumber="))
+            {
+                int idx = request.IndexOf("?pageNumber=");
+                string pageStr = request.Substring(idx + 12);
+                int.TryParse(pageStr, out pageNumber);
+                request = request.Substring(0, idx); // Remove query string for route matching
+            }
+
+            Log.WriteLine(LogLevel.Info, "Download statistics request: '{0}', page: {1}", request, pageNumber);
+
+            if (request.Equals("/downstat"))
+            {
+                // Root download statistics catalog
+                return new DownloadCatalog().GetRootCatalog().ToStringWithDeclaration();
+            }
+            else if (request.Equals("/downstat/date"))
+            {
+                // Downloads sorted by date
+                return new DownloadCatalog().GetCatalog(true, pageNumber, threshold, acceptFB2).ToStringWithDeclaration();
+            }
+            else if (request.Equals("/downstat/alpha"))
+            {
+                // Downloads sorted alphabetically
+                return new DownloadCatalog().GetCatalog(false, pageNumber, threshold, acceptFB2).ToStringWithDeclaration();
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// Handles search requests
         /// </summary>
         private string HandleSearchRequest(string[] pathParts, bool acceptFB2)
@@ -274,7 +315,8 @@ namespace TinyOPDS.Server
                 {"author-alphabetic", true},
                 {"author-by-date", true},
                 {"sequencesindex", true},
-                {"genres", true}
+                {"genres", true},
+                {"downloads", true}  // Keep as "downloads" for settings compatibility
             };
         }
 
@@ -336,6 +378,7 @@ namespace TinyOPDS.Server
                         else if (href.Contains("/authorsindex") && !IsEnabled("authorsindex")) shouldRemove = true;
                         else if (href.Contains("/sequencesindex") && !IsEnabled("sequencesindex")) shouldRemove = true;
                         else if (href.Contains("/genres") && !IsEnabled("genres")) shouldRemove = true;
+                        else if (href.Contains("/downstat") && !IsEnabled("downloads")) shouldRemove = true;  // Check /downstat path but use "downloads" key
 
                         if (shouldRemove)
                         {

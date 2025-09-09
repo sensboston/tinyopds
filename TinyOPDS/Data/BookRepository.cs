@@ -182,7 +182,7 @@ namespace TinyOPDS.Data
                 db.ExecuteNonQuery("DELETE FROM BookTranslators WHERE BookID = @BookID",
                     DatabaseManager.CreateParameter("@BookID", book.ID));
 
-                // NEW: Clear existing sequences
+                // Clear existing sequences
                 db.ExecuteNonQuery("DELETE FROM BookSequences WHERE BookID = @BookID",
                     DatabaseManager.CreateParameter("@BookID", book.ID));
 
@@ -246,7 +246,7 @@ namespace TinyOPDS.Data
                         DatabaseManager.CreateParameter("@TranslatorName", translatorName));
                 }
 
-                // NEW: Add sequences
+                // Add sequences
                 if (book.Sequences != null)
                 {
                     foreach (var sequenceInfo in book.Sequences)
@@ -432,7 +432,7 @@ namespace TinyOPDS.Data
                                 DatabaseManager.CreateParameter("@TranslatorName", translatorName));
                         }
 
-                        // NEW: Insert sequences
+                        // Insert sequences
                         if (book.Sequences != null)
                         {
                             foreach (var sequenceInfo in book.Sequences)
@@ -1381,7 +1381,7 @@ namespace TinyOPDS.Data
             book.Translators = db.ExecuteQuery<string>(DatabaseSchema.SelectBookTranslators, reader => reader.GetString(0),
                 DatabaseManager.CreateParameter("@BookID", book.ID));
 
-            // NEW: Load sequences from BookSequences table
+            // Load sequences from BookSequences table
             var sequences = db.ExecuteQuery<BookSequenceInfo>(DatabaseSchema.SelectBookSequences,
                 reader => new BookSequenceInfo(
                     reader.GetString(0),  // Name

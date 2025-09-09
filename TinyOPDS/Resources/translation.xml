@@ -586,7 +586,69 @@
 			<text lang="fr">Utiliser les alias d'auteurs</text>
 		</property>
 
-		<!-- General translations (not bound to specific controls) -->
+		<property form="MainForm" ctrl="clearDownloadsButton">
+			<text lang="en">Clear download history</text>
+			<text lang="ru">Очистить историю загрузок</text>
+			<text lang="uk">Очистити історію завантажень</text>
+			<text lang="de">Download-Verlauf löschen</text>
+			<text lang="es">Borrar historial de descargas</text>
+			<text lang="fr">Effacer l’historique des téléchargements</text>
+		</property>
+
+		<property>
+			<text lang="en">Are you sure you want to clear download history?</text>
+			<text lang="ru">Вы уверены, что хотите очистить историю загрузок?</text>
+			<text lang="uk">Ви впевнені, що хочете очистити історію завантажень?</text>
+			<text lang="de">Möchten Sie den Download-Verlauf wirklich löschen?</text>
+			<text lang="es">¿Está seguro de que desea borrar el historial de descargas?</text>
+			<text lang="fr">Êtes-vous sûr de vouloir effacer l’historique des téléchargements?</text>
+		</property>
+
+		<property>
+			<text lang="en">Confirmation</text>
+			<text lang="ru">Подтверждение</text>
+			<text lang="uk">Підтвердження</text>
+			<text lang="de">Bestätigung</text>
+			<text lang="es">Confirmación</text>
+			<text lang="fr">Confirmation</text>
+		</property>
+
+		<property>
+			<text lang="en">Downloaded books</text>
+			<text lang="ru">Загруженные книги</text>
+			<text lang="uk">Завантажені книги</text>
+			<text lang="de">Heruntergeladene Bücher</text>
+			<text lang="es">Libros descargados</text>
+			<text lang="fr">Livres téléchargés</text>
+		</property>
+
+		<property>
+			<text lang="en">By download date</text>
+			<text lang="ru">По дате загрузки</text>
+			<text lang="uk">За датою завантаження</text>
+			<text lang="de">Nach Download-Datum</text>
+			<text lang="es">Por fecha de descarga</text>
+			<text lang="fr">Par date de téléchargement</text>
+		</property>
+
+		<property>
+			<text lang="en">Alphabetically</text>
+			<text lang="ru">По алфавиту</text>
+			<text lang="uk">За алфавітом</text>
+			<text lang="de">Alphabetisch</text>
+			<text lang="es">Alfabéticamente</text>
+			<text lang="fr">Alphabétiquement</text>
+		</property>
+
+		<property>
+			<text lang="en">Read</text>
+			<text lang="ru">Читать</text>
+			<text lang="uk">Читати</text>
+			<text lang="de">Lesen</text>
+			<text lang="es">Leer</text>
+			<text lang="fr">Lire</text>
+		</property>
+
 		<property>
 			<text lang="en">Books by authors</text>
 			<text lang="ru">Книги по авторам</text>
@@ -595,6 +657,7 @@
 			<text lang="es">Libros por autores</text>
 			<text lang="fr">Livres par auteurs</text>
 		</property>
+
 		<property>
 			<text lang="en">Total authors on {0}: {1}</text>
 			<text lang="ru">Всего авторов на {0}: {1}</text>

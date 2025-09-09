@@ -829,17 +829,6 @@ namespace TinyOPDS.Data
             LEFT JOIN Genres g ON bg.GenreTag = g.Tag
             WHERE g.Tag IS NULL";
 
-        #endregion
-
-        #region Update Queries
-
-        public const string UpdateBookAsReplaced = @"
-            UPDATE Books 
-            SET ReplacedByID = @NewID 
-            WHERE ID = @OldID";
-
-        #endregion
-
         // Optimized query to get books with authors and translators in single query
         public const string SelectBooksWithDetailsByDuplicateKey = @"
             SELECT 
@@ -867,5 +856,16 @@ namespace TinyOPDS.Data
             WHERE b.DuplicateKey = @DuplicateKey AND b.ReplacedByID IS NULL
     
             ORDER BY b.ID, ItemType";
+
+        #endregion
+
+        #region Update Queries
+
+        public const string UpdateBookAsReplaced = @"
+            UPDATE Books 
+            SET ReplacedByID = @NewID 
+            WHERE ID = @OldID";
+
+        #endregion
     }
 }

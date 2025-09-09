@@ -99,6 +99,9 @@
   <!-- Linked Source Files from TinyOPDS Project -->
   <ItemGroup>
     <!-- CLI Main and Service Installers -->
+    <Compile Include="..\TinyOPDS\OPDS\DownloadCatalog.cs">
+      <Link>OPDS\DownloadCatalog.cs</Link>
+    </Compile>
     <Compile Include="..\TinyOPDS\Parsers\DateParser.cs">
       <Link>Parsers\DateParser.cs</Link>
     </Compile>

@@ -58,7 +58,7 @@ namespace TinyOPDS.Data
             Authors = new List<string>();
             Translators = new List<string>();
             Genres = new List<string>();
-            Sequences = new List<BookSequenceInfo>();  // NEW: List of sequences
+            Sequences = new List<BookSequenceInfo>();
             DocumentIDTrusted = false;
             DuplicateKey = string.Empty;
             ReplacedByID = null;
@@ -102,7 +102,7 @@ namespace TinyOPDS.Data
         public DateTime BookDate { get; set; }
         public DateTime DocumentDate { get; set; }
 
-        // NEW: Replaced single Sequence/NumberInSequence with list
+        // Replaced single Sequence/NumberInSequence with list
         public List<BookSequenceInfo> Sequences { get; set; }
 
         // LEGACY COMPATIBILITY: Properties for backward compatibility
@@ -580,7 +580,7 @@ namespace TinyOPDS.Data
 
         /// <summary>
         /// Extract edition information
-        /// NEW: Preserve edition/revision info to distinguish different versions
+        /// Preserve edition/revision info to distinguish different versions
         /// </summary>
         private (string original, string normalized) ExtractEditionInfo(string text)
         {

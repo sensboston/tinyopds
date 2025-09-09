@@ -149,6 +149,7 @@
             this.serverMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripSeparator();
             this.exitMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.clearDownloadsButton = new System.Windows.Forms.Button();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.tabPage2.SuspendLayout();
@@ -825,6 +826,7 @@
             // tabPage6
             // 
             this.tabPage6.BackColor = System.Drawing.SystemColors.Control;
+            this.tabPage6.Controls.Add(this.clearDownloadsButton);
             this.tabPage6.Controls.Add(this.label40);
             this.tabPage6.Controls.Add(this.comboBox1);
             this.tabPage6.Controls.Add(this.groupBox1);
@@ -1420,31 +1422,31 @@
             // linkLabel6
             // 
             this.linkLabel6.AutoSize = true;
-            this.linkLabel6.Location = new System.Drawing.Point(520, 556);
+            this.linkLabel6.Location = new System.Drawing.Point(515, 555);
             this.linkLabel6.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.linkLabel6.Name = "linkLabel6";
-            this.linkLabel6.Size = new System.Drawing.Size(444, 32);
+            this.linkLabel6.Size = new System.Drawing.Size(323, 32);
             this.linkLabel6.TabIndex = 13;
             this.linkLabel6.TabStop = true;
-            this.linkLabel6.Text = "Gremlin2, author of Fb2Fix project";
+            this.linkLabel6.Text = "Authors of SGMLReader";
             this.linkLabel6.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.LinkLabel3_LinkClicked);
             // 
             // linkLabel5
             // 
             this.linkLabel5.AutoSize = true;
-            this.linkLabel5.Location = new System.Drawing.Point(520, 506);
+            this.linkLabel5.Location = new System.Drawing.Point(515, 502);
             this.linkLabel5.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.linkLabel5.Name = "linkLabel5";
-            this.linkLabel5.Size = new System.Drawing.Size(259, 32);
+            this.linkLabel5.Size = new System.Drawing.Size(381, 32);
             this.linkLabel5.TabIndex = 12;
             this.linkLabel5.TabStop = true;
-            this.linkLabel5.Text = "ePubReader library";
+            this.linkLabel5.Text = "Author of ePubReader library";
             this.linkLabel5.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.LinkLabel3_LinkClicked);
             // 
             // linkLabel3
             // 
             this.linkLabel3.AutoSize = true;
-            this.linkLabel3.Location = new System.Drawing.Point(515, 453);
+            this.linkLabel3.Location = new System.Drawing.Point(515, 449);
             this.linkLabel3.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.linkLabel3.Name = "linkLabel3";
             this.linkLabel3.Size = new System.Drawing.Size(275, 32);
@@ -1455,7 +1457,7 @@
             // 
             // label20
             // 
-            this.label20.Location = new System.Drawing.Point(24, 453);
+            this.label20.Location = new System.Drawing.Point(32, 450);
             this.label20.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label20.Name = "label20";
             this.label20.Size = new System.Drawing.Size(429, 31);
@@ -1477,7 +1479,7 @@
             // linkLabel2
             // 
             this.linkLabel2.AutoSize = true;
-            this.linkLabel2.Location = new System.Drawing.Point(515, 398);
+            this.linkLabel2.Location = new System.Drawing.Point(515, 396);
             this.linkLabel2.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.linkLabel2.Name = "linkLabel2";
             this.linkLabel2.Size = new System.Drawing.Size(294, 32);
@@ -1488,7 +1490,7 @@
             // 
             // label18
             // 
-            this.label18.Location = new System.Drawing.Point(29, 398);
+            this.label18.Location = new System.Drawing.Point(37, 396);
             this.label18.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label18.Name = "label18";
             this.label18.Size = new System.Drawing.Size(424, 31);
@@ -1510,7 +1512,7 @@
             // 
             // label17
             // 
-            this.label17.Location = new System.Drawing.Point(21, 343);
+            this.label17.Location = new System.Drawing.Point(29, 344);
             this.label17.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label17.Name = "label17";
             this.label17.Size = new System.Drawing.Size(432, 31);
@@ -1588,6 +1590,16 @@
             this.exitMenuItem.Size = new System.Drawing.Size(270, 48);
             this.exitMenuItem.Text = "Exit";
             this.exitMenuItem.Click += new System.EventHandler(this.ExitMenuItem_Click);
+            // 
+            // clearDownloadsButton
+            // 
+            this.clearDownloadsButton.Location = new System.Drawing.Point(67, 566);
+            this.clearDownloadsButton.Name = "clearDownloadsButton";
+            this.clearDownloadsButton.Size = new System.Drawing.Size(463, 69);
+            this.clearDownloadsButton.TabIndex = 11;
+            this.clearDownloadsButton.Text = "Clear download history";
+            this.clearDownloadsButton.UseVisualStyleBackColor = true;
+            this.clearDownloadsButton.Click += new System.EventHandler(this.clearDownloadsButton_Click);
             // 
             // MainForm
             // 
@@ -1753,6 +1765,7 @@
         private System.Windows.Forms.RadioButton radioButton1;
         private System.Windows.Forms.CheckBox oneInstance;
         private System.Windows.Forms.PictureBox pictureBox2;
+        private System.Windows.Forms.Button clearDownloadsButton;
     }
 }
 

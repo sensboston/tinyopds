@@ -447,7 +447,7 @@ namespace TinyOPDS
             // Setup link labels
             linkLabel3.Links.Add(0, linkLabel3.Text.Length, "https://github.com/wcoder/FB2Library");
             linkLabel5.Links.Add(0, linkLabel5.Text.Length, "https://github.com/lsmithmier/ePubReader.Portable");
-            linkLabel6.Links.Add(0, linkLabel6.Text.Length, "http://www.fb2library.net/projects/fb2fix");
+            linkLabel6.Links.Add(0, linkLabel6.Text.Length, "https://github.com/MindTouch/SGMLReader");
 
             // Setup settings controls
             libraryPath.Text = Settings.Default.LibraryPath;
@@ -1191,7 +1191,8 @@ namespace TinyOPDS
                 {"author-alphabetic", true},
                 {"author-by-date", true},
                 {"sequencesindex", true},
-                {"genres", true}
+                {"genres", true},
+                {"downloads", true}
             };
         }
 
@@ -1215,7 +1216,7 @@ namespace TinyOPDS
         private string GetOPDSStructureFromSettings()
         {
             return Settings.Default.OPDSStructure ??
-                   "newdate:0;newtitle:0;authorsindex:1;author-details:1;author-series:1;author-no-series:1;author-alphabetic:1;author-by-date:1;sequencesindex:1;genres:1";
+                   "newdate:0;newtitle:0;authorsindex:1;author-details:1;author-series:1;author-no-series:1;author-alphabetic:1;author-by-date:1;sequencesindex:1;genres:1;downloads:1";
         }
 
         private void SaveOPDSStructureToSettings(string structure)
@@ -1300,6 +1301,9 @@ namespace TinyOPDS
 
             // Genres section
             rootNode.Nodes.Add(CreateTreeNode("By Genres", "genres", opdsStructure["genres"]));
+
+            // Downloads section
+            rootNode.Nodes.Add(CreateTreeNode("Downloaded books", "downloads", opdsStructure["downloads"]));
 
             treeViewOPDS.Nodes.Add(rootNode);
             treeViewOPDS.ExpandAll();
@@ -1410,6 +1414,25 @@ namespace TinyOPDS
 
             // Update visual styles
             UpdateTreeNodeStyles();
+        }
+
+        private void clearDownloadsButton_Click(object sender, EventArgs e)
+        {
+            if (MessageBox.Show(
+                    Localizer.Text("Are you sure you want to clear download history?"),
+                    Localizer.Text("Confirmation"),
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question) == DialogResult.Yes)
+            {
+                try
+                {
+                    Library.ClearDownloadHistory();
+                }
+                catch (Exception ex)
+                {
+                    Log.WriteLine(LogLevel.Error, "Error clearing download history: {0}", ex.Message);
+                }
+            }
         }
 
         private void HandleNodeDependencies(string tag, bool isChecked)

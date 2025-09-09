@@ -7,6 +7,7 @@
  *
  * This module handles OPDS catalog request routing and
  * generation based on configurable structure
+ * ENHANCED: Added downloads catalog routing
  * 
  */
 
@@ -102,6 +103,10 @@ namespace TinyOPDS.Server
             else if (request.StartsWith("/newtitle") && IsRouteEnabled("newtitle"))
             {
                 return new NewBooksCatalog().GetCatalog(request.Substring(9), false, acceptFB2, threshold).ToStringWithDeclaration();
+            }
+            else if (request.StartsWith("/downloads") && IsRouteEnabled("downloads"))
+            {
+                return HandleDownloadsRequest(request, acceptFB2, threshold);
             }
             else if (request.StartsWith("/authorsindex") && IsRouteEnabled("authorsindex"))
             {
@@ -202,6 +207,42 @@ namespace TinyOPDS.Server
         }
 
         /// <summary>
+        /// Handles downloads catalog requests
+        /// </summary>
+        private string HandleDownloadsRequest(string request, bool acceptFB2, int threshold)
+        {
+            // Extract page number if present
+            int pageNumber = 0;
+            if (request.Contains("?pageNumber="))
+            {
+                int idx = request.IndexOf("?pageNumber=");
+                string pageStr = request.Substring(idx + 12);
+                int.TryParse(pageStr, out pageNumber);
+                request = request.Substring(0, idx); // Remove query string for route matching
+            }
+
+            Log.WriteLine(LogLevel.Info, "Downloads request: '{0}', page: {1}", request, pageNumber);
+
+            if (request.Equals("/downloads"))
+            {
+                // Root downloads catalog
+                return new DownloadCatalog().GetRootCatalog().ToStringWithDeclaration();
+            }
+            else if (request.Equals("/downloads/date"))
+            {
+                // Downloads sorted by date
+                return new DownloadCatalog().GetCatalog(true, pageNumber, threshold, acceptFB2).ToStringWithDeclaration();
+            }
+            else if (request.Equals("/downloads/alpha"))
+            {
+                // Downloads sorted alphabetically
+                return new DownloadCatalog().GetCatalog(false, pageNumber, threshold, acceptFB2).ToStringWithDeclaration();
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// Handles search requests
         /// </summary>
         private string HandleSearchRequest(string[] pathParts, bool acceptFB2)
@@ -274,7 +315,8 @@ namespace TinyOPDS.Server
                 {"author-alphabetic", true},
                 {"author-by-date", true},
                 {"sequencesindex", true},
-                {"genres", true}
+                {"genres", true},
+                {"downloads", true}  // Enable downloads catalog by default
             };
         }
 
@@ -336,6 +378,7 @@ namespace TinyOPDS.Server
                         else if (href.Contains("/authorsindex") && !IsEnabled("authorsindex")) shouldRemove = true;
                         else if (href.Contains("/sequencesindex") && !IsEnabled("sequencesindex")) shouldRemove = true;
                         else if (href.Contains("/genres") && !IsEnabled("genres")) shouldRemove = true;
+                        else if (href.Contains("/downloads") && !IsEnabled("downloads")) shouldRemove = true;
 
                         if (shouldRemove)
                         {

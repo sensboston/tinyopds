@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
@@ -106,43 +107,76 @@ namespace TinyOPDS
             var sb = new StringBuilder(length);
             sb.Append(firstLetter);
 
-            char prevCode = '0';
-            bool isFirstChar = true;
+            // Collect consonant codes in groups separated by vowels
+            var codeGroups = new List<List<char>>();
+            var currentGroup = new List<char>();
 
-            for (int i = firstIdx + 1; i < s.Length && sb.Length < length; i++)
+            for (int i = firstIdx + 1; i < s.Length; i++)
             {
                 char c = s[i];
                 if (!char.IsLetter(c)) continue;
 
                 char code = '0';
 
-                // Try consonant first
+                // Check if it's a consonant
                 if (consonantMap.TryGetValue(c, out code))
                 {
-                    if (code != prevCode || isFirstChar)
-                    {
-                        sb.Append(code);
-                        prevCode = code;
-                        isFirstChar = false;
-                    }
+                    currentGroup.Add(code);
                 }
-                // Then try vowel (only for first 4 positions to avoid over-emphasis)
-                else if (sb.Length <= 4 && vowelMap.TryGetValue(c, out code))
+                // Check if it's a vowel
+                else if (vowelMap.TryGetValue(c, out code))
                 {
-                    if (code != prevCode || isFirstChar)
+                    // Vowel ends the consonant group
+                    if (currentGroup.Count > 0)
                     {
-                        sb.Append(code);
-                        prevCode = code;
-                        isFirstChar = false;
+                        codeGroups.Add(new List<char>(currentGroup));
+                        currentGroup.Clear();
                     }
-                }
-                // Reset previous code for ignored letters to prevent blocking
-                else
-                {
-                    prevCode = '0';
+
+                    // Add vowel code if within first 4 positions
+                    if (sb.Length <= 4 && code != '0')
+                    {
+                        codeGroups.Add(new List<char> { code });
+                    }
                 }
             }
 
+            // Add remaining group if any
+            if (currentGroup.Count > 0)
+            {
+                codeGroups.Add(currentGroup);
+            }
+
+            // Sort consonants within each group for transposition resistance
+            foreach (var group in codeGroups)
+            {
+                // Sort only if it's a consonant group (codes 1-6)
+                // Don't sort vowel codes (7-9) as they represent single vowels
+                if (group.Count > 1 && group.All(ch => ch >= '1' && ch <= '6'))
+                {
+                    group.Sort();
+                }
+            }
+
+            // Build the final code
+            char prevCode = '0';
+            foreach (var group in codeGroups)
+            {
+                foreach (var code in group)
+                {
+                    if (sb.Length >= length) break;
+
+                    // Add code if it's different from previous
+                    if (code != prevCode)
+                    {
+                        sb.Append(code);
+                        prevCode = code;
+                    }
+                }
+                if (sb.Length >= length) break;
+            }
+
+            // Pad with zeros
             while (sb.Length < length) sb.Append('0');
             if (sb.Length > length) sb.Length = length;
             return sb.ToString();
@@ -198,30 +232,30 @@ namespace TinyOPDS
         private static readonly Dictionary<char, char> LatinVowelMap = new Dictionary<char, char>
         {
             ['A'] = '7',
-            ['O'] = '7',  // A-O group (similar in some accents)
+            ['O'] = '7',    // A-O group (similar in some accents)
             ['E'] = '8',
-            ['I'] = '8',  // E-I group (often confused)
+            ['I'] = '8',    // E-I group (often confused)
             ['U'] = '9',
-            ['Y'] = '9',  // U-Y group 
+            ['Y'] = '9',    // U-Y group 
             ['H'] = '0',
-            ['W'] = '0'   // Ignored consonants in English Soundex
+            ['W'] = '0'     // Ignored consonants in English Soundex
         };
 
         private static readonly Dictionary<char, char> CyrillicVowelMap = new Dictionary<char, char>
         {
             ['А'] = '7',
-            ['О'] = '7',           // А-О group (аканье)
+            ['О'] = '7',    // А-О group (аканье)
             ['И'] = '8',
             ['Е'] = '8',
-            ['Ы'] = '8', // И-Е-Ы group (common confusion)
+            ['Ы'] = '8',    // И-Е-Ы group (common confusion)
             ['У'] = '9',
-            ['Ю'] = '9',           // У-Ю group
-            ['Э'] = '8',                      // Э similar to Е
-            ['Я'] = '7',                      // Я can sound like А
-            ['Ё'] = '8',                      // Ё similar to Е
+            ['Ю'] = '9',    // У-Ю group
+            ['Э'] = '8',    // Э similar to Е
+            ['Я'] = '7',    // Я can sound like А
+            ['Ё'] = '8',    // Ё similar to Е
             ['Й'] = '0',
             ['Ь'] = '0',
-            ['Ъ'] = '0' // Soft/hard signs and Й - ignored
+            ['Ъ'] = '0'     // Soft/hard signs and Й - ignored
         };
 
         private static char CodeOf(char c, Dictionary<char, char> map)

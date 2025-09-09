@@ -47,7 +47,7 @@ namespace TinyOPDS.OPDS
                     Localizer.Text("Books by genres") :
                     string.Format(Localizer.Text("Genres: {0}"), searchPattern)),
                 new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                new XElement("icon", "icons/genres.ico"),
+                new XElement("icon", "/genres.ico"),
                 // Add links
                 Links.opensearch, Links.search, Links.start)
             );

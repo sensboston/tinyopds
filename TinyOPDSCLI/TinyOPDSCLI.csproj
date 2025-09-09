@@ -317,9 +317,9 @@
       <Link>Resources\logo.png</Link>
     </EmbeddedResource>
     <!-- Compressed Resources -->
-    <None Include="..\TinyOPDS\Resources\a_aliases.txt.gz">
+    <EmbeddedResource Include="..\TinyOPDS\Resources\a_aliases.txt.gz">
       <Link>Resources\a_aliases.txt.gz</Link>
-    </None>
+    </EmbeddedResource>
   </ItemGroup>
   <!-- Content Files (Linked from TinyOPDS) -->
   <ItemGroup>
@@ -327,30 +327,21 @@
     <Content Include="..\TinyOPDS\Libs\SgmlReaderDll.dll">
       <Link>Libs\SgmlReaderDll.dll</Link>
     </Content>
-    <Content Include="..\TinyOPDS\Resources\genres.xml">
+    <EmbeddedResource Include="..\TinyOPDS\Resources\genres.xml">
       <Link>Resources\genres.xml</Link>
-    </Content>
-    <EmbeddedResource Include="..\TinyOPDS\Resources\icons\authors.ico">
-      <Link>Resources\icons\authors.ico</Link>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\TinyOPDS\Resources\icons\books.ico">
-      <Link>Resources\icons\books.ico</Link>
+    <EmbeddedResource Include="..\TinyOPDS\Resources\opds.ico">
+      <Link>Resources\opds.ico</Link>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\TinyOPDS\Resources\icons\favicon.ico">
-      <Link>Resources\icons\favicon.ico</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\TinyOPDS\Resources\icons\genres.ico">
-      <Link>Resources\icons\genres.ico</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\TinyOPDS\Resources\icons\opds.ico">
-      <Link>Resources\icons\opds.ico</Link>
-    </EmbeddedResource>
-    <Content Include="..\TinyOPDS\Resources\translation.xml">
+    <EmbeddedResource Include="..\TinyOPDS\Resources\translation.xml">
       <Link>Resources\translation.xml</Link>
-    </Content>
-    <Content Include="..\TinyOPDS\Resources\xml2html.xsl">
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\Resources\trayIcon.ico">
+      <Link>Resources\trayIcon.ico</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\Resources\xml2html.xsl">
       <Link>Resources\xml2html.xsl</Link>
-    </Content>
+    </EmbeddedResource>
     <!-- Reader Resources -->
     <Content Include="..\TinyOPDS\Resources\reader\reader.html">
       <Link>Resources\reader\reader.html</Link>

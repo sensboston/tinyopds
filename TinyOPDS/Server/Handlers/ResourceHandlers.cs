@@ -30,7 +30,7 @@ namespace TinyOPDS.Server
             try
             {
                 string iconName = Path.GetFileName(request);
-                string resourceName = Assembly.GetExecutingAssembly().GetName().Name + ".Icons." + iconName;
+                string resourceName = Assembly.GetExecutingAssembly().GetName().Name + ".Resources." + iconName;
 
                 using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
                 {

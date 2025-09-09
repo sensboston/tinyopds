@@ -241,10 +241,7 @@
     <EmbeddedResource Include="Resources\reader\reader-themes.css" />
     <EmbeddedResource Include="Resources\reader\reader.css" />
     <!-- Icons -->
-    <EmbeddedResource Include="Resources\icons\authors.ico" />
-    <EmbeddedResource Include="Resources\icons\books.ico" />
-    <EmbeddedResource Include="Resources\icons\favicon.ico" />
-    <EmbeddedResource Include="Resources\icons\genres.ico" />
+    <EmbeddedResource Include="Resources\favicon.ico" />
     <!-- Embedded Libraries -->
     <EmbeddedResource Include="Libs\FB2Library.dll" />
     <EmbeddedResource Include="Libs\System.Data.SQLite.dll" />
@@ -256,14 +253,14 @@
   <ItemGroup>
     <EmbeddedResource Include="Resources\smart-header.js" />
     <EmbeddedResource Include="Libs\SgmlReaderDll.dll" />
-    <EmbeddedResource Include="Resources\icons\opds.ico" />
+    <EmbeddedResource Include="Resources\opds.ico" />
     <Content Include="TinyOPDS.ico" />
-    <Content Include="Resources\TinyOPDS.ico" />
+    <EmbeddedResource Include="Resources\TinyOPDS.ico" />
     <Content Include="License.txt" />
     <None Include="TinyOPDS.png" />
-    <None Include="Resources\donate.png" />
+    <EmbeddedResource Include="Resources\donate.png" />
     <EmbeddedResource Include="Resources\folder.png" />
-    <None Include="Resources\trayIcon.ico" />
+    <EmbeddedResource Include="Resources\trayIcon.ico" />
   </ItemGroup>
   <!-- Bootstrapper Packages -->
   <ItemGroup>

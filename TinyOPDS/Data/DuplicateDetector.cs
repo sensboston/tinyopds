@@ -5,7 +5,7 @@
  * Copyright (c) 2013-2025 SeNSSoFT
  * SPDX-License-Identifier: MIT
  *
- * Smart duplicate detection for books - FIXED with archive priority support
+ * Smart duplicate detection for books - OPTIMIZED with batch loading
  */
 
 using System;
@@ -43,7 +43,7 @@ namespace TinyOPDS.Data
 
     /// <summary>
     /// Smart duplicate detector for books
-    /// MODIFIED: Improved archive priority handling and lowered replacement threshold
+    /// OPTIMIZED: Batch loading with JOIN for better performance
     /// </summary>
     public class DuplicateDetector
     {
@@ -57,7 +57,6 @@ namespace TinyOPDS.Data
 
         /// <summary>
         /// Check if book is duplicate and determine action
-        /// MODIFIED: Improved handling of archive priorities and score=0 cases
         /// </summary>
         public DuplicateCheckResult CheckDuplicate(Book newBook, Stream fileStream = null)
         {
@@ -129,10 +128,6 @@ namespace TinyOPDS.Data
                         result.MatchType = DuplicateMatchType.DuplicateKey;
                         result.ComparisonScore = bestScore;
 
-                        // MODIFIED: Changed logic for score = 0
-                        // Now we treat books with same metadata as duplicates
-                        // The archive priority is already considered in CompareTo method
-
                         // Check archive priorities for additional logging
                         int newPriority = newBook.GetArchivePriority();
                         int existingPriority = actualDuplicate.GetArchivePriority();
@@ -191,7 +186,6 @@ namespace TinyOPDS.Data
 
         /// <summary>
         /// Process duplicate - either skip, replace, or add as new
-        /// MODIFIED: Simplified logic with archive priority support
         /// </summary>
         public bool ProcessDuplicate(Book newBook, DuplicateCheckResult checkResult)
         {
@@ -242,31 +236,69 @@ namespace TinyOPDS.Data
             }
         }
 
+        /// <summary>
+        /// Helper class for batch loading results
+        /// </summary>
+        private class BookDetailRow
+        {
+            public string BookId { get; set; }
+            public Book Book { get; set; }
+            public string ItemType { get; set; }
+            public string ItemName { get; set; }
+        }
+
+        /// <summary>
+        /// OPTIMIZED: Find books by duplicate key with batch loading of authors and translators
+        /// Uses single query with UNION ALL instead of N+1 queries
+        /// </summary>
         private List<Book> FindByDuplicateKey(string key)
         {
             try
             {
-                var books = db.ExecuteQuery<Book>(
-                    DatabaseSchema.SelectBooksByDuplicateKey,
-                    MapBook,
+                var booksDict = new Dictionary<string, Book>();
+
+                // Single query to get all books with their authors and translators
+                var rows = db.ExecuteQuery<BookDetailRow>(
+                    DatabaseSchema.SelectBooksWithDetailsByDuplicateKey,
+                    reader =>
+                    {
+                        return new BookDetailRow
+                        {
+                            BookId = DatabaseManager.GetString(reader, "ID"),
+                            Book = MapBook(reader),
+                            ItemType = DatabaseManager.GetString(reader, "ItemType"),
+                            ItemName = DatabaseManager.GetString(reader, "ItemName")
+                        };
+                    },
                     DatabaseManager.CreateParameter("@DuplicateKey", key));
 
-                // Load translators for proper duplicate detection
-                foreach (var book in books)
+                // Process rows to build books with their authors and translators
+                foreach (var row in rows)
                 {
-                    book.Translators = db.ExecuteQuery<string>(
-                        DatabaseSchema.SelectBookTranslators,
-                        reader => reader.GetString(0),
-                        DatabaseManager.CreateParameter("@BookID", book.ID));
+                    if (!booksDict.ContainsKey(row.BookId))
+                    {
+                        row.Book.Authors = new List<string>();
+                        row.Book.Translators = new List<string>();
+                        booksDict[row.BookId] = row.Book;
+                    }
 
-                    // Also load authors for complete comparison
-                    book.Authors = db.ExecuteQuery<string>(
-                        DatabaseSchema.SelectBookAuthors,
-                        reader => reader.GetString(0),
-                        DatabaseManager.CreateParameter("@BookID", book.ID));
+                    // Add author or translator based on ItemType
+                    if (!string.IsNullOrEmpty(row.ItemName))
+                    {
+                        if (row.ItemType == "AUTHOR")
+                        {
+                            if (!booksDict[row.BookId].Authors.Contains(row.ItemName))
+                                booksDict[row.BookId].Authors.Add(row.ItemName);
+                        }
+                        else if (row.ItemType == "TRANSLATOR")
+                        {
+                            if (!booksDict[row.BookId].Translators.Contains(row.ItemName))
+                                booksDict[row.BookId].Translators.Add(row.ItemName);
+                        }
+                    }
                 }
 
-                return books;
+                return booksDict.Values.ToList();
             }
             catch (Exception ex)
             {
@@ -303,8 +335,6 @@ namespace TinyOPDS.Data
                 Version = DatabaseManager.GetFloat(reader, "Version"),
                 Title = DatabaseManager.GetString(reader, "Title"),
                 Language = DatabaseManager.GetString(reader, "Language"),
-                Sequence = DatabaseManager.GetString(reader, "Sequence"),
-                NumberInSequence = DatabaseManager.GetUInt32(reader, "NumberInSequence"),
                 Annotation = DatabaseManager.GetString(reader, "Annotation"),
                 DocumentSize = DatabaseManager.GetUInt32(reader, "DocumentSize"),
                 DocumentIDTrusted = DatabaseManager.GetBoolean(reader, "DocumentIDTrusted"),
@@ -312,6 +342,9 @@ namespace TinyOPDS.Data
                 ReplacedByID = DatabaseManager.GetString(reader, "ReplacedByID"),
                 ContentHash = DatabaseManager.GetString(reader, "ContentHash")
             };
+
+            // Note: Sequence and NumberInSequence are now in separate table
+            // They should be loaded separately if needed
 
             var bookDate = DatabaseManager.GetDateTime(reader, "BookDate");
             if (bookDate.HasValue) book.BookDate = bookDate.Value;
@@ -322,8 +355,9 @@ namespace TinyOPDS.Data
             var addedDate = DatabaseManager.GetDateTime(reader, "AddedDate");
             if (addedDate.HasValue) book.AddedDate = addedDate.Value;
 
-            // Authors list will be loaded separately
+            // Authors and Translators will be populated in FindByDuplicateKey
             book.Authors = new List<string>();
+            book.Translators = new List<string>();
 
             return book;
         }

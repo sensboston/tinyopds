@@ -99,6 +99,9 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>Libs\FB2Library.dll</HintPath>
     </Reference>
+    <Reference Include="SgmlReaderDll, Version=1.8.11.0, Culture=neutral, PublicKeyToken=46b2db9ca481831b, processorArchitecture=MSIL">
+      <HintPath>..\packages\SgmlReader.1.8.11\lib\4.0\SgmlReaderDll.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
@@ -195,8 +198,6 @@
     <Compile Include="Server\Handlers\ResourceHandlers.cs" />
     <Compile Include="Server\Handlers\XslTransformHandler.cs" />
     <!-- SGML Reader -->
-    <Compile Include="SgmlReader\SgmlParser.cs" />
-    <Compile Include="SgmlReader\SgmlReader.cs" />
   </ItemGroup>
   <!-- Resource Files -->
   <ItemGroup>
@@ -253,6 +254,7 @@
   <!-- Content Files (not embedded) -->
   <ItemGroup>
     <EmbeddedResource Include="Resources\smart-header.js" />
+    <EmbeddedResource Include="Libs\SgmlReaderDll.dll" />
     <Content Include="TinyOPDS.ico" />
     <Content Include="Icons\lib.png" />
     <Content Include="Icons\TinyOPDS.ico" />

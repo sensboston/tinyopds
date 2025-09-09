@@ -6,6 +6,7 @@
  * SPDX-License-Identifier: MIT
  *
  * FB2 parser implementation - FIXED for duplicate ID issues and Russian dates
+ * Updated to use MindTouch SGMLReader NuGet package
  *
  */
 
@@ -16,6 +17,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Xml;
 using System.Xml.Linq;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -23,28 +25,13 @@ using System.Drawing.Imaging;
 using FB2Library;
 using FB2Library.Elements;
 using TinyOPDS.Data;
-using TinyOPDS.Sgml;
+using Sgml;
 
 namespace TinyOPDS.Parsers
 {
     public class FB2Parser : BookParser
     {
         private XDocument xml = null;
-
-        private static SgmlDtd LoadFb2Dtd(SgmlReader sgml)
-        {
-            Contract.Requires(sgml != null);
-            Contract.Ensures(Contract.Result<SgmlDtd>() != null);
-
-            Assembly assembly = Assembly.GetExecutingAssembly();
-            using (Stream stream = assembly.GetManifestResourceStream(assembly.GetName().Name + ".Resources.fb2.dtd"))
-            {
-                using (StreamReader reader = new StreamReader(stream))
-                {
-                    return SgmlDtd.Parse(new Uri("http://localhost"), sgml.DocType, null, reader, null, sgml.WebProxy, sgml.NameTable);
-                }
-            }
-        }
 
         /// <summary>
         /// Parse FB2 book from stream - supports both seekable and non-seekable streams
@@ -295,7 +282,7 @@ namespace TinyOPDS.Parsers
                                 catch
                                 {
                                     stream.Position = 0;
-                                    xml = TryParseBySgml(stream);
+                                    xml = TryParseBySgml(stream, fileName);
                                 }
                             }
                         }
@@ -312,7 +299,7 @@ namespace TinyOPDS.Parsers
                     catch
                     {
                         stream.Position = 0;
-                        xml = TryParseBySgml(stream);
+                        xml = TryParseBySgml(stream, fileName);
                     }
                 }
             }
@@ -326,25 +313,134 @@ namespace TinyOPDS.Parsers
 
         /// <summary>
         /// Try parsing using SGML reader for malformed XML
+        /// Updated for MindTouch SGMLReader API
         /// </summary>
-        private XDocument TryParseBySgml(Stream stream)
+        private XDocument TryParseBySgml(Stream stream, string fileName)
         {
             try
             {
-                using (HtmlStream reader = new HtmlStream(stream, Encoding.Default))
+                // Create SGML reader with proper configuration
+                using (SgmlReader sgmlReader = new SgmlReader())
                 {
-                    using (SgmlReader sgmlReader = new SgmlReader())
+                    // Configure the reader for FB2 parsing
+                    sgmlReader.DocType = "FictionBook";
+                    sgmlReader.WhitespaceHandling = WhitespaceHandling.All;
+
+                    // Try to detect encoding from the stream
+                    StreamReader streamReader = null;
+                    try
                     {
-                        sgmlReader.InputStream = reader;
-                        sgmlReader.Dtd = LoadFb2Dtd(sgmlReader);
+                        // First, try to detect encoding
+                        byte[] buffer = new byte[1024];
+                        int bytesRead = stream.Read(buffer, 0, buffer.Length);
+                        stream.Position = 0;
+
+                        // Check for BOM or XML declaration
+                        string start = Encoding.UTF8.GetString(buffer, 0, Math.Min(bytesRead, 200));
+                        Encoding detectedEncoding = Encoding.UTF8;
+
+                        if (start.Contains("encoding="))
+                        {
+                            int encStart = start.IndexOf("encoding=\"") + 10;
+                            if (encStart > 10)
+                            {
+                                int encEnd = start.IndexOf('"', encStart);
+                                if (encEnd > encStart)
+                                {
+                                    string encodingName = start.Substring(encStart, encEnd - encStart);
+                                    try
+                                    {
+                                        detectedEncoding = Encoding.GetEncoding(encodingName);
+                                    }
+                                    catch
+                                    {
+                                        // Fall back to UTF-8 if encoding is not recognized
+                                        detectedEncoding = Encoding.UTF8;
+                                    }
+                                }
+                            }
+                        }
+
+                        streamReader = new StreamReader(stream, detectedEncoding, false, 1024, true);
+                    }
+                    catch
+                    {
+                        // Fall back to default encoding
+                        stream.Position = 0;
+                        streamReader = new StreamReader(stream, Encoding.UTF8, true, 1024, true);
+                    }
+
+                    using (streamReader)
+                    {
+                        sgmlReader.InputStream = streamReader;
+
+                        // Try to load custom FB2 DTD if available
+                        try
+                        {
+                            sgmlReader.Dtd = LoadFb2Dtd();
+                        }
+                        catch (Exception dtdEx)
+                        {
+                            // If DTD loading fails, let SGMLReader use its default behavior
+                            // It will still try to parse the document
+                            Log.WriteLine(LogLevel.Warning, "Failed to load FB2 DTD for {0}: {1}", fileName, dtdEx.Message);
+                        }
+
+                        // Load the document
                         return XDocument.Load(sgmlReader);
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                Log.WriteLine(LogLevel.Warning, "SGML parsing failed for {0}: {1}", fileName, ex.Message);
                 return null;
             }
+        }
+
+        /// <summary>
+        /// Load FB2 DTD for SGML parsing
+        /// Uses MindTouch SGMLReader static Parse method
+        /// </summary>
+        private static SgmlDtd LoadFb2Dtd()
+        {
+            try
+            {
+                // Load the FB2 DTD from embedded resources
+                Assembly assembly = Assembly.GetExecutingAssembly();
+                string resourceName = assembly.GetName().Name + ".Resources.fb2.dtd";
+
+                using (Stream stream = assembly.GetManifestResourceStream(resourceName))
+                {
+                    if (stream != null)
+                    {
+                        using (StreamReader reader = new StreamReader(stream))
+                        {
+                            // Use the static Parse method to create DTD
+                            // Method signature: Parse(Uri baseUri, string name, TextReader input, string subset, string proxy, XmlNameTable nt)
+                            Uri baseUri = new Uri("http://www.gribuser.ru/xml/fictionbook/2.0");
+
+                            // Call the static Parse method with correct parameters
+                            return SgmlDtd.Parse(
+                                baseUri,        // baseUri
+                                "FictionBook",  // name
+                                reader,         // input (TextReader)
+                                null,           // subset
+                                null,           // proxy
+                                null            // nameTable
+                            );
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log the error but don't fail - SGML reader can work without DTD
+                Log.WriteLine(LogLevel.Warning, "Failed to load FB2 DTD: {0}", ex.Message);
+            }
+
+            // Return null if DTD resource not found or failed to load
+            return null;
         }
 
         /// <summary>

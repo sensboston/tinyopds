@@ -85,7 +85,7 @@ namespace TinyOPDS
 
             treeViewOPDS.ShowLines = true;
             treeViewOPDS.Indent = (int) (treeViewOPDS.Indent * dpiScale * 2);
-            treeViewOPDS.ItemHeight = (int) (22 * dpiScale);
+            treeViewOPDS.ItemHeight = (int) (21 * dpiScale);
 
             // Assign combo data source to the list of all available interfaces
             interfaceCombo.DataSource = UPnPController.LocalInterfaces;
@@ -1182,8 +1182,8 @@ namespace TinyOPDS
             // Default OPDS routes - all enabled
             opdsStructure = new Dictionary<string, bool>
             {
-                {"newdate", true},
-                {"newtitle", true},
+                {"newdate", false},
+                {"newtitle", false},
                 {"authorsindex", true},
                 {"author-details", true},
                 {"author-series", true},
@@ -1215,7 +1215,7 @@ namespace TinyOPDS
         private string GetOPDSStructureFromSettings()
         {
             return Settings.Default.OPDSStructure ??
-                   "newdate:1;newtitle:1;authorsindex:1;author-details:1;author-series:1;author-no-series:1;author-alphabetic:1;author-by-date:1;sequencesindex:1;genres:1";
+                   "newdate:0;newtitle:0;authorsindex:1;author-details:1;author-series:1;author-no-series:1;author-alphabetic:1;author-by-date:1;sequencesindex:1;genres:1";
         }
 
         private void SaveOPDSStructureToSettings(string structure)
@@ -1270,16 +1270,15 @@ namespace TinyOPDS
             isLoading = true;
             treeViewOPDS.Nodes.Clear();
 
-            // Root node (not bold)
+            // Root node
             TreeNode rootNode = new TreeNode("Root")
             {
                 Tag = "root",
                 Checked = true
             };
 
-            // New Books section (not bold, but acts as section for children)
-            TreeNode newBooksNode = CreateTreeNode("New Books", "newbooks-section",
-                opdsStructure["newdate"] || opdsStructure["newtitle"]);
+            // New Books section
+            TreeNode newBooksNode = CreateTreeNode("New Books", "newbooks-section", opdsStructure["newdate"] || opdsStructure["newtitle"]);
             newBooksNode.Nodes.Add(CreateTreeNode("New Books (by date)", "newdate", opdsStructure["newdate"]));
             newBooksNode.Nodes.Add(CreateTreeNode("New Books (alphabetically)", "newtitle", opdsStructure["newtitle"]));
             rootNode.Nodes.Add(newBooksNode);

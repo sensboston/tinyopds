@@ -250,7 +250,7 @@
             this.useWatcher.AutoSize = true;
             this.useWatcher.Checked = global::TinyOPDS.Properties.Settings.Default.WatchLibrary;
             this.useWatcher.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "WatchLibrary", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.useWatcher.Location = new System.Drawing.Point(834, 85);
+            this.useWatcher.Location = new System.Drawing.Point(841, 86);
             this.useWatcher.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.useWatcher.Name = "useWatcher";
             this.useWatcher.Size = new System.Drawing.Size(262, 36);
@@ -465,7 +465,7 @@
             this.folderButton.Location = new System.Drawing.Point(760, 83);
             this.folderButton.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.folderButton.Name = "folderButton";
-            this.folderButton.Size = new System.Drawing.Size(58, 41);
+            this.folderButton.Size = new System.Drawing.Size(50, 41);
             this.folderButton.TabIndex = 10;
             this.folderButton.UseVisualStyleBackColor = true;
             this.folderButton.Click += new System.EventHandler(this.FolderButton_Click);

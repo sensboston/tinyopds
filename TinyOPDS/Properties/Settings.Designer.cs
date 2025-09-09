@@ -349,7 +349,7 @@ namespace TinyOPDS.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("newdate:1;newtitle:1;authorsindex:1;author-details:1;author-series:1;author-no-se" +
+        [global::System.Configuration.DefaultSettingValueAttribute("newdate:0;newtitle:0;authorsindex:1;author-details:1;author-series:1;author-no-se" +
             "ries:1;author-alphabetic:1;author-by-date:1;sequencesindex:1;genres:1")]
         public string OPDSStructure {
             get {

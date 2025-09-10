@@ -346,21 +346,21 @@
       <Link>Resources\favicon.ico</Link>
     </EmbeddedResource>
     <!-- Reader Resources -->
-    <Content Include="..\TinyOPDS\Resources\reader\reader.html">
+    <EmbeddedResource Include="..\TinyOPDS\Resources\reader\reader.html">
       <Link>Resources\reader\reader.html</Link>
-    </Content>
-    <Content Include="..\TinyOPDS\Resources\reader\reader-formats.js">
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\Resources\reader\reader-formats.js">
       <Link>Resources\reader\reader-formats.js</Link>
-    </Content>
-    <Content Include="..\TinyOPDS\Resources\reader\reader-main.js">
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\Resources\reader\reader-main.js">
       <Link>Resources\reader\reader-main.js</Link>
-    </Content>
-    <Content Include="..\TinyOPDS\Resources\reader\reader-themes.css">
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\Resources\reader\reader-themes.css">
       <Link>Resources\reader\reader-themes.css</Link>
-    </Content>
-    <Content Include="..\TinyOPDS\Resources\reader\reader.css">
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\Resources\reader\reader.css">
       <Link>Resources\reader\reader.css</Link>
-    </Content>
+    </EmbeddedResource>
   </ItemGroup>
   <!-- Bootstrapper Packages -->
   <ItemGroup>

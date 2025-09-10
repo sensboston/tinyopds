@@ -160,15 +160,6 @@ namespace TinyOPDS.Server
         {
             try
             {
-                // Load main HTML
-                string readerPath = Path.Combine(Utils.ServiceFilesLocation, "reader.html");
-                if (File.Exists(readerPath))
-                {
-                    readerHtml = File.ReadAllText(readerPath, Encoding.UTF8);
-                    Log.WriteLine(LogLevel.Info, "Loaded reader.html from file system");
-                    return;
-                }
-
                 // Load from embedded resources
                 string resourceBase = Assembly.GetExecutingAssembly().GetName().Name + ".Resources.reader.";
 

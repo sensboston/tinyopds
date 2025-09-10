@@ -342,9 +342,9 @@
     <EmbeddedResource Include="..\TinyOPDS\Resources\xml2html.xsl">
       <Link>Resources\xml2html.xsl</Link>
     </EmbeddedResource>
-    <Content Include="..\TinyOPDS\Resources\favicon.ico">
+    <EmbeddedResource Include="..\TinyOPDS\Resources\favicon.ico">
       <Link>Resources\favicon.ico</Link>
-    </Content>
+    </EmbeddedResource>
     <!-- Reader Resources -->
     <Content Include="..\TinyOPDS\Resources\reader\reader.html">
       <Link>Resources\reader\reader.html</Link>

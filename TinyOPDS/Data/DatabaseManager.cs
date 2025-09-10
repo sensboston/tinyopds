@@ -123,19 +123,16 @@ namespace TinyOPDS.Data
             }
         }
 
+        /// <summary>
+        /// Initialize genres from embedded XML resource
+        /// Only adds new genres, never deletes existing ones to preserve BookGenres relationships
+        /// Stores parent genre translations with _MAIN_ prefix
+        /// </summary>
         private void InitializeGenres()
         {
             try
             {
-                // Check if genres table is already populated
-                var count = ExecuteScalar(DatabaseSchema.CheckGenresTablePopulated);
-                if (Convert.ToInt32(count) > 0)
-                {
-                    Log.WriteLine("Genres table already populated with {0} records", count);
-                    return;
-                }
-
-                Log.WriteLine("Initializing genres from embedded XML resource...");
+                Log.WriteLine("Checking genres for updates from embedded XML resource...");
 
                 // Load genres from embedded XML resource
                 var assembly = Assembly.GetExecutingAssembly();
@@ -151,10 +148,35 @@ namespace TinyOPDS.Data
 
                     var doc = XDocument.Load(stream);
 
+                    // Count genres in XML
+                    int xmlGenreCount = 0;
+                    int xmlMainGenreCount = 0;
+
+                    foreach (var genreElement in doc.Descendants("genre"))
+                    {
+                        xmlMainGenreCount++;
+                        xmlGenreCount += genreElement.Descendants("subgenre").Count();
+                    }
+
+                    // Check current count in database (excluding special _MAIN_ entries)
+                    var currentCount = ExecuteScalar(DatabaseSchema.CountGenresExcludingMain);
+                    int dbGenreCount = Convert.ToInt32(currentCount ?? 0);
+
+                    // Only proceed if XML has more genres or database is empty
+                    if (dbGenreCount >= xmlGenreCount)
+                    {
+                        Log.WriteLine("Genres are up to date ({0} genres in database, {1} in XML)",
+                            dbGenreCount, xmlGenreCount);
+                        return;
+                    }
+
+                    Log.WriteLine("Updating genres: {0} in database, {1} in XML", dbGenreCount, xmlGenreCount);
+
                     BeginTransaction();
                     try
                     {
                         int genreCount = 0;
+                        int mainGenreCount = 0;
 
                         // Parse and insert genres
                         foreach (var genreElement in doc.Descendants("genre"))
@@ -162,6 +184,18 @@ namespace TinyOPDS.Data
                             string parentName = genreElement.Attribute("name")?.Value;
                             string parentTranslation = genreElement.Attribute("ru")?.Value;
 
+                            // Insert main genre translation (if not exists)
+                            if (!string.IsNullOrEmpty(parentName) && !string.IsNullOrEmpty(parentTranslation))
+                            {
+                                ExecuteNonQuery(DatabaseSchema.InsertGenreIfNotExists,
+                                    CreateParameter("@Tag", "_MAIN_" + parentName),
+                                    CreateParameter("@ParentName", DBNull.Value),
+                                    CreateParameter("@Name", parentName),
+                                    CreateParameter("@Translation", parentTranslation));
+                                mainGenreCount++;
+                            }
+
+                            // Insert all subgenres (if not exist)
                             foreach (var subgenreElement in genreElement.Descendants("subgenre"))
                             {
                                 string tag = subgenreElement.Attribute("tag")?.Value;
@@ -170,7 +204,7 @@ namespace TinyOPDS.Data
 
                                 if (!string.IsNullOrEmpty(tag))
                                 {
-                                    ExecuteNonQuery(DatabaseSchema.InsertGenre,
+                                    ExecuteNonQuery(DatabaseSchema.InsertGenreIfNotExists,
                                         CreateParameter("@Tag", tag),
                                         CreateParameter("@ParentName", parentName),
                                         CreateParameter("@Name", name),
@@ -182,7 +216,8 @@ namespace TinyOPDS.Data
                         }
 
                         CommitTransaction();
-                        Log.WriteLine("Successfully loaded {0} genres from XML", genreCount);
+                        Log.WriteLine("Successfully processed {0} main genres and {1} subgenres from XML",
+                            mainGenreCount, genreCount);
                     }
                     catch
                     {
@@ -565,12 +600,35 @@ namespace TinyOPDS.Data
             var genres = new List<Genre>();
             var parentGenres = new Dictionary<string, Genre>();
 
+            // Load main genre translations first
+            var mainGenreTranslations = new Dictionary<string, string>();
+            var translationReader = ExecuteReader(DatabaseSchema.SelectMainGenreTranslations);
+            try
+            {
+                while (translationReader.Read())
+                {
+                    string name = GetString(translationReader, "Name");
+                    string translation = GetString(translationReader, "Translation");
+                    mainGenreTranslations[name] = translation;
+                }
+            }
+            finally
+            {
+                translationReader.Close();
+            }
+
+            // Load all regular genres
             var reader = ExecuteReader(DatabaseSchema.SelectAllGenres);
             try
             {
                 while (reader.Read())
                 {
                     string tag = GetString(reader, "Tag");
+
+                    // Skip special main genre translation entries
+                    if (tag.StartsWith("_MAIN_"))
+                        continue;
+
                     string parentName = GetString(reader, "ParentName");
                     string name = GetString(reader, "Name");
                     string translation = GetString(reader, "Translation");
@@ -590,9 +648,11 @@ namespace TinyOPDS.Data
                         {
                             parentGenres[parentName] = new Genre
                             {
-                                Tag = "",
+                                Tag = "",  // Main genres don't have tags
                                 Name = parentName,
-                                Translation = parentName, // Will be updated if we find translation
+                                Translation = mainGenreTranslations.ContainsKey(parentName)
+                                    ? mainGenreTranslations[parentName]
+                                    : parentName,
                                 Subgenres = new List<Genre>()
                             };
                             genres.Add(parentGenres[parentName]);

@@ -379,6 +379,10 @@ namespace TinyOPDS.Data
             INSERT OR REPLACE INTO Genres (Tag, ParentName, Name, Translation) 
             VALUES (@Tag, @ParentName, @Name, @Translation)";
 
+        public const string InsertGenreIfNotExists = @"
+            INSERT OR IGNORE INTO Genres (Tag, ParentName, Name, Translation) 
+            VALUES (@Tag, @ParentName, @Name, @Translation)";
+
         public const string InsertTranslator = @"
             INSERT OR IGNORE INTO Translators (Name) VALUES (@Name)";
 
@@ -517,6 +521,11 @@ namespace TinyOPDS.Data
                    Annotation, DocumentSize, AddedDate
             FROM Books 
             WHERE AddedDate >= @FromDate";
+
+        public const string SelectMainGenreTranslations = @"
+            SELECT Name, Translation 
+            FROM Genres 
+            WHERE Tag LIKE '_MAIN_%'";
 
         #endregion
 
@@ -743,6 +752,11 @@ namespace TinyOPDS.Data
             WHERE bg.GenreTag = @GenreTag AND b.ReplacedByID IS NULL";
 
         public const string CountGenres = @"SELECT COUNT(*) FROM Genres";
+
+        public const string CountGenresExcludingMain = @"
+            SELECT COUNT(*) 
+            FROM Genres 
+            WHERE Tag NOT LIKE '_MAIN_%'";
 
         public const string CountGenresInUse = @"
             SELECT COUNT(DISTINCT bg.GenreTag) 

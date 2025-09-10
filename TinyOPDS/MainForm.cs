@@ -1019,7 +1019,10 @@ namespace TinyOPDS
         /// <param name="e"></param>
         private void LangCombo_SelectedValueChanged(object sender, EventArgs e)
         {
-            Localizer.SetLanguage(this, langCombo.SelectedValue as string);
+            var lang = langCombo.SelectedValue as string;
+            Settings.Default.Language = lang;
+            Settings.Default.Save();
+            Localizer.SetLanguage(this, lang);
             appVersion.Text = string.Format(Localizer.Text("version {0}.{1} {2}"), Utils.Version.Major, Utils.Version.Minor, Utils.Version.Major == 0 ? " (beta)" : "");
             scannerButton.Text = Localizer.Text((scanner.Status == FileScannerStatus.STOPPED) ? "Start scanning" : "Stop scanning");
             serverButton.Text = Localizer.Text((server == null) ? "Start server" : "Stop server");

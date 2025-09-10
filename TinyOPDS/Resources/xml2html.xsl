@@ -28,6 +28,7 @@ xmlns:x="http://www.w3.org/2005/Atom">
 	<xsl:param name="readerNoTitle" select="'Untitled'"/>
 	<xsl:param name="readerUnknownAuthor" select="'Unknown Author'"/>
 	<xsl:param name="readerNoChapters" select="'No chapters available'"/>
+	<xsl:param name="faviconIco" select="'/favicon.ico'"/>
 
 	<xsl:template match="/">
 		<xsl:variable name="id">
@@ -44,6 +45,7 @@ xmlns:x="http://www.w3.org/2005/Atom">
 			<head>
 				<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 				<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+				<link rel="icon" type="image/x-icon" href="{$faviconIco}?v=1"/>
 				<style>
 					html {
 					scrollbar-gutter: stable;

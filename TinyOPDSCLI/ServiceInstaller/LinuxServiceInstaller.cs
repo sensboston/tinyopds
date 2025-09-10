@@ -1,13 +1,13 @@
 ﻿/*
- * This file is part of TinyOPDS server project
- * https://github.com/sensboston/tinyopds
- *
- * Copyright (c) 2013-2025 SeNSSoFT
- * SPDX-License-Identifier: MIT
- *
- * Linux service installer (systemd and init.d support)
- *
- */
+* This file is part of TinyOPDS server project
+* https://github.com/sensboston/tinyopds
+*
+* Copyright (c) 2013-2025 SeNSSoFT
+* SPDX-License-Identifier: MIT
+*
+* Linux service installer (systemd and init.d support)
+*
+*/
 
 using System;
 using System.IO;
@@ -29,6 +29,8 @@ namespace TinyOPDS
 
         private readonly InitSystem initSystem;
         private readonly string servicePath;
+        // Effective user to run the service under (SUDO_USER or Environment.UserName)
+        private readonly string effectiveUser;
 
         public LinuxServiceInstaller(string serviceName, string displayName, string executablePath, string description)
             : base(serviceName, displayName, executablePath, description)
@@ -49,7 +51,9 @@ namespace TinyOPDS
                     throw new NotSupportedException("Unable to detect Linux init system (systemd or init.d)");
             }
 
+            effectiveUser = GetEffectiveUser();
             Log.WriteLine("Detected init system: {0}", initSystem);
+            Log.WriteLine("Service will be installed for user: {0}", effectiveUser);
         }
 
         /// <summary>
@@ -78,6 +82,18 @@ namespace TinyOPDS
             return InitSystem.Unknown;
         }
 
+        /// <summary>
+        /// Determine the non-root login user who invoked the installer.
+        /// If running under sudo, prefer SUDO_USER; otherwise Environment.UserName.
+        /// </summary>
+        private static string GetEffectiveUser()
+        {
+            var sudoUser = Environment.GetEnvironmentVariable("SUDO_USER");
+            if (!string.IsNullOrEmpty(sudoUser))
+                return sudoUser;
+            return Environment.UserName;
+        }
+
         public override void Install()
         {
             if (!IsElevated())
@@ -85,19 +101,25 @@ namespace TinyOPDS
                 throw new UnauthorizedAccessException("Root privileges required to install service");
             }
 
+            if (initSystem == InitSystem.Unknown)
+            {
+                throw new NotSupportedException("Unsupported Linux init system");
+            }
+
             if (IsInstalled())
             {
                 throw new InvalidOperationException("Service is already installed");
             }
 
-            // Create service user
-            CreateServiceUser();
+            // Create service user only if using the dedicated service account
+            if (effectiveUser == SERVICE_USER)
+                CreateServiceUser();
 
             // Create necessary directories
             string dataDir = "/var/lib/tinyopds";
             string logDir = "/var/log/tinyopds";
-            CreateDirectoryWithPermissions(dataDir, SERVICE_USER);
-            CreateDirectoryWithPermissions(logDir, SERVICE_USER);
+            CreateDirectoryWithPermissions(dataDir, effectiveUser);
+            CreateDirectoryWithPermissions(logDir, effectiveUser);
 
             // Install based on init system
             if (initSystem == InitSystem.Systemd)
@@ -122,8 +144,8 @@ namespace TinyOPDS
             unitFile.AppendLine();
             unitFile.AppendLine("[Service]");
             unitFile.AppendLine("Type=simple");
-            unitFile.AppendLine($"User={SERVICE_USER}");
-            unitFile.AppendLine($"Group={SERVICE_USER}");
+            unitFile.AppendLine($"User={effectiveUser}");
+            unitFile.AppendLine($"Group={effectiveUser}");
             unitFile.AppendLine($"WorkingDirectory={WorkingDirectory}");
 
             // Set environment to indicate running as service
@@ -145,12 +167,9 @@ namespace TinyOPDS
 
             // Write unit file
             File.WriteAllText(servicePath, unitFile.ToString());
-            SetFilePermissions(servicePath, "644");
 
-            // Reload systemd daemon
+            // Reload systemd daemon and enable the service
             ExecuteCommand("systemctl", "daemon-reload", true);
-
-            // Enable service for auto-start
             ExecuteCommand("systemctl", $"enable {ServiceName.ToLower()}.service", true);
         }
 
@@ -159,23 +178,22 @@ namespace TinyOPDS
             // Create init.d script
             var script = new StringBuilder();
             script.AppendLine("#!/bin/sh");
-            script.AppendLine("### BEGIN INIT INFO");
+            script.AppendLine($"### BEGIN INIT INFO");
             script.AppendLine($"# Provides:          {ServiceName.ToLower()}");
-            script.AppendLine("# Required-Start:    $network $local_fs $remote_fs");
-            script.AppendLine("# Required-Stop:     $network $local_fs $remote_fs");
-            script.AppendLine("# Default-Start:     2 3 4 5");
-            script.AppendLine("# Default-Stop:      0 1 6");
-            script.AppendLine($"# Short-Description: {DisplayName}");
-            script.AppendLine($"# Description:       {Description}");
-            script.AppendLine("### END INIT INFO");
+            script.AppendLine($"# Required-Start:    $remote_fs $syslog $network");
+            script.AppendLine($"# Required-Stop:     $remote_fs $syslog $network");
+            script.AppendLine($"# Default-Start:     2 3 4 5");
+            script.AppendLine($"# Default-Stop:      0 1 6");
+            script.AppendLine($"# Short-Description: {Description}");
+            script.AppendLine($"### END INIT INFO");
             script.AppendLine();
-
             script.AppendLine($"NAME={ServiceName.ToLower()}");
-            script.AppendLine($"DESC=\"{DisplayName}\"");
+            script.AppendLine($"DESC=\"{Description}\"");
+            script.AppendLine($"WORKDIR=\"{WorkingDirectory}\"");
             script.AppendLine($"DAEMON=/usr/bin/mono");
             script.AppendLine($"DAEMON_ARGS=\"{ExecutablePath} start\"");
             script.AppendLine($"PIDFILE=/var/run/$NAME.pid");
-            script.AppendLine($"USER={SERVICE_USER}");
+            script.AppendLine($"USER={effectiveUser}");
             script.AppendLine($"export TINYOPDS_SERVICE=1");
             script.AppendLine();
 
@@ -211,14 +229,13 @@ namespace TinyOPDS
             script.AppendLine("    exit 1");
             script.AppendLine("    ;;");
             script.AppendLine("esac");
-            script.AppendLine();
             script.AppendLine("exit 0");
 
-            // Write init script
+            // Write init.d script
             File.WriteAllText(servicePath, script.ToString());
-            SetFilePermissions(servicePath, "755");
 
-            // Enable service for auto-start
+            // Make executable and enable on boot
+            ExecuteCommand("chmod", $"+x {servicePath}", true);
             ExecuteCommand("update-rc.d", $"{ServiceName.ToLower()} defaults", true);
         }
 
@@ -234,24 +251,22 @@ namespace TinyOPDS
                 throw new InvalidOperationException("Service is not installed");
             }
 
-            // Stop service if running
-            if (IsRunning())
-            {
-                Stop();
-            }
-
             if (initSystem == InitSystem.Systemd)
             {
-                // Disable and remove systemd service
                 ExecuteCommand("systemctl", $"disable {ServiceName.ToLower()}.service", true);
-                File.Delete(servicePath);
+                if (File.Exists(servicePath))
+                {
+                    File.Delete(servicePath);
+                }
                 ExecuteCommand("systemctl", "daemon-reload", true);
             }
             else
             {
-                // Remove init.d service
-                ExecuteCommand("update-rc.d", $"-f {ServiceName.ToLower()} remove", true);
-                File.Delete(servicePath);
+                if (File.Exists(servicePath))
+                {
+                    ExecuteCommand("update-rc.d", $"{ServiceName.ToLower()} remove", true);
+                    File.Delete(servicePath);
+                }
             }
 
             Log.WriteLine("Service {0} uninstalled successfully", ServiceName);
@@ -296,7 +311,8 @@ namespace TinyOPDS
 
             if (!IsRunning())
             {
-                throw new InvalidOperationException("Service is not running");
+                Log.WriteLine("Service is not running");
+                return;
             }
 
             ProcessResult result;
@@ -319,7 +335,14 @@ namespace TinyOPDS
 
         public override bool IsInstalled()
         {
-            return File.Exists(servicePath);
+            if (initSystem == InitSystem.Systemd)
+            {
+                return File.Exists(servicePath);
+            }
+            else
+            {
+                return File.Exists(servicePath);
+            }
         }
 
         public override bool IsRunning()

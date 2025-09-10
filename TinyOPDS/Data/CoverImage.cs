@@ -154,7 +154,7 @@ namespace TinyOPDS.Data
 
         private Image GenerateDefaultCover(string author, string title)
         {
-            Action<Image> tuneGraphics = _ => { };
+            void tuneGraphics(Image _) { }
 
             // Serialize all GDI+ usage on Linux
             if (NeedGdiLock)

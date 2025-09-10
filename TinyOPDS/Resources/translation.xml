@@ -650,6 +650,33 @@
 		</property>
 
 		<property>
+			<text lang="en">Your download history</text>
+			<text lang="ru">Ваша история загрузок</text>
+			<text lang="uk">Ваша історія завантажень</text>
+			<text lang="de">Ihr Download-Verlauf</text>
+			<text lang="es">Su historial de descargas</text>
+			<text lang="fr">Votre historique de téléchargements</text>
+		</property>
+
+		<property>
+			<text lang="en">Your download history is empty</text>
+			<text lang="ru">Ваша история загрузок пуста</text>
+			<text lang="uk">Ваша історія завантажень порожня</text>
+			<text lang="de">Ihr Download-Verlauf ist leer</text>
+			<text lang="es">Su historial de descargas está vacío</text>
+			<text lang="fr">Votre historique de téléchargements est vide</text>
+		</property>
+
+		<property>
+			<text lang="en">No downloaded books</text>
+			<text lang="ru">Нет загруженных книг</text>
+			<text lang="uk">Немає завантажених книг</text>
+			<text lang="de">Keine heruntergeladenen Bücher</text>
+			<text lang="es">No hay libros descargados</text>
+			<text lang="fr">Aucun livre téléchargé</text>
+		</property>
+
+		<property>
 			<text lang="en">Downloaded books alphabetically</text>
 			<text lang="ru">Загруженные книги по алфавиту</text>
 			<text lang="uk">Завантажені книги за алфавітом</text>
@@ -1181,6 +1208,14 @@
 			<text lang="de">Bücher nach Serien</text>
 			<text lang="es">Libros por series</text>
 			<text lang="fr">Livres par séries</text>
+		</property>
+		<property>
+			<text lang="en">{0} series</text>
+			<text lang="ru">{0} серии</text>
+			<text lang="uk">{0} серії</text>
+			<text lang="de">{0} Serien</text>
+			<text lang="es">{0} series</text>
+			<text lang="fr">{0} séries</text>
 		</property>
 		<property>
 			<text lang="en">Books without series</text>

@@ -753,7 +753,7 @@ xmlns:x="http://www.w3.org/2005/Atom">
 						</ul>
 					</xsl:if>
 
-					<xsl:if test="$id != 'tag:root' and (($icon='/genres.ico') or ($icon='/series.ico') or ($icon='/authors.ico') or ($icon='/opds.ico'))">
+					<xsl:if test="$id != 'tag:root' and (($icon='/genres.ico') or ($icon='/series.ico') or ($icon='/authors.ico') or ($icon='/TinyOPDS.ico'))">
 						<h4>
 							<xsl:value-of select="$title" />
 						</h4>

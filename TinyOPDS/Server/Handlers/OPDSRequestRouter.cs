@@ -48,8 +48,17 @@ namespace TinyOPDS.Server
 
                 if (string.IsNullOrEmpty(xml))
                 {
-                    processor.WriteFailure();
-                    return;
+                    // Special handling for search requests - return empty result instead of 404
+                    if (request.StartsWith("/search"))
+                    {
+                        Log.WriteLine(LogLevel.Info, "Search request returned no results, generating empty search response");
+                        xml = new OpenSearch().Search("", "", acceptFB2).ToStringWithDeclaration();
+                    }
+                    else
+                    {
+                        processor.WriteFailure();
+                        return;
+                    }
                 }
 
                 xml = utilities.FixNamespace(xml);
@@ -82,6 +91,7 @@ namespace TinyOPDS.Server
                 processor.WriteFailure();
             }
         }
+
 
         /// <summary>
         /// Generates OPDS XML response based on request

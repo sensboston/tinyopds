@@ -721,7 +721,8 @@ xmlns:x="http://www.w3.org/2005/Atom">
 						</div>
 
 						<div class="search-section">
-							<form method="get" action="/search" class="search-form">
+							<!-- Added onsubmit handler to prevent empty search submission -->
+							<form method="get" action="/search" class="search-form" onsubmit="return this.searchTerm.value.trim() !== '';">
 								<input type="text" name="searchTerm" class="search-input">
 									<xsl:attribute name="placeholder">
 										<xsl:value-of select="$searchPlaceholder"/>

@@ -1,19 +1,21 @@
-name: .NET Framework Desktop Build
+name: CI
 
 on:
-  release:
-    types: [created]
-
-permissions:
-  contents: write
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
 
 jobs:
   build:
+    name: Build TinyOPDS (.NET Framework 4.8)
     runs-on: windows-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup NuGet
         uses: NuGet/setup-nuget@v2
@@ -21,59 +23,49 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Clear NuGet caches
-        shell: pwsh
-        run: nuget locals all -clear
+      # For projects using packages.config restore must be done via nuget.exe
+      - name: Restore NuGet packages
+        run: nuget restore TinyOPDS.sln -Verbosity detailed
 
-      - name: Cache NuGet packages
-        uses: actions/cache@v4
-        with:
-          path: TinyOPDS\packages
-          key: nuget-${{ hashFiles('**/packages.config') }}
-          restore-keys: |
-            nuget-
+      - name: Build (Release)
+        run: msbuild TinyOPDS.sln /p:Configuration=Release /m /v:m
 
-      - name: Install SQLite packages
-        run: |
-          nuget install System.Data.SQLite.Core.FTS5 -Version 1.0.114.1 -OutputDirectory TinyOPDS\packages -NonInteractive -Source https://api.nuget.org/v3/index.json
-          nuget install System.Data.SQLite.Core -Version 1.0.114.1 -OutputDirectory TinyOPDS\packages -NonInteractive -Source https://api.nuget.org/v3/index.json
-
-      - name: Restore TinyOPDS packages
-        run: nuget restore TinyOPDS\TinyOPDS.csproj -NonInteractive -PackagesDirectory TinyOPDS\packages -Source https://api.nuget.org/v3/index.json
-
-      - name: Restore TinyOPDSCLI packages
-        run: nuget restore TinyOPDSCLI\TinyOPDSCLI.csproj -NonInteractive -PackagesDirectory TinyOPDS\packages -Source https://api.nuget.org/v3/index.json
-
-      - name: Fix SgmlReader package location
+      # Optional: show where the Sign folder is if PostBuildEvent created it
+      - name: List outputs
         shell: pwsh
         run: |
-          # TinyOPDS.csproj expects SgmlReader at ..\packages level (root packages folder)
-          # but NuGet installs it to TinyOPDS\packages
-          # Copy the DLL from Libs to the expected package location
-          
-          $sourceDll = "TinyOPDS\Libs\SgmlReaderDll.dll"
-          $targetPath = "packages\SgmlReader.1.8.11\lib\4.0"
-          
-          Write-Host "Creating package directory at root level: $targetPath"
-          New-Item -ItemType Directory -Force -Path $targetPath | Out-Null
-          
-          if (Test-Path $sourceDll) {
-              Copy-Item $sourceDll -Destination "$targetPath\SgmlReaderDll.dll" -Force
-              Write-Host "✓ Copied SgmlReaderDll.dll to $targetPath"
-          } else {
-              Write-Error "SgmlReaderDll.dll not found in Libs folder!"
-              exit 1
-          }
+          Write-Host "Solution dir:" (Get-Location).Path
+          Get-ChildItem -Recurse -Force TinyOPDS\bin\Release | Select-Object FullName,Length
+          Get-ChildItem -Recurse -Force TinyOPDSCLI\bin\Release | Select-Object FullName,Length
+          if (Test-Path ".\Sign") { Get-ChildItem -Recurse -Force .\Sign | Select-Object FullName,Length }
 
-      - name: Build
-        run: msbuild TinyOPDS.sln /p:Configuration=Release /m
-
-      - name: Upload release assets
-        uses: softprops/action-gh-release@v2
+      - name: Upload TinyOPDS artifact
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: ${{ github.ref_name }}
-          files: |
-            TinyOPDS/bin/Release/TinyOPDS.exe
-            TinyOPDSCLI/bin/Release/TinyOPDSCLI.exe
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: TinyOPDS_Release
+          path: |
+            TinyOPDS\bin\Release\**
+          if-no-files-found: warn
+          compression-level: 9
+
+      - name: Upload TinyOPDSCLI artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TinyOPDSCLI_Release
+          path: |
+            TinyOPDSCLI\bin\Release\**
+          if-no-files-found: warn
+          compression-level: 9
+
+      - name: Upload Sign folder (if exists)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sign_Folder
+          path: |
+            Sign\**
+            **\Sign\**
+          if-no-files-found: ignore
+          compression-level: 9

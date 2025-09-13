@@ -28,25 +28,32 @@ jobs:
       - name: Cache NuGet packages
         uses: actions/cache@v4
         with:
-          path: TinyOPDS\packages
+          path: packages
           key: nuget-${{ hashFiles('**/packages.config') }}
           restore-keys: |
             nuget-
 
+      - name: Prepare SgmlReader from embedded Libs
+        shell: pwsh
+        run: |
+          # Create directory structure for SgmlReader package
+          New-Item -ItemType Directory -Force -Path "packages\SgmlReader.1.8.11\lib\4.0"
+          
+          # Copy SgmlReaderDll.dll from Libs to packages location
+          if (Test-Path "TinyOPDS\Libs\SgmlReaderDll.dll") {
+            Copy-Item "TinyOPDS\Libs\SgmlReaderDll.dll" -Destination "packages\SgmlReader.1.8.11\lib\4.0\SgmlReaderDll.dll"
+            Write-Host "SgmlReaderDll.dll copied successfully"
+          } else {
+            Write-Host "Warning: SgmlReaderDll.dll not found in TinyOPDS\Libs"
+          }
+
       - name: Install SQLite packages
         run: |
-          nuget install System.Data.SQLite.Core.FTS5 -Version 1.0.114.1 -OutputDirectory TinyOPDS\packages -NonInteractive -Source https://api.nuget.org/v3/index.json
-          nuget install System.Data.SQLite.Core -Version 1.0.114.1 -OutputDirectory TinyOPDS\packages -NonInteractive -Source https://api.nuget.org/v3/index.json
+          nuget install System.Data.SQLite.Core.FTS5 -Version 1.0.114.1 -OutputDirectory packages -NonInteractive -Source https://api.nuget.org/v3/index.json
+          nuget install System.Data.SQLite.Core -Version 1.0.114.1 -OutputDirectory packages -NonInteractive -Source https://api.nuget.org/v3/index.json
 
-      - name: Install SgmlReader package
-        run: |
-          nuget install SgmlReader -Version 1.8.11 -OutputDirectory TinyOPDS\packages -NonInteractive -Source https://api.nuget.org/v3/index.json
-
-      - name: Restore TinyOPDS packages
-        run: nuget restore TinyOPDS\TinyOPDS.csproj -NonInteractive -PackagesDirectory TinyOPDS\packages -Source https://api.nuget.org/v3/index.json
-
-      - name: Restore TinyOPDSCLI packages
-        run: nuget restore TinyOPDSCLI\TinyOPDSCLI.csproj -NonInteractive -PackagesDirectory TinyOPDS\packages -Source https://api.nuget.org/v3/index.json
+      - name: Restore all NuGet packages for solution
+        run: nuget restore TinyOPDS.sln -NonInteractive -Source https://api.nuget.org/v3/index.json
 
       - name: Build
         run: msbuild TinyOPDS.sln /p:Configuration=Release /m

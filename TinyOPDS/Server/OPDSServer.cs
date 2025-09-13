@@ -132,10 +132,10 @@ namespace TinyOPDS.Server
                 return;
             }
 
-            // Handle smart header script
-            if (request.Equals("/smart-header.js"))
+            // Handle JS scripts
+            if (request.EndsWith(".js"))
             {
-                resourceHandlers.HandleSmartHeaderScript(processor);
+                resourceHandlers.HandleJavaScriptRequest(processor, request);
                 return;
             }
 

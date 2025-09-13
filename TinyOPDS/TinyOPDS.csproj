@@ -252,6 +252,7 @@
   <!-- Content Files (not embedded) -->
   <ItemGroup>
     <EmbeddedResource Include="Resources\smart-header.js" />
+    <EmbeddedResource Include="Resources\infinite-scroll.js" />
     <EmbeddedResource Include="Libs\SgmlReaderDll.dll" />
     <EmbeddedResource Include="Resources\opds.ico" />
     <Content Include="TinyOPDS.ico" />

@@ -108,14 +108,24 @@ namespace TinyOPDS.Server
         }
 
         /// <summary>
-        /// Handles smart-header.js request
+        /// Handles JavaScript file requests from embedded resources
         /// </summary>
-        public void HandleSmartHeaderScript(HttpProcessor processor)
+        public void HandleJavaScriptRequest(HttpProcessor processor, string request)
         {
             try
             {
-                string resourceName = Assembly.GetExecutingAssembly().GetName().Name + ".Resources.smart-header.js";
+                // Extract script name from request
+                string scriptName = Path.GetFileName(request);
+                if (string.IsNullOrEmpty(scriptName))
+                {
+                    processor.WriteFailure();
+                    return;
+                }
 
+                // Build resource name
+                string resourceName = Assembly.GetExecutingAssembly().GetName().Name + ".Resources." + scriptName;
+
+                // Try to load from embedded resources
                 using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
                 {
                     if (stream != null && stream.Length > 0)
@@ -123,17 +133,17 @@ namespace TinyOPDS.Server
                         processor.WriteSuccess("application/javascript");
                         stream.CopyTo(processor.OutputStream.BaseStream);
                         processor.OutputStream.BaseStream.Flush();
-                        Log.WriteLine(LogLevel.Info, "Served smart-header.js");
+                        Log.WriteLine(LogLevel.Info, "Served JavaScript file: {0}", scriptName);
                         return;
                     }
                 }
 
-                Log.WriteLine(LogLevel.Warning, "smart-header.js not found in resources");
+                Log.WriteLine(LogLevel.Warning, "JavaScript file not found in resources: {0}", scriptName);
                 processor.WriteFailure();
             }
             catch (Exception ex)
             {
-                Log.WriteLine(LogLevel.Error, "smart-header.js request error: {0}", ex.Message);
+                Log.WriteLine(LogLevel.Error, "JavaScript request error for {0}: {1}", request, ex.Message);
                 processor.WriteFailure();
             }
         }

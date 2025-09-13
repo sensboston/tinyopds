@@ -14,8 +14,7 @@
     <TargetFrameworkProfile>
     </TargetFrameworkProfile>
     <FileAlignment>512</FileAlignment>
-    <ApplicationIcon>
-    </ApplicationIcon>
+    <ApplicationIcon>TinyOPDS.ico</ApplicationIcon>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
   </PropertyGroup>
@@ -327,6 +326,13 @@
     <Content Include="..\TinyOPDS\Libs\SgmlReaderDll.dll">
       <Link>Libs\SgmlReaderDll.dll</Link>
     </Content>
+    <Content Include="TinyOPDS.ico" />
+    <EmbeddedResource Include="..\TinyOPDS\Resources\infinite-scroll.js">
+      <Link>Resources\infinite-scroll.js</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\Resources\smart-header.js">
+      <Link>Resources\smart-header.js</Link>
+    </EmbeddedResource>
     <EmbeddedResource Include="..\TinyOPDS\Resources\genres.xml">
       <Link>Resources\genres.xml</Link>
     </EmbeddedResource>
@@ -341,6 +347,7 @@
     </EmbeddedResource>
     <EmbeddedResource Include="..\TinyOPDS\Resources\xml2html.xsl">
       <Link>Resources\xml2html.xsl</Link>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="..\TinyOPDS\Resources\favicon.ico">
       <Link>Resources\favicon.ico</Link>

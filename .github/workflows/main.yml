@@ -28,53 +28,10 @@ jobs:
       - name: Cache NuGet packages
         uses: actions/cache@v4
         with:
-          path: |
-            packages
-            TinyOPDS\packages
+          path: TinyOPDS\packages
           key: nuget-${{ hashFiles('**/packages.config') }}
           restore-keys: |
             nuget-
-
-      - name: Prepare SgmlReader package structure
-        shell: pwsh
-        run: |
-          # Create SgmlReader package in BOTH locations to ensure compatibility
-          $locations = @(
-            "packages\SgmlReader.1.8.11\lib\4.0",
-            "TinyOPDS\packages\SgmlReader.1.8.11\lib\4.0"
-          )
-          
-          $sourcePath = "TinyOPDS\Libs\SgmlReaderDll.dll"
-          
-          if (-not (Test-Path $sourcePath)) {
-            Write-Error "ERROR: SgmlReaderDll.dll not found at: $sourcePath"
-            Write-Host "Checking if file exists in repository..."
-            Get-ChildItem -Path "TinyOPDS\Libs" -File | Select-Object Name, Length
-            exit 1
-          }
-          
-          foreach ($packagePath in $locations) {
-            Write-Host "Creating directory: $packagePath"
-            New-Item -ItemType Directory -Force -Path $packagePath | Out-Null
-            
-            $targetPath = "$packagePath\SgmlReaderDll.dll"
-            Copy-Item $sourcePath -Destination $targetPath -Force
-            
-            if (Test-Path $targetPath) {
-              $fileInfo = Get-Item $targetPath
-              Write-Host "✓ Copied to $targetPath (Size: $($fileInfo.Length) bytes)"
-            } else {
-              Write-Error "Failed to copy to $targetPath"
-            }
-          }
-          
-          Write-Host "`nVerifying package structure:"
-          if (Test-Path "packages\SgmlReader.1.8.11") {
-            Get-ChildItem -Path "packages\SgmlReader.1.8.11" -Recurse | Select-Object FullName
-          }
-          if (Test-Path "TinyOPDS\packages\SgmlReader.1.8.11") {
-            Get-ChildItem -Path "TinyOPDS\packages\SgmlReader.1.8.11" -Recurse | Select-Object FullName
-          }
 
       - name: Install SQLite packages
         run: |
@@ -82,10 +39,31 @@ jobs:
           nuget install System.Data.SQLite.Core -Version 1.0.114.1 -OutputDirectory TinyOPDS\packages -NonInteractive -Source https://api.nuget.org/v3/index.json
 
       - name: Restore TinyOPDS packages
-        run: nuget restore TinyOPDS\TinyOPDS.csproj -PackagesDirectory TinyOPDS\packages -NonInteractive -Source https://api.nuget.org/v3/index.json
+        run: nuget restore TinyOPDS\TinyOPDS.csproj -NonInteractive -PackagesDirectory TinyOPDS\packages -Source https://api.nuget.org/v3/index.json
 
-      - name: Restore TinyOPDSCLI packages  
-        run: nuget restore TinyOPDSCLI\TinyOPDSCLI.csproj -PackagesDirectory TinyOPDS\packages -NonInteractive -Source https://api.nuget.org/v3/index.json
+      - name: Restore TinyOPDSCLI packages
+        run: nuget restore TinyOPDSCLI\TinyOPDSCLI.csproj -NonInteractive -PackagesDirectory TinyOPDS\packages -Source https://api.nuget.org/v3/index.json
+
+      - name: Fix SgmlReader package location
+        shell: pwsh
+        run: |
+          # TinyOPDS.csproj expects SgmlReader at ..\packages level (root packages folder)
+          # but NuGet installs it to TinyOPDS\packages
+          # Copy the DLL from Libs to the expected package location
+          
+          $sourceDll = "TinyOPDS\Libs\SgmlReaderDll.dll"
+          $targetPath = "packages\SgmlReader.1.8.11\lib\4.0"
+          
+          Write-Host "Creating package directory at root level: $targetPath"
+          New-Item -ItemType Directory -Force -Path $targetPath | Out-Null
+          
+          if (Test-Path $sourceDll) {
+              Copy-Item $sourceDll -Destination "$targetPath\SgmlReaderDll.dll" -Force
+              Write-Host "✓ Copied SgmlReaderDll.dll to $targetPath"
+          } else {
+              Write-Error "SgmlReaderDll.dll not found in Libs folder!"
+              exit 1
+          }
 
       - name: Build
         run: msbuild TinyOPDS.sln /p:Configuration=Release /m

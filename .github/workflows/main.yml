@@ -1,4 +1,4 @@
-name: CI
+name: CI-Diagnostic
 
 on:
   push:
@@ -8,77 +8,126 @@ on:
 
 jobs:
   build:
-    name: Build TinyOPDS (.NET Framework 4.8)
     runs-on: windows-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v4
 
-      - name: Setup NuGet
-        uses: NuGet/setup-nuget@v2
+      - name: Show environment
+        run: |
+          echo "Current directory: %CD%"
+          echo "Files in root:"
+          dir /B
+          echo.
+          echo "TinyOPDS folder:"
+          dir TinyOPDS /B
+          echo.
+          echo "TinyOPDSCLI folder:"
+          dir TinyOPDSCLI /B
 
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
+      - uses: microsoft/setup-msbuild@v2
+      - uses: NuGet/setup-nuget@v2
 
-      # >>> КЛЮЧЕВОЕ: положить SgmlReader именно в ./packages, как ожидают .csproj
-      - name: Preinstall SgmlReader package for packages.config layout
-        run: nuget install SgmlReader -Version 1.8.11 -OutputDirectory packages
+      - name: NuGet Restore with diagnostics
+        run: |
+          nuget restore TinyOPDS.sln -Verbosity detailed
+          echo.
+          echo "Packages folder after restore:"
+          if exist packages (
+            dir packages /B
+          ) else (
+            echo "No packages folder found!"
+          )
 
-      # Остальные пакеты (EpubSharp, SQLite и т.п.) через стандартный restore
-      - name: Restore NuGet packages
-        run: nuget restore TinyOPDS.sln -Verbosity detailed
-
-      - name: Verify SgmlReader presence
+      - name: Fix package paths and show structure
         shell: pwsh
         run: |
-          $p = Join-Path $PWD "packages\SgmlReader.1.8.11\lib\4.0\SgmlReaderDll.dll"
-          if (-not (Test-Path $p)) {
-            Write-Error "SgmlReaderDll not found at $p"
-            exit 1
+          Write-Host "=== Package Structure BEFORE ===" -ForegroundColor Yellow
+          
+          if (Test-Path "packages") {
+            Write-Host "Root packages:" -ForegroundColor Cyan
+            Get-ChildItem "packages" -Directory | Select-Object -First 5 | ForEach-Object {
+              Write-Host "  - $($_.Name)"
+            }
           }
-          Write-Host "OK: $p"
+          
+          if (Test-Path "TinyOPDS\packages") {
+            Write-Host "TinyOPDS\packages:" -ForegroundColor Cyan
+            Get-ChildItem "TinyOPDS\packages" -Directory | Select-Object -First 5 | ForEach-Object {
+              Write-Host "  - $($_.Name)"
+            }
+          } else {
+            Write-Host "TinyOPDS\packages: NOT FOUND" -ForegroundColor Red
+          }
+          
+          # Copy packages
+          if (Test-Path "packages") {
+            Write-Host "`nCopying packages to TinyOPDS\packages..." -ForegroundColor Green
+            if (!(Test-Path "TinyOPDS\packages")) {
+              New-Item -ItemType Directory -Path "TinyOPDS\packages" -Force | Out-Null
+            }
+            Copy-Item -Path "packages\*" -Destination "TinyOPDS\packages\" -Recurse -Force
+          }
+          
+          Write-Host "`n=== Package Structure AFTER ===" -ForegroundColor Yellow
+          
+          if (Test-Path "TinyOPDS\packages") {
+            Write-Host "TinyOPDS\packages:" -ForegroundColor Cyan
+            Get-ChildItem "TinyOPDS\packages" -Directory | Select-Object -First 5 | ForEach-Object {
+              Write-Host "  - $($_.Name)"
+            }
+          }
+          
+          # Check critical DLLs
+          Write-Host "`n=== Checking Critical DLLs ===" -ForegroundColor Yellow
+          
+          $dlls = @(
+            "packages\SgmlReader.1.8.11\lib\4.0\SgmlReaderDll.dll",
+            "packages\System.Data.SQLite.Core.FTS5.1.0.114.1\lib\net45\System.Data.SQLite.dll",
+            "packages\EpubSharp.dll.1.1.5\lib\net451\EpubSharp.dll",
+            "TinyOPDS\packages\SgmlReader.1.8.11\lib\4.0\SgmlReaderDll.dll",
+            "TinyOPDS\packages\System.Data.SQLite.Core.FTS5.1.0.114.1\lib\net45\System.Data.SQLite.dll",
+            "TinyOPDS\packages\EpubSharp.dll.1.1.5\lib\net451\EpubSharp.dll"
+          )
+          
+          foreach ($dll in $dlls) {
+            if (Test-Path $dll) {
+              Write-Host "✓ $dll" -ForegroundColor Green
+            } else {
+              Write-Host "✗ $dll" -ForegroundColor Red
+            }
+          }
 
-      - name: Build (Release)
-        run: msbuild TinyOPDS.sln /p:Configuration=Release /m /v:m
-
-      - name: List outputs
-        if: always()
-        shell: pwsh
+      - name: Build with detailed logging
         run: |
-          Write-Host "== TinyOPDS bin/Release =="
-          if (Test-Path ".\TinyOPDS\bin\Release") { Get-ChildItem -Recurse -Force .\TinyOPDS\bin\Release | Select-Object FullName,Length }
-          Write-Host "== TinyOPDSCLI bin/Release =="
-          if (Test-Path ".\TinyOPDSCLI\bin\Release") { Get-ChildItem -Recurse -Force .\TinyOPDSCLI\bin\Release | Select-Object FullName,Length }
-          if (Test-Path ".\Sign") { Write-Host "== Sign =="; Get-ChildItem -Recurse -Force .\Sign | Select-Object FullName,Length }
+          msbuild TinyOPDS.sln /p:Configuration=Release /v:normal /fl /flp:logfile=build.log
+          echo.
+          echo "Build completed. Checking outputs..."
+          if exist TinyOPDS\bin\Release\TinyOPDS.exe (
+            echo "SUCCESS: TinyOPDS.exe found"
+            dir TinyOPDS\bin\Release\*.exe
+          ) else (
+            echo "ERROR: TinyOPDS.exe not found"
+          )
+          if exist TinyOPDSCLI\bin\Release\TinyOPDSCLI.exe (
+            echo "SUCCESS: TinyOPDSCLI.exe found"
+            dir TinyOPDSCLI\bin\Release\*.exe
+          ) else (
+            echo "ERROR: TinyOPDSCLI.exe not found"
+          )
 
-      - name: Upload TinyOPDS artifact
-        if: always()
+      - name: Upload build log
         uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: TinyOPDS_Release
-          path: TinyOPDS\bin\Release\**
-          if-no-files-found: warn
-          compression-level: 9
+          name: build-log
+          path: build.log
 
-      - name: Upload TinyOPDSCLI artifact
-        if: always()
+      - name: Upload everything
         uses: actions/upload-artifact@v4
-        with:
-          name: TinyOPDSCLI_Release
-          path: TinyOPDSCLI\bin\Release\**
-          if-no-files-found: warn
-          compression-level: 9
-
-      - name: Upload Sign folder (if exists)
         if: always()
-        uses: actions/upload-artifact@v4
         with:
-          name: Sign_Folder
+          name: all-outputs
           path: |
-            Sign\**
-            **\Sign\**
-          if-no-files-found: ignore
-          compression-level: 9
+            TinyOPDS\bin\
+            TinyOPDSCLI\bin\

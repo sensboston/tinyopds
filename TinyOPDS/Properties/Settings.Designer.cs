@@ -12,7 +12,7 @@ namespace TinyOPDS.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "17.11.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "17.13.0.0")]
     internal sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase {
         
         private static Settings defaultInstance = ((Settings)(global::System.Configuration.ApplicationSettingsBase.Synchronized(new Settings())));
@@ -37,7 +37,7 @@ namespace TinyOPDS.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("Моя домашняя библиотека")]
+        [global::System.Configuration.DefaultSettingValueAttribute("My home library")]
         public string ServerName {
             get {
                 return ((string)(this["ServerName"]));
@@ -92,18 +92,6 @@ namespace TinyOPDS.Properties {
             }
             set {
                 this["CloseToTray"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string ConvertorPath {
-            get {
-                return ((string)(this["ConvertorPath"]));
-            }
-            set {
-                this["ConvertorPath"] = value;
             }
         }
         
@@ -289,42 +277,6 @@ namespace TinyOPDS.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("lib")]
-        public string HttpPrefix {
-            get {
-                return ((string)(this["HttpPrefix"]));
-            }
-            set {
-                this["HttpPrefix"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool UseAbsoluteUri {
-            get {
-                return ((bool)(this["UseAbsoluteUri"]));
-            }
-            set {
-                this["UseAbsoluteUri"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool LowMemoryProfile {
-            get {
-                return ((bool)(this["LowMemoryProfile"]));
-            }
-            set {
-                this["LowMemoryProfile"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("opds")]
         public string RootPrefix {
             get {
@@ -338,9 +290,9 @@ namespace TinyOPDS.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("50")]
-        public decimal ItemsPerOPDSPage {
+        public int ItemsPerOPDSPage {
             get {
-                return ((decimal)(this["ItemsPerOPDSPage"]));
+                return ((int)(this["ItemsPerOPDSPage"]));
             }
             set {
                 this["ItemsPerOPDSPage"] = value;
@@ -349,10 +301,10 @@ namespace TinyOPDS.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("1000")]
-        public decimal ItemsPerWebPage {
+        [global::System.Configuration.DefaultSettingValueAttribute("200")]
+        public int ItemsPerWebPage {
             get {
-                return ((decimal)(this["ItemsPerWebPage"]));
+                return ((int)(this["ItemsPerWebPage"]));
             }
             set {
                 this["ItemsPerWebPage"] = value;
@@ -392,6 +344,67 @@ namespace TinyOPDS.Properties {
             }
             set {
                 this["UseAuthorsAliases"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("newdate:0;newtitle:0;authorsindex:1;author-details:1;author-series:1;author-no-se" +
+            "ries:1;author-alphabetic:1;author-by-date:1;sequencesindex:1;genres:1")]
+        public string OPDSStructure {
+            get {
+                return ((string)(this["OPDSStructure"]));
+            }
+            set {
+                this["OPDSStructure"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1000")]
+        public int BatchSize {
+            get {
+                return ((int)(this["BatchSize"]));
+            }
+            set {
+                this["BatchSize"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool CacheImagesInMemory {
+            get {
+                return ((bool)(this["CacheImagesInMemory"]));
+            }
+            set {
+                this["CacheImagesInMemory"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("256")]
+        public int MaxRAMImageCacheSizeMB {
+            get {
+                return ((int)(this["MaxRAMImageCacheSizeMB"]));
+            }
+            set {
+                this["MaxRAMImageCacheSizeMB"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool OnlyOneInstance {
+            get {
+                return ((bool)(this["OnlyOneInstance"]));
+            }
+            set {
+                this["OnlyOneInstance"] = value;
             }
         }
     }

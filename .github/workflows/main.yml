@@ -1,0 +1,58 @@
+name: .NET Framework Desktop Build
+
+on:
+  release:
+    types: [created]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Clear NuGet caches
+        shell: pwsh
+        run: nuget locals all -clear
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: TinyOPDS\packages
+          key: nuget-${{ hashFiles('**/packages.config') }}
+          restore-keys: |
+            nuget-
+
+      - name: Install SQLite packages
+        run: |
+          nuget install System.Data.SQLite.Core.FTS5 -Version 1.0.114.1 -OutputDirectory TinyOPDS\packages -NonInteractive -Source https://api.nuget.org/v3/index.json
+          nuget install System.Data.SQLite.Core -Version 1.0.114.1 -OutputDirectory TinyOPDS\packages -NonInteractive -Source https://api.nuget.org/v3/index.json
+
+      - name: Restore TinyOPDS packages
+        run: nuget restore TinyOPDS\TinyOPDS.csproj -NonInteractive -PackagesDirectory TinyOPDS\packages -Source https://api.nuget.org/v3/index.json
+
+      - name: Restore TinyOPDSCLI packages
+        run: nuget restore TinyOPDSCLI\TinyOPDSCLI.csproj -NonInteractive -PackagesDirectory TinyOPDS\packages -Source https://api.nuget.org/v3/index.json
+
+      - name: Build
+        run: msbuild TinyOPDS.sln /p:Configuration=Release /m
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            TinyOPDS/bin/Release/TinyOPDS.exe
+            TinyOPDSCLI/bin/Release/TinyOPDSCLI.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

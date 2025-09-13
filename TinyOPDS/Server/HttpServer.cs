@@ -1,21 +1,18 @@
-﻿/***********************************************************
- * This file is a part of TinyOPDS server project
- * 
- * Copyright (c) 2013 SeNSSoFT
+﻿/*
+ * This file is part of TinyOPDS server project
+ * https://github.com/sensboston/tinyopds
  *
- * This code is licensed under the Microsoft Public License, 
- * see http://tinyopds.codeplex.com/license for the details.
+ * Copyright (c) 2013-2025 SeNSSoFT
+ * SPDX-License-Identifier: MIT
  *
- * This module contains simple HTTP processor implementation
- * and abstract class for HTTP server
- * Also, couple additional service classes are specified
+ * This module contains improved HTTP processor implementation
+ * and abstract class for HTTP server with enhanced stability
+ * and request cancellation support
  * 
- * 
- ************************************************************/
+ */
 
 using System;
 using System.Linq;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -36,37 +33,44 @@ namespace TinyOPDS.Server
     }
 
     /// <summary>
-    /// Simple HTTP processor
+    /// Simple HTTP processor with client tracking
     /// </summary>
     public class HttpProcessor : IDisposable
     {
-        public TcpClient Socket;        
+        public TcpClient Socket;
         public HttpServer Server;
 
-        private Stream _inputStream;
+        private Stream inputStream;
         public StreamWriter OutputStream;
 
-        public String HttpMethod;
-        public String HttpUrl;
-        public String HttpProtocolVersion;
-        public Hashtable HttpHeaders = new Hashtable();
+        public string HttpMethod;
+        public string HttpUrl;
+        public string HttpProtocolVersion;
+        public Dictionary<string, string> HttpHeaders = new Dictionary<string, string>();
+
+        // Client identification for request cancellation
+        public string ClientHash { get; private set; }
 
         public static BindingList<Credential> Credentials = new BindingList<Credential>();
         public static List<string> AuthorizedClients = new List<string>();
         public static Dictionary<string, int> BannedClients = new Dictionary<string, int>();
 
-        // Maximum post size, 1 Mb
-        private const int MAX_POST_SIZE = 1024 * 1024;
+        // Cache for fast credential lookup
+        private static readonly Dictionary<string, string> credentialCache = new Dictionary<string, string>();
+        private static readonly object credentialCacheLock = new object();
 
-        // Output buffer size, 64 Kb max
-        private const int OUTPUT_BUFFER_SIZE = 1024 * 1024;
+        // Maximum post size, 64 Kb max
+        private const int MAX_POST_SIZE = 1024 * 64;
 
-        private bool _disposed = false;
+        // Output buffer size, 128 Kb max
+        private const int OUTPUT_BUFFER_SIZE = 1024 * 128;
+
+        private bool disposed = false;
 
         public HttpProcessor(TcpClient socket, HttpServer server)
         {
-            this.Socket = socket;
-            this.Server = server;                   
+            Socket = socket;
+            Server = server;
         }
 
         public void Dispose()
@@ -77,208 +81,264 @@ namespace TinyOPDS.Server
 
         protected virtual void Dispose(bool disposing)
         {
-            // Check to see if Dispose has already been called.
-
-            if (!this._disposed)
+            if (!disposed)
             {
                 if (disposing)
                 {
-                    if (OutputStream != null) OutputStream.Dispose();
-                    if (_inputStream != null) _inputStream.Dispose();
+                    OutputStream?.Dispose();
+                    inputStream?.Dispose();
                 }
-                _disposed = true;
+                disposed = true;
             }
         }
 
-        private string StreamReadLine(Stream inputStream) 
+        private string StreamReadLine(Stream inputStream)
         {
-            int next_char = -1;
-            string data = string.Empty;
-            if (inputStream.CanRead)
+            if (!inputStream.CanRead) return string.Empty;
+
+            var buffer = new System.Text.StringBuilder(256);
+            int attempts = 0;
+            const int maxAttempts = 100; // 1 second total timeout
+
+            while (attempts < maxAttempts)
             {
-                while (true)
+                int next_char;
+                try
                 {
-                    try { next_char = inputStream.ReadByte(); } catch { break; }
-                    if (next_char == '\n') { break; }
-                    if (next_char == '\r') { continue; }
-                    if (next_char == -1) { Thread.Sleep(10); continue; };
-                    data += Convert.ToChar(next_char);
+                    next_char = inputStream.ReadByte();
                 }
+                catch
+                {
+                    break;
+                }
+
+                if (next_char == -1)
+                {
+                    // No data available, wait briefly and retry
+                    Thread.Sleep(10);
+                    attempts++;
+                    continue;
+                }
+
+                attempts = 0; // Reset counter when we get data
+
+                if (next_char == '\n') break;
+                if (next_char == '\r') continue;
+
+                buffer.Append((char)next_char);
+
+                // Prevent extremely long lines (potential DoS protection)
+                if (buffer.Length > 8192) break;
             }
-            return data;
+
+            return buffer.ToString();
         }
 
-        public void Process(object param) 
+        public void Process()
+        {
+            try
+            {
+                ProcessInternal();
+            }
+            catch (SocketException se)
+            {
+                Log.WriteLine(LogLevel.Error, "Socket error in Process(): {0}", se.Message);
+            }
+            catch (IOException ioe)
+            {
+                Log.WriteLine(LogLevel.Error, "IO error in Process(): {0}", ioe.Message);
+            }
+            catch (Exception e)
+            {
+                Log.WriteLine(LogLevel.Error, "Unexpected error in Process(): {0}", e.Message);
+            }
+            finally
+            {
+                CleanupConnection();
+            }
+        }
+
+        private void ProcessInternal()
         {
             // We can't use a StreamReader for input, because it buffers up extra data on us inside it's
             // "processed" view of the world, and we want the data raw after the headers
-            _inputStream = new BufferedStream(Socket.GetStream());
+            inputStream = new BufferedStream(Socket.GetStream());
 
             if (ParseRequest())
             {
                 // We probably shouldn't be using a StreamWriter for all output from handlers either
-                OutputStream = new StreamWriter(new BufferedStream(Socket.GetStream(), OUTPUT_BUFFER_SIZE));
-                OutputStream.AutoFlush = true;
-
-                try
+                OutputStream = new StreamWriter(new BufferedStream(Socket.GetStream(), OUTPUT_BUFFER_SIZE))
                 {
-                    ReadHeaders();
+                    AutoFlush = true
+                };
 
-                    bool authorized = true;
-                    bool checkLogin = true;
+                ReadHeaders();
 
-                    // Compute client hash string based on User-Agent + IP address
-                    string clientHash = string.Empty;
-                    if (HttpHeaders.ContainsKey("User-Agent")) clientHash += HttpHeaders["User-Agent"];
-                    string remoteIP = (Socket.Client.RemoteEndPoint as IPEndPoint).Address.ToString();
-                    clientHash += remoteIP;
-                    clientHash = Utils.CreateGuid(Utils.IsoOidNamespace, clientHash).ToString();
+                bool authorized = true;
+                bool checkLogin = true;
 
-                    if (TinyOPDS.Properties.Settings.Default.UseHTTPAuth)
+                // Compute client hash string based on User-Agent + IP address
+                string clientHash = string.Empty;
+                if (HttpHeaders.ContainsKey("User-Agent")) clientHash += HttpHeaders["User-Agent"];
+                string remoteIP = (Socket.Client.RemoteEndPoint as IPEndPoint).Address.ToString();
+                clientHash += remoteIP;
+                clientHash = Utils.CreateGuid(Utils.IsoOidNamespace, clientHash).ToString();
+
+                // Store client hash for request cancellation support
+                this.ClientHash = clientHash;
+
+                if (Properties.Settings.Default.UseHTTPAuth)
+                {
+                    authorized = false;
+
+                    // Is remote IP banned?
+                    if (Properties.Settings.Default.BanClients)
                     {
-                        authorized = false;
-
-                        // Is remote IP banned?
-                        if (TinyOPDS.Properties.Settings.Default.BanClients)
+                        lock (BannedClients)
                         {
-                            lock (BannedClients)
+                            if (BannedClients.Count > 0 && BannedClients.ContainsKey(remoteIP) && BannedClients[remoteIP] >= TinyOPDS.Properties.Settings.Default.WrongAttemptsCount)
                             {
-                                if (BannedClients.Count > 0 && BannedClients.ContainsKey(remoteIP) && BannedClients[remoteIP] >= TinyOPDS.Properties.Settings.Default.WrongAttemptsCount)
-                                {
-                                    checkLogin = false;
-                                }
+                                checkLogin = false;
+                            }
+                        }
+                    }
+
+                    if (checkLogin)
+                    {
+                        // First, check authorized client list (if enabled)
+                        if (Properties.Settings.Default.RememberClients)
+                        {
+                            if (AuthorizedClients.Contains(clientHash))
+                            {
+                                authorized = true;
                             }
                         }
 
-                        if (checkLogin)
+                        if (!authorized && HttpHeaders.ContainsKey("Authorization"))
                         {
-                            // First, check authorized client list (if enabled)
-                            if (TinyOPDS.Properties.Settings.Default.RememberClients)
-                            {
-                                if (AuthorizedClients.Contains(clientHash))
-                                {
-                                    authorized = true;
-                                }
-                            }
+                            string hash = HttpHeaders["Authorization"];
 
-                            if (!authorized && HttpHeaders.ContainsKey("Authorization"))
+                            if (hash.StartsWith("Basic "))
                             {
-                                string hash = HttpHeaders["Authorization"].ToString();
-
-                                if (hash.StartsWith("Basic "))
+                                try
                                 {
-                                    try
+                                    string[] credential = hash.Substring(6).DecodeFromBase64().Split(':');
+
+                                    if (credential.Length == 2)
                                     {
-                                        string[] credential = hash.Substring(6).DecodeFromBase64().Split(':');
+                                        string user = credential[0];
+                                        string password = credential[1];
 
-                                        if (credential.Length == 2)
+                                        // Use cached credentials for faster lookup
+                                        authorized = ValidateCredentials(user, password);
+                                        if (authorized)
                                         {
-                                            string user = credential[0];
-                                            string password = credential[1];
-
-                                            foreach (Credential cred in Credentials)
-                                            {
-                                                if (cred.User.Equals(user))
-                                                {
-                                                    authorized = cred.Password.Equals(password);
-                                                    if (authorized)
-                                                    {
-                                                        AuthorizedClients.Add(clientHash);
-                                                        HttpServer.ServerStatistics.SuccessfulLoginAttempts++;
-                                                    }
-                                                    break;
-                                                }
-                                            }
-
-                                            if (!authorized)
-                                            {
-                                                Log.WriteLine(LogLevel.Authentication, "Authentication failed! IP: {0} user: {1} pass: {2}", remoteIP, user, password);
-                                            }
-                                            else
-                                            {
-                                                Log.WriteLine(LogLevel.Authentication, "User {0} from {1} successfully logged in", user, remoteIP);
-                                            }
+                                            AuthorizedClients.Add(clientHash);
+                                            HttpServer.ServerStatistics.IncrementSuccessfulLoginAttempts();
+                                            Log.WriteLine(LogLevel.Authentication, "User {0} from {1} successfully logged in", user, remoteIP);
+                                        }
+                                        else
+                                        {
+                                            Log.WriteLine(LogLevel.Authentication, "Authentication failed! IP: {0} user: {1}", remoteIP, user);
                                         }
                                     }
-                                    catch (Exception e)
-                                    {
-                                        Log.WriteLine(LogLevel.Authentication, "Authentication exception: IP: {0}, {1}", remoteIP, e.Message);
-                                    }
-                                } 
-                            } 
-                        }  
-                    }
-
-                    if (authorized)
-                    {
-                        HttpServer.ServerStatistics.AddClient(clientHash);
-
-                        if (HttpMethod.Equals("GET"))
-                        {
-                            HttpServer.ServerStatistics.GetRequests++;
-                            HandleGETRequest();
-                        }
-                        else if (HttpMethod.Equals("POST"))
-                        {
-                            HttpServer.ServerStatistics.PostRequests++;
-                            HandlePOSTRequest();
-                        }
-                    }
-                    else
-                    {
-                        if (TinyOPDS.Properties.Settings.Default.BanClients)
-                        {
-                            lock (BannedClients)
-                            {
-                                if (!BannedClients.ContainsKey(remoteIP)) BannedClients[remoteIP] = 0;
-                                BannedClients[remoteIP]++;
-                            }
-                            if (!checkLogin)
-                            {
-                                Log.WriteLine(LogLevel.Authentication, "IP address {0} is banned!", remoteIP);
-                                WriteForbidden();
+                                }
+                                catch (Exception e)
+                                {
+                                    Log.WriteLine(LogLevel.Authentication, "Authentication exception: IP: {0}, {1}", remoteIP, e.Message);
+                                }
                             }
                         }
-                        if (checkLogin)
+                    }
+                }
+
+                if (authorized)
+                {
+                    HttpServer.ServerStatistics.AddClient(clientHash);
+
+                    if (HttpMethod.Equals("GET"))
+                    {
+                        HttpServer.ServerStatistics.IncrementGetRequests();
+                        HandleGETRequest();
+                    }
+                    else if (HttpMethod.Equals("POST"))
+                    {
+                        HttpServer.ServerStatistics.IncrementPostRequests();
+                        HandlePOSTRequest();
+                    }
+                }
+                else
+                {
+                    if (Properties.Settings.Default.BanClients)
+                    {
+                        lock (BannedClients)
                         {
-                            HttpServer.ServerStatistics.WrongLoginAttempts++;
-                            WriteNotAuthorized();
+                            if (!BannedClients.ContainsKey(remoteIP)) BannedClients[remoteIP] = 0;
+                            BannedClients[remoteIP]++;
+                        }
+                        if (!checkLogin)
+                        {
+                            Log.WriteLine(LogLevel.Authentication, "IP address {0} is banned!", remoteIP);
+                            WriteForbidden();
+                            return;
                         }
                     }
+                    if (checkLogin)
+                    {
+                        HttpServer.ServerStatistics.IncrementWrongLoginAttempts();
+                        WriteNotAuthorized();
+                    }
+                }
+            }
+
+            // Flush output stream
+            if (OutputStream != null && OutputStream.BaseStream.CanWrite)
+            {
+                try
+                {
+                    OutputStream.Flush();
                 }
                 catch (Exception e)
                 {
-                    Log.WriteLine(LogLevel.Error, ".Process(object param) exception: {0}", e.Message);
-                    WriteFailure();
+                    Log.WriteLine(LogLevel.Error, "outputStream.Flush() exception: {0}", e.Message);
                 }
             }
+        }
 
-            try
-            {
-                if (OutputStream != null && OutputStream.BaseStream.CanWrite)
-                {
-                    try
-                    {
-                        OutputStream.Flush();
-                    }
-                    catch (Exception e)
-                    {
-                        Log.WriteLine(LogLevel.Error, ".Process(object param): outputStream.Flush() exception: {0}", e.Message);
-                    }
-                }
-            }
+        private void CleanupConnection()
+        {
+            try { Socket?.Close(); } catch { }
+            try { inputStream?.Dispose(); OutputStream?.Dispose(); }
+            catch { }
             finally
             {
-                Socket.Close();
-                _inputStream = null;
+                inputStream = null;
                 OutputStream = null;
                 Socket = null;
             }
         }
 
-        public bool ParseRequest() 
+        private bool ValidateCredentials(string user, string password)
         {
-            String request = StreamReadLine(_inputStream);
+            lock (credentialCacheLock)
+            {
+                // Rebuild cache if credentials changed
+                if (credentialCache.Count != Credentials.Count)
+                {
+                    credentialCache.Clear();
+                    foreach (Credential cred in Credentials)
+                    {
+                        credentialCache[cred.User] = cred.Password;
+                    }
+                }
+
+                return credentialCache.ContainsKey(user) && credentialCache[user].Equals(password);
+            }
+        }
+
+        public bool ParseRequest()
+        {
+            string request = StreamReadLine(inputStream);
             if (string.IsNullOrEmpty(request)) return false;
             string[] tokens = request.Split(' ');
             if (tokens.Length != 3) return false;
@@ -288,54 +348,54 @@ namespace TinyOPDS.Server
             return true;
         }
 
-        public void ReadHeaders() 
+        public void ReadHeaders()
         {
-            string line = string.Empty;
-            while ((line = StreamReadLine(_inputStream)) != null) 
+            string line;
+            while ((line = StreamReadLine(inputStream)) != null)
             {
                 if (string.IsNullOrEmpty(line)) return;
-                
+
                 int separator = line.IndexOf(':');
-                if (separator == -1) 
+                if (separator == -1)
                 {
                     throw new Exception("ReadHeaders(): invalid HTTP header line: " + line);
                 }
-                String name = line.Substring(0, separator);
+                string name = line.Substring(0, separator);
                 int pos = separator + 1;
                 // strip spaces
-                while ((pos < line.Length) && (line[pos] == ' ')) pos++; 
-                    
+                while ((pos < line.Length) && (line[pos] == ' ')) pos++;
+
                 string value = line.Substring(pos, line.Length - pos);
                 HttpHeaders[name] = value;
             }
         }
 
-        public void HandleGETRequest() 
+        public void HandleGETRequest()
         {
             Server.HandleGETRequest(this);
         }
 
-        private const int BUF_SIZE = 1024;
+        private const int BUF_SIZE = 4096; // Increased from 1024
         public void HandlePOSTRequest()
         {
-            int content_len = 0;
             MemoryStream memStream = null;
+            StreamReader reader = null;
 
             try
             {
                 memStream = new MemoryStream();
-                if (this.HttpHeaders.ContainsKey("Content-Length"))
+                if (HttpHeaders.ContainsKey("Content-Length"))
                 {
-                    content_len = Convert.ToInt32(this.HttpHeaders["Content-Length"]);
+                    int content_len = Convert.ToInt32(HttpHeaders["Content-Length"]);
                     if (content_len > MAX_POST_SIZE)
                     {
-                        throw new Exception(String.Format("POST Content-Length({0}) too big for this simple server", content_len));
+                        throw new Exception(String.Format("POST Content-Length({0}) too big for this server", content_len));
                     }
                     byte[] buf = new byte[BUF_SIZE];
                     int to_read = content_len;
                     while (to_read > 0)
                     {
-                        int numread = this._inputStream.Read(buf, 0, Math.Min(BUF_SIZE, to_read));
+                        int numread = inputStream.Read(buf, 0, Math.Min(BUF_SIZE, to_read));
                         if (numread == 0)
                         {
                             if (to_read == 0) break;
@@ -346,71 +406,76 @@ namespace TinyOPDS.Server
                     }
                     memStream.Seek(0, SeekOrigin.Begin);
                 }
-                using (StreamReader reader = new StreamReader(memStream))
-                {
-                    memStream = null;
-                    Server.HandlePOSTRequest(this, reader);
-                }
+                reader = new StreamReader(memStream);
+                Server.HandlePOSTRequest(this, reader);
             }
             finally
             {
-                if (memStream != null) memStream.Dispose();
+                reader?.Dispose();
+                memStream?.Dispose();
             }
         }
 
-        public void WriteSuccess(string contentType = "text/xml", bool isGZip = false) 
+        private void WriteHttpResponse(string statusLine, string additionalHeaders = null, string methodName = null, bool keepAlive = false)
         {
             try
             {
-                OutputStream.Write("HTTP/1.1 200 OK\n");
-                OutputStream.Write("Content-Type: " + contentType + "\n");
-                if (isGZip) OutputStream.Write("Content-Encoding: gzip\n");
-                OutputStream.Write("Connection: close\n\n");
+                OutputStream.Write("HTTP/1.1 " + statusLine + "\n");
+                if (!string.IsNullOrEmpty(additionalHeaders))
+                {
+                    OutputStream.Write(additionalHeaders + "\n");
+                }
+
+                // Support for Keep-Alive connections
+                if (keepAlive && HttpHeaders.ContainsKey("Connection") && HttpHeaders["Connection"].ToLower().Contains("keep-alive"))
+                {
+                    OutputStream.Write("Connection: keep-alive\n");
+                    OutputStream.Write("Keep-Alive: timeout=30, max=100\n");
+                }
+                else
+                {
+                    OutputStream.Write("Connection: close\n");
+                }
+
+                OutputStream.Write("\n");
             }
             catch (Exception e)
             {
-                Log.WriteLine(LogLevel.Error, ".WriteSuccess() exception: {0}", e.Message);
+                string logMethodName = methodName ?? new System.Diagnostics.StackTrace().GetFrame(1).GetMethod().Name;
+                Log.WriteLine(LogLevel.Error, "{0} exception: {1}", logMethodName, e.Message);
             }
         }
 
-        public void WriteFailure() 
+        public void WriteSuccess(string contentType = "text/xml", bool isGZip = false)
         {
-            try
-            {
-                OutputStream.Write("HTTP/1.1 404 Bad request\n");
-                OutputStream.Write("Connection: close\n\n");
-            }
-            catch (Exception e)
-            {
-                Log.WriteLine(LogLevel.Error, ".WriteFailure() exception: {0}", e.Message);
-            }
+            string headers = "Content-Type: " + contentType;
+            if (isGZip) headers += "\nContent-Encoding: gzip";
+            WriteHttpResponse("200 OK", headers, "WriteSuccess", true);
+        }
+
+        public void WriteFailure()
+        {
+            WriteHttpResponse("404 Bad request");
         }
 
         public void WriteNotAuthorized()
         {
-            try
-            {
-                OutputStream.Write("HTTP/1.1 401 Unauthorized\n");
-                OutputStream.Write("WWW-Authenticate: Basic realm=TinyOPDS\n");
-                OutputStream.Write("Connection: close\n\n");
-            }
-            catch (Exception e)
-            {
-                Log.WriteLine(LogLevel.Error, ".WriteNotAuthorized() exception: {0}", e.Message);
-            }
+            WriteHttpResponse("401 Unauthorized", "WWW-Authenticate: Basic realm=TinyOPDS");
         }
 
         public void WriteForbidden()
         {
-            try
-            {
-                OutputStream.Write("HTTP/1.1 403 Forbidden\n");
-                OutputStream.Write("Connection: close\n\n");
-            }
-            catch (Exception e)
-            {
-                Log.WriteLine(LogLevel.Error, ".WriteForbidden() exception: {0}", e.Message);
-            }
+            WriteHttpResponse("403 Forbidden");
+        }
+
+        public void WriteBadRequest()
+        {
+            WriteHttpResponse("400 Bad Request");
+        }
+
+        public void WriteMethodNotAllowed()
+        {
+            WriteHttpResponse("405 Method Not Allowed");
         }
     }
 
@@ -420,63 +485,121 @@ namespace TinyOPDS.Server
     public class Statistics
     {
         public event EventHandler StatisticsUpdated;
-        private int _booksSent  = 0;
-        private int _imagesSent = 0;
-        private int _getRequests  = 0;
-        private int _postRequests  = 0;
-        private int _successfulLoginAttempts = 0;
-        private int _wrongLoginAttempts = 0;
-        public int BooksSent { get { return _booksSent; } set { _booksSent = value; if (StatisticsUpdated != null) StatisticsUpdated(this, null); } }
-        public int ImagesSent { get { return _imagesSent; } set { _imagesSent = value; if (StatisticsUpdated != null) StatisticsUpdated(this, null); } }
-        public int GetRequests { get { return _getRequests; } set { _getRequests = value; if (StatisticsUpdated != null) StatisticsUpdated(this, null); } }
-        public int PostRequests { get { return _postRequests; } set { _postRequests = value; if (StatisticsUpdated != null) StatisticsUpdated(this, null); } }
-        public int SuccessfulLoginAttempts { get { return _successfulLoginAttempts; } set { _successfulLoginAttempts = value; if (StatisticsUpdated != null) StatisticsUpdated(this, null); } }
-        public int WrongLoginAttempts { get { return _wrongLoginAttempts; } set { _wrongLoginAttempts = value; if (StatisticsUpdated != null) StatisticsUpdated(this, null); } }
-        public int UniqueClientsCount { get { return _uniqueClients.Count; } }
-        public int BannedClientsCount { get { lock (HttpProcessor.BannedClients) { return HttpProcessor.BannedClients.Count(сlient => сlient.Value >= TinyOPDS.Properties.Settings.Default.WrongAttemptsCount); } } }
-        public void AddClient(string newClient) { _uniqueClients[newClient] = true; }
-        private Dictionary<string, bool> _uniqueClients = new Dictionary<string, bool>();
+        private volatile int booksSent = 0;
+        private volatile int imagesSent = 0;
+        private volatile int getRequests = 0;
+        private volatile int postRequests = 0;
+        private volatile int successfulLoginAttempts = 0;
+        private volatile int wrongLoginAttempts = 0;
+
+        public int BooksSent { get { return booksSent; } set { booksSent = value; StatisticsUpdated?.Invoke(this, null); } }
+        public int ImagesSent { get { return imagesSent; } set { imagesSent = value; StatisticsUpdated?.Invoke(this, null); } }
+        public int GetRequests { get { return getRequests; } set { getRequests = value; StatisticsUpdated?.Invoke(this, null); } }
+        public int PostRequests { get { return postRequests; } set { postRequests = value; StatisticsUpdated?.Invoke(this, null); } }
+        public int SuccessfulLoginAttempts { get { return successfulLoginAttempts; } set { successfulLoginAttempts = value; StatisticsUpdated?.Invoke(this, null); } }
+        public int WrongLoginAttempts { get { return wrongLoginAttempts; } set { wrongLoginAttempts = value; StatisticsUpdated?.Invoke(this, null); } }
+        public int UniqueClientsCount { get { return uniqueClients.Count; } }
+        public int BannedClientsCount { get { lock (HttpProcessor.BannedClients) { return HttpProcessor.BannedClients.Count(client => client.Value >= Properties.Settings.Default.WrongAttemptsCount); } } }
+
+        public void AddClient(string newClient)
+        {
+            lock (uniqueClients)
+            {
+                uniqueClients[newClient] = true;
+            }
+        }
+
+        private readonly Dictionary<string, bool> uniqueClients = new Dictionary<string, bool>();
+
         public void Clear()
         {
-            _booksSent = _imagesSent = _getRequests = _postRequests = _successfulLoginAttempts = _wrongLoginAttempts = 0;
-            _uniqueClients.Clear();
-            if (StatisticsUpdated != null) StatisticsUpdated(this, null);
+            booksSent = imagesSent = getRequests = postRequests = successfulLoginAttempts = wrongLoginAttempts = 0;
+            lock (uniqueClients)
+            {
+                uniqueClients.Clear();
+            }
+            StatisticsUpdated?.Invoke(this, null);
+        }
+
+        // Thread-safe increment methods for high-load scenarios
+        public void IncrementBooksSent()
+        {
+            Interlocked.Increment(ref booksSent);
+            StatisticsUpdated?.Invoke(this, null);
+        }
+
+        public void IncrementImagesSent()
+        {
+            Interlocked.Increment(ref imagesSent);
+            StatisticsUpdated?.Invoke(this, null);
+        }
+
+        public void IncrementGetRequests()
+        {
+            Interlocked.Increment(ref getRequests);
+            StatisticsUpdated?.Invoke(this, null);
+        }
+
+        public void IncrementPostRequests()
+        {
+            Interlocked.Increment(ref postRequests);
+            StatisticsUpdated?.Invoke(this, null);
+        }
+
+        public void IncrementSuccessfulLoginAttempts()
+        {
+            Interlocked.Increment(ref successfulLoginAttempts);
+            StatisticsUpdated?.Invoke(this, null);
+        }
+
+        public void IncrementWrongLoginAttempts()
+        {
+            Interlocked.Increment(ref wrongLoginAttempts);
+            StatisticsUpdated?.Invoke(this, null);
         }
     }
 
     /// <summary>
-    /// Simple HTTP server
+    /// Simple HTTP server with connection pooling and enhanced error handling
     /// </summary>
     public abstract class HttpServer
     {
-        protected int _port;
-        protected int _timeout;
-        protected IPAddress _interfaceIP = IPAddress.Any;
-        TcpListener _listener;
-        internal bool _isActive = false;
-        public bool IsActive { get { return _isActive; } }
+        protected int port;
+        protected int timeout;
+        protected IPAddress interfaceIP = IPAddress.Any;
+        private TcpListener listener;
+        internal bool isActive = false;
+        public bool IsActive { get { return isActive; } }
         public Exception ServerException = null;
         public AutoResetEvent ServerReady = null;
         public static Statistics ServerStatistics = new Statistics();
 
-        private bool _isIdle = true;
-        private TimeSpan _idleTimeout = TimeSpan.FromMinutes(10);
-        public bool IsIdle { get { return _isIdle; } }
+        private bool isIdle = true;
+        private TimeSpan idleTimeout = TimeSpan.FromMinutes(10);
+        public bool IsIdle { get { return isIdle; } }
+
+        // Connection management
+        private readonly SemaphoreSlim connectionSemaphore;
+        private const int MAX_CONCURRENT_CONNECTIONS = 100;
+        private const int SOCKET_BUFFER_SIZE = 1024 * 512;
+        private const int IDLE_CHECK_INTERVAL = 600; // 60 seconds at 100ms intervals
 
         public HttpServer(int Port, int Timeout = 10000)
         {
-            _port = Port;
-            _timeout = Timeout;
+            port = Port;
+            timeout = Timeout;
             ServerReady = new AutoResetEvent(false);
+            connectionSemaphore = new SemaphoreSlim(MAX_CONCURRENT_CONNECTIONS, MAX_CONCURRENT_CONNECTIONS);
             ServerStatistics.Clear();
         }
 
-        public HttpServer(IPAddress InterfaceIP, int Port, int Timeout = 10000) 
+        public HttpServer(IPAddress InterfaceIP, int Port, int Timeout = 10000)
         {
-            _interfaceIP = InterfaceIP;
-            _port = Port;
-            _timeout = Timeout;
+            interfaceIP = InterfaceIP;
+            port = Port;
+            timeout = Timeout;
             ServerReady = new AutoResetEvent(false);
+            connectionSemaphore = new SemaphoreSlim(MAX_CONCURRENT_CONNECTIONS, MAX_CONCURRENT_CONNECTIONS);
             ServerStatistics.Clear();
         }
 
@@ -487,56 +610,63 @@ namespace TinyOPDS.Server
 
         public virtual void StopServer()
         {
-            _isActive = false;
-            if (_listener != null)
+            isActive = false;
+            if (listener != null)
             {
-                _listener.Stop();
-                _listener = null;
+                listener.Stop();
+                listener = null;
             }
             if (ServerReady != null)
             {
                 ServerReady.Dispose();
                 ServerReady = null;
             }
+            connectionSemaphore?.Dispose();
         }
 
         /// <summary>
-        /// Server listener
+        /// Server listener with connection throttling
         /// </summary>
-        public void Listen() 
+        public void Listen()
         {
             DateTime requestTime = DateTime.Now;
             int loopCount = 0;
-            HttpProcessor processor = null;
             ServerException = null;
             try
             {
-                _listener = new TcpListener(_interfaceIP, _port);
-                _listener.Start();
-                _isActive = true;
+                listener = new TcpListener(interfaceIP, port);
+                listener.Start();
+                isActive = true;
                 ServerReady.Set();
-                while (_isActive)
+
+                while (isActive)
                 {
-                    if (_listener.Pending())
+                    if (listener.Pending())
                     {
-                        TcpClient socket = _listener.AcceptTcpClient();
-                        socket.SendTimeout = socket.ReceiveTimeout = _timeout;
-                        socket.SendBufferSize = 1024 * 1024;
+                        TcpClient socket = listener.AcceptTcpClient();
+                        socket.SendTimeout = socket.ReceiveTimeout = timeout;
+                        socket.SendBufferSize = SOCKET_BUFFER_SIZE;
                         socket.NoDelay = true;
-                        processor = new HttpProcessor(socket, this);
+
                         // Reset idle state
-                        _isIdle = false;
+                        isIdle = false;
                         requestTime = DateTime.Now;
                         loopCount = 0;
-                        ThreadPool.QueueUserWorkItem(new WaitCallback(processor.Process));
+
+                        // Use semaphore to limit concurrent connections
+                        ThreadPool.QueueUserWorkItem(ProcessConnectionWithThrottling, socket);
                     }
-                    else Thread.Sleep(100);
+                    else
+                    {
+                        Thread.Sleep(100);
+                    }
 
                     // Check the idle state once a minute
-                    if (loopCount++ > 600)
+                    if (loopCount++ > IDLE_CHECK_INTERVAL)
                     {
                         loopCount = 0;
-                        if (DateTime.Now.Subtract(requestTime) > _idleTimeout) _isIdle = true;
+                        if (DateTime.Now.Subtract(requestTime) > idleTimeout)
+                            isIdle = true;
                     }
                 }
             }
@@ -544,26 +674,49 @@ namespace TinyOPDS.Server
             {
                 Log.WriteLine(LogLevel.Error, ".Listen() exception: {0}", e.Message);
                 ServerException = e;
-                _isActive = false;
+                isActive = false;
                 ServerReady.Set();
             }
             finally
             {
-                if (processor != null) processor.Dispose();
-                _isActive = false;
+                isActive = false;
+            }
+        }
+
+        private void ProcessConnectionWithThrottling(object socketObj)
+        {
+            TcpClient socket = (TcpClient)socketObj;
+            HttpProcessor processor = null;
+
+            try
+            {
+                // Wait for available connection slot
+                connectionSemaphore?.Wait();
+
+                processor = new HttpProcessor(socket, this);
+                processor.Process();
+            }
+            finally
+            {
+                try
+                {
+                    processor?.Dispose();
+                    connectionSemaphore?.Release();
+                }
+                catch { }
             }
         }
 
         /// <summary>
         /// Abstract method to handle GET request
         /// </summary>
-        /// <param name="p"></param>
+        /// <param name="processor"></param>
         public abstract void HandleGETRequest(HttpProcessor processor);
 
         /// <summary>
         /// Abstract method to handle POST request
         /// </summary>
-        /// <param name="p"></param>
+        /// <param name="processor"></param>
         /// <param name="inputData"></param>
         public abstract void HandlePOSTRequest(HttpProcessor processor, StreamReader inputData);
     }

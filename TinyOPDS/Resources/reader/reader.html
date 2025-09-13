@@ -1,0 +1,108 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal Reader</title>
+    
+    <!-- External stylesheets -->
+    <link rel="stylesheet" href="reader.css">
+    <link rel="stylesheet" href="reader-themes.css">
+</head>
+<body class="theme-light">
+    <button class="menu-toggle" id="menuToggle">☰</button>
+
+    <div class="toolbar" id="toolbar">
+        <div class="book-info">
+            <div class="book-title" id="bookTitle">Reader</div>
+            <div class="book-author" id="bookAuthor"></div>
+        </div>
+        <div class="controls">
+            <div class="control-group">
+                <button class="control-btn" id="tocButton">
+                    ☰
+                    <span class="tooltip">Table of Contents</span>
+                </button>
+            </div>
+            <div class="control-group">
+                <button class="control-btn" id="decreaseFont">
+                    A-
+                    <span class="tooltip">Decrease Font</span>
+                </button>
+                <button class="control-btn" id="increaseFont">
+                    A+
+                    <span class="tooltip">Increase Font</span>
+                </button>
+            </div>
+            <div class="control-group">
+                <button class="control-btn" id="fontToggle">
+                    <span class="font-indicator serif" id="fontIndicator">Aa</span>
+                    <span class="tooltip">Change Font</span>
+                </button>
+            </div>
+            <div class="control-group">
+                <button class="control-btn" id="themeToggle">
+                    ◐
+                    <span class="tooltip">Change Theme</span>
+                </button>
+            </div>
+            <div class="control-group">
+                <button class="control-btn" id="decreaseMargins">
+                    ◀▶
+                    <span class="tooltip">Decrease Margins</span>
+                </button>
+                <button class="control-btn" id="increaseMargins">
+                    ▶◀
+                    <span class="tooltip">Increase Margins</span>
+                </button>
+            </div>
+            <div class="control-group desktop-only">
+                <button class="control-btn" id="standardWidth">
+                    ⬚
+                    <span class="tooltip">Standard Width</span>
+                </button>
+                <button class="control-btn" id="fullWidth">
+                    ⬛
+                    <span class="tooltip">Full Width</span>
+                </button>
+            </div>
+            <div class="control-group desktop-only">
+                <button class="control-btn" id="fullscreen">
+                    ⛶
+                    <span class="tooltip">Fullscreen</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toc-overlay" id="tocOverlay">
+        <div class="toc-panel">
+            <div class="toc-header">
+                <div class="toc-title">Table of Contents</div>
+                <button class="toc-close" id="tocClose">✕</button>
+            </div>
+            <div class="toc-content" id="tocContent">
+                <div class="toc-empty">No chapters available</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="click-area top" id="clickTop"></div>
+    <div class="click-area bottom" id="clickBottom"></div>
+
+    <div class="reader-container standard" id="readerContainer">
+        <div class="book-content light font-serif" id="bookContent"></div>
+    </div>
+
+    <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+
+    <input type="file" id="fileInput" accept=".fb2,.fb2.zip,.epub">
+
+    <!-- External libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    
+    <!-- Application scripts -->
+    <script src="reader-formats.js"></script>
+    <script src="reader-main.js"></script>
+</body>
+</html>

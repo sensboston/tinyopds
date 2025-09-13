@@ -1,14 +1,13 @@
-﻿/***********************************************************
- * This file is a part of TinyOPDS server project
- * 
- * Copyright (c) 2013 SeNSSoFT
+﻿/*
+ * This file is part of TinyOPDS server project
+ * https://github.com/sensboston/tinyopds
  *
- * This code is licensed under the Microsoft Public License, 
- * see http://tinyopds.codeplex.com/license for the details.
+ * Copyright (c) 2013-2025 SeNSSoFT
+ * SPDX-License-Identifier: MIT
  *
- * Very simple but very effective application localization
- * 
- ************************************************************/
+ * Simple but effective app localization
+ *
+ */
 
 using System;
 using System.IO;
@@ -25,21 +24,35 @@ namespace TinyOPDS
 {
     public static class Localizer
     {
-        private static string _lang = "en";
-        private static Dictionary<string, string> _translations = new Dictionary<string, string>();
-        private static XDocument _xml = null;
+        private static string lang = "en";
+        private static Dictionary<string, string> translations = new Dictionary<string, string>();
+        private static XDocument xml = null;
 #if !CONSOLE
-        private static List<ToolStripItem> _menuItems = new List<ToolStripItem>();
+        private static List<ToolStripItem> menuItems = new List<ToolStripItem>();
 #endif
+
         /// <summary>
         /// Static classes don't have a constructors but we need to initialize translations
         /// </summary>
-        /// <param name="xmlFile">Name of xml translations, added to project as an embedded resource </param>
+        /// <param name="xmlFile">Name of xml translations, added to project as an embedded resource</param>
         public static void Init(string xmlFile = "translation.xml")
         {
-            try 
+            try
             {
-                _xml = XDocument.Load(Assembly.GetExecutingAssembly().GetManifestResourceStream(Assembly.GetExecutingAssembly().GetName().Name + "." + xmlFile));
+                var assembly = Assembly.GetExecutingAssembly();
+                var resourceName = assembly.GetName().Name + ".Resources." + xmlFile;
+
+                using (var stream = assembly.GetManifestResourceStream(resourceName))
+                {
+                    if (stream != null)
+                    {
+                        xml = XDocument.Load(stream);
+                    }
+                    else
+                    {
+                        Log.WriteLine("Localizer.Init({0}) error: resource not found", xmlFile);
+                    }
+                }
             }
             catch (Exception e)
             {
@@ -54,57 +67,52 @@ namespace TinyOPDS
         /// <param name="menu"></param>
         public static void AddMenu(ContextMenuStrip menu)
         {
-            foreach (ToolStripItem item in menu.Items) _menuItems.Add(item);
+            if (menu?.Items != null)
+            {
+                foreach (ToolStripItem item in menu.Items)
+                {
+                    if (item != null)
+                        menuItems.Add(item);
+                }
+            }
         }
 #endif
 
         /// <summary>
         /// Returns supported translations in Dictionary<langCode, languageName>
         /// </summary>
-        public static Dictionary<string,string> Languages
+        public static Dictionary<string, string> Languages
         {
             get
             {
-                return _xml != null ? _xml.Descendants("language").ToDictionary(d => d.Attribute("id").Value, d => d.Value) : null;
+                if (xml == null) return new Dictionary<string, string>();
+
+                try
+                {
+                    return xml.Descendants("language")
+                              .Where(l => l.Attribute("id") != null && !string.IsNullOrEmpty(l.Value))
+                              .ToDictionary(d => d.Attribute("id").Value, d => d.Value);
+                }
+                catch (Exception e)
+                {
+                    Log.WriteLine("Localizer.Languages exception: {0}", e.Message);
+                    return new Dictionary<string, string>();
+                }
             }
         }
 
         /// <summary>
         /// Current selected language
         /// </summary>
-        public static string Language 
-        { 
-            get { return _lang; }
+        public static string Language
+        {
+            get { return lang; }
             set
             {
-                if (_lang != value && _xml != null)
+                if (lang != value && xml != null)
                 {
-                    _lang = value;
-                    try
-                    {
-                        // Update localized string dictionary
-                        List<string> t = _xml.Descendants("property") // .Where(a => !a.HasAttributes)
-                                             .Descendants("text").Where(b => b.Attribute("lang").Value == "en" || b.Attribute("lang").Value == _lang)
-                                             .Select(c => c.Value).ToList();
-                        _translations.Clear();
-
-                        if (_lang.Equals("en"))
-                        {
-                            for (int i = 0; i < t.Count; i++)
-                                if (!string.IsNullOrEmpty(t[i]))
-                                    _translations.Add(t[i], t[i]);
-                        }
-                        else
-                        {
-                            for (int i = 0; i < t.Count / 2; i++)
-                                if (!string.IsNullOrEmpty(t[i * 2]))
-                                    _translations.Add(t[i * 2], t[i * 2 + 1]);
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        Log.WriteLine(".SetLanguage({0}) exception: {1}", _lang, e.Message);
-                    }
+                    lang = value;
+                    LoadTranslations();
                 }
             }
         }
@@ -117,37 +125,11 @@ namespace TinyOPDS
         /// <param name="lang"></param>
         public static void SetLanguage(Form form, string lang)
         {
-            if (_lang != lang && _xml != null)
+            if (Localizer.lang != lang && xml != null)
             {
-                _lang = lang;
-                try
-                {
-                    // Update localized string dictionary
-                    List<string> t = _xml.Descendants("property") // .Where(a => !a.HasAttributes)
-                                         .Descendants("text").Where(b => b.Attribute("lang").Value == "en" || b.Attribute("lang").Value == _lang)
-                                         .Select(c => c.Value).ToList();
-                    _translations.Clear();
-
-                    if (lang.Equals("en"))
-                    {
-                        for (int i = 0; i < t.Count; i++)
-                            if (!string.IsNullOrEmpty(t[i]))
-                                _translations.Add(t[i], t[i]);
-                    }
-                    else
-                    {
-                        for (int i = 0; i < t.Count / 2; i++)
-                            if (!string.IsNullOrEmpty(t[i * 2])) 
-                                _translations.Add(t[i * 2], t[i * 2 + 1]);
-                    }
-
-                    // Update form controls
-                    UpdateControls(form);
-                }
-                catch (Exception e)
-                {
-                    Log.WriteLine(".SetLanguage({0},{1}) exception: {2}", form, lang, e.Message);
-                }
+                Localizer.lang = lang;
+                LoadTranslations();
+                UpdateControls(form);
             }
         }
 #endif
@@ -159,7 +141,67 @@ namespace TinyOPDS
         /// <returns></returns>
         public static string Text(string source)
         {
-            return (_translations.ContainsKey(source)) ? _translations[source] : source;
+            if (string.IsNullOrEmpty(source)) return source;
+            return translations.ContainsKey(source) ? translations[source] : source;
+        }
+
+        /// <summary>
+        /// Loads translations for the current language
+        /// </summary>
+        private static void LoadTranslations()
+        {
+            if (xml == null) return;
+
+            try
+            {
+                translations.Clear();
+
+                var properties = xml.Descendants("property");
+
+                foreach (var property in properties)
+                {
+                    var englishText = property.Descendants("text")
+                                             .FirstOrDefault(t => t.Attribute("lang")?.Value == "en");
+
+                    if (englishText == null || string.IsNullOrEmpty(englishText.Value))
+                        continue;
+
+                    string translatedText = englishText.Value; // Default to English
+
+                    if (lang != "en")
+                    {
+                        var targetText = property.Descendants("text")
+                                                .FirstOrDefault(t => t.Attribute("lang")?.Value == lang);
+
+                        if (targetText != null && !string.IsNullOrEmpty(targetText.Value))
+                        {
+                            translatedText = targetText.Value;
+                        }
+                    }
+
+                    // Use TryAdd to avoid exceptions on duplicate keys
+                    string key = englishText.Value;
+                    if (!translations.ContainsKey(key))
+                    {
+                        translations.Add(key, translatedText);
+                    }
+                    else
+                    {
+                        Log.WriteLine(LogLevel.Warning, "Duplicate translation key found: '{0}'", key);
+                    }
+                }
+
+                Log.WriteLine(LogLevel.Info, "Loaded {0} translations for language '{1}'",
+                             translations.Count, lang);
+            }
+            catch (Exception e)
+            {
+                Log.WriteLine(LogLevel.Error, "LoadTranslations() exception: {0}", e.Message);
+
+                // Fallback: at least initialize with empty dictionary
+                if (translations == null)
+                    translations = new Dictionary<string, string>();
+            }
         }
 
 #if !CONSOLE
@@ -169,29 +211,76 @@ namespace TinyOPDS
         /// <param name="form">Form to be updated</param>
         private static void UpdateControls(Form form)
         {
-            // Find all controls
-            var controls = GetAllControls(form);
+            if (form == null || xml == null) return;
 
-            foreach (Control ctrl in new IteratorIsolateCollection(controls))
+            try
             {
-                var xmlProp = _xml.Descendants("property").Where(e => e.Attribute("form") != null && e.Attribute("form").Value.Equals(form.Name) && 
-                                                                      e.Attribute("ctrl") != null && e.Attribute("ctrl").Value == ctrl.Name);
-                if (xmlProp != null && xmlProp.Count() > 0)
+                // Find all controls
+                var controls = GetAllControls(form);
+
+                foreach (Control ctrl in new IteratorIsolateCollection(controls))
                 {
-                    var trans = xmlProp.FirstOrDefault().Descendants("text").Where(p => p.Attribute("lang").Value == _lang).Select(p => p.Value);
-                    if (trans != null && trans.Count() > 0) ctrl.Text = trans.First() as string;
+                    if (ctrl == null || string.IsNullOrEmpty(ctrl.Name))
+                        continue;
+
+                    try
+                    {
+                        var xmlProp = xml.Descendants("property")
+                                         .Where(e => e.Attribute("form")?.Value == form.Name &&
+                                                    e.Attribute("ctrl")?.Value == ctrl.Name);
+
+                        if (xmlProp.Any())
+                        {
+                            var trans = xmlProp.First()
+                                              .Descendants("text")
+                                              .Where(p => p.Attribute("lang")?.Value == lang)
+                                              .Select(p => p.Value)
+                                              .FirstOrDefault();
+
+                            if (!string.IsNullOrEmpty(trans))
+                                ctrl.Text = trans;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Log.WriteLine(LogLevel.Warning, "Error updating control {0}: {1}",
+                                     ctrl.Name, e.Message);
+                    }
+                }
+
+                // Update menu items
+                foreach (ToolStripItem ctrl in menuItems)
+                {
+                    if (ctrl == null || string.IsNullOrEmpty(ctrl.Name))
+                        continue;
+
+                    try
+                    {
+                        var xmlProp = xml.Descendants("property")
+                                         .Where(e => e.Attribute("ctrl")?.Value == ctrl.Name);
+
+                        if (xmlProp.Any())
+                        {
+                            var trans = xmlProp.First()
+                                              .Descendants("text")
+                                              .Where(p => p.Attribute("lang")?.Value == lang)
+                                              .Select(p => p.Value)
+                                              .FirstOrDefault();
+
+                            if (!string.IsNullOrEmpty(trans))
+                                ctrl.Text = trans;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Log.WriteLine(LogLevel.Warning, "Error updating menu item {0}: {1}",
+                                     ctrl.Name, e.Message);
+                    }
                 }
             }
-
-            foreach (ToolStripItem ctrl in _menuItems)
+            catch (Exception e)
             {
-                var xmlProp = _xml.Descendants("property").Where(e => e.Attribute("ctrl") != null && e.Attribute("ctrl").Value == ctrl.Name);
-                if (xmlProp != null && xmlProp.Count() > 0)
-                {
-                    var trans = xmlProp.First().Descendants("text").Where(p => p.Attribute("lang").Value == _lang).Select(p => p.Value);
-                    if (trans != null && trans.Count() > 0) ctrl.Text = trans.First() as string;
-                }
-
+                Log.WriteLine(LogLevel.Error, "UpdateControls() exception: {0}", e.Message);
             }
         }
 
@@ -208,30 +297,45 @@ namespace TinyOPDS
 
             if (form != null)
             {
-
-                var controls = GetAllControls(form);
-
-                foreach (Control ctrl in controls)
+                try
                 {
-                    foreach (var propInfo in ctrl.GetType().GetProperties())
+                    var controls = GetAllControls(form);
+
+                    foreach (Control ctrl in controls)
                     {
-                        if (propInfo.Name == "Text")
+                        if (ctrl == null) continue;
+
+                        try
                         {
-                            try
+                            foreach (var propInfo in ctrl.GetType().GetProperties())
                             {
-                                var value = propInfo.GetValue(ctrl, null);
-                                doc.Root.Element("properties").Add(
-                                    new XElement("property",
-                                        new XAttribute("form", form.Name),
-                                        new XAttribute("ctrl", ctrl.Name),
-                                        new XElement("text",
-                                            new XAttribute("lang", srcLang), value))
-                                    );
+                                if (propInfo.Name == "Text")
+                                {
+                                    var value = propInfo.GetValue(ctrl, null);
+                                    if (value != null && !string.IsNullOrEmpty(value.ToString()))
+                                    {
+                                        doc.Root.Element("properties").Add(
+                                            new XElement("property",
+                                                new XAttribute("form", form.Name ?? ""),
+                                                new XAttribute("ctrl", ctrl.Name ?? ""),
+                                                new XElement("text",
+                                                    new XAttribute("lang", srcLang), value))
+                                        );
+                                    }
+                                    break;
+                                }
                             }
-                            catch
-                            { }
+                        }
+                        catch (Exception e)
+                        {
+                            Log.WriteLine(LogLevel.Warning, "Error processing control {0}: {1}",
+                                         ctrl.Name ?? "Unknown", e.Message);
                         }
                     }
+                }
+                catch (Exception e)
+                {
+                    Log.WriteLine(LogLevel.Error, "Setup() exception: {0}", e.Message);
                 }
             }
 
@@ -245,8 +349,18 @@ namespace TinyOPDS
         /// <returns></returns>
         private static List<Control> GetAllControls(Control control)
         {
-            var controls = control.Controls.Cast<Control>();
-            return (controls.SelectMany(ctrl => GetAllControls(ctrl)).Concat(controls)).ToList();
+            if (control == null) return new List<Control>();
+
+            try
+            {
+                var controls = control.Controls.Cast<Control>().Where(c => c != null);
+                return controls.SelectMany(ctrl => GetAllControls(ctrl)).Concat(controls).ToList();
+            }
+            catch (Exception e)
+            {
+                Log.WriteLine(LogLevel.Warning, "GetAllControls() exception: {0}", e.Message);
+                return new List<Control>();
+            }
         }
 #endif
     }

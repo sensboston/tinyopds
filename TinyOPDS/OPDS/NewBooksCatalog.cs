@@ -1,22 +1,17 @@
-﻿/***********************************************************
- * This file is a part of TinyOPDS server project
- * 
- * Copyright (c) 2013 SeNSSoFT
+﻿/*
+ * This file is part of TinyOPDS server project
+ * https://github.com/sensboston/tinyopds
  *
- * This code is licensed under the Microsoft Public License, 
- * see http://tinyopds.codeplex.com/license for the details.
+ * Copyright (c) 2013-2025 SeNSSoFT
+ * SPDX-License-Identifier: MIT
  *
  * This module defines the OPDS NewBooksCatalog class
- * 
- * 
- ************************************************************/
+ *
+ */
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Xml.Linq;
-using System.Web;
 
 using TinyOPDS.Data;
 
@@ -25,10 +20,10 @@ namespace TinyOPDS.OPDS
     public class NewBooksCatalog
     {
         /// <summary>
-        /// Returns books catalog for specific search
+        /// Returns books catalog for new books with pagination support
         /// </summary>
-        /// <param name="searchPattern">Keyword to search</param>
-        /// <param name="searchFor">Type of search</param>
+        /// <param name="searchPattern">Contains page number parameters</param>
+        /// <param name="sortByDate">Sort by date (true) or alphabetically by title (false)</param>
         /// <param name="acceptFB2">Client can accept fb2 files</param>
         /// <param name="threshold">Items per page</param>
         /// <returns></returns>
@@ -41,75 +36,125 @@ namespace TinyOPDS.OPDS
                     new XElement("title", string.Format(Localizer.Text("New books sorted by {0}"), (sortByDate ? Localizer.Text("date") : Localizer.Text("titles")))),
                     new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                     new XElement("icon", "/icons/books.ico"),
-                // Add links
+                    // Add links
                     Links.opensearch, Links.search, Links.start)
                 );
 
             int pageNumber = 0;
-            // Extract and remove page number from the search patter
+            // Extract and remove page number from the search pattern
             int j = searchPattern.IndexOf("?pageNumber=");
             if (j >= 0)
             {
                 int.TryParse(searchPattern.Substring(j + 12), out pageNumber);
             }
 
-            // Get list of new books
+            // Get paginated new books using the new Library method
+            var paginatedResult = Library.GetNewBooksPaginated(sortByDate, pageNumber, threshold);
+
+            // Build catalog type for navigation links
             string catalogType = string.Empty;
-            List<Book> books = Library.NewBooks;
-
-            if (sortByDate) books = books.OrderBy(b => b.AddedDate).ToList();
-            else books = books.OrderBy(b => b.Title, new OPDSComparer(TinyOPDS.Properties.Settings.Default.SortOrder > 0)).ToList();
-
-            int startIndex = pageNumber * threshold;
-            int endIndex = startIndex + ((books.Count / threshold == 0) ? books.Count : Math.Min(threshold, books.Count - startIndex));
-
-            if ((pageNumber + 1) * threshold < books.Count)
+            if (paginatedResult.HasNextPage)
             {
-                catalogType = string.Format("/{0}?pageNumber={1}", (sortByDate ? "newdate" : "newtitle"), pageNumber + 1);
-                doc.Root.Add(new XElement("link",
-                                new XAttribute("href", catalogType),
-                                new XAttribute("rel", "next"),
-                                new XAttribute("type", "application/atom+xml;profile=opds-catalog")));
+                catalogType = string.Format("/{0}?pageNumber={1}",
+                    (sortByDate ? "newdate" : "newtitle"),
+                    pageNumber + 1);
             }
 
-            bool useCyrillic = TinyOPDS.Properties.Settings.Default.SortOrder > 0;
-
-            List<Genre> genres = Library.Genres;
-
-            // Add catalog entries
-            for (int i = startIndex; i < endIndex; i++)
+            // Add pagination links
+            if (paginatedResult.HasNextPage)
             {
-                Book book = books.ElementAt(i);
+                doc.Root.Add(new XElement("link",
+                    new XAttribute("rel", "next"),
+                    new XAttribute("href", catalogType),
+                    new XAttribute("type", "application/atom+xml;profile=opds-catalog"),
+                    new XAttribute("title", string.Format(Localizer.Text("Page {0}"), pageNumber + 2))));
+            }
 
-                XElement entry =
-                    new XElement("entry",
-                        new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                        new XElement("id", "tag:book:" + book.ID),
-                        new XElement("title", book.Title)
-                );
+            if (paginatedResult.HasPreviousPage)
+            {
+                string prevCatalogType = string.Format("/{0}?pageNumber={1}",
+                    (sortByDate ? "newdate" : "newtitle"),
+                    pageNumber - 1);
 
-                foreach (string author in book.Authors)
+                doc.Root.Add(new XElement("link",
+                    new XAttribute("rel", "previous"),
+                    new XAttribute("href", prevCatalogType),
+                    new XAttribute("type", "application/atom+xml;profile=opds-catalog"),
+                    new XAttribute("title", string.Format(Localizer.Text("Page {0}"), pageNumber))));
+            }
+
+            // Add first page link if not on first page
+            if (pageNumber > 0)
+            {
+                string firstPageType = string.Format("/{0}", (sortByDate ? "newdate" : "newtitle"));
+                doc.Root.Add(new XElement("link",
+                    new XAttribute("rel", "first"),
+                    new XAttribute("href", firstPageType),
+                    new XAttribute("type", "application/atom+xml;profile=opds-catalog"),
+                    new XAttribute("title", Localizer.Text("First page"))));
+            }
+
+            // Add page info to title
+            if (paginatedResult.TotalPages > 1)
+            {
+                string pageInfo = string.Format(" - {0} {1}/{2} ({3} {4})",
+                    Localizer.Text("Page"),
+                    pageNumber + 1,
+                    paginatedResult.TotalPages,
+                    paginatedResult.TotalBooks,
+                    Localizer.Text("books"));
+
+                doc.Root.Element("title").Value += pageInfo;
+            }
+
+            bool useCyrillic = Properties.Settings.Default.SortOrder > 0;
+
+            // Add book entries
+            foreach (Book book in paginatedResult.Books)
+            {
+                string id = "tag:book:" + book.ID;
+                // Construct book title, with volume/title
+                string bookTitle = book.Title;
+                if (!string.IsNullOrEmpty(book.Sequence))
+                    bookTitle = string.Format(Localizer.Text("({0} #{1}) {2}"), book.Sequence, book.NumberInSequence, book.Title);
+
+                XElement entry = new XElement("entry",
+                    new XElement("updated", book.DocumentDate != DateTime.MinValue ? book.DocumentDate.ToUniversalTime() : book.AddedDate.ToUniversalTime()),
+                    new XElement("id", id),
+                    new XElement("title", bookTitle),
+                    new XElement(Namespaces.dc + "issued", book.BookDate != DateTime.MinValue ? book.BookDate.Year.ToString() : book.AddedDate.Year.ToString()));
+
+                // Add authors with links
+                foreach (string authorName in book.Authors)
                 {
                     entry.Add(
                         new XElement("author",
-                            new XElement("name", author),
-                            new XElement("uri", "/author/" + Uri.EscapeDataString(author)
-                    )));
+                            new XElement("name", authorName),
+                            new XElement("uri", "/author-details/" + Uri.EscapeDataString(authorName))
+                    ));
                 }
 
-                foreach (string genreStr in book.Genres)
+                // Add genres
+                if (book.Genres != null && book.Genres.Count > 0)
                 {
-                    Genre genre = genres.Where(g => g.Tag.Equals(genreStr)).FirstOrDefault();
-                    if (genre != null)
-                        entry.Add(new XElement("category", new XAttribute("term", (useCyrillic ? genre.Translation : genre.Name)), new XAttribute("label", (useCyrillic ? genre.Translation : genre.Name))));
+                    foreach (string genre in book.Genres)
+                    {
+                        Genre g = Library.FB2Genres.FirstOrDefault(x => x.Subgenres.Exists(y => y.Tag.Equals(genre)));
+                        if (g != null)
+                        {
+                            Genre sg = g.Subgenres.First(x => x.Tag.Equals(genre));
+                            entry.Add(new XElement("category", new XAttribute("term", sg.Tag),
+                                new XAttribute("label", (useCyrillic ? sg.Translation : sg.Name))));
+                        }
+                    }
                 }
 
-                // Build a content entry (translator(s), year, size, annotation etc.)
+                // Build content entry (translator(s), year, size, annotation etc.)
                 string bookInfo = string.Empty;
 
                 if (!string.IsNullOrEmpty(book.Annotation))
                 {
-                    bookInfo += string.Format("<p class=book>{0}</p><br/>", book.Annotation);
+                    bookInfo += string.Format(@"<p>{0}<br/></p>", System.Security.SecurityElement.Escape(book.Annotation.Trim()));
                 }
                 if (book.Translators.Count > 0)
                 {
@@ -121,8 +166,7 @@ namespace TinyOPDS.OPDS
                 {
                     bookInfo += string.Format("<b>{0}</b> {1}<br/>", Localizer.Text("Year of publication:"), book.BookDate.Year);
                 }
-                bookInfo += string.Format("<b>{0}</b> {1}<br/>", Localizer.Text("Format:"), book.BookType == BookType.EPUB ? "epub" : "fb2");
-                bookInfo += string.Format("<b>{0}</b> {1} Kb<br/>", Localizer.Text("Size:"), (int)book.DocumentSize / 1024);
+
                 if (!string.IsNullOrEmpty(book.Sequence))
                 {
                     bookInfo += string.Format("<b>{0} {1} #{2}</b><br/>", Localizer.Text("Series:"), book.Sequence, book.NumberInSequence);
@@ -131,52 +175,38 @@ namespace TinyOPDS.OPDS
                 entry.Add(
                     new XElement(Namespaces.dc + "language", book.Language),
                     new XElement(Namespaces.dc + "format", book.BookType == BookType.FB2 ? "fb2+zip" : "epub+zip"),
-                    new XElement("content", new XAttribute("type", "text/html"), bookInfo));
+                    new XElement("content", new XAttribute("type", "text/html"), XElement.Parse("<div>" + bookInfo + "<br/></div>")),
+                    new XElement("format", book.BookType == BookType.EPUB ? "epub" : "fb2"),
+                    new XElement("size", string.Format("{0} Kb", (int)book.DocumentSize / 1024)));
 
-                if (book.HasCover)
-                {
-                    entry.Add(
-                        // Adding cover page and thumbnail links
-                        new XElement("link", new XAttribute("href", "/cover/" + book.ID + ".jpeg"), new XAttribute("rel", "http://opds-spec.org/image"), new XAttribute("type", "image/jpeg")),
-                        new XElement("link", new XAttribute("href", "/cover/" + book.ID + ".jpeg"), new XAttribute("rel", "x-stanza-cover-image"), new XAttribute("type", "image/jpeg")),
-                        new XElement("link", new XAttribute("href", "/thumbnail/" + book.ID + ".jpeg"), new XAttribute("rel", "http://opds-spec.org/thumbnail"), new XAttribute("type", "image/jpeg")),
-                        new XElement("link", new XAttribute("href", "/thumbnail/" + book.ID + ".jpeg"), new XAttribute("rel", "x-stanza-cover-image-thumbnail"), new XAttribute("type", "image/jpeg"))
-                        // Adding download links
-                    );
-                }
+                entry.Add(
+                    // Adding cover page and thumbnail links
+                    new XElement("link", new XAttribute("href", "/cover/" + book.ID + ".jpeg"), new XAttribute("rel", "http://opds-spec.org/image"), new XAttribute("type", "image/jpeg")),
+                    new XElement("link", new XAttribute("href", "/cover/" + book.ID + ".jpeg"), new XAttribute("rel", "x-stanza-cover-image"), new XAttribute("type", "image/jpeg")),
+                    new XElement("link", new XAttribute("href", "/thumbnail/" + book.ID + ".jpeg"), new XAttribute("rel", "http://opds-spec.org/thumbnail"), new XAttribute("type", "image/jpeg")),
+                    new XElement("link", new XAttribute("href", "/thumbnail/" + book.ID + ".jpeg"), new XAttribute("rel", "x-stanza-cover-image-thumbnail"), new XAttribute("type", "image/jpeg"))
+                // Adding download links
+                );
 
-                string fileName = Uri.EscapeDataString(Transliteration.Front(string.Format("{0}_{1}", book.Authors.First(), book.Title)).SanitizeFileName());
-                string url = "/" + string.Format("{0}/{1}", book.ID, fileName);
-                if (book.BookType == BookType.EPUB || (book.BookType == BookType.FB2 && !acceptFB2 && !string.IsNullOrEmpty(TinyOPDS.Properties.Settings.Default.ConvertorPath)))
-                {
-                    entry.Add(new XElement("link", new XAttribute("href", url + ".epub"), new XAttribute("rel", "http://opds-spec.org/acquisition/open-access"), new XAttribute("type", "application/epub+zip")));
-                }
-
+                // Add download links - NEW FORMAT WITHOUT FILENAME
                 if (book.BookType == BookType.FB2)
                 {
-                    entry.Add(new XElement("link", new XAttribute("href", url + ".fb2.zip"), new XAttribute("rel", "http://opds-spec.org/acquisition/open-access"), new XAttribute("type", "application/fb2+zip")));
+                    entry.Add(new XElement("link",
+                        new XAttribute("href", "/download/" + book.ID + "/fb2"),
+                        new XAttribute("rel", "http://opds-spec.org/acquisition"),
+                        new XAttribute("type", "application/fb2+zip")));
                 }
-
-                foreach (string author in book.Authors)
+                else
                 {
                     entry.Add(new XElement("link",
-                                    new XAttribute("href", "/author/" + Uri.EscapeDataString(author)),
-                                    new XAttribute("rel", "related"),
-                                    new XAttribute("type", "application/atom+xml;profile=opds-catalog"),
-                                    new XAttribute("title", string.Format(Localizer.Text("All books by author {0}"), author))));
-                }
-
-                if (!string.IsNullOrEmpty(book.Sequence))
-                {
-                    entry.Add(new XElement("link",
-                                 new XAttribute("href", "/sequence/" + Uri.EscapeDataString(book.Sequence)),
-                                 new XAttribute("rel", "related"),
-                                 new XAttribute("type", "application/atom+xml;profile=opds-catalog"),
-                                 new XAttribute("title", string.Format(Localizer.Text("All books by series {0}"), book.Sequence))));
+                        new XAttribute("href", "/download/" + book.ID + "/epub"),
+                        new XAttribute("rel", "http://opds-spec.org/acquisition"),
+                        new XAttribute("type", "application/epub+zip")));
                 }
 
                 doc.Root.Add(entry);
             }
+
             return doc;
         }
     }

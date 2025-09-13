@@ -1,16 +1,13 @@
-﻿/***********************************************************
- * This file is a part of TinyOPDS server project
- * 
- * Copyright (c) 2013 SeNSSoFT
+﻿/*
+ * This file is part of TinyOPDS server project
+ * https://github.com/sensboston/tinyopds
  *
- * This code is licensed under the Microsoft Public License, 
- * see http://tinyopds.codeplex.com/license for the details.
+ * Copyright (c) 2013-2025 SeNSSoFT
+ * SPDX-License-Identifier: MIT
  *
- * This module defines the Log class
- * 
- * TODO: add threading for performance reason (may be, should check)
- * 
- ************************************************************/
+ * Simple logging solution, w/o third party
+ *
+ */
 
 using System;
 using System.IO;
@@ -21,33 +18,86 @@ namespace TinyOPDS
     /// <summary>
     /// A lightweight logging class for Silverlight.
     /// </summary>
-    internal static class Log
+    public static class Log
     {
-        internal static string LogFileName = "TinyOPDS.log";
+        public static string LogFileName = "TinyOPDS.log";
 
         /// <summary>
         /// 
         /// </summary>
-        internal static LogLevel VerbosityLevel = LogLevel.Info;
+        public static LogLevel VerbosityLevel = LogLevel.Info;
+
+        /// <summary>
+        /// Flag indicating if running as system service
+        /// Should be set by service initialization code
+        /// </summary>
+        public static bool IsRunningAsService = false;
 
         /// <summary>
         /// Enable or disable logging to file
         /// </summary>
-        private static bool _saveToFile = false;
-        internal static bool SaveToFile
+        private static bool saveToFile = false;
+        public static bool SaveToFile
         {
-            get { return _saveToFile; }
-            set 
+            get { return saveToFile; }
+            set
             {
-                LogFileName = Path.Combine(Utils.ServiceFilesLocation, "TinyOPDS.log");
-                _saveToFile = value;
+                LogFileName = GetLogPath();
+                saveToFile = value;
             }
+        }
+
+        /// <summary>
+        /// Determine log file path based on execution context
+        /// </summary>
+        /// <returns>Full path to log file</returns>
+        private static string GetLogPath()
+        {
+            string logFileName = "TinyOPDS.log";
+
+            // If running as service on Unix/Linux, try system log directory
+            if (IsRunningAsService)
+            {
+                bool isRunningOnMono = Type.GetType("Mono.Runtime") != null;
+                if (isRunningOnMono)
+                {
+                    PlatformID platform = Environment.OSVersion.Platform;
+                    if (platform == PlatformID.Unix || platform == PlatformID.MacOSX || (int)platform == 128)
+                    {
+                        // Try /var/log/tinyopds/ for service mode
+                        string systemLogDir = "/var/log/tinyopds";
+                        try
+                        {
+                            if (!Directory.Exists(systemLogDir))
+                            {
+                                Directory.CreateDirectory(systemLogDir);
+                            }
+
+                            // Test write access
+                            string testFile = Path.Combine(systemLogDir, ".test");
+                            File.WriteAllText(testFile, "test");
+                            File.Delete(testFile);
+
+                            return Path.Combine(systemLogDir, logFileName);
+                        }
+                        catch
+                        {
+                            // Fall back to application directory
+                            Debug.WriteLine("Cannot write to /var/log/tinyopds/, falling back to application directory");
+                        }
+                    }
+                }
+            }
+
+            // Default: use application directory (portable mode)
+            // This covers: Windows, GUI mode, CLI user mode, and fallback for service mode
+            return Path.Combine(Utils.ServiceFilesLocation, logFileName);
         }
 
         /// <summary>
         /// Writes the args to the default logging output using the format provided.
         /// </summary>
-        internal static void WriteLine(string format, params object[] args)
+        public static void WriteLine(string format, params object[] args)
         {
             WriteLine(LogLevel.Info, format, args);
         }
@@ -55,7 +105,7 @@ namespace TinyOPDS
         /// <summary>
         /// Writes the args to the default logging output using the format provided.
         /// </summary>
-        internal static void WriteLine(LogLevel level, string format, params object[] args)
+        public static void WriteLine(LogLevel level, string format, params object[] args)
         {
             if (level >= VerbosityLevel || level == LogLevel.Authentication)
             {
@@ -79,7 +129,7 @@ namespace TinyOPDS
             }
         }
 
-        private static object fileSyncObject = new object();
+        private static readonly object fileSyncObject = new object();
 
         /// <summary>
         /// Writes a line to the current log file.
@@ -101,7 +151,7 @@ namespace TinyOPDS
                 }
                 finally
                 {
-                    if (fileStream != null) fileStream.Dispose();
+                    fileStream?.Dispose();
                 }
             }
         }

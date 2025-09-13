@@ -1,0 +1,220 @@
+﻿.book-content.light {
+    background: white;
+    color: #333;
+}
+
+body.theme-light {
+    background: #f5f5f5;
+}
+
+.book-content.dark {
+    background: #2d2d2d;
+    color: #e1e1e1;
+}
+
+body.theme-dark {
+    background: #1a1a1a;
+}
+
+.book-content.sepia {
+    background: #FBF0D9;
+    color: #5C4033;
+}
+
+body.theme-sepia {
+    background: #F5E6CE;
+}
+
+.book-content h1, .book-content h2, .book-content h3 {
+    margin: 30px 0 20px;
+    font-weight: 600;
+    text-align: center !important;
+    text-indent: 0 !important;
+}
+
+.book-content h1 {
+    font-size: 22px;
+}
+
+.book-content h2 {
+    font-size: 20px;
+}
+
+.book-content h3 {
+    font-size: 18px;
+}
+
+    .book-content h1 p,
+    .book-content h2 p,
+    .book-content h3 p,
+    .book-content h4 p,
+    .book-content h5 p,
+    .book-content h6 p {
+        text-align: center !important;
+        text-indent: 0 !important;
+        margin: 0;
+        padding: 0;
+    }
+
+.book-content p {
+    margin: 15px 0;
+    text-align: justify;
+    text-indent: 1.5em;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+    -moz-hyphens: auto;
+    -ms-hyphens: auto;
+}
+
+    .book-content p:first-of-type {
+        text-indent: 1.5em;
+    }
+
+.book-content .author {
+    font-style: italic;
+    color: #666;
+    margin-bottom: 30px;
+    text-indent: 0;
+}
+
+.book-content img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 20px auto;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.book-content p,
+.book-content div,
+.book-content span,
+.book-content h1,
+.book-content h2,
+.book-content h3,
+.book-content h4,
+.book-content h5,
+.book-content h6 {
+    hyphens: auto !important;
+    -webkit-hyphens: auto !important;
+    -moz-hyphens: auto !important;
+    -ms-hyphens: auto !important;
+}
+
+.book-content[lang="ru"] p,
+.book-content[lang="ru"] div {
+    hyphens: auto !important;
+    -webkit-hyphens: auto !important;
+    -moz-hyphens: auto !important;
+    -ms-hyphens: auto !important;
+}
+
+.book-content * {
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-word;
+}
+
+.book-content pre,
+.book-content code {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.book-content table {
+    max-width: 100%;
+    overflow-x: auto;
+    display: block;
+}
+
+/* Poetry and special FB2 elements styling */
+.book-content .poem {
+    margin: 30px 0;
+    padding: 20px 0;
+}
+
+.book-content .poem-title {
+    text-align: center;
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+
+.book-content .stanza {
+    margin: 20px 0;
+}
+
+.book-content .verse {
+    margin: 5px 0;
+    text-indent: 0 !important;
+    text-align: left;
+    padding-left: 40px;
+    white-space: pre-wrap;
+}
+
+.book-content .text-author {
+    text-align: right;
+    font-style: italic;
+    margin: 15px 0;
+    padding-right: 40px;
+    text-indent: 0 !important;
+}
+
+.book-content .epigraph {
+    margin: 30px 20%;
+    padding: 20px;
+    font-style: italic;
+    font-size: 0.95em;
+    border-left: 3px solid #ccc;
+}
+
+.book-content.dark .epigraph {
+    border-left-color: #666;
+}
+
+.book-content.sepia .epigraph {
+    border-left-color: #8B7355;
+}
+
+.book-content .cite {
+    margin: 20px 40px;
+    padding: 15px;
+    font-style: italic;
+    background-color: rgba(0, 0, 0, 0.02);
+    border-left: 4px solid #ddd;
+}
+
+.book-content.dark .cite {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-left-color: #555;
+}
+
+.book-content.sepia .cite {
+    background-color: rgba(0, 0, 0, 0.03);
+    border-left-color: #A0826D;
+}
+
+.book-content .subtitle {
+    text-align: center;
+    font-size: 16px;
+    font-style: italic;
+    margin: 15px 0;
+}
+
+.book-content .date {
+    text-align: center;
+    font-size: 14px;
+    color: #666;
+    margin: 10px 0;
+}
+
+.book-content.dark .date {
+    color: #999;
+}
+
+.book-content.sepia .date {
+    color: #8B7355;
+}

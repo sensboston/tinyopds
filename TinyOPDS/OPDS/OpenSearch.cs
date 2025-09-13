@@ -1,23 +1,17 @@
-﻿/***********************************************************
- * This file is a part of TinyOPDS server project
- * 
- * Copyright (c) 2013 SeNSSoFT
+﻿/*
+ * This file is part of TinyOPDS server project
+ * https://github.com/sensboston/tinyopds
  *
- * This code is licensed under the Microsoft Public License, 
- * see http://tinyopds.codeplex.com/license for the details.
+ * Copyright (c) 2013-2025 SeNSSoFT
+ * SPDX-License-Identifier: MIT
  *
- * This module contains OPDS OpenSearch implementation
- * 
- * TODO: implement SOUNDEX search
- * 
- ************************************************************/
+ * Enhanced OPDS OpenSearch implementation with smart Soundex filtering
+ *
+ */
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Xml.Linq;
-using System.Web;
 
 using TinyOPDS.Data;
 
@@ -28,12 +22,11 @@ namespace TinyOPDS.OPDS
         public XDocument OpenSearchDescription()
         {
             XDocument doc = new XDocument(
-                // Add root element and namespaces
                 new XElement("OpenSearchDescription",
                     new XElement("ShortName", "TinyOPDS"),
                     new XElement("LongName", "TinyOPDS"),
                     new XElement("Url", new XAttribute("type", "application/atom+xml"), new XAttribute("template", "/search?searchTerm={searchTerms}")),
-                    new XElement("Image", "/favicon.ico", new XAttribute("width", "16"), new XAttribute("height", "16")),
+                    new XElement("Image", "/TinyOPDS.ico", new XAttribute("width", "16"), new XAttribute("height", "16")),
                     new XElement("Tags"),
                     new XElement("Contact"),
                     new XElement("Developer"),
@@ -47,67 +40,115 @@ namespace TinyOPDS.OPDS
             return doc;
         }
 
-        public XDocument Search(string searchPattern, string searchType = "", bool fb2Only = false, int pageNumber = 0, int threshold = 100)
+        public XDocument Search(string searchPattern, string searchType = "", bool fb2Only = false, int pageNumber = 0)
         {
-            if (!string.IsNullOrEmpty(searchPattern)) searchPattern = Uri.UnescapeDataString(searchPattern).Replace('+', ' ').ToLower();
+            if (!string.IsNullOrEmpty(searchPattern))
+                searchPattern = Uri.UnescapeDataString(searchPattern).Replace('+', ' ').Trim().ToLower();
 
-            XDocument doc = new XDocument(
-                // Add root element and namespaces
-                new XElement("feed", new XAttribute(XNamespace.Xmlns + "dc", Namespaces.dc), new XAttribute(XNamespace.Xmlns + "os", Namespaces.os), new XAttribute(XNamespace.Xmlns + "opds", Namespaces.opds),
-                    new XElement("id", "tag:search:"+searchPattern),
-                    new XElement("title", Localizer.Text("Search results")),
-                    new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                    new XElement("icon", "/series.ico"),
-                    // Add links
-                    Links.opensearch, Links.search, Links.start, Links.self)
-                );
+            Log.WriteLine(LogLevel.Info, "OpenSearch.Search: pattern='{0}', searchType='{1}'", searchPattern, searchType);
 
             List<string> authors = new List<string>();
             List<Book> titles = new List<Book>();
+            AuthorSearchMethod authorMethod = AuthorSearchMethod.NotFound;
 
             if (string.IsNullOrEmpty(searchType))
             {
-                string transSearchPattern = Transliteration.Back(searchPattern, TransliterationType.GOST);
-                authors = Library.GetAuthorsByName(searchPattern, true);
-                if (authors.Count == 0 && !string.IsNullOrEmpty(transSearchPattern))
+                // STEP 1: Search books first (without Soundex)
+                titles = Library.GetBooksByTitle(searchPattern, true);
+                Log.WriteLine(LogLevel.Info, "OpenSearch found {0} books", titles.Count);
+
+                // STEP 2: Search authors with method tracking
+                var authorResult = Library.GetAuthorsByNameWithMethod(searchPattern, true);
+                authors = authorResult.authors;
+                authorMethod = authorResult.method;
+
+                Log.WriteLine(LogLevel.Info, "OpenSearch found {0} authors using method: {1}", authors.Count, authorMethod);
+
+                // STEP 3: Apply smart logic based on what was found
+                // If books found and authors found ONLY via Soundex - ignore authors
+                if (titles.Count > 0 && authorMethod == AuthorSearchMethod.Soundex)
                 {
-                    authors = Library.GetAuthorsByName(transSearchPattern, true);
-                }
-                titles = Library.GetBooksByTitle(searchPattern);
-                if (titles.Count == 0 && !string.IsNullOrEmpty(transSearchPattern))
-                {
-                    titles = Library.GetBooksByTitle(transSearchPattern);
+                    Log.WriteLine(LogLevel.Info, "Books found, ignoring Soundex-only author matches");
+                    authors.Clear();
+                    authorMethod = AuthorSearchMethod.NotFound;
                 }
             }
 
             if (string.IsNullOrEmpty(searchType) && authors.Count > 0 && titles.Count > 0)
             {
                 // Add two navigation entries: search by authors name and book title
+                XDocument doc = new XDocument(
+                    new XElement("feed",
+                        new XAttribute(XNamespace.Xmlns + "dc", Namespaces.dc),
+                        new XAttribute(XNamespace.Xmlns + "os", Namespaces.os),
+                        new XAttribute(XNamespace.Xmlns + "opds", Namespaces.opds),
+                        new XElement("id", "tag:search:" + searchPattern),
+                        new XElement("title", Localizer.Text("Search results")),
+                        new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
+                        new XElement("icon", "/TinyOPDS.ico"),
+                        Links.opensearch, Links.search, Links.start, Links.self)
+                    );
+
+                // Create more informative descriptions
+                string authorDescription = string.Format(Localizer.Text("Found {0} author(s)"), authors.Count);
+                string bookDescription = string.Format(Localizer.Text("Found {0} book(s)"), titles.Count);
+
+                // Add indication if authors were found via less precise methods
+                if (authorMethod == AuthorSearchMethod.Transliteration)
+                {
+                    authorDescription += " " + Localizer.Text("(transliterated)");
+                }
+                else if (authorMethod == AuthorSearchMethod.PartialMatch)
+                {
+                    authorDescription += " " + Localizer.Text("(partial match)");
+                }
+
                 doc.Root.Add(
                     new XElement("entry",
                         new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                         new XElement("id", "tag:search:author"),
                         new XElement("title", Localizer.Text("Search authors")),
-                        new XElement("content", Localizer.Text("Search authors by name"), new XAttribute("type", "text")),
+                        new XElement("content", authorDescription, new XAttribute("type", "text")),
                         new XElement("link", new XAttribute("href", "/search?searchType=authors&searchTerm=" + Uri.EscapeDataString(searchPattern)), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))),
                     new XElement("entry",
                         new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                         new XElement("id", "tag:search:title"),
                         new XElement("title", Localizer.Text("Search books")),
-                        new XElement("content", Localizer.Text("Search books by title"), new XAttribute("type", "text")),
+                        new XElement("content", bookDescription, new XAttribute("type", "text")),
                         new XElement("link", new XAttribute("href", "/search?searchType=books&searchTerm=" + Uri.EscapeDataString(searchPattern)), new XAttribute("type", "application/atom+xml;profile=opds-catalog")))
                     );
+
+                return doc;
             }
             else if (searchType.Equals("authors") || (authors.Count > 0 && titles.Count == 0))
             {
+                // Delegate to AuthorsCatalog
+                Log.WriteLine(LogLevel.Info, "OpenSearch: showing authors catalog");
                 return new AuthorsCatalog().GetCatalog(searchPattern, true);
             }
             else if (searchType.Equals("books") || (titles.Count > 0 && authors.Count == 0))
             {
+                // Delegate to BooksCatalog
+                Log.WriteLine(LogLevel.Info, "OpenSearch: showing books catalog");
                 if (pageNumber > 0) searchPattern += "/" + pageNumber;
-                return new BooksCatalog().GetCatalogByTitle(searchPattern, fb2Only, 0, 1000);
+                return new BooksCatalog().GetCatalogByTitle(searchPattern, fb2Only, 0, 1000, true);
             }
-            return doc;
+
+            // If no results found, return empty results
+            XDocument emptyDoc = new XDocument(
+                new XElement("feed",
+                    new XAttribute(XNamespace.Xmlns + "dc", Namespaces.dc),
+                    new XAttribute(XNamespace.Xmlns + "os", Namespaces.os),
+                    new XAttribute(XNamespace.Xmlns + "opds", Namespaces.opds),
+                    new XElement("id", "tag:search:" + searchPattern),
+                    new XElement("title", Localizer.Text("No results found")),
+                    new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
+                    new XElement("icon", "/TinyOPDS.ico"),
+                    Links.opensearch, Links.search, Links.start, Links.self)
+                );
+
+            Log.WriteLine(LogLevel.Warning, "OpenSearch: no results found for pattern '{0}'", searchPattern);
+            return emptyDoc;
         }
     }
 }

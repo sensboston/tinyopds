@@ -6,7 +6,7 @@
       <Value Profile="(Default)" />
     </Setting>
     <Setting Name="ServerName" Type="System.String" Scope="User">
-      <Value Profile="(Default)">Моя домашняя библиотека</Value>
+      <Value Profile="(Default)">My home library</Value>
     </Setting>
     <Setting Name="ServerPort" Type="System.String" Scope="User">
       <Value Profile="(Default)">8080</Value>
@@ -19,9 +19,6 @@
     </Setting>
     <Setting Name="CloseToTray" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
-    </Setting>
-    <Setting Name="ConvertorPath" Type="System.String" Scope="User">
-      <Value Profile="(Default)" />
     </Setting>
     <Setting Name="Language" Type="System.String" Scope="User">
       <Value Profile="(Default)">en</Value>
@@ -68,23 +65,17 @@
     <Setting Name="LocalInterfaceIndex" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">0</Value>
     </Setting>
-    <Setting Name="HttpPrefix" Type="System.String" Scope="User">
-      <Value Profile="(Default)">lib</Value>
-    </Setting>
     <Setting Name="UseAbsoluteUri" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">False</Value>
-    </Setting>
-    <Setting Name="LowMemoryProfile" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
     <Setting Name="RootPrefix" Type="System.String" Scope="User">
       <Value Profile="(Default)">opds</Value>
     </Setting>
-    <Setting Name="ItemsPerOPDSPage" Type="System.Decimal" Scope="User">
+    <Setting Name="ItemsPerOPDSPage" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">50</Value>
     </Setting>
-    <Setting Name="ItemsPerWebPage" Type="System.Decimal" Scope="User">
-      <Value Profile="(Default)">1000</Value>
+    <Setting Name="ItemsPerWebPage" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">200</Value>
     </Setting>
     <Setting Name="SortOrder" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">1</Value>
@@ -94,6 +85,21 @@
     </Setting>
     <Setting Name="UseAuthorsAliases" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="OPDSStructure" Type="System.String" Scope="User">
+      <Value Profile="(Default)">newdate:0;newtitle:0;authorsindex:1;author-details:1;author-series:1;author-no-series:1;author-alphabetic:1;author-by-date:1;sequencesindex:1;genres:1;downloads:1</Value>
+    </Setting>
+    <Setting Name="BatchSize" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">1000</Value>
+    </Setting>
+    <Setting Name="CacheImagesInMemory" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="MaxRAMImageCacheSizeMB" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">256</Value>
+    </Setting>
+    <Setting Name="OnlyOneInstance" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
     </Setting>
   </Settings>
 </SettingsFile>

@@ -1,22 +1,18 @@
-﻿/***********************************************************
- * This file is a part of TinyOPDS server project
- * 
- * Copyright (c) 2013 SeNSSoFT
+﻿/*
+ * This file is part of TinyOPDS server project
+ * https://github.com/sensboston/tinyopds
  *
- * This code is licensed under the Microsoft Public License, 
- * see http://tinyopds.codeplex.com/license for the details.
+ * Copyright (c) 2013-2025 SeNSSoFT
+ * SPDX-License-Identifier: MIT
  *
  * This module defines the OPDS BookCatalog class
- * 
- * 
- ************************************************************/
+ *
+ */
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Xml.Linq;
-using System.Web;
 
 using TinyOPDS.Data;
 
@@ -26,20 +22,9 @@ namespace TinyOPDS.OPDS
     {
         private enum SearchFor
         {
-            Author = 0,
             Sequence,
             Genre,
             Title,
-        }
-
-        /// <summary>
-        /// Returns books catalog by selected author
-        /// </summary>
-        /// <param name="author"></param>
-        /// <returns></returns>
-        public XDocument GetCatalogByAuthor(string author, bool fb2Only, int threshold = 100)
-        {
-            return GetCatalog(author, SearchFor.Author, fb2Only, threshold);
         }
 
         /// <summary>
@@ -49,7 +34,7 @@ namespace TinyOPDS.OPDS
         /// <returns></returns>
         public XDocument GetCatalogBySequence(string sequence, bool fb2Only, int threshold = 100)
         {
-            return GetCatalog(sequence, SearchFor.Sequence, fb2Only, threshold);
+            return GetCatalog(sequence, SearchFor.Sequence, fb2Only, threshold, false);
         }
 
         /// <summary>
@@ -59,17 +44,21 @@ namespace TinyOPDS.OPDS
         /// <returns></returns>
         public XDocument GetCatalogByGenre(string genre, bool fb2Only, int threshold = 100)
         {
-            return GetCatalog(genre, SearchFor.Genre, fb2Only, threshold);
+            return GetCatalog(genre, SearchFor.Genre, fb2Only, threshold, false);
         }
 
         /// <summary>
-        /// Returns books catalog by selected genre
+        /// Returns books catalog by selected title
         /// </summary>
-        /// <param name="author"></param>
+        /// <param name="title">Title to search for</param>
+        /// <param name="fb2Only">FB2 only flag</param>
+        /// <param name="pageNumber">Page number</param>
+        /// <param name="threshold">Items per page</param>
+        /// <param name="isOpenSearch">Whether this is OpenSearch (enables Soundex)</param>
         /// <returns></returns>
-        public XDocument GetCatalogByTitle(string title, bool fb2Only, int pageNumber = 0, int threshold = 100)
+        public XDocument GetCatalogByTitle(string title, bool fb2Only, int pageNumber = 0, int threshold = 100, bool isOpenSearch = false)
         {
-            return GetCatalog(title, SearchFor.Title, fb2Only, threshold);
+            return GetCatalog(title, SearchFor.Title, fb2Only, threshold, isOpenSearch);
         }
 
         /// <summary>
@@ -79,16 +68,44 @@ namespace TinyOPDS.OPDS
         /// <param name="searchFor">Type of search</param>
         /// <param name="acceptFB2">Client can accept fb2 files</param>
         /// <param name="threshold">Items per page</param>
+        /// <param name="isOpenSearch">Whether this is OpenSearch (enables Soundex)</param>
         /// <returns></returns>
-        private XDocument GetCatalog(string searchPattern, SearchFor searchFor, bool acceptFB2, int threshold = 100)
+        private XDocument GetCatalog(string searchPattern, SearchFor searchFor, bool acceptFB2, int threshold = 100, bool isOpenSearch = false)
         {
             if (!string.IsNullOrEmpty(searchPattern)) searchPattern = Uri.UnescapeDataString(searchPattern).Replace('+', ' ');
+
+            // Create proper title based on search type
+            string feedTitle;
+            switch (searchFor)
+            {
+                case SearchFor.Sequence:
+                    feedTitle = Localizer.Text("Books in series: ") + searchPattern;
+                    break;
+                case SearchFor.Genre:
+                    feedTitle = Localizer.Text("Books by genre: ") + searchPattern;
+                    break;
+                case SearchFor.Title:
+                    if (isOpenSearch)
+                    {
+                        // For OpenSearch, show search results title
+                        feedTitle = Localizer.Text("Search results for books: '") + searchPattern + "'";
+                    }
+                    else
+                    {
+                        // For navigation, show books starting with
+                        feedTitle = Localizer.Text("Books starting with '") + searchPattern + "'";
+                    }
+                    break;
+                default:
+                    feedTitle = Localizer.Text("Books catalog");
+                    break;
+            }
 
             XDocument doc = new XDocument(
                 // Add root element and namespaces
                 new XElement("feed", new XAttribute(XNamespace.Xmlns + "dc", Namespaces.dc), new XAttribute(XNamespace.Xmlns + "os", Namespaces.os), new XAttribute(XNamespace.Xmlns + "opds", Namespaces.opds),
                     new XElement("id", "tag:books"),
-                    new XElement("title", Localizer.Text("Books by author ") + searchPattern),
+                    new XElement("title", feedTitle),  // Use dynamic title based on search type
                     new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                     new XElement("icon", "/icons/books.ico"),
                     // Add links
@@ -104,15 +121,11 @@ namespace TinyOPDS.OPDS
                 searchPattern = searchPattern.Substring(0, j);
             }
 
-            // Get author's books
+            // Get books
             string catalogType = string.Empty;
             List<Book> books = new List<Book>();
             switch (searchFor)
             {
-                case SearchFor.Author:
-                    books = Library.GetBooksByAuthor(searchPattern);
-                    catalogType = "/author/" + Uri.EscapeDataString(searchPattern);
-                    break;
                 case SearchFor.Sequence:
                     books = Library.GetBooksBySequence(searchPattern);
                     catalogType = "/sequence/" + Uri.EscapeDataString(searchPattern);
@@ -122,29 +135,51 @@ namespace TinyOPDS.OPDS
                     catalogType = "/genre/" + Uri.EscapeDataString(searchPattern);
                     break;
                 case SearchFor.Title:
-                    books = Library.GetBooksByTitle(searchPattern);
-                    // For search, also return books by 
+                    // Use OpenSearch flag for enhanced search with Soundex
+                    books = Library.GetBooksByTitle(searchPattern, isOpenSearch);
+                    // For search, also return books by transliterated titles
                     if (threshold > 50)
                     {
                         string translit = Transliteration.Back(searchPattern, TransliterationType.GOST);
                         if (!string.IsNullOrEmpty(translit))
                         {
-                            List<Book> transTitles = Library.GetBooksByTitle(translit);
+                            List<Book> transTitles = Library.GetBooksByTitle(translit, isOpenSearch);
                             if (transTitles.Count > 0) books.AddRange(transTitles);
                         }
                     }
                     break;
             }
 
-            // For sequences, sort books by sequence number
+            // Sort books based on search type
             if (searchFor == SearchFor.Sequence)
             {
+                // For sequences, sort by sequence number
                 books = books.OrderBy(b => b.NumberInSequence).ToList();
             }
-            // else sort by title
+            else if (searchFor == SearchFor.Title && isOpenSearch)
+            {
+                // For OpenSearch title search, prioritize titles starting with search pattern
+                string lowerPattern = searchPattern.ToLower();
+                books = books
+                    .OrderBy(b =>
+                    {
+                        string lowerTitle = b.Title.ToLower();
+                        // Priority 1: Exact match
+                        if (lowerTitle == lowerPattern) return 0;
+                        // Priority 2: Starts with search pattern
+                        if (lowerTitle.StartsWith(lowerPattern)) return 1;
+                        // Priority 3: Word boundary match (space before pattern)
+                        if (lowerTitle.Contains(" " + lowerPattern)) return 2;
+                        // Priority 4: Contains anywhere
+                        return 3;
+                    })
+                    .ThenBy(b => b.Title, new OPDSComparer(Properties.Settings.Default.SortOrder > 0))
+                    .ToList();
+            }
             else
             {
-                books = books.OrderBy(b => b.Title, new OPDSComparer(TinyOPDS.Properties.Settings.Default.SortOrder > 0)).ToList();
+                // Default: sort by title
+                books = books.OrderBy(b => b.Title, new OPDSComparer(Properties.Settings.Default.SortOrder > 0)).ToList();
             }
 
             int startIndex = pageNumber * threshold;
@@ -171,7 +206,7 @@ namespace TinyOPDS.OPDS
 
             }
 
-            bool useCyrillic = TinyOPDS.Properties.Settings.Default.SortOrder > 0;
+            bool useCyrillic = Properties.Settings.Default.SortOrder > 0;
 
             List<Genre> genres = Library.Genres;
 
@@ -187,12 +222,13 @@ namespace TinyOPDS.OPDS
                         new XElement("title", book.Title)
                 );
 
+                // Author names are already canonical in database
                 foreach (string author in book.Authors)
                 {
                     entry.Add(
                         new XElement("author",
                             new XElement("name", author),
-                            new XElement("uri", "/author/" + Uri.EscapeDataString(author)
+                            new XElement("uri", "/author-details/" + Uri.EscapeDataString(author)
                     )));
                 }
 
@@ -202,7 +238,7 @@ namespace TinyOPDS.OPDS
                     if (genre != null)
                         entry.Add(new XElement("category", new XAttribute("term", (useCyrillic ? genre.Translation : genre.Name)), new XAttribute("label", (useCyrillic ? genre.Translation : genre.Name))));
                 }
-                
+
                 // Build a content entry (translator(s), year, size, annotation etc.)
                 string bookInfo = string.Empty;
 
@@ -230,56 +266,55 @@ namespace TinyOPDS.OPDS
                     new XElement(Namespaces.dc + "language", book.Language),
                     new XElement(Namespaces.dc + "format", book.BookType == BookType.FB2 ? "fb2+zip" : "epub+zip"),
                     new XElement("content", new XAttribute("type", "text/html"), XElement.Parse("<div>" + bookInfo + "<br/></div>")),
-                    new XElement( "format", book.BookType == BookType.EPUB ? "epub" : "fb2"),
-                    new XElement( "size", string.Format("{0} Kb", (int)book.DocumentSize / 1024)));
+                    new XElement("format", book.BookType == BookType.EPUB ? "epub" : "fb2"),
+                    new XElement("size", string.Format("{0} Kb", (int)book.DocumentSize / 1024)));
 
 
-                if (book.HasCover)
+                entry.Add(
+                    // Adding cover page and thumbnail links
+                    new XElement("link", new XAttribute("href", "/cover/" + book.ID + ".jpeg"), new XAttribute("rel", "http://opds-spec.org/image"), new XAttribute("type", "image/jpeg")),
+                    new XElement("link", new XAttribute("href", "/cover/" + book.ID + ".jpeg"), new XAttribute("rel", "x-stanza-cover-image"), new XAttribute("type", "image/jpeg")),
+                    new XElement("link", new XAttribute("href", "/thumbnail/" + book.ID + ".jpeg"), new XAttribute("rel", "http://opds-spec.org/thumbnail"), new XAttribute("type", "image/jpeg")),
+                    new XElement("link", new XAttribute("href", "/thumbnail/" + book.ID + ".jpeg"), new XAttribute("rel", "x-stanza-cover-image-thumbnail"), new XAttribute("type", "image/jpeg"))
+                // Adding download links
+                );
+
+                // Add download links - NEW FORMAT WITHOUT FILENAME
+                if (book.BookType == BookType.EPUB || (book.BookType == BookType.FB2 && !acceptFB2))
                 {
-                    entry.Add(
-                        // Adding cover page and thumbnail links
-                        new XElement("link", new XAttribute("href", "/cover/" + book.ID + ".jpeg"), new XAttribute("rel", "http://opds-spec.org/image"), new XAttribute("type", "image/jpeg")),
-                        new XElement("link", new XAttribute("href", "/cover/" + book.ID + ".jpeg"), new XAttribute("rel", "x-stanza-cover-image"), new XAttribute("type", "image/jpeg")),
-                        new XElement("link", new XAttribute("href", "/thumbnail/" + book.ID + ".jpeg"), new XAttribute("rel", "http://opds-spec.org/thumbnail"), new XAttribute("type", "image/jpeg")),
-                        new XElement("link", new XAttribute("href", "/thumbnail/" + book.ID + ".jpeg"), new XAttribute("rel", "x-stanza-cover-image-thumbnail"), new XAttribute("type", "image/jpeg"))
-                        // Adding download links
-                    );
-                }
-
-                string fileName = Uri.EscapeDataString(Transliteration.Front(string.Format("{0}_{1}", book.Authors.First(), book.Title)).SanitizeFileName());
-                string url = "/" + string.Format("{0}/{1}", book.ID, fileName);
-                if (book.BookType == BookType.EPUB || (book.BookType == BookType.FB2 && !acceptFB2 && !string.IsNullOrEmpty(TinyOPDS.Properties.Settings.Default.ConvertorPath)))
-                {
-                    entry.Add(new XElement("link", new XAttribute("href",  url+".epub"), new XAttribute("rel", "http://opds-spec.org/acquisition/open-access"), new XAttribute("type", "application/epub+zip")));
+                    entry.Add(new XElement("link",
+                        new XAttribute("href", "/download/" + book.ID + "/epub"),
+                        new XAttribute("rel", "http://opds-spec.org/acquisition/open-access"),
+                        new XAttribute("type", "application/epub+zip")));
                 }
 
                 if (book.BookType == BookType.FB2)
                 {
-                    entry.Add(new XElement("link", new XAttribute("href",  url+".fb2.zip"), new XAttribute("rel", "http://opds-spec.org/acquisition/open-access"), new XAttribute("type", "application/fb2+zip")));
+                    entry.Add(new XElement("link",
+                        new XAttribute("href", "/download/" + book.ID + "/fb2"),
+                        new XAttribute("rel", "http://opds-spec.org/acquisition/open-access"),
+                        new XAttribute("type", "application/fb2+zip")));
                 }
 
-                // For search requests, lets add navigation links for author and series (if any)
-                if (searchFor != SearchFor.Author)
+                // Add navigation links for author and series - author names already canonical
+                foreach (string author in book.Authors)
                 {
-                    foreach (string author in book.Authors)
-                    {
-                        entry.Add(new XElement("link",
-                                        new XAttribute("href", "/author/" + Uri.EscapeDataString(author)),
-                                        new XAttribute("rel", "related"), 
-                                        new XAttribute("type", "application/atom+xml;profile=opds-catalog"),
-                                        new XAttribute("title", string.Format(Localizer.Text("All books by author {0}"), author))));
-                    }
+                    entry.Add(new XElement("link",
+                                    new XAttribute("href", "/author-details/" + Uri.EscapeDataString(author)),
+                                    new XAttribute("rel", "related"),
+                                    new XAttribute("type", "application/atom+xml;profile=opds-catalog"),
+                                    new XAttribute("title", string.Format(Localizer.Text("All books by author {0}"), author))));
                 }
 
                 if (searchFor != SearchFor.Sequence && !string.IsNullOrEmpty(book.Sequence))
                 {
-                   entry.Add(new XElement("link",
-                                new XAttribute("href", "/sequence/" + Uri.EscapeDataString(book.Sequence)),
-                                new XAttribute("rel", "related"),
-                                new XAttribute("type", "application/atom+xml;profile=opds-catalog"),
-                                new XAttribute("title", string.Format(Localizer.Text("All books by series {0}"), book.Sequence))));
+                    entry.Add(new XElement("link",
+                                 new XAttribute("href", "/sequence/" + Uri.EscapeDataString(book.Sequence)),
+                                 new XAttribute("rel", "related"),
+                                 new XAttribute("type", "application/atom+xml;profile=opds-catalog"),
+                                 new XAttribute("title", string.Format(Localizer.Text("All books by series {0}"), book.Sequence))));
                 }
-                
+
                 doc.Root.Add(entry);
             }
             return doc;

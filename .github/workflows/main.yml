@@ -1,9 +1,8 @@
-name: .NET Framework Desktop Build
+name: Build and Release
 
 on:
   release:
     types: [created]
-  workflow_dispatch:  # Allow manual trigger
 
 permissions:
   contents: write
@@ -24,53 +23,39 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      # Cache packages to speed up builds
-      - name: Cache NuGet packages
-        uses: actions/cache@v4
-        with:
-          path: |
-            TinyOPDS\packages
-            ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.config') }}
-          restore-keys: |
-            ${{ runner.os }}-nuget-
+      # Restore packages to the correct location
+      - name: Restore NuGet packages for TinyOPDS
+        run: nuget restore TinyOPDS\TinyOPDS.csproj -PackagesDirectory TinyOPDS\packages
 
-      # Restore packages for entire solution
-      - name: Restore NuGet packages
-        run: nuget restore TinyOPDS.sln
+      # Restore packages for TinyOPDSCLI (uses same packages folder)
+      - name: Restore NuGet packages for TinyOPDSCLI
+        run: nuget restore TinyOPDSCLI\TinyOPDSCLI.csproj -PackagesDirectory TinyOPDS\packages
 
       # Build entire solution in Release mode
       - name: Build solution
         run: msbuild TinyOPDS.sln /p:Configuration=Release /p:Platform="Any CPU" /m
 
       # Verify that files exist
-      - name: List build output
+      - name: Verify build output
         shell: powershell
         run: |
-          Write-Host "TinyOPDS output:"
-          Get-ChildItem -Path TinyOPDS\bin\Release\
-          Write-Host ""
-          Write-Host "TinyOPDSCLI output:"
-          Get-ChildItem -Path TinyOPDSCLI\bin\Release\
+          $tinyOPDS = "TinyOPDS\bin\Release\TinyOPDS.exe"
+          $tinyOPDSCLI = "TinyOPDSCLI\bin\Release\TinyOPDSCLI.exe"
+          
+          if (!(Test-Path $tinyOPDS)) {
+            Write-Error "TinyOPDS.exe not found at $tinyOPDS"
+            exit 1
+          }
+          if (!(Test-Path $tinyOPDSCLI)) {
+            Write-Error "TinyOPDSCLI.exe not found at $tinyOPDSCLI"
+            exit 1
+          }
+          
+          Write-Host "✓ TinyOPDS.exe found"
+          Write-Host "✓ TinyOPDSCLI.exe found"
 
-      # Create artifacts for every build
-      - name: Upload TinyOPDS artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: TinyOPDS-${{ github.sha }}
-          path: TinyOPDS\bin\Release\TinyOPDS.exe
-          retention-days: 30
-
-      - name: Upload TinyOPDSCLI artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: TinyOPDSCLI-${{ github.sha }}
-          path: TinyOPDSCLI\bin\Release\TinyOPDSCLI.exe
-          retention-days: 30
-
-      # Upload to release only when a release is created
+      # Upload both executables to the release
       - name: Upload release assets
-        if: github.event_name == 'release'
         uses: softprops/action-gh-release@v1
         with:
           files: |

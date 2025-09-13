@@ -1555,6 +1555,7 @@
             // pictureBox1
             // 
             this.pictureBox1.ErrorImage = null;
+            this.pictureBox1.Image = global::TinyOPDS.Properties.Resources.TinyOPDS;
             this.pictureBox1.Location = new System.Drawing.Point(21, 21);
             this.pictureBox1.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.pictureBox1.Name = "pictureBox1";

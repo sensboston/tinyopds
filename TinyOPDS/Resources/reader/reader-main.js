@@ -467,17 +467,16 @@ class UniversalReader {
         // IMPORTANT: Extract TOC FIRST - this sets up the ID map
         this.chapters = this.formatConverter.extractFB2TOC(xmlDoc);
 
-        // THEN Convert to HTML - using the same body element
-        // Find the main body (without name attribute) - same logic as in extractFB2TOC
+        // THEN Convert to HTML using corrected body selection logic
         const bodyNodes = xmlDoc.querySelectorAll('body');
         let htmlContent = `<h1>${title}</h1><p class="author">${author}</p>${coverHtml}`;
 
-        for (let body of bodyNodes) {
-            if (!body.hasAttribute('name')) {
-                // This is the main body - same one processed by extractFB2TOC
-                htmlContent += this.formatConverter.convertFB2ToHTML(body);
-                break; // Only process the first body without name attribute
-            }
+        // FIXED: Use first body element as main body per FB2 standard
+        // In FB2 format, the first body is always the main text content
+        if (bodyNodes.length > 0) {
+            htmlContent += this.formatConverter.convertFB2ToHTML(bodyNodes[0]);
+        } else {
+            console.warn('No body elements found in FB2 document');
         }
 
         return {

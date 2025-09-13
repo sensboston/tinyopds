@@ -562,17 +562,11 @@ class FormatConverter {
             return sections;
         };
 
-        // Find the main body element - the one WITHOUT name attribute
+        // Find the main body element
         const bodies = xmlDoc.getElementsByTagName('body');
         let mainBody = null;
-
-        for (let i = 0; i < bodies.length; i++) {
-            const body = bodies[i];
-            // Main body is the one without 'name' attribute
-            if (!body.hasAttribute('name')) {
-                mainBody = body;
-                break;
-            }
+        if (bodies.length > 0) {
+            mainBody = bodies[0];
         }
 
         if (!mainBody) {

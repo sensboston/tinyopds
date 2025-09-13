@@ -28,37 +28,33 @@ body.theme-sepia {
 .book-content h1, .book-content h2, .book-content h3 {
     margin: 30px 0 20px;
     font-weight: 600;
+    text-align: center !important;
+    text-indent: 0 !important;
 }
 
 .book-content h1 {
-    font-size: 28px;
+    font-size: 22px;
 }
 
 .book-content h2 {
-    font-size: 24px;
-}
-
-.book-content h3 {
     font-size: 20px;
 }
 
-/*.book-content p {
-    margin: 15px 0;
-    text-align: justify;
-    text-indent: 1.5em;
-    hyphens: auto;
-    -webkit-hyphens: auto;
-    -moz-hyphens: auto;
-    -ms-hyphens: auto;
-    -webkit-hyphenate-limit-lines: 2;
-    -ms-hyphenate-limit-lines: 2;
-    hyphenate-limit-lines: 2;
-    -webkit-hyphenate-limit-chars: 6 3 2;
-    -moz-hyphenate-limit-chars: 6 3 2;
-    -ms-hyphenate-limit-chars: 6 3 2;
-    hyphenate-limit-chars: 6 3 2;
+.book-content h3 {
+    font-size: 18px;
 }
-*/
+
+    .book-content h1 p,
+    .book-content h2 p,
+    .book-content h3 p,
+    .book-content h4 p,
+    .book-content h5 p,
+    .book-content h6 p {
+        text-align: center !important;
+        text-indent: 0 !important;
+        margin: 0;
+        padding: 0;
+    }
 
 .book-content p {
     margin: 15px 0;
@@ -70,9 +66,9 @@ body.theme-sepia {
     -ms-hyphens: auto;
 }
 
-.book-content p:first-of-type {
-    text-indent: 1.5em;
-}
+    .book-content p:first-of-type {
+        text-indent: 1.5em;
+    }
 
 .book-content .author {
     font-style: italic;
@@ -90,29 +86,6 @@ body.theme-sepia {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-/*.book-content p,
-.book-content div,
-.book-content span,
-.book-content h1,
-.book-content h2,
-.book-content h3,
-.book-content h4,
-.book-content h5,
-.book-content h6 {
-    hyphens: auto !important;
-    -webkit-hyphens: auto !important;
-    -moz-hyphens: auto !important;
-    -ms-hyphens: auto !important;
-    -webkit-hyphenate-limit-lines: 2;
-    -ms-hyphenate-limit-lines: 2;
-    hyphenate-limit-lines: 2;
-    -webkit-hyphenate-limit-chars: 5 2 2;
-    -moz-hyphenate-limit-chars: 5 2 2;
-    -ms-hyphenate-limit-chars: 5 2 2;
-    hyphenate-limit-chars: 5 2 2;
-}
-*/
-
 .book-content p,
 .book-content div,
 .book-content span,
@@ -127,8 +100,6 @@ body.theme-sepia {
     -moz-hyphens: auto !important;
     -ms-hyphens: auto !important;
 }
-
-
 
 .book-content[lang="ru"] p,
 .book-content[lang="ru"] div {

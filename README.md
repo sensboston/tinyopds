@@ -1,12 +1,11 @@
-# TinyOPDS
-
+# TinyOPDS 3.0
 Легковесный и мощный OPDS сервер для домашних библиотек
 
 ![](https://github.com/sensboston/tinyopds/blob/master/wiki/Home_screen1-en.jpg?raw=true)
 
 TinyOPDS - это простой и легковесный OPDS сервер, написанный на C#. Работает на Windows, Linux и macOS через .NET или Mono.
 
-## TinyOPDS 3.0 - Революционное обновление!
+## TinyOPDS получил революционное обновление!
 
 **TinyOPDS 3.0** - результат интенсивной разработки, в ходе которой **переписано более 85% кода**. Главное изменение - переход от хранения данных в памяти к использованию **стандартного SQL движка**, что открывает путь к портированию на любые серверные платформы.
 
@@ -40,8 +39,8 @@ TinyOPDS - это простой и легковесный OPDS сервер, н
 ### Системные требования
 
 - **.NET Framework 4.8** (Windows) или **Mono 6.0+** (Linux/macOS)
-- **100 MB RAM** минимум (благодаря SQLite)
-- **10 MB** для приложения + место для базы данных книг
+- **2+ GB RAM** минимум (для больших библиотек на 500000 книг и больше)
+- **10 MB** для приложения + **2GB** для базы данных книг большой библиотеки
 
 ### Документация
 
@@ -49,7 +48,7 @@ TinyOPDS - это простой и легковесный OPDS сервер, н
 
 ### Поддержка разработки
 
-Если TinyOPDS помог организовать вашу библиотеку, можете поддержать разработку - ссылки на донаты находятся справа на странице проекта.
+Если TinyOPDS помог организовать вашу библиотеку, можете поддержать разработку - ссылки на донаты находятся справа на странице.
 
 ---
 
@@ -87,8 +86,8 @@ TinyOPDS - это простой и легковесный OPDS сервер, н
 ### System Requirements
 
 - **.NET Framework 4.8** (Windows) or **Mono 6.0+** (Linux/macOS)
-- **100 MB RAM** minimum (thanks to SQLite)
-- **10 MB** for application + space for book database
+- **2+ GB RAM** minimum (for large libraries 500000+ books)
+- **10 MB** for application + **2GB** for the large library database
 
 ### Documentation
 
@@ -96,4 +95,4 @@ For detailed documentation, installation and configuration instructions, please 
 
 ### Support Development
 
-If TinyOPDS helped organize your library, you can support development - donation links are available on the right side of the project page.
+If TinyOPDS helped organize your library, you can support development - donation links are available on the right side of this page.

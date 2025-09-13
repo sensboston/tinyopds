@@ -28,7 +28,9 @@ jobs:
       - name: Cache NuGet packages
         uses: actions/cache@v4
         with:
-          path: packages
+          path: |
+            packages
+            TinyOPDS\packages
           key: nuget-${{ hashFiles('**/packages.config') }}
           restore-keys: |
             nuget-
@@ -36,45 +38,54 @@ jobs:
       - name: Prepare SgmlReader package structure
         shell: pwsh
         run: |
-          # TinyOPDS expects packages at ..\packages (relative to TinyOPDS folder)
-          # This means packages should be at solution root level
-          $packagePath = "packages\SgmlReader.1.8.11\lib\4.0"
+          # Create SgmlReader package in BOTH locations to ensure compatibility
+          $locations = @(
+            "packages\SgmlReader.1.8.11\lib\4.0",
+            "TinyOPDS\packages\SgmlReader.1.8.11\lib\4.0"
+          )
           
-          Write-Host "Creating SgmlReader package directory: $packagePath"
-          New-Item -ItemType Directory -Force -Path $packagePath
-          
-          # Copy SgmlReaderDll.dll from embedded Libs
           $sourcePath = "TinyOPDS\Libs\SgmlReaderDll.dll"
-          $targetPath = "$packagePath\SgmlReaderDll.dll"
           
-          if (Test-Path $sourcePath) {
-            Copy-Item $sourcePath -Destination $targetPath -Force
-            Write-Host "Copied SgmlReaderDll.dll to: $targetPath"
-            
-            # Verify the file was copied
-            if (Test-Path $targetPath) {
-              $fileInfo = Get-Item $targetPath
-              Write-Host "File copied successfully. Size: $($fileInfo.Length) bytes"
-            }
-          } else {
-            Write-Error "SgmlReaderDll.dll not found at: $sourcePath"
+          if (-not (Test-Path $sourcePath)) {
+            Write-Error "ERROR: SgmlReaderDll.dll not found at: $sourcePath"
+            Write-Host "Checking if file exists in repository..."
+            Get-ChildItem -Path "TinyOPDS\Libs" -File | Select-Object Name, Length
             exit 1
           }
           
-          # List the package structure
-          Write-Host "`nPackage structure:"
-          Get-ChildItem -Path "packages" -Recurse | Select-Object FullName
+          foreach ($packagePath in $locations) {
+            Write-Host "Creating directory: $packagePath"
+            New-Item -ItemType Directory -Force -Path $packagePath | Out-Null
+            
+            $targetPath = "$packagePath\SgmlReaderDll.dll"
+            Copy-Item $sourcePath -Destination $targetPath -Force
+            
+            if (Test-Path $targetPath) {
+              $fileInfo = Get-Item $targetPath
+              Write-Host "✓ Copied to $targetPath (Size: $($fileInfo.Length) bytes)"
+            } else {
+              Write-Error "Failed to copy to $targetPath"
+            }
+          }
+          
+          Write-Host "`nVerifying package structure:"
+          if (Test-Path "packages\SgmlReader.1.8.11") {
+            Get-ChildItem -Path "packages\SgmlReader.1.8.11" -Recurse | Select-Object FullName
+          }
+          if (Test-Path "TinyOPDS\packages\SgmlReader.1.8.11") {
+            Get-ChildItem -Path "TinyOPDS\packages\SgmlReader.1.8.11" -Recurse | Select-Object FullName
+          }
 
       - name: Install SQLite packages
         run: |
-          nuget install System.Data.SQLite.Core.FTS5 -Version 1.0.114.1 -OutputDirectory packages -NonInteractive -Source https://api.nuget.org/v3/index.json
-          nuget install System.Data.SQLite.Core -Version 1.0.114.1 -OutputDirectory packages -NonInteractive -Source https://api.nuget.org/v3/index.json
+          nuget install System.Data.SQLite.Core.FTS5 -Version 1.0.114.1 -OutputDirectory TinyOPDS\packages -NonInteractive -Source https://api.nuget.org/v3/index.json
+          nuget install System.Data.SQLite.Core -Version 1.0.114.1 -OutputDirectory TinyOPDS\packages -NonInteractive -Source https://api.nuget.org/v3/index.json
 
       - name: Restore TinyOPDS packages
-        run: nuget restore TinyOPDS\TinyOPDS.csproj -PackagesDirectory packages -NonInteractive -Source https://api.nuget.org/v3/index.json
+        run: nuget restore TinyOPDS\TinyOPDS.csproj -PackagesDirectory TinyOPDS\packages -NonInteractive -Source https://api.nuget.org/v3/index.json
 
       - name: Restore TinyOPDSCLI packages  
-        run: nuget restore TinyOPDSCLI\TinyOPDSCLI.csproj -PackagesDirectory packages -NonInteractive -Source https://api.nuget.org/v3/index.json
+        run: nuget restore TinyOPDSCLI\TinyOPDSCLI.csproj -PackagesDirectory TinyOPDS\packages -NonInteractive -Source https://api.nuget.org/v3/index.json
 
       - name: Build
         run: msbuild TinyOPDS.sln /p:Configuration=Release /m

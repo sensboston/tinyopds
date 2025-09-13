@@ -38,6 +38,10 @@ jobs:
           nuget install System.Data.SQLite.Core.FTS5 -Version 1.0.114.1 -OutputDirectory TinyOPDS\packages -NonInteractive -Source https://api.nuget.org/v3/index.json
           nuget install System.Data.SQLite.Core -Version 1.0.114.1 -OutputDirectory TinyOPDS\packages -NonInteractive -Source https://api.nuget.org/v3/index.json
 
+      - name: Install SgmlReader package
+        run: |
+          nuget install SgmlReader -Version 1.8.11 -OutputDirectory TinyOPDS\packages -NonInteractive -Source https://api.nuget.org/v3/index.json
+
       - name: Restore TinyOPDS packages
         run: nuget restore TinyOPDS\TinyOPDS.csproj -NonInteractive -PackagesDirectory TinyOPDS\packages -Source https://api.nuget.org/v3/index.json
 

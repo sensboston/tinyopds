@@ -1,133 +1,80 @@
-name: CI-Diagnostic
+name: .NET Framework Desktop Build
 
 on:
   push:
-    branches: [ "**" ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ "**" ]
+    branches: [ main, master ]
+  release:
+    types: [created]
+  workflow_dispatch:  # Allow manual trigger
+
+permissions:
+  contents: write
 
 jobs:
   build:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Show environment
-        run: |
-          echo "Current directory: %CD%"
-          echo "Files in root:"
-          dir /B
-          echo.
-          echo "TinyOPDS folder:"
-          dir TinyOPDS /B
-          echo.
-          echo "TinyOPDSCLI folder:"
-          dir TinyOPDSCLI /B
-
-      - uses: microsoft/setup-msbuild@v2
-      - uses: NuGet/setup-nuget@v2
-
-      - name: NuGet Restore with diagnostics
-        run: |
-          nuget restore TinyOPDS.sln -Verbosity detailed
-          echo.
-          echo "Packages folder after restore:"
-          if exist packages (
-            dir packages /B
-          ) else (
-            echo "No packages folder found!"
-          )
-
-      - name: Fix package paths and show structure
-        shell: pwsh
-        run: |
-          Write-Host "=== Package Structure BEFORE ===" -ForegroundColor Yellow
-          
-          if (Test-Path "packages") {
-            Write-Host "Root packages:" -ForegroundColor Cyan
-            Get-ChildItem "packages" -Directory | Select-Object -First 5 | ForEach-Object {
-              Write-Host "  - $($_.Name)"
-            }
-          }
-          
-          if (Test-Path "TinyOPDS\packages") {
-            Write-Host "TinyOPDS\packages:" -ForegroundColor Cyan
-            Get-ChildItem "TinyOPDS\packages" -Directory | Select-Object -First 5 | ForEach-Object {
-              Write-Host "  - $($_.Name)"
-            }
-          } else {
-            Write-Host "TinyOPDS\packages: NOT FOUND" -ForegroundColor Red
-          }
-          
-          # Copy packages
-          if (Test-Path "packages") {
-            Write-Host "`nCopying packages to TinyOPDS\packages..." -ForegroundColor Green
-            if (!(Test-Path "TinyOPDS\packages")) {
-              New-Item -ItemType Directory -Path "TinyOPDS\packages" -Force | Out-Null
-            }
-            Copy-Item -Path "packages\*" -Destination "TinyOPDS\packages\" -Recurse -Force
-          }
-          
-          Write-Host "`n=== Package Structure AFTER ===" -ForegroundColor Yellow
-          
-          if (Test-Path "TinyOPDS\packages") {
-            Write-Host "TinyOPDS\packages:" -ForegroundColor Cyan
-            Get-ChildItem "TinyOPDS\packages" -Directory | Select-Object -First 5 | ForEach-Object {
-              Write-Host "  - $($_.Name)"
-            }
-          }
-          
-          # Check critical DLLs
-          Write-Host "`n=== Checking Critical DLLs ===" -ForegroundColor Yellow
-          
-          $dlls = @(
-            "packages\SgmlReader.1.8.11\lib\4.0\SgmlReaderDll.dll",
-            "packages\System.Data.SQLite.Core.FTS5.1.0.114.1\lib\net45\System.Data.SQLite.dll",
-            "packages\EpubSharp.dll.1.1.5\lib\net451\EpubSharp.dll",
-            "TinyOPDS\packages\SgmlReader.1.8.11\lib\4.0\SgmlReaderDll.dll",
-            "TinyOPDS\packages\System.Data.SQLite.Core.FTS5.1.0.114.1\lib\net45\System.Data.SQLite.dll",
-            "TinyOPDS\packages\EpubSharp.dll.1.1.5\lib\net451\EpubSharp.dll"
-          )
-          
-          foreach ($dll in $dlls) {
-            if (Test-Path $dll) {
-              Write-Host "✓ $dll" -ForegroundColor Green
-            } else {
-              Write-Host "✗ $dll" -ForegroundColor Red
-            }
-          }
-
-      - name: Build with detailed logging
-        run: |
-          msbuild TinyOPDS.sln /p:Configuration=Release /v:normal /fl /flp:logfile=build.log
-          echo.
-          echo "Build completed. Checking outputs..."
-          if exist TinyOPDS\bin\Release\TinyOPDS.exe (
-            echo "SUCCESS: TinyOPDS.exe found"
-            dir TinyOPDS\bin\Release\*.exe
-          ) else (
-            echo "ERROR: TinyOPDS.exe not found"
-          )
-          if exist TinyOPDSCLI\bin\Release\TinyOPDSCLI.exe (
-            echo "SUCCESS: TinyOPDSCLI.exe found"
-            dir TinyOPDSCLI\bin\Release\*.exe
-          ) else (
-            echo "ERROR: TinyOPDSCLI.exe not found"
-          )
-
-      - name: Upload build log
-        uses: actions/upload-artifact@v4
-        if: always()
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
         with:
-          name: build-log
-          path: build.log
+          nuget-version: 'latest'
 
-      - name: Upload everything
-        uses: actions/upload-artifact@v4
-        if: always()
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
         with:
-          name: all-outputs
+          msbuild-architecture: x86
+
+      # Cache packages to speed up builds
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
           path: |
-            TinyOPDS\bin\
-            TinyOPDSCLI\bin\
+            TinyOPDS\packages
+            ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.config') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      # Restore packages for TinyOPDS
+      - name: Restore NuGet packages for TinyOPDS
+        run: nuget restore TinyOPDS\TinyOPDS.csproj -PackagesDirectory TinyOPDS\packages
+
+      # Restore packages for TinyOPDSCLI (uses same packages folder)
+      - name: Restore NuGet packages for TinyOPDSCLI  
+        run: nuget restore TinyOPDSCLI\TinyOPDSCLI.csproj -PackagesDirectory TinyOPDS\packages
+
+      # Build entire solution in Release mode
+      - name: Build solution
+        run: msbuild TinyOPDS.sln /p:Configuration=Release /p:Platform="Any CPU" /m
+
+      # Create artifacts for every build
+      - name: Upload TinyOPDS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TinyOPDS-${{ github.sha }}
+          path: TinyOPDS\bin\Release\TinyOPDS.exe
+          retention-days: 30
+
+      - name: Upload TinyOPDSCLI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TinyOPDSCLI-${{ github.sha }}
+          path: TinyOPDSCLI\bin\Release\TinyOPDSCLI.exe
+          retention-days: 30
+
+      # Upload to release only when a release is created
+      - name: Upload release assets
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            TinyOPDS\bin\Release\TinyOPDS.exe
+            TinyOPDSCLI\bin\Release\TinyOPDSCLI.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

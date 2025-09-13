@@ -14,13 +14,13 @@ TinyOPDS - это простой и легковесный OPDS сервер, н
 - **SQLite база данных** - вместо загрузки всей библиотеки в память теперь используется стандартный SQL движок с полнотекстовым поиском FTS5
 - **Современный веб-интерфейс** - полноценный встроенный веб-сайт с красивым дизайном, адаптивной вёрсткой и поддержкой пагинации для больших коллекций
 - **Универсальная веб-читалка** - уникальный встроенный ридер для FB2 и EPUB файлов, доступный через браузер, с функциональностью на уровне специализированных приложений (темы, настройка шрифтов, закладки)
-- **Революционный поиск** - уникальная комбинация русского Soundex и интеллектуальной транслитерации позволяет находить "Достоевский" по запросу "Dostoevsky" и наоборот, а также исправляет опечатки
-- **Радикальное снижение потребления памяти** - с 1.6GB до 120-150MB для библиотеки из 500,000 книг (работает даже на Raspberry Pi Zero 2 W с 1GB RAM!)
+- **Революционный поиск** - уникальная комбинация русского/английского Soundex и интеллектуальной транслитерации позволяет находить "Достоевский" по запросу "Дастаевский" или "Dostoevsky" и наоборот, а также исправляет опечатки
+- **Радикальное снижение потребления памяти** - с 1.6GB до 120-150MB для библиотеки из 500,000 книг (с небольшой библиотекой на 80000 книг, программа работает даже на Raspberry Pi Zero 2 W с 1GB RAM!)
 - **Интеллектуальное сканирование** - автоматическое определение и удаление дубликатов с сохранением лучших версий
 - **Переработанный HTTP сервер** - теперь эффективно обрабатывает параллельные запросы от множества клиентов
 - **TinyOPDSCLI** - консольная версия переименована и модернизирована для современных стандартов
-- **Простая установка** - добавлены графические инсталляторы для Linux и macOS, не требующие знания командной строки
-- **Мультиязычная поддержка** - интерфейс локализован на 6 языков
+- **Простая установка** - в консольную версию добавлены инсталляторы для Linux и macOS, не требующие знания командной строки
+- **Мультиязычная поддержка** - интерфейс программы и встроенного веб-сайта локализованы для 6 языков
 
 ### Реальные показатели:
 
@@ -62,12 +62,12 @@ TinyOPDS - это простой и легковесный OPDS сервер, н
 - **Modern web interface** - fully functional embedded website with beautiful design, responsive layout, and pagination support for large collections
 - **Universal web reader** - unique built-in reader for FB2 and EPUB files accessible through any browser, with functionality comparable to specialized reader apps (themes, font settings, bookmarks)
 - **Revolutionary search** - unique combination of Russian Soundex and intelligent transliteration allows finding "Dostoevsky" by searching "Достоевский" and vice versa, plus typo correction
-- **Dramatic memory reduction** - from 1.6GB to 120-150MB for a 500,000 book library (runs even on Raspberry Pi Zero 2 W with 1GB RAM!)
+- **Dramatic memory reduction** - from 1.6GB to 120-150MB for a 500,000 book library (but for smaller libraries (80000 books), app runs even on Raspberry Pi Zero 2 W with 1GB RAM!)
 - **Smart scanning** - automatic duplicate detection and removal, keeping the best versions
 - **Redesigned HTTP server** - now efficiently handles parallel requests from multiple clients
 - **TinyOPDSCLI** - console version renamed and modernized to current standards
-- **Easy installation** - added GUI installers for Linux and macOS, no command line knowledge required
-- **Multi-language support** - interface localized in 6 languages
+- **Easy installation** - CLI now has installer option for Linux and macOS, no command line knowledge required
+- **Multi-language support** - interface (GUI and embedded website) localized in 6 languages
 
 ### Real performance metrics:
 

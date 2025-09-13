@@ -33,27 +33,48 @@ jobs:
           restore-keys: |
             nuget-
 
-      - name: Prepare SgmlReader from embedded Libs
+      - name: Prepare SgmlReader package structure
         shell: pwsh
         run: |
-          # Create directory structure for SgmlReader package
-          New-Item -ItemType Directory -Force -Path "packages\SgmlReader.1.8.11\lib\4.0"
+          # TinyOPDS expects packages at ..\packages (relative to TinyOPDS folder)
+          # This means packages should be at solution root level
+          $packagePath = "packages\SgmlReader.1.8.11\lib\4.0"
           
-          # Copy SgmlReaderDll.dll from Libs to packages location
-          if (Test-Path "TinyOPDS\Libs\SgmlReaderDll.dll") {
-            Copy-Item "TinyOPDS\Libs\SgmlReaderDll.dll" -Destination "packages\SgmlReader.1.8.11\lib\4.0\SgmlReaderDll.dll"
-            Write-Host "SgmlReaderDll.dll copied successfully"
+          Write-Host "Creating SgmlReader package directory: $packagePath"
+          New-Item -ItemType Directory -Force -Path $packagePath
+          
+          # Copy SgmlReaderDll.dll from embedded Libs
+          $sourcePath = "TinyOPDS\Libs\SgmlReaderDll.dll"
+          $targetPath = "$packagePath\SgmlReaderDll.dll"
+          
+          if (Test-Path $sourcePath) {
+            Copy-Item $sourcePath -Destination $targetPath -Force
+            Write-Host "Copied SgmlReaderDll.dll to: $targetPath"
+            
+            # Verify the file was copied
+            if (Test-Path $targetPath) {
+              $fileInfo = Get-Item $targetPath
+              Write-Host "File copied successfully. Size: $($fileInfo.Length) bytes"
+            }
           } else {
-            Write-Host "Warning: SgmlReaderDll.dll not found in TinyOPDS\Libs"
+            Write-Error "SgmlReaderDll.dll not found at: $sourcePath"
+            exit 1
           }
+          
+          # List the package structure
+          Write-Host "`nPackage structure:"
+          Get-ChildItem -Path "packages" -Recurse | Select-Object FullName
 
       - name: Install SQLite packages
         run: |
           nuget install System.Data.SQLite.Core.FTS5 -Version 1.0.114.1 -OutputDirectory packages -NonInteractive -Source https://api.nuget.org/v3/index.json
           nuget install System.Data.SQLite.Core -Version 1.0.114.1 -OutputDirectory packages -NonInteractive -Source https://api.nuget.org/v3/index.json
 
-      - name: Restore all NuGet packages for solution
-        run: nuget restore TinyOPDS.sln -NonInteractive -Source https://api.nuget.org/v3/index.json
+      - name: Restore TinyOPDS packages
+        run: nuget restore TinyOPDS\TinyOPDS.csproj -PackagesDirectory packages -NonInteractive -Source https://api.nuget.org/v3/index.json
+
+      - name: Restore TinyOPDSCLI packages  
+        run: nuget restore TinyOPDSCLI\TinyOPDSCLI.csproj -PackagesDirectory packages -NonInteractive -Source https://api.nuget.org/v3/index.json
 
       - name: Build
         run: msbuild TinyOPDS.sln /p:Configuration=Release /m

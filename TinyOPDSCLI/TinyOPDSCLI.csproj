@@ -1,49 +1,22 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
-  <!-- Basic Project Properties -->
+  
+  <!-- ============== PROJECT CONFIGURATION ============== -->
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{5A92FA9B-B91C-48F4-9488-77103868D226}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>TinyOPDSCLI</RootNamespace>
     <AssemblyName>TinyOPDSCLI</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
-    <TargetFrameworkProfile>
-    </TargetFrameworkProfile>
     <FileAlignment>512</FileAlignment>
     <ApplicationIcon>TinyOPDS.ico</ApplicationIcon>
-    <NuGetPackageImportStamp>
-    </NuGetPackageImportStamp>
+    <NuGetPackageImportStamp />
   </PropertyGroup>
-  <!-- Source Control Properties -->
-  <PropertyGroup>
-    <SccProjectName>Svn</SccProjectName>
-    <SccLocalPath>Svn</SccLocalPath>
-    <SccAuxPath>Svn</SccAuxPath>
-    <SccProvider>SubversionScc</SccProvider>
-  </PropertyGroup>
-  <!-- Publishing Properties -->
-  <PropertyGroup>
-    <IsWebBootstrapper>false</IsWebBootstrapper>
-    <PublishUrl>publish\</PublishUrl>
-    <Install>true</Install>
-    <InstallFrom>Disk</InstallFrom>
-    <UpdateEnabled>false</UpdateEnabled>
-    <UpdateMode>Foreground</UpdateMode>
-    <UpdateInterval>7</UpdateInterval>
-    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
-    <UpdatePeriodically>false</UpdatePeriodically>
-    <UpdateRequired>false</UpdateRequired>
-    <MapFileExtensions>true</MapFileExtensions>
-    <ApplicationRevision>0</ApplicationRevision>
-    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
-    <UseApplicationTrust>false</UseApplicationTrust>
-    <BootstrapperEnabled>true</BootstrapperEnabled>
-  </PropertyGroup>
-  <!-- Debug Configuration -->
+
+  <!-- ============== DEBUG CONFIGURATION ============== -->
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
@@ -55,7 +28,8 @@
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
-  <!-- Release Configuration -->
+
+  <!-- ============== RELEASE CONFIGURATION ============== -->
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
@@ -66,57 +40,58 @@
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
-  <!-- External References -->
+
+  <!-- ============== REFERENCES ============== -->
   <ItemGroup>
-    <Reference Include="EpubSharp, Version=1.1.5.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\TinyOPDS\packages\EpubSharp.dll.1.1.5\lib\net451\EpubSharp.dll</HintPath>
-    </Reference>
-    <Reference Include="FB2Library, Version=1.0.22.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\TinyOPDS\Libs\FB2Library.dll</HintPath>
-    </Reference>
-    <Reference Include="SgmlReaderDll, Version=1.8.11.0, Culture=neutral, PublicKeyToken=46b2db9ca481831b, processorArchitecture=MSIL">
-      <HintPath>..\packages\SgmlReader.1.8.11\lib\4.0\SgmlReaderDll.dll</HintPath>
-    </Reference>
+    <!-- System References -->
+    <Reference Include="Microsoft.CSharp" />
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Configuration.Install" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="System.Data.SQLite, Version=1.0.114.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=MSIL">
-      <HintPath>..\TinyOPDS\packages\System.Data.SQLite.Core.FTS5.1.0.114.1\lib\net45\System.Data.SQLite.dll</HintPath>
-    </Reference>
     <Reference Include="System.Drawing" />
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.IO.Compression.FileSystem" />
     <Reference Include="System.ServiceProcess" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Xml.Linq" />
-    <Reference Include="Microsoft.CSharp" />
+    
+    <!-- NuGet Package References -->
+    <Reference Include="System.Data.SQLite, Version=1.0.114.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=MSIL">
+      <HintPath>..\TinyOPDS\packages\System.Data.SQLite.Core.FTS5.1.0.114.1\lib\net45\System.Data.SQLite.dll</HintPath>
+    </Reference>
+    <Reference Include="SgmlReaderDll, Version=1.8.11.0, Culture=neutral, PublicKeyToken=46b2db9ca481831b, processorArchitecture=MSIL">
+      <HintPath>..\TinyOPDS\packages\SgmlReader.1.8.11\lib\4.0\SgmlReaderDll.dll</HintPath>
+    </Reference>
+    <Reference Include="EpubSharp, Version=1.1.5.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\TinyOPDS\packages\EpubSharp.dll.1.1.5\lib\net451\EpubSharp.dll</HintPath>
+    </Reference>
+    
+    <!-- Local Library Reference -->
+    <Reference Include="FB2Library, Version=1.0.22.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\TinyOPDS\Libs\FB2Library.dll</HintPath>
+    </Reference>
   </ItemGroup>
-  <!-- Linked Source Files from TinyOPDS Project -->
+
+  <!-- ============== CLI SPECIFIC FILES ============== -->
   <ItemGroup>
-    <!-- CLI Main and Service Installers -->
-    <Compile Include="..\TinyOPDS\OPDS\DownloadCatalog.cs">
-      <Link>OPDS\DownloadCatalog.cs</Link>
-    </Compile>
-    <Compile Include="..\TinyOPDS\Parsers\DateParser.cs">
-      <Link>Parsers\DateParser.cs</Link>
-    </Compile>
     <Compile Include="Program.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    
+    <!-- Service Installers -->
     <Compile Include="ServiceInstaller\LinuxServiceInstaller.cs" />
     <Compile Include="ServiceInstaller\MacServiceInstaller.cs" />
     <Compile Include="ServiceInstaller\ServiceInstallerBase.cs" />
     <Compile Include="ServiceInstaller\WindowsServiceInstaller.cs" />
-    <!-- Converters (Linked) -->
-    <Compile Include="..\TinyOPDS\Converters\FB2EpubConverter.cs">
-      <Link>Converters\FB2EpubConverter.cs</Link>
-    </Compile>
-    <!-- Data Layer (Linked) -->
+  </ItemGroup>
+
+  <!-- ============== LINKED SOURCE FILES FROM TINYOPDS ============== -->
+  <ItemGroup>
+    <!-- Data Layer -->
     <Compile Include="..\TinyOPDS\Data\AuthorSearchMethod.cs">
       <Link>Data\AuthorSearchMethod.cs</Link>
     </Compile>
@@ -150,7 +125,108 @@
     <Compile Include="..\TinyOPDS\Data\SqliteConnectionFactory.cs">
       <Link>Data\SqliteConnectionFactory.cs</Link>
     </Compile>
-    <!-- Misc/Utilities (Linked) -->
+    
+    <!-- OPDS Catalogs -->
+    <Compile Include="..\TinyOPDS\OPDS\AuthorBooksCatalog.cs">
+      <Link>OPDS\AuthorBooksCatalog.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\OPDS\AuthorDetailsCatalog.cs">
+      <Link>OPDS\AuthorDetailsCatalog.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\OPDS\AuthorsCatalog.cs">
+      <Link>OPDS\AuthorsCatalog.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\OPDS\BooksCatalog.cs">
+      <Link>OPDS\BooksCatalog.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\OPDS\DownloadCatalog.cs">
+      <Link>OPDS\DownloadCatalog.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\OPDS\GenresCatalog.cs">
+      <Link>OPDS\GenresCatalog.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\OPDS\Links.cs">
+      <Link>OPDS\Links.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\OPDS\Namespaces.cs">
+      <Link>OPDS\Namespaces.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\OPDS\NewBooksCatalog.cs">
+      <Link>OPDS\NewBooksCatalog.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\OPDS\OpenSearch.cs">
+      <Link>OPDS\OpenSearch.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\OPDS\RootCatalog.cs">
+      <Link>OPDS\RootCatalog.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\OPDS\SequencesCatalog.cs">
+      <Link>OPDS\SequencesCatalog.cs</Link>
+    </Compile>
+    
+    <!-- Server Components -->
+    <Compile Include="..\TinyOPDS\Server\HttpServer.cs">
+      <Link>Server\HttpServer.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\Server\OPDSServer.cs">
+      <Link>Server\OPDSServer.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\Server\Handlers\BookDownloadHandler.cs">
+      <Link>Server\Handlers\BookDownloadHandler.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\Server\Handlers\ImageRequestHandler.cs">
+      <Link>Server\Handlers\ImageRequestHandler.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\Server\Handlers\OPDSRequestRouter.cs">
+      <Link>Server\Handlers\OPDSRequestRouter.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\Server\Handlers\OPDSUtilities.cs">
+      <Link>Server\Handlers\OPDSUtilities.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\Server\Handlers\ReaderHandler.cs">
+      <Link>Server\Handlers\ReaderHandler.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\Server\Handlers\ResourceHandlers.cs">
+      <Link>Server\Handlers\ResourceHandlers.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\Server\Handlers\XslTransformHandler.cs">
+      <Link>Server\Handlers\XslTransformHandler.cs</Link>
+    </Compile>
+    
+    <!-- Parsers -->
+    <Compile Include="..\TinyOPDS\Parsers\BookParser.cs">
+      <Link>Parsers\BookParser.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\Parsers\DateParser.cs">
+      <Link>Parsers\DateParser.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\Parsers\ePubParser.cs">
+      <Link>Parsers\ePubParser.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\Parsers\FB2Parser.cs">
+      <Link>Parsers\FB2Parser.cs</Link>
+    </Compile>
+    
+    <!-- Scanners -->
+    <Compile Include="..\TinyOPDS\Scanners\FileScanner.cs">
+      <Link>Scanners\FileScanner.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\Scanners\ScannerEvents.cs">
+      <Link>Scanners\ScannerEvents.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\Scanners\Watcher.cs">
+      <Link>Scanners\Watcher.cs</Link>
+    </Compile>
+    <Compile Include="..\TinyOPDS\Scanners\ZipScanner.cs">
+      <Link>Scanners\ZipScanner.cs</Link>
+    </Compile>
+    
+    <!-- Converters -->
+    <Compile Include="..\TinyOPDS\Converters\FB2EpubConverter.cs">
+      <Link>Converters\FB2EpubConverter.cs</Link>
+    </Compile>
+    
+    <!-- Utilities -->
     <Compile Include="..\TinyOPDS\Misc\Crypt.cs">
       <Link>Misc\Crypt.cs</Link>
     </Compile>
@@ -184,110 +260,27 @@
     <Compile Include="..\TinyOPDS\Misc\Utils.cs">
       <Link>Misc\Utils.cs</Link>
     </Compile>
-    <!-- OPDS Catalogs (Linked) -->
-    <Compile Include="..\TinyOPDS\OPDS\AuthorBooksCatalog.cs">
-      <Link>OPDS\AuthorBooksCatalog.cs</Link>
-    </Compile>
-    <Compile Include="..\TinyOPDS\OPDS\AuthorDetailsCatalog.cs">
-      <Link>OPDS\AuthorDetailsCatalog.cs</Link>
-    </Compile>
-    <Compile Include="..\TinyOPDS\OPDS\AuthorsCatalog.cs">
-      <Link>OPDS\AuthorsCatalog.cs</Link>
-    </Compile>
-    <Compile Include="..\TinyOPDS\OPDS\BooksCatalog.cs">
-      <Link>OPDS\BooksCatalog.cs</Link>
-    </Compile>
-    <Compile Include="..\TinyOPDS\OPDS\GenresCatalog.cs">
-      <Link>OPDS\GenresCatalog.cs</Link>
-    </Compile>
-    <Compile Include="..\TinyOPDS\OPDS\Links.cs">
-      <Link>OPDS\Links.cs</Link>
-    </Compile>
-    <Compile Include="..\TinyOPDS\OPDS\Namespaces.cs">
-      <Link>OPDS\Namespaces.cs</Link>
-    </Compile>
-    <Compile Include="..\TinyOPDS\OPDS\NewBooksCatalog.cs">
-      <Link>OPDS\NewBooksCatalog.cs</Link>
-    </Compile>
-    <Compile Include="..\TinyOPDS\OPDS\OpenSearch.cs">
-      <Link>OPDS\OpenSearch.cs</Link>
-    </Compile>
-    <Compile Include="..\TinyOPDS\OPDS\RootCatalog.cs">
-      <Link>OPDS\RootCatalog.cs</Link>
-    </Compile>
-    <Compile Include="..\TinyOPDS\OPDS\SequencesCatalog.cs">
-      <Link>OPDS\SequencesCatalog.cs</Link>
-    </Compile>
-    <!-- Parsers (Linked) -->
-    <Compile Include="..\TinyOPDS\Parsers\BookParser.cs">
-      <Link>Parsers\BookParser.cs</Link>
-    </Compile>
-    <Compile Include="..\TinyOPDS\Parsers\ePubParser.cs">
-      <Link>Parsers\ePubParser.cs</Link>
-    </Compile>
-    <Compile Include="..\TinyOPDS\Parsers\FB2Parser.cs">
-      <Link>Parsers\FB2Parser.cs</Link>
-    </Compile>
-    <!-- Scanners (Linked) -->
-    <Compile Include="..\TinyOPDS\Scanners\FileScanner.cs">
-      <Link>Scanner\FileScanner.cs</Link>
-    </Compile>
-    <Compile Include="..\TinyOPDS\Scanners\ScannerEvents.cs">
-      <Link>Scanner\ScannerEvents.cs</Link>
-    </Compile>
-    <Compile Include="..\TinyOPDS\Scanners\Watcher.cs">
-      <Link>Scanner\Watcher.cs</Link>
-    </Compile>
-    <Compile Include="..\TinyOPDS\Scanners\ZipScanner.cs">
-      <Link>Scanner\ZipScanner.cs</Link>
-    </Compile>
-    <!-- Server Core (Linked) -->
-    <Compile Include="..\TinyOPDS\Server\HttpServer.cs">
-      <Link>Server\HttpServer.cs</Link>
-    </Compile>
-    <Compile Include="..\TinyOPDS\Server\OPDSServer.cs">
-      <Link>Server\OPDSServer.cs</Link>
-    </Compile>
-    <!-- Server Handlers (New Refactored Structure - Linked) -->
-    <Compile Include="..\TinyOPDS\Server\Handlers\BookDownloadHandler.cs">
-      <Link>Server\Handlers\BookDownloadHandler.cs</Link>
-    </Compile>
-    <Compile Include="..\TinyOPDS\Server\Handlers\ImageRequestHandler.cs">
-      <Link>Server\Handlers\ImageRequestHandler.cs</Link>
-    </Compile>
-    <Compile Include="..\TinyOPDS\Server\Handlers\OPDSRequestRouter.cs">
-      <Link>Server\Handlers\OPDSRequestRouter.cs</Link>
-    </Compile>
-    <Compile Include="..\TinyOPDS\Server\Handlers\OPDSUtilities.cs">
-      <Link>Server\Handlers\OPDSUtilities.cs</Link>
-    </Compile>
-    <Compile Include="..\TinyOPDS\Server\Handlers\ReaderHandler.cs">
-      <Link>Server\Handlers\ReaderHandler.cs</Link>
-    </Compile>
-    <Compile Include="..\TinyOPDS\Server\Handlers\ResourceHandlers.cs">
-      <Link>Server\Handlers\ResourceHandlers.cs</Link>
-    </Compile>
-    <Compile Include="..\TinyOPDS\Server\Handlers\XslTransformHandler.cs">
-      <Link>Server\Handlers\XslTransformHandler.cs</Link>
-    </Compile>
-    <!-- SGML Reader (Linked) -->
-    <!-- Settings (Linked) -->
+    
+    <!-- Settings -->
     <Compile Include="..\TinyOPDS\Properties\Settings.Designer.cs">
+      <Link>Properties\Settings.Designer.cs</Link>
       <AutoGen>False</AutoGen>
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>False</DesignTimeSharedInput>
     </Compile>
   </ItemGroup>
-  <!-- Configuration Files -->
+
+  <!-- ============== CONFIGURATION FILES ============== -->
   <ItemGroup>
     <None Include="App.config" />
     <None Include="packages.config" />
-    <None Include="Properties\app.manifest" />
     <None Include="..\TinyOPDS\Properties\Settings.settings">
+      <Link>Properties\Settings.settings</Link>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
   </ItemGroup>
-  <!-- Embedded Resources (Linked from TinyOPDS) -->
+
+  <!-- ============== EMBEDDED RESOURCES ============== -->
   <ItemGroup>
     <!-- Core Libraries -->
     <EmbeddedResource Include="..\TinyOPDS\Libs\FB2Library.dll">
@@ -295,6 +288,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="..\TinyOPDS\Libs\EpubSharp.dll">
       <Link>Libs\EpubSharp.dll</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\Libs\SgmlReaderDll.dll">
+      <Link>Libs\SgmlReaderDll.dll</Link>
     </EmbeddedResource>
     <EmbeddedResource Include="..\TinyOPDS\Libs\System.Data.SQLite.dll">
       <Link>Libs\System.Data.SQLite.dll</Link>
@@ -305,9 +301,23 @@
     <EmbeddedResource Include="..\TinyOPDS\Libs\x64\SQLite.Interop.dll">
       <Link>Libs\x64\SQLite.Interop.dll</Link>
     </EmbeddedResource>
+    
     <!-- Core Resources -->
+    <EmbeddedResource Include="..\TinyOPDS\Resources\xml2html.xsl">
+      <Link>Resources\xml2html.xsl</Link>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
     <EmbeddedResource Include="..\TinyOPDS\Resources\fb2.dtd">
       <Link>Resources\fb2.dtd</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\Resources\translation.xml">
+      <Link>Resources\translation.xml</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\Resources\genres.xml">
+      <Link>Resources\genres.xml</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\Resources\a_aliases.txt.gz">
+      <Link>Resources\a_aliases.txt.gz</Link>
     </EmbeddedResource>
     <EmbeddedResource Include="..\TinyOPDS\Resources\book_cover.jpg">
       <Link>Resources\book_cover.jpg</Link>
@@ -315,43 +325,26 @@
     <EmbeddedResource Include="..\TinyOPDS\Resources\logo.png">
       <Link>Resources\logo.png</Link>
     </EmbeddedResource>
-    <!-- Compressed Resources -->
-    <EmbeddedResource Include="..\TinyOPDS\Resources\a_aliases.txt.gz">
-      <Link>Resources\a_aliases.txt.gz</Link>
-    </EmbeddedResource>
-  </ItemGroup>
-  <!-- Content Files (Linked from TinyOPDS) -->
-  <ItemGroup>
-    <!-- XML Resources -->
-    <EmbeddedResource Include="..\TinyOPDS\Libs\SgmlReaderDll.dll">
-      <Link>Libs\SgmlReaderDll.dll</Link>
-    </EmbeddedResource>
-    <Content Include="TinyOPDS.ico" />
-    <EmbeddedResource Include="..\TinyOPDS\Resources\infinite-scroll.js">
-      <Link>Resources\infinite-scroll.js</Link>
-    </EmbeddedResource>
+    
+    <!-- JavaScript Resources -->
     <EmbeddedResource Include="..\TinyOPDS\Resources\smart-header.js">
       <Link>Resources\smart-header.js</Link>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\TinyOPDS\Resources\genres.xml">
-      <Link>Resources\genres.xml</Link>
+    <EmbeddedResource Include="..\TinyOPDS\Resources\infinite-scroll.js">
+      <Link>Resources\infinite-scroll.js</Link>
+    </EmbeddedResource>
+    
+    <!-- Icons -->
+    <EmbeddedResource Include="..\TinyOPDS\Resources\favicon.ico">
+      <Link>Resources\favicon.ico</Link>
     </EmbeddedResource>
     <EmbeddedResource Include="..\TinyOPDS\Resources\opds.ico">
       <Link>Resources\opds.ico</Link>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\TinyOPDS\Resources\translation.xml">
-      <Link>Resources\translation.xml</Link>
-    </EmbeddedResource>
     <EmbeddedResource Include="..\TinyOPDS\Resources\trayIcon.ico">
       <Link>Resources\trayIcon.ico</Link>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\TinyOPDS\Resources\xml2html.xsl">
-      <Link>Resources\xml2html.xsl</Link>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\TinyOPDS\Resources\favicon.ico">
-      <Link>Resources\favicon.ico</Link>
-    </EmbeddedResource>
+    
     <!-- Reader Resources -->
     <EmbeddedResource Include="..\TinyOPDS\Resources\reader\reader.html">
       <Link>Resources\reader\reader.html</Link>
@@ -369,34 +362,27 @@
       <Link>Resources\reader\reader.css</Link>
     </EmbeddedResource>
   </ItemGroup>
-  <!-- Bootstrapper Packages -->
+
+  <!-- ============== CONTENT FILES ============== -->
   <ItemGroup>
-    <BootstrapperPackage Include=".NETFramework,Version=v4.5">
-      <Visible>False</Visible>
-      <ProductName>Microsoft .NET Framework 4.5 %28x86 and x64%29</ProductName>
-      <Install>true</Install>
-    </BootstrapperPackage>
-    <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
-      <Visible>False</Visible>
-      <ProductName>.NET Framework 3.5 SP1 Client Profile</ProductName>
-      <Install>false</Install>
-    </BootstrapperPackage>
-    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
-      <Visible>False</Visible>
-      <ProductName>.NET Framework 3.5 SP1</ProductName>
-      <Install>false</Install>
-    </BootstrapperPackage>
+    <Content Include="TinyOPDS.ico" />
   </ItemGroup>
-  <!-- Build Targets and Events -->
+
+  <!-- ============== BUILD CONFIGURATION ============== -->
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  
+  <!-- Post Build Events -->
   <PropertyGroup>
     <PostBuildEvent>if exist $(SolutionDir)\Sign\\ copy $(TargetPath) $(SolutionDir)\Sign</PostBuildEvent>
   </PropertyGroup>
+  
   <!-- NuGet Package Imports -->
   <Import Project="..\TinyOPDS\packages\System.Data.SQLite.Core.FTS5.1.0.114.1\build\net45\System.Data.SQLite.Core.FTS5.targets" Condition="Exists('..\TinyOPDS\packages\System.Data.SQLite.Core.FTS5.1.0.114.1\build\net45\System.Data.SQLite.Core.FTS5.targets')" />
+  
+  <!-- NuGet Package Validation -->
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them. For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('..\TinyOPDS\packages\System.Data.SQLite.Core.FTS5.1.0.114.1\build\net45\System.Data.SQLite.Core.FTS5.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\TinyOPDS\packages\System.Data.SQLite.Core.FTS5.1.0.114.1\build\net45\System.Data.SQLite.Core.FTS5.targets'))" />
   </Target>

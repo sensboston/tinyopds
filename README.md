@@ -1,7 +1,7 @@
 # TinyOPDS 3.0
 Легковесный и мощный OPDS сервер для домашних библиотек
 
-![](https://github.com/sensboston/tinyopds/blob/master/wiki/Home_screen1-en.jpg?raw=true)
+![](https://github.com/sensboston/tinyopds/blob/master/wiki/ss1.png?raw=true)
 
 TinyOPDS - это простой и легковесный OPDS сервер, написанный на C#. Работает на Windows, Linux и macOS через .NET или Mono.
 

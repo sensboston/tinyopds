@@ -3,8 +3,8 @@
     'use strict';
 
     // Configuration
-    const SCROLL_THRESHOLD = 800; // pixels from bottom to trigger load
-    const DEBOUNCE_DELAY = 200; // ms to debounce scroll events
+    const SCROLL_THRESHOLD = 1600;  // pixels from bottom to trigger load
+    const DEBOUNCE_DELAY = 100;     // ms to debounce scroll events
 
     // State management
     let isLoading = false;
@@ -78,7 +78,6 @@
         }
 
         isLoading = true;
-        showLoadingIndicator();
         hideErrorMessage();
 
         // Convert relative URL to absolute for OPDS endpoint
@@ -105,7 +104,6 @@
                 showErrorMessage();
             }
             isLoading = false;
-            hideLoadingIndicator();
             currentRequest = null;
         };
 
@@ -113,7 +111,6 @@
             console.error('Network error occurred');
             showErrorMessage();
             isLoading = false;
-            hideLoadingIndicator();
             currentRequest = null;
         };
 
@@ -309,24 +306,6 @@
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
-    }
-
-    // Show/hide UI elements
-    function showLoadingIndicator() {
-        if (loadingIndicator) {
-            loadingIndicator.classList.add('active');
-        }
-    }
-
-    function hideLoadingIndicator() {
-        if (loadingIndicator) {
-            loadingIndicator.classList.remove('active');
-        }
-        // Clear the timer if it's still pending
-        if (loadingTimer) {
-            clearTimeout(loadingTimer);
-            loadingTimer = null;
-        }
     }
 
     function showEndMessage() {

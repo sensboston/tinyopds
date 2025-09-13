@@ -579,7 +579,7 @@ class FormatConverter {
         return toc;
     }
 
-    // FB2 to HTML conversion with TOC support
+    // FB2 to HTML conversion with TOC support and poetry tags
     convertFB2ToHTML(element) {
         let html = '';
 
@@ -621,6 +621,56 @@ class FormatConverter {
                     case 'empty-line':
                         html += '<br>';
                         break;
+
+                    // Poetry tags support
+                    case 'poem':
+                        html += '<div class="poem">';
+                        // Process poem title if exists
+                        for (let poemChild of child.children) {
+                            if (poemChild.tagName.toLowerCase() === 'title') {
+                                html += `<h3 class="poem-title">${this.convertFB2ToHTML(poemChild)}</h3>`;
+                                break;
+                            }
+                        }
+                        html += this.convertFB2ToHTML(child);
+                        html += '</div>';
+                        break;
+
+                    case 'stanza':
+                        html += '<div class="stanza">';
+                        html += this.convertFB2ToHTML(child);
+                        html += '</div>';
+                        break;
+
+                    case 'v':
+                        // Verse line
+                        html += `<p class="verse">${this.convertFB2ToHTML(child)}</p>`;
+                        break;
+
+                    case 'text-author':
+                        html += `<p class="text-author">${this.convertFB2ToHTML(child)}</p>`;
+                        break;
+
+                    case 'epigraph':
+                        html += '<div class="epigraph">';
+                        html += this.convertFB2ToHTML(child);
+                        html += '</div>';
+                        break;
+
+                    case 'cite':
+                        html += '<blockquote class="cite">';
+                        html += this.convertFB2ToHTML(child);
+                        html += '</blockquote>';
+                        break;
+
+                    case 'subtitle':
+                        html += `<h3 class="subtitle">${this.convertFB2ToHTML(child)}</h3>`;
+                        break;
+
+                    case 'date':
+                        html += `<p class="date">${this.convertFB2ToHTML(child)}</p>`;
+                        break;
+
                     default:
                         html += this.convertFB2ToHTML(child);
                 }

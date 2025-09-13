@@ -211,9 +211,6 @@ class UniversalReader {
         this.tocOverlay.classList.add('visible');
         this.renderTOC();
 
-        // Add history state for TOC
-        history.pushState({ tocOpen: true }, '');
-
         if (this.menuVisible) {
             this.toggleMenu();
         }
@@ -293,9 +290,7 @@ class UniversalReader {
             const elementTop = element.offsetTop;
             const offset = 0;
 
-            // Replace current state to avoid adding to history
-            history.replaceState({ tocOpen: true }, '');
-
+            // Remove history manipulation - just scroll
             window.scrollTo({
                 top: elementTop - offset,
                 behavior: 'smooth'

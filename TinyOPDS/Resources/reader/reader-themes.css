@@ -129,3 +129,92 @@ body.theme-sepia {
     overflow-x: auto;
     display: block;
 }
+
+/* Poetry and special FB2 elements styling */
+.book-content .poem {
+    margin: 30px 0;
+    padding: 20px 0;
+}
+
+.book-content .poem-title {
+    text-align: center;
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+
+.book-content .stanza {
+    margin: 20px 0;
+}
+
+.book-content .verse {
+    margin: 5px 0;
+    text-indent: 0 !important;
+    text-align: left;
+    padding-left: 40px;
+    white-space: pre-wrap;
+}
+
+.book-content .text-author {
+    text-align: right;
+    font-style: italic;
+    margin: 15px 0;
+    padding-right: 40px;
+    text-indent: 0 !important;
+}
+
+.book-content .epigraph {
+    margin: 30px 20%;
+    padding: 20px;
+    font-style: italic;
+    font-size: 0.95em;
+    border-left: 3px solid #ccc;
+}
+
+.book-content.dark .epigraph {
+    border-left-color: #666;
+}
+
+.book-content.sepia .epigraph {
+    border-left-color: #8B7355;
+}
+
+.book-content .cite {
+    margin: 20px 40px;
+    padding: 15px;
+    font-style: italic;
+    background-color: rgba(0, 0, 0, 0.02);
+    border-left: 4px solid #ddd;
+}
+
+.book-content.dark .cite {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-left-color: #555;
+}
+
+.book-content.sepia .cite {
+    background-color: rgba(0, 0, 0, 0.03);
+    border-left-color: #A0826D;
+}
+
+.book-content .subtitle {
+    text-align: center;
+    font-size: 16px;
+    font-style: italic;
+    margin: 15px 0;
+}
+
+.book-content .date {
+    text-align: center;
+    font-size: 14px;
+    color: #666;
+    margin: 10px 0;
+}
+
+.book-content.dark .date {
+    color: #999;
+}
+
+.book-content.sepia .date {
+    color: #8B7355;
+}

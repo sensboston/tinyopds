@@ -23,29 +23,43 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      # For projects using packages.config restore must be done via nuget.exe
+      # >>> КЛЮЧЕВОЕ: положить SgmlReader именно в ./packages, как ожидают .csproj
+      - name: Preinstall SgmlReader package for packages.config layout
+        run: nuget install SgmlReader -Version 1.8.11 -OutputDirectory packages
+
+      # Остальные пакеты (EpubSharp, SQLite и т.п.) через стандартный restore
       - name: Restore NuGet packages
         run: nuget restore TinyOPDS.sln -Verbosity detailed
+
+      - name: Verify SgmlReader presence
+        shell: pwsh
+        run: |
+          $p = Join-Path $PWD "packages\SgmlReader.1.8.11\lib\4.0\SgmlReaderDll.dll"
+          if (-not (Test-Path $p)) {
+            Write-Error "SgmlReaderDll not found at $p"
+            exit 1
+          }
+          Write-Host "OK: $p"
 
       - name: Build (Release)
         run: msbuild TinyOPDS.sln /p:Configuration=Release /m /v:m
 
-      # Optional: show where the Sign folder is if PostBuildEvent created it
       - name: List outputs
+        if: always()
         shell: pwsh
         run: |
-          Write-Host "Solution dir:" (Get-Location).Path
-          Get-ChildItem -Recurse -Force TinyOPDS\bin\Release | Select-Object FullName,Length
-          Get-ChildItem -Recurse -Force TinyOPDSCLI\bin\Release | Select-Object FullName,Length
-          if (Test-Path ".\Sign") { Get-ChildItem -Recurse -Force .\Sign | Select-Object FullName,Length }
+          Write-Host "== TinyOPDS bin/Release =="
+          if (Test-Path ".\TinyOPDS\bin\Release") { Get-ChildItem -Recurse -Force .\TinyOPDS\bin\Release | Select-Object FullName,Length }
+          Write-Host "== TinyOPDSCLI bin/Release =="
+          if (Test-Path ".\TinyOPDSCLI\bin\Release") { Get-ChildItem -Recurse -Force .\TinyOPDSCLI\bin\Release | Select-Object FullName,Length }
+          if (Test-Path ".\Sign") { Write-Host "== Sign =="; Get-ChildItem -Recurse -Force .\Sign | Select-Object FullName,Length }
 
       - name: Upload TinyOPDS artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: TinyOPDS_Release
-          path: |
-            TinyOPDS\bin\Release\**
+          path: TinyOPDS\bin\Release\**
           if-no-files-found: warn
           compression-level: 9
 
@@ -54,8 +68,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: TinyOPDSCLI_Release
-          path: |
-            TinyOPDSCLI\bin\Release\**
+          path: TinyOPDSCLI\bin\Release\**
           if-no-files-found: warn
           compression-level: 9
 

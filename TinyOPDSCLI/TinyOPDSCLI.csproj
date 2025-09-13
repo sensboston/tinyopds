@@ -323,9 +323,9 @@
   <!-- Content Files (Linked from TinyOPDS) -->
   <ItemGroup>
     <!-- XML Resources -->
-    <Content Include="..\TinyOPDS\Libs\SgmlReaderDll.dll">
+    <EmbeddedResource Include="..\TinyOPDS\Libs\SgmlReaderDll.dll">
       <Link>Libs\SgmlReaderDll.dll</Link>
-    </Content>
+    </EmbeddedResource>
     <Content Include="TinyOPDS.ico" />
     <EmbeddedResource Include="..\TinyOPDS\Resources\infinite-scroll.js">
       <Link>Resources\infinite-scroll.js</Link>

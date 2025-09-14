@@ -1419,7 +1419,7 @@ namespace TinyOPDS
             UpdateTreeNodeStyles();
         }
 
-        private void clearDownloadsButton_Click(object sender, EventArgs e)
+        private void ClearDownloadsButton_Click(object sender, EventArgs e)
         {
             if (MessageBox.Show(
                     Localizer.Text("Are you sure you want to clear download history?"),
@@ -1436,6 +1436,42 @@ namespace TinyOPDS
                     Log.WriteLine(LogLevel.Error, "Error clearing download history: {0}", ex.Message);
                 }
             }
+        }
+
+        private void ServerName_TextChanged(object sender, EventArgs e)
+        {
+            Settings.Default.ServerName = serverName.Text;
+            Settings.Default.Save();
+        }
+
+        private void ItemsPerOPDS_ValueChanged(object sender, EventArgs e)
+        {
+            Settings.Default.ItemsPerOPDSPage = (int)itemsPerOPDS.Value;
+            Settings.Default.Save();
+        }
+
+        private void ItemsPerWeb_ValueChanged(object sender, EventArgs e)
+        {
+            Settings.Default.ItemsPerWebPage = (int)itemsPerWeb.Value;
+            Settings.Default.Save();
+        }
+
+        private void RememberClients_CheckedChanged(object sender, EventArgs e)
+        {
+            Settings.Default.RememberClients = rememberClients.Checked;
+            Settings.Default.Save();
+        }
+
+        private void WrongAttemptsCount_ValueChanged(object sender, EventArgs e)
+        {
+            Settings.Default.WrongAttemptsCount = (int)wrongAttemptsCount.Value;
+            Settings.Default.Save();
+        }
+
+        private void StartMinimized_CheckedChanged(object sender, EventArgs e)
+        {
+            Settings.Default.StartMinimized = startMinimized.Checked;
+            Settings.Default.Save();
         }
 
         private void HandleNodeDependencies(string tag, bool isChecked)

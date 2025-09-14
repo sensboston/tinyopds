@@ -44,7 +44,7 @@ namespace TinyOPDS.OPDS
                       new XElement("title", Properties.Settings.Default.ServerName),
                       new XElement("subtitle", Utils.ServerVersionName),
                       new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                      new XElement("icon", "/opds.ico"),
+                      new XElement("icon", "/library.ico"),
 
                       // Add links
                       Links.opensearch,

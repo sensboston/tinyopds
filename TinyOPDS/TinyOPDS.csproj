@@ -16,7 +16,6 @@
     <GenerateManifests>false</GenerateManifests>
     <NuGetPackageImportStamp />
   </PropertyGroup>
-
   <!-- ============== DEBUG CONFIGURATION ============== -->
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
     <DebugSymbols>true</DebugSymbols>
@@ -27,7 +26,6 @@
     <ErrorReport>prompt</ErrorReport>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
-
   <!-- ============== RELEASE CONFIGURATION ============== -->
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|AnyCPU'">
     <OutputPath>bin\Release\</OutputPath>
@@ -39,7 +37,6 @@
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
-
   <!-- ============== REFERENCES ============== -->
   <ItemGroup>
     <!-- System References -->
@@ -53,7 +50,6 @@
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Xml.Linq" />
-    
     <!-- NuGet Package References -->
     <Reference Include="System.Data.SQLite, Version=1.0.114.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=MSIL">
       <HintPath>packages\System.Data.SQLite.Core.FTS5.1.0.114.1\lib\net45\System.Data.SQLite.dll</HintPath>
@@ -64,14 +60,12 @@
     <Reference Include="EpubSharp, Version=1.1.5.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>packages\EpubSharp.dll.1.1.5\lib\net451\EpubSharp.dll</HintPath>
     </Reference>
-    
     <!-- Local Library Reference -->
     <Reference Include="FB2Library, Version=1.0.22.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>Libs\FB2Library.dll</HintPath>
     </Reference>
   </ItemGroup>
-
   <!-- ============== SOURCE CODE FILES ============== -->
   <ItemGroup>
     <!-- Main Application -->
@@ -82,7 +76,6 @@
     <Compile Include="MainForm.Designer.cs">
       <DependentUpon>MainForm.cs</DependentUpon>
     </Compile>
-    
     <!-- Properties -->
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
@@ -95,7 +88,6 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
-    
     <!-- Data Layer -->
     <Compile Include="Data\AuthorSearchMethod.cs" />
     <Compile Include="Data\Book.cs" />
@@ -108,7 +100,6 @@
     <Compile Include="Data\ImagesCache.cs" />
     <Compile Include="Data\Library.cs" />
     <Compile Include="Data\SqliteConnectionFactory.cs" />
-    
     <!-- OPDS Catalogs -->
     <Compile Include="OPDS\AuthorBooksCatalog.cs" />
     <Compile Include="OPDS\AuthorDetailsCatalog.cs" />
@@ -122,7 +113,6 @@
     <Compile Include="OPDS\OpenSearch.cs" />
     <Compile Include="OPDS\RootCatalog.cs" />
     <Compile Include="OPDS\SequencesCatalog.cs" />
-    
     <!-- Server Components -->
     <Compile Include="Server\HttpServer.cs" />
     <Compile Include="Server\OPDSServer.cs" />
@@ -133,22 +123,18 @@
     <Compile Include="Server\Handlers\ReaderHandler.cs" />
     <Compile Include="Server\Handlers\ResourceHandlers.cs" />
     <Compile Include="Server\Handlers\XslTransformHandler.cs" />
-    
     <!-- Parsers -->
     <Compile Include="Parsers\BookParser.cs" />
     <Compile Include="Parsers\DateParser.cs" />
     <Compile Include="Parsers\ePubParser.cs" />
     <Compile Include="Parsers\FB2Parser.cs" />
-    
     <!-- Scanners -->
     <Compile Include="Scanners\FileScanner.cs" />
     <Compile Include="Scanners\ScannerEvents.cs" />
     <Compile Include="Scanners\Watcher.cs" />
     <Compile Include="Scanners\ZipScanner.cs" />
-    
     <!-- Converters -->
     <Compile Include="Converters\FB2EpubConverter.cs" />
-    
     <!-- Utilities -->
     <Compile Include="Misc\Crypt.cs" />
     <Compile Include="Misc\EmbeddedDllLoader.cs" />
@@ -163,7 +149,6 @@
     <Compile Include="Misc\UPnP.cs" />
     <Compile Include="Misc\Utils.cs" />
   </ItemGroup>
-
   <!-- ============== CONFIGURATION FILES ============== -->
   <ItemGroup>
     <None Include="app.config" />
@@ -174,7 +159,6 @@
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
   </ItemGroup>
-
   <!-- ============== RESOURCE FILES (.resx) ============== -->
   <ItemGroup>
     <EmbeddedResource Include="MainForm.resx">
@@ -186,7 +170,6 @@
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
-
   <!-- ============== EMBEDDED RESOURCES ============== -->
   <ItemGroup>
     <!-- Core Resources -->
@@ -201,24 +184,20 @@
     <EmbeddedResource Include="Resources\logo.png" />
     <EmbeddedResource Include="Resources\donate.png" />
     <EmbeddedResource Include="Resources\folder.png" />
-    
     <!-- Icons -->
     <EmbeddedResource Include="Resources\favicon.ico" />
-    <EmbeddedResource Include="Resources\opds.ico" />
+    <EmbeddedResource Include="Resources\library.ico" />
     <EmbeddedResource Include="Resources\TinyOPDS.ico" />
     <EmbeddedResource Include="Resources\trayIcon.ico" />
-    
     <!-- JavaScript Resources -->
     <EmbeddedResource Include="Resources\smart-header.js" />
     <EmbeddedResource Include="Resources\infinite-scroll.js" />
-    
     <!-- Reader Resources -->
     <EmbeddedResource Include="Resources\reader\reader.html" />
     <EmbeddedResource Include="Resources\reader\reader-formats.js" />
     <EmbeddedResource Include="Resources\reader\reader-main.js" />
     <EmbeddedResource Include="Resources\reader\reader-themes.css" />
     <EmbeddedResource Include="Resources\reader\reader.css" />
-    
     <!-- Embedded Libraries -->
     <EmbeddedResource Include="Libs\FB2Library.dll" />
     <EmbeddedResource Include="Libs\SgmlReaderDll.dll" />
@@ -227,25 +206,20 @@
     <EmbeddedResource Include="Libs\x64\SQLite.Interop.dll" />
     <EmbeddedResource Include="Libs\x86\SQLite.Interop.dll" />
   </ItemGroup>
-
   <!-- ============== CONTENT FILES ============== -->
   <ItemGroup>
     <Content Include="TinyOPDS.ico" />
     <Content Include="License.txt" />
     <None Include="TinyOPDS.png" />
   </ItemGroup>
-
   <!-- ============== BUILD CONFIGURATION ============== -->
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  
   <!-- Post Build Events -->
   <PropertyGroup>
     <PostBuildEvent>if exist $(ProjectDir)\Sign\\ copy $(TargetPath) $(ProjectDir)\Sign</PostBuildEvent>
   </PropertyGroup>
-  
   <!-- NuGet Package Imports -->
   <Import Project="packages\System.Data.SQLite.Core.FTS5.1.0.114.1\build\net45\System.Data.SQLite.Core.FTS5.targets" Condition="Exists('packages\System.Data.SQLite.Core.FTS5.1.0.114.1\build\net45\System.Data.SQLite.Core.FTS5.targets')" />
-  
   <!-- NuGet Package Validation -->
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>

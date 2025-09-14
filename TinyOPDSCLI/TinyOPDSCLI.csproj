@@ -1,7 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
-  
   <!-- ============== PROJECT CONFIGURATION ============== -->
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -15,7 +14,6 @@
     <ApplicationIcon>TinyOPDS.ico</ApplicationIcon>
     <NuGetPackageImportStamp />
   </PropertyGroup>
-
   <!-- ============== DEBUG CONFIGURATION ============== -->
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -28,7 +26,6 @@
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
-
   <!-- ============== RELEASE CONFIGURATION ============== -->
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -40,7 +37,6 @@
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
-
   <!-- ============== REFERENCES ============== -->
   <ItemGroup>
     <!-- System References -->
@@ -56,7 +52,6 @@
     <Reference Include="System.ServiceProcess" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Xml.Linq" />
-    
     <!-- NuGet Package References -->
     <Reference Include="System.Data.SQLite, Version=1.0.114.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=MSIL">
       <HintPath>..\TinyOPDS\packages\System.Data.SQLite.Core.FTS5.1.0.114.1\lib\net45\System.Data.SQLite.dll</HintPath>
@@ -67,28 +62,24 @@
     <Reference Include="EpubSharp, Version=1.1.5.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\TinyOPDS\packages\EpubSharp.dll.1.1.5\lib\net451\EpubSharp.dll</HintPath>
     </Reference>
-    
     <!-- Local Library Reference -->
     <Reference Include="FB2Library, Version=1.0.22.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\TinyOPDS\Libs\FB2Library.dll</HintPath>
     </Reference>
   </ItemGroup>
-
   <!-- ============== CLI SPECIFIC FILES ============== -->
   <ItemGroup>
     <Compile Include="Program.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    
     <!-- Service Installers -->
     <Compile Include="ServiceInstaller\LinuxServiceInstaller.cs" />
     <Compile Include="ServiceInstaller\MacServiceInstaller.cs" />
     <Compile Include="ServiceInstaller\ServiceInstallerBase.cs" />
     <Compile Include="ServiceInstaller\WindowsServiceInstaller.cs" />
   </ItemGroup>
-
   <!-- ============== LINKED SOURCE FILES FROM TINYOPDS ============== -->
   <ItemGroup>
     <!-- Data Layer -->
@@ -125,7 +116,6 @@
     <Compile Include="..\TinyOPDS\Data\SqliteConnectionFactory.cs">
       <Link>Data\SqliteConnectionFactory.cs</Link>
     </Compile>
-    
     <!-- OPDS Catalogs -->
     <Compile Include="..\TinyOPDS\OPDS\AuthorBooksCatalog.cs">
       <Link>OPDS\AuthorBooksCatalog.cs</Link>
@@ -163,7 +153,6 @@
     <Compile Include="..\TinyOPDS\OPDS\SequencesCatalog.cs">
       <Link>OPDS\SequencesCatalog.cs</Link>
     </Compile>
-    
     <!-- Server Components -->
     <Compile Include="..\TinyOPDS\Server\HttpServer.cs">
       <Link>Server\HttpServer.cs</Link>
@@ -192,7 +181,6 @@
     <Compile Include="..\TinyOPDS\Server\Handlers\XslTransformHandler.cs">
       <Link>Server\Handlers\XslTransformHandler.cs</Link>
     </Compile>
-    
     <!-- Parsers -->
     <Compile Include="..\TinyOPDS\Parsers\BookParser.cs">
       <Link>Parsers\BookParser.cs</Link>
@@ -206,7 +194,6 @@
     <Compile Include="..\TinyOPDS\Parsers\FB2Parser.cs">
       <Link>Parsers\FB2Parser.cs</Link>
     </Compile>
-    
     <!-- Scanners -->
     <Compile Include="..\TinyOPDS\Scanners\FileScanner.cs">
       <Link>Scanners\FileScanner.cs</Link>
@@ -220,12 +207,10 @@
     <Compile Include="..\TinyOPDS\Scanners\ZipScanner.cs">
       <Link>Scanners\ZipScanner.cs</Link>
     </Compile>
-    
     <!-- Converters -->
     <Compile Include="..\TinyOPDS\Converters\FB2EpubConverter.cs">
       <Link>Converters\FB2EpubConverter.cs</Link>
     </Compile>
-    
     <!-- Utilities -->
     <Compile Include="..\TinyOPDS\Misc\Crypt.cs">
       <Link>Misc\Crypt.cs</Link>
@@ -260,7 +245,6 @@
     <Compile Include="..\TinyOPDS\Misc\Utils.cs">
       <Link>Misc\Utils.cs</Link>
     </Compile>
-    
     <!-- Settings -->
     <Compile Include="..\TinyOPDS\Properties\Settings.Designer.cs">
       <Link>Properties\Settings.Designer.cs</Link>
@@ -269,7 +253,6 @@
       <DesignTimeSharedInput>False</DesignTimeSharedInput>
     </Compile>
   </ItemGroup>
-
   <!-- ============== CONFIGURATION FILES ============== -->
   <ItemGroup>
     <None Include="App.config" />
@@ -279,7 +262,6 @@
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
   </ItemGroup>
-
   <!-- ============== EMBEDDED RESOURCES ============== -->
   <ItemGroup>
     <!-- Core Libraries -->
@@ -301,7 +283,6 @@
     <EmbeddedResource Include="..\TinyOPDS\Libs\x64\SQLite.Interop.dll">
       <Link>Libs\x64\SQLite.Interop.dll</Link>
     </EmbeddedResource>
-    
     <!-- Core Resources -->
     <EmbeddedResource Include="..\TinyOPDS\Resources\xml2html.xsl">
       <Link>Resources\xml2html.xsl</Link>
@@ -325,7 +306,6 @@
     <EmbeddedResource Include="..\TinyOPDS\Resources\logo.png">
       <Link>Resources\logo.png</Link>
     </EmbeddedResource>
-    
     <!-- JavaScript Resources -->
     <EmbeddedResource Include="..\TinyOPDS\Resources\smart-header.js">
       <Link>Resources\smart-header.js</Link>
@@ -333,18 +313,13 @@
     <EmbeddedResource Include="..\TinyOPDS\Resources\infinite-scroll.js">
       <Link>Resources\infinite-scroll.js</Link>
     </EmbeddedResource>
-    
     <!-- Icons -->
     <EmbeddedResource Include="..\TinyOPDS\Resources\favicon.ico">
       <Link>Resources\favicon.ico</Link>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\TinyOPDS\Resources\opds.ico">
-      <Link>Resources\opds.ico</Link>
-    </EmbeddedResource>
     <EmbeddedResource Include="..\TinyOPDS\Resources\trayIcon.ico">
       <Link>Resources\trayIcon.ico</Link>
     </EmbeddedResource>
-    
     <!-- Reader Resources -->
     <EmbeddedResource Include="..\TinyOPDS\Resources\reader\reader.html">
       <Link>Resources\reader\reader.html</Link>
@@ -362,23 +337,21 @@
       <Link>Resources\reader\reader.css</Link>
     </EmbeddedResource>
   </ItemGroup>
-
   <!-- ============== CONTENT FILES ============== -->
   <ItemGroup>
+    <Content Include="..\TinyOPDS\Resources\library.ico">
+      <Link>Resources\library.ico</Link>
+    </Content>
     <Content Include="TinyOPDS.ico" />
   </ItemGroup>
-
   <!-- ============== BUILD CONFIGURATION ============== -->
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  
   <!-- Post Build Events -->
   <PropertyGroup>
     <PostBuildEvent>if exist $(SolutionDir)\Sign\\ copy $(TargetPath) $(SolutionDir)\Sign</PostBuildEvent>
   </PropertyGroup>
-  
   <!-- NuGet Package Imports -->
   <Import Project="..\TinyOPDS\packages\System.Data.SQLite.Core.FTS5.1.0.114.1\build\net45\System.Data.SQLite.Core.FTS5.targets" Condition="Exists('..\TinyOPDS\packages\System.Data.SQLite.Core.FTS5.1.0.114.1\build\net45\System.Data.SQLite.Core.FTS5.targets')" />
-  
   <!-- NuGet Package Validation -->
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>

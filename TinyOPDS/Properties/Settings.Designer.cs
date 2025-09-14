@@ -277,6 +277,18 @@ namespace TinyOPDS.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool UseAbsoluteUri {
+            get {
+                return ((bool)(this["UseAbsoluteUri"]));
+            }
+            set {
+                this["UseAbsoluteUri"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("opds")]
         public string RootPrefix {
             get {
@@ -289,7 +301,7 @@ namespace TinyOPDS.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("50")]
+        [global::System.Configuration.DefaultSettingValueAttribute("100")]
         public int ItemsPerOPDSPage {
             get {
                 return ((int)(this["ItemsPerOPDSPage"]));
@@ -350,7 +362,8 @@ namespace TinyOPDS.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("newdate:0;newtitle:0;authorsindex:1;author-details:1;author-series:1;author-no-se" +
-            "ries:1;author-alphabetic:1;author-by-date:1;sequencesindex:1;genres:1")]
+            "ries:1;author-alphabetic:1;author-by-date:1;sequencesindex:1;genres:1;downloads:" +
+            "1")]
         public string OPDSStructure {
             get {
                 return ((string)(this["OPDSStructure"]));

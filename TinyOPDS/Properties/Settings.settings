@@ -72,7 +72,7 @@
       <Value Profile="(Default)">opds</Value>
     </Setting>
     <Setting Name="ItemsPerOPDSPage" Type="System.Int32" Scope="User">
-      <Value Profile="(Default)">50</Value>
+      <Value Profile="(Default)">100</Value>
     </Setting>
     <Setting Name="ItemsPerWebPage" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">200</Value>

@@ -26,7 +26,7 @@ namespace TinyOPDS.OPDS
                     new XElement("ShortName", "TinyOPDS"),
                     new XElement("LongName", "TinyOPDS"),
                     new XElement("Url", new XAttribute("type", "application/atom+xml"), new XAttribute("template", "/search?searchTerm={searchTerms}")),
-                    new XElement("Image", "/TinyOPDS.ico", new XAttribute("width", "16"), new XAttribute("height", "16")),
+                    new XElement("Image", "/library.ico", new XAttribute("width", "32"), new XAttribute("height", "32")),
                     new XElement("Tags"),
                     new XElement("Contact"),
                     new XElement("Developer"),
@@ -85,7 +85,7 @@ namespace TinyOPDS.OPDS
                         new XElement("id", "tag:search:" + searchPattern),
                         new XElement("title", Localizer.Text("Search results")),
                         new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                        new XElement("icon", "/TinyOPDS.ico"),
+                        new XElement("icon", "/library.ico"),
                         Links.opensearch, Links.search, Links.start, Links.self)
                     );
 
@@ -143,7 +143,7 @@ namespace TinyOPDS.OPDS
                     new XElement("id", "tag:search:" + searchPattern),
                     new XElement("title", Localizer.Text("No results found")),
                     new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                    new XElement("icon", "/TinyOPDS.ico"),
+                    new XElement("icon", "/library.ico"),
                     Links.opensearch, Links.search, Links.start, Links.self)
                 );
 

@@ -41,7 +41,7 @@ namespace TinyOPDS.OPDS
                     new XElement("title", Localizer.Text("Downloaded books")),
                     new XElement("subtitle", string.Format(Localizer.Text("{0} downloaded books"), downloadsCount)),
                     new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                    new XElement("icon", "/TinyOPDS.ico"),
+                    new XElement("icon", "/library.ico"),
                     Links.opensearch, Links.search, Links.start)
                 );
 

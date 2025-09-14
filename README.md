@@ -1,5 +1,5 @@
 # TinyOPDS 3.0
-Легковесный и мощный OPDS сервер для домашних библиотек
+Lightweight and powerful OPDS server for home libraries
 
 ![](https://github.com/sensboston/tinyopds/blob/master/wiki/ss1.png?raw=true)
 

@@ -149,33 +149,40 @@ namespace TinyOPDS.OPDS
                     }
                 }
 
-                // Build content entry (translator(s), year, size, annotation etc.)
-                string bookInfo = string.Empty;
+                // Build a plain text content entry (translator(s), year, annotation etc.)
+                string plainText = "";
 
+                // Add annotation first
                 if (!string.IsNullOrEmpty(book.Annotation))
                 {
-                    bookInfo += string.Format(@"<p>{0}<br/></p>", System.Security.SecurityElement.Escape(book.Annotation.Trim()));
-                }
-                if (book.Translators.Count > 0)
-                {
-                    bookInfo += string.Format("<b>{0} </b>", Localizer.Text("Translation:"));
-                    foreach (string translator in book.Translators) bookInfo += translator + " ";
-                    bookInfo += "<br/>";
-                }
-                if (book.BookDate != DateTime.MinValue)
-                {
-                    bookInfo += string.Format("<b>{0}</b> {1}<br/>", Localizer.Text("Year of publication:"), book.BookDate.Year);
+                    plainText = book.Annotation.Trim();
                 }
 
+                // Add translators on new line
+                if (book.Translators != null && book.Translators.Count > 0)
+                {
+                    if (!string.IsNullOrEmpty(plainText)) plainText += "\n";
+                    plainText += Localizer.Text("Translation:") + " " + string.Join(", ", book.Translators);
+                }
+
+                // Add year on new line
+                if (book.BookDate != DateTime.MinValue)
+                {
+                    if (!string.IsNullOrEmpty(plainText)) plainText += "\n";
+                    plainText += Localizer.Text("Year of publication:") + " " + book.BookDate.Year;
+                }
+
+                // Add series on new line
                 if (!string.IsNullOrEmpty(book.Sequence))
                 {
-                    bookInfo += string.Format("<b>{0} {1} #{2}</b><br/>", Localizer.Text("Series:"), book.Sequence, book.NumberInSequence);
+                    if (!string.IsNullOrEmpty(plainText)) plainText += "\n";
+                    plainText += Localizer.Text("Series:") + " " + book.Sequence + " #" + book.NumberInSequence;
                 }
 
                 entry.Add(
                     new XElement(Namespaces.dc + "language", book.Language),
                     new XElement(Namespaces.dc + "format", book.BookType == BookType.FB2 ? "fb2+zip" : "epub+zip"),
-                    new XElement("content", new XAttribute("type", "text/html"), XElement.Parse("<div>" + bookInfo + "<br/></div>")),
+                    new XElement("content", new XAttribute("type", "text"), plainText),
                     new XElement("format", book.BookType == BookType.EPUB ? "epub" : "fb2"),
                     new XElement("size", string.Format("{0} Kb", (int)book.DocumentSize / 1024)));
 

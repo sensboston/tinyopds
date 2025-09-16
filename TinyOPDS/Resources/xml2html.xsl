@@ -273,7 +273,6 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					border-radius: 8px;
 					object-fit: cover;
 					box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-					/* Placeholder background image */
 					background: url('/book_cover.jpg') center/cover no-repeat;
 					background-color: #f0f0f0;
 					}
@@ -361,6 +360,7 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					-ms-hyphens: auto !important;
 					word-wrap: break-word;
 					overflow-wrap: break-word;
+					white-space: pre-line;
 					}
 
 					.download-section {
@@ -454,7 +454,6 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					font-weight: 600;
 					}
 
-					/* Infinite scroll styles */
 					.loading-indicator {
 					text-align: center;
 					padding: 40px 20px;
@@ -567,7 +566,7 @@ xmlns:x="http://www.w3.org/2005/Atom">
 
 					.search-input {
 					flex: 1;
-					font-size: 16px; /* Prevents zoom on iOS */
+					font-size: 16px;
 					max-width: calc(100% - 90px);
 					}
 
@@ -582,19 +581,19 @@ xmlns:x="http://www.w3.org/2005/Atom">
 
 					.book-item {
 					padding: 16px;
-					/* Clearfix for float */
 					overflow: hidden;
 					}
 
 					.download-date {
+					position: static;
+					float: right;
 					font-size: 10px;
 					padding: 3px 6px;
-					top: 8px;
-					right: 8px;
+					margin-left: 10px;
+					margin-bottom: 5px;
 					}
 
 					.book-content {
-					/* Remove flex on mobile */
 					display: block;
 					position: relative;
 					}
@@ -604,13 +603,11 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					height: 150px;
 					margin-right: 0;
 					margin-bottom: 4px;
-					/* Keep placeholder background for mobile too */
 					background: url('/book_cover.jpg') center/cover no-repeat;
 					background-color: #f0f0f0;
 					}
 
 					.download-section {
-					/* Float left for text wrapping */
 					float: left;
 					width: 100px;
 					margin-right: 15px;
@@ -618,7 +615,6 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					}
 
 					.book-details {
-					/* Remove flex properties, make it normal block */
 					display: block;
 					margin: 0;
 					}
@@ -632,7 +628,6 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					}
 
 					.book-header {
-					/* Keep the header above the floated section */
 					margin-bottom: 10px;
 					clear: none;
 					}
@@ -674,14 +669,12 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					}
 
 					.book-author {
-					/* Author stays in normal flow */
 					display: block;
 					margin-bottom: 10px;
 					clear: none;
 					}
 
 					.book-descr {
-					/* Description will wrap around the floated download section */
 					font-size: 13px;
 					line-height: 1.5;
 					margin: 0;
@@ -692,6 +685,7 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					-ms-hyphens: auto;
 					word-wrap: break-word;
 					overflow-wrap: break-word;
+					white-space: pre-line;
 					}
 					}
 

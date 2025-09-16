@@ -196,34 +196,41 @@ namespace TinyOPDS.OPDS
                             new XAttribute("label", (useCyrillic ? genre.Translation : genre.Name))));
                 }
 
-                // Build content entry - REMOVED DOWNLOAD DATE FROM HERE
-                string bookInfo = string.Empty;
+                // Build a plain text content entry (translator(s), year, annotation etc.)
+                string plainText = "";
 
+                // Add annotation first
                 if (!string.IsNullOrEmpty(fullBook.Annotation))
                 {
-                    bookInfo += string.Format(@"<p>{0}<br/></p>", System.Security.SecurityElement.Escape(fullBook.Annotation.Trim()));
+                    plainText = fullBook.Annotation.Trim();
                 }
+
+                // Add translators on new line
                 if (fullBook.Translators != null && fullBook.Translators.Count > 0)
                 {
-                    bookInfo += string.Format("<b>{0} </b>", Localizer.Text("Translation:"));
-                    foreach (string translator in fullBook.Translators) bookInfo += translator + " ";
-                    bookInfo += "<br/>";
+                    if (!string.IsNullOrEmpty(plainText)) plainText += "\n";
+                    plainText += Localizer.Text("Translation:") + " " + string.Join(", ", fullBook.Translators);
                 }
+
+                // Add year on new line
                 if (fullBook.BookDate != DateTime.MinValue)
                 {
-                    bookInfo += string.Format("<b>{0}</b> {1}<br/>", Localizer.Text("Year of publication:"), fullBook.BookDate.Year);
+                    if (!string.IsNullOrEmpty(plainText)) plainText += "\n";
+                    plainText += Localizer.Text("Year of publication:") + " " + fullBook.BookDate.Year;
                 }
 
+                // Add series on new line
                 if (!string.IsNullOrEmpty(fullBook.Sequence))
                 {
-                    bookInfo += string.Format("<b>{0} {1} #{2}</b><br/>", Localizer.Text("Series:"), fullBook.Sequence, fullBook.NumberInSequence);
+                    if (!string.IsNullOrEmpty(plainText)) plainText += "\n";
+                    plainText += Localizer.Text("Series:") + " " + fullBook.Sequence + " #" + fullBook.NumberInSequence;
                 }
 
-                // Add all metadata elements - EXACT FORMAT FROM BooksCatalog
+                // Add all metadata elements - CHANGED FORMAT FROM text/html to text
                 entry.Add(
                     new XElement(Namespaces.dc + "language", fullBook.Language),
                     new XElement(Namespaces.dc + "format", fullBook.BookType == BookType.FB2 ? "fb2+zip" : "epub+zip"),
-                    new XElement("content", new XAttribute("type", "text/html"), XElement.Parse("<div>" + bookInfo + "<br/></div>")),
+                    new XElement("content", new XAttribute("type", "text"), plainText),
                     new XElement("format", fullBook.BookType == BookType.EPUB ? "epub" : "fb2"),
                     new XElement("size", string.Format("{0} Kb", (int)fullBook.DocumentSize / 1024)));
 

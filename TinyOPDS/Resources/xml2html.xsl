@@ -360,6 +360,7 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					-ms-hyphens: auto !important;
 					word-wrap: break-word;
 					overflow-wrap: break-word;
+					white-space: pre-line;
 					}
 
 					.download-section {
@@ -591,7 +592,7 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					margin-left: 10px;
 					margin-bottom: 5px;
 					}
-					
+
 					.book-content {
 					display: block;
 					position: relative;
@@ -684,6 +685,7 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					-ms-hyphens: auto;
 					word-wrap: break-word;
 					overflow-wrap: break-word;
+					white-space: pre-line;
 					}
 					}
 

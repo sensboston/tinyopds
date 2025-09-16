@@ -251,7 +251,7 @@ namespace TinyOPDS.OPDS
                 // Add translators on new line
                 if (book.Translators.Count > 0)
                 {
-                    if (!string.IsNullOrEmpty(plainText)) plainText += "\n\n";
+                    if (!string.IsNullOrEmpty(plainText)) plainText += "\n";
                     plainText += Localizer.Text("Translation:") + " " + string.Join(", ", book.Translators);
                 }
 

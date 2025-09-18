@@ -760,6 +760,22 @@
 			<text lang="fr">{0} livres de {1} auteurs</text>
 		</property>
 		<property>
+			<text lang="en">Authors starting with «{0}»</text>
+			<text lang="ru">Авторы, начинающиеся с «{0}»</text>
+			<text lang="uk">Автори, що починаються з «{0}»</text>
+			<text lang="de">Autoren beginnend mit «{0}»</text>
+			<text lang="es">Autores que comienzan con «{0}»</text>
+			<text lang="fr">Auteurs commençant par «{0}»</text>
+		</property>
+		<property>
+			<text lang="en">Search results for authors: «{0}»</text>
+			<text lang="ru">Результаты поиска авторов: «{0}»</text>
+			<text lang="uk">Результати пошуку авторів: «{0}»</text>
+			<text lang="de">Suchergebnisse für Autoren: «{0}»</text>
+			<text lang="es">Resultados de búsqueda de autores: «{0}»</text>
+			<text lang="fr">Résultats de recherche pour les auteurs : «{0}»</text>
+		</property>
+		<property>
 			<text lang="en">By series</text>
 			<text lang="ru">По сериям</text>
 			<text lang="uk">За серіями</text>
@@ -800,6 +816,22 @@
 			<text lang="fr">Livres par genres</text>
 		</property>
 		<property>
+			<text lang="en">Books by genre: </text>
+			<text lang="ru">Книги по жанру: </text>
+			<text lang="uk">Книги за жанром: </text>
+			<text lang="de">Bücher nach Genre: </text>
+			<text lang="es">Libros por género: </text>
+			<text lang="fr">Livres par genre : </text>
+		</property>
+		<property>
+			<text lang="en">Genre: {0}</text>
+			<text lang="ru">Жанр: {0}</text>
+			<text lang="uk">Жанр: {0}</text>
+			<text lang="de">Genre: {0}</text>
+			<text lang="es">Género: {0}</text>
+			<text lang="fr">Genre : {0}</text>
+		</property>
+		<property>
 			<text lang="en">Book series</text>
 			<text lang="ru">Книжные серии</text>
 			<text lang="uk">Книжкові серії</text>
@@ -824,12 +856,12 @@
 			<text lang="fr">{0} livres dans {1}</text>
 		</property>
 		<property>
-			<text lang="en">Books in genre «{0}»</text>
-			<text lang="ru">Книги в жанре «{0}»</text>
-			<text lang="uk">Книги в жанрі «{0}»</text>
-			<text lang="de">Bücher im Genre «{0}»</text>
-			<text lang="es">Libros del género «{0}»</text>
-			<text lang="fr">Livres du genre «{0}»</text>
+			<text lang="en">Books in genre «{0}»: {1}</text>
+			<text lang="ru">Книги в жанре «{0}»: {1}</text>
+			<text lang="uk">Книги в жанрі «{0}»: {1}</text>
+			<text lang="de">Bücher im Genre «{0}»: {1}</text>
+			<text lang="es">Libros del género «{0}»: {1}</text>
+			<text lang="fr">Livres du genre «{0}»: {1}</text>
 		</property>
 		<property>
 			<text lang="en">Hide window</text>
@@ -1288,6 +1320,14 @@
 			<text lang="de">Bücher nach Serien - {0}</text>
 			<text lang="es">Libros por series - {0}</text>
 			<text lang="fr">Livres par séries - {0}</text>
+		</property>
+		<property>
+			<text lang="en">Books in series: </text>
+			<text lang="ru">Книги из серии: </text>
+			<text lang="uk">Книги з серії: </text>
+			<text lang="de">Bücher aus der Reihe: </text>
+			<text lang="es">Libros de la serie: </text>
+			<text lang="fr">Livres de la série : </text>
 		</property>
 		<property>
 			<text lang="en">date</text>

@@ -107,7 +107,9 @@ namespace TinyOPDS
             // Init localization service
             Localizer.Init();
             Localizer.AddMenu(contextMenuStrip);
+            langCombo.SelectedValueChanged -= new EventHandler(LangCombo_SelectedValueChanged);
             langCombo.DataSource = Localizer.Languages.ToArray();
+            langCombo.SelectedValueChanged += new EventHandler(LangCombo_SelectedValueChanged);
 
             // Load application settings
             LoadSettings();

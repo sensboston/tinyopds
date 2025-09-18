@@ -137,11 +137,11 @@ namespace TinyOPDS.OPDS
             }
             else if (isOpenSearch)
             {
-                catalogTitle = string.Format(Localizer.Text("Search results for authors: '{0}'"), searchPattern);
+                catalogTitle = string.Format(Localizer.Text("Search results for authors: «{0}»"), searchPattern);
             }
             else
             {
-                catalogTitle = string.Format(Localizer.Text("Authors starting with '{0}'"), searchPattern);
+                catalogTitle = string.Format(Localizer.Text("Authors starting with «{0}»"), searchPattern);
             }
 
             XDocument doc = new XDocument(

@@ -356,7 +356,7 @@ namespace TinyOPDS.Parsers
                     if (fb2.TitleInfo != null && fb2.TitleInfo.Cover != null && fb2.TitleInfo.Cover.HasImages() && fb2.Images.Count > 0)
                     {
                         string coverHRef = fb2.TitleInfo.Cover.CoverpageImages.First().HRef.Substring(1);
-                        var binaryObject = fb2.Images.First(item => item.Value.Id == coverHRef);
+                        var binaryObject = fb2.Images.FirstOrDefault(item => item.Value.Id == coverHRef);
                         if (binaryObject.Value.BinaryData != null && binaryObject.Value.BinaryData.Length > 0)
                         {
                             using (MemoryStream memStream = new MemoryStream(binaryObject.Value.BinaryData))

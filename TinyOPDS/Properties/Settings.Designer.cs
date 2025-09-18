@@ -420,5 +420,17 @@ namespace TinyOPDS.Properties {
                 this["OnlyOneInstance"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool FilterBooksByInterfaceLanguage {
+            get {
+                return ((bool)(this["FilterBooksByInterfaceLanguage"]));
+            }
+            set {
+                this["FilterBooksByInterfaceLanguage"] = value;
+            }
+        }
     }
 }

@@ -89,6 +89,7 @@
             this.rootPrefix = new System.Windows.Forms.TextBox();
             this.serverName = new System.Windows.Forms.TextBox();
             this.tabPage6 = new System.Windows.Forms.TabPage();
+            this.filterByLanguage = new System.Windows.Forms.CheckBox();
             this.clearDownloadsButton = new System.Windows.Forms.Button();
             this.label40 = new System.Windows.Forms.Label();
             this.comboBox1 = new System.Windows.Forms.ComboBox();
@@ -827,6 +828,7 @@
             // tabPage6
             // 
             this.tabPage6.BackColor = System.Drawing.SystemColors.Control;
+            this.tabPage6.Controls.Add(this.filterByLanguage);
             this.tabPage6.Controls.Add(this.clearDownloadsButton);
             this.tabPage6.Controls.Add(this.label40);
             this.tabPage6.Controls.Add(this.comboBox1);
@@ -846,6 +848,17 @@
             this.tabPage6.TabIndex = 5;
             this.tabPage6.Text = "OPDS catalog";
             // 
+            // filterByLanguage
+            // 
+            this.filterByLanguage.AutoSize = true;
+            this.filterByLanguage.Location = new System.Drawing.Point(711, 566);
+            this.filterByLanguage.Name = "filterByLanguage";
+            this.filterByLanguage.Size = new System.Drawing.Size(464, 36);
+            this.filterByLanguage.TabIndex = 12;
+            this.filterByLanguage.Text = "Books in interface language only";
+            this.filterByLanguage.UseVisualStyleBackColor = true;
+            this.filterByLanguage.CheckedChanged += new System.EventHandler(this.filterByLanguage_CheckedChanged);
+            // 
             // clearDownloadsButton
             // 
             this.clearDownloadsButton.Location = new System.Drawing.Point(67, 566);
@@ -859,7 +872,7 @@
             // label40
             // 
             this.label40.AutoSize = true;
-            this.label40.Location = new System.Drawing.Point(752, 382);
+            this.label40.Location = new System.Drawing.Point(705, 382);
             this.label40.Name = "label40";
             this.label40.Size = new System.Drawing.Size(264, 32);
             this.label40.TabIndex = 10;
@@ -877,7 +890,7 @@
             "512 MB",
             "768 MB",
             "1024 MB"});
-            this.comboBox1.Location = new System.Drawing.Point(758, 442);
+            this.comboBox1.Location = new System.Drawing.Point(711, 442);
             this.comboBox1.Name = "comboBox1";
             this.comboBox1.Size = new System.Drawing.Size(331, 39);
             this.comboBox1.TabIndex = 9;
@@ -930,7 +943,7 @@
             "month and half",
             "two month",
             "three month"});
-            this.newBooksPeriodCombo.Location = new System.Drawing.Point(764, 270);
+            this.newBooksPeriodCombo.Location = new System.Drawing.Point(717, 270);
             this.newBooksPeriodCombo.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.newBooksPeriodCombo.Name = "newBooksPeriodCombo";
             this.newBooksPeriodCombo.Size = new System.Drawing.Size(325, 39);
@@ -940,7 +953,7 @@
             // label39
             // 
             this.label39.AutoSize = true;
-            this.label39.Location = new System.Drawing.Point(752, 218);
+            this.label39.Location = new System.Drawing.Point(705, 218);
             this.label39.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label39.Name = "label39";
             this.label39.Size = new System.Drawing.Size(349, 32);
@@ -974,7 +987,7 @@
             // label37
             // 
             this.label37.AutoSize = true;
-            this.label37.Location = new System.Drawing.Point(752, 60);
+            this.label37.Location = new System.Drawing.Point(705, 60);
             this.label37.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label37.Name = "label37";
             this.label37.Size = new System.Drawing.Size(268, 32);
@@ -994,7 +1007,7 @@
             // itemsPerWeb
             // 
             this.itemsPerWeb.DataBindings.Add(new System.Windows.Forms.Binding("Value", global::TinyOPDS.Properties.Settings.Default, "ItemsPerWebPage", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.itemsPerWeb.Location = new System.Drawing.Point(760, 114);
+            this.itemsPerWeb.Location = new System.Drawing.Point(713, 114);
             this.itemsPerWeb.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.itemsPerWeb.Maximum = new decimal(new int[] {
             1000,
@@ -1772,6 +1785,7 @@
         private System.Windows.Forms.CheckBox oneInstance;
         private System.Windows.Forms.PictureBox pictureBox2;
         private System.Windows.Forms.Button clearDownloadsButton;
+        private System.Windows.Forms.CheckBox filterByLanguage;
     }
 }
 

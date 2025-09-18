@@ -7,6 +7,7 @@
  *
  * Repository for Book operations with SQLite database with FTS5 support
  * MODIFIED: Support for normalized sequences in separate tables
+ * MODIFIED: Added language filtering support
  *
  */
 
@@ -33,6 +34,88 @@ namespace TinyOPDS.Data
             // Initialize duplicate detector (normal mode by default)
             duplicateDetector = new DuplicateDetector(database);
         }
+
+        #region Language Filter Support
+
+        /// <summary>
+        /// Get language filter based on settings
+        /// Returns language code or null if filtering is disabled
+        /// </summary>
+        private string GetLanguageFilter()
+        {
+            if (!Properties.Settings.Default.FilterBooksByInterfaceLanguage)
+                return null;
+
+            // Map interface language to book language codes
+            switch (Properties.Settings.Default.Language)
+            {
+                case "ru": return "ru";
+                case "uk": return "uk";
+                case "en": return "en";
+                case "de": return "de";
+                case "es": return "es";
+                case "fr": return "fr";
+                default: return null;
+            }
+        }
+
+        /// <summary>
+        /// Apply language filter to SQL query
+        /// </summary>
+        private string ApplyLanguageFilter(string baseQuery)
+        {
+            string languageFilter = GetLanguageFilter();
+            if (string.IsNullOrEmpty(languageFilter))
+                return baseQuery;
+
+            // Add language filter to WHERE clause
+            if (baseQuery.Contains("WHERE"))
+            {
+                // Insert after WHERE and before ORDER BY if exists
+                if (baseQuery.Contains("ORDER BY"))
+                {
+                    int orderByIndex = baseQuery.IndexOf("ORDER BY");
+                    string beforeOrderBy = baseQuery.Substring(0, orderByIndex);
+                    string orderByClause = baseQuery.Substring(orderByIndex);
+                    return beforeOrderBy + " AND b.Language = @Language " + orderByClause;
+                }
+                else
+                {
+                    return baseQuery + " AND b.Language = @Language";
+                }
+            }
+            else
+            {
+                // Add WHERE clause before ORDER BY if exists
+                if (baseQuery.Contains("ORDER BY"))
+                {
+                    int orderByIndex = baseQuery.IndexOf("ORDER BY");
+                    string beforeOrderBy = baseQuery.Substring(0, orderByIndex);
+                    string orderByClause = baseQuery.Substring(orderByIndex);
+                    return beforeOrderBy + " WHERE b.Language = @Language " + orderByClause;
+                }
+                else
+                {
+                    return baseQuery + " WHERE b.Language = @Language";
+                }
+            }
+        }
+
+        /// <summary>
+        /// Create language parameter if filtering is enabled
+        /// </summary>
+        private IDbDataParameter[] AddLanguageParameter(params IDbDataParameter[] existingParams)
+        {
+            string languageFilter = GetLanguageFilter();
+            if (string.IsNullOrEmpty(languageFilter))
+                return existingParams;
+
+            var paramsList = new List<IDbDataParameter>(existingParams);
+            paramsList.Add(DatabaseManager.CreateParameter("@Language", languageFilter));
+            return paramsList.ToArray();
+        }
+
+        #endregion
 
         /// <summary>
         /// Load valid genre tags from database for validation
@@ -578,9 +661,21 @@ namespace TinyOPDS.Data
 
         public bool BookExists(string fileName)
         {
-            var count = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE FileName = @FileName AND ReplacedByID IS NULL",
-                DatabaseManager.CreateParameter("@FileName", fileName));
-            return Convert.ToInt32(count) > 0;
+            string languageFilter = GetLanguageFilter();
+
+            if (string.IsNullOrEmpty(languageFilter))
+            {
+                var count = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE FileName = @FileName AND ReplacedByID IS NULL",
+                    DatabaseManager.CreateParameter("@FileName", fileName));
+                return Convert.ToInt32(count) > 0;
+            }
+            else
+            {
+                var count = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE FileName = @FileName AND ReplacedByID IS NULL AND Language = @Language",
+                    DatabaseManager.CreateParameter("@FileName", fileName),
+                    DatabaseManager.CreateParameter("@Language", languageFilter));
+                return Convert.ToInt32(count) > 0;
+            }
         }
 
         #endregion
@@ -589,7 +684,9 @@ namespace TinyOPDS.Data
 
         public List<Book> GetAllBooks()
         {
-            var books = db.ExecuteQuery<Book>(DatabaseSchema.SelectAllBooks, MapBook);
+            string query = ApplyLanguageFilter(DatabaseSchema.SelectAllBooks);
+            var books = db.ExecuteQuery<Book>(query, MapBook, AddLanguageParameter());
+
             foreach (var book in books)
             {
                 LoadBookRelations(book);
@@ -599,8 +696,9 @@ namespace TinyOPDS.Data
 
         public List<Book> GetBooksByAuthor(string authorName)
         {
-            var books = db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksByAuthor, MapBook,
-                DatabaseManager.CreateParameter("@AuthorName", authorName));
+            string query = ApplyLanguageFilter(DatabaseSchema.SelectBooksByAuthor);
+            var books = db.ExecuteQuery<Book>(query, MapBook,
+                AddLanguageParameter(DatabaseManager.CreateParameter("@AuthorName", authorName)));
 
             foreach (var book in books)
             {
@@ -609,10 +707,11 @@ namespace TinyOPDS.Data
             return books;
         }
 
-        // MODIFIED: Now uses optimized query with JOIN
+        // MODIFIED: Now uses optimized query with JOIN and language filter
         public List<Book> GetBooksBySequence(string sequence)
         {
-            var books = db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksBySequence,
+            string query = ApplyLanguageFilter(DatabaseSchema.SelectBooksBySequence);
+            var books = db.ExecuteQuery<Book>(query,
                 reader => {
                     var book = MapBook(reader);
                     // Get NumberInSequence from the joined query
@@ -626,7 +725,7 @@ namespace TinyOPDS.Data
                     catch { }
                     return book;
                 },
-                DatabaseManager.CreateParameter("@SequenceName", sequence));
+                AddLanguageParameter(DatabaseManager.CreateParameter("@SequenceName", sequence)));
 
             foreach (var book in books)
             {
@@ -637,8 +736,9 @@ namespace TinyOPDS.Data
 
         public List<Book> GetBooksByGenre(string genreTag)
         {
-            var books = db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksByGenre, MapBook,
-                DatabaseManager.CreateParameter("@GenreTag", genreTag));
+            string query = ApplyLanguageFilter(DatabaseSchema.SelectBooksByGenre);
+            var books = db.ExecuteQuery<Book>(query, MapBook,
+                AddLanguageParameter(DatabaseManager.CreateParameter("@GenreTag", genreTag)));
 
             foreach (var book in books)
             {
@@ -649,9 +749,17 @@ namespace TinyOPDS.Data
 
         public List<Book> GetBooksByTitle(string title)
         {
-            // Simple LIKE search for navigation
-            var books = db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksByTitleLike, MapBook,
-                DatabaseManager.CreateParameter("@Title", title));
+            // Apply language filter to LIKE search
+            string languageFilter = GetLanguageFilter();
+            string query = DatabaseSchema.SelectBooksByTitleLike;
+
+            if (!string.IsNullOrEmpty(languageFilter))
+            {
+                query = query.Replace("WHERE", "WHERE Language = @Language AND");
+            }
+
+            var books = db.ExecuteQuery<Book>(query, MapBook,
+                AddLanguageParameter(DatabaseManager.CreateParameter("@Title", title)));
 
             foreach (var book in books)
             {
@@ -683,14 +791,23 @@ namespace TinyOPDS.Data
                 Log.WriteLine(LogLevel.Info, "GetBooksForOpenSearch: searching for '{0}'", searchPattern);
 
                 var books = new List<Book>();
+                string languageFilter = GetLanguageFilter();
 
                 // Prepare FTS search pattern with wildcards for partial matching
                 string ftsPattern = PrepareSearchPatternForFTS(searchPattern);
 
+                // Apply language filter to FTS query
+                string ftsQuery = DatabaseSchema.SelectBooksByTitleFTS;
+                if (!string.IsNullOrEmpty(languageFilter))
+                {
+                    ftsQuery = ftsQuery.Replace("WHERE", "WHERE b.Language = @Language AND");
+                }
+
                 // First try FTS5 search
-                books = db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksByTitleFTS, MapBook,
-                    DatabaseManager.CreateParameter("@SearchPattern", ftsPattern),
-                    DatabaseManager.CreateParameter("@LikePattern", searchPattern));
+                books = db.ExecuteQuery<Book>(ftsQuery, MapBook,
+                    AddLanguageParameter(
+                        DatabaseManager.CreateParameter("@SearchPattern", ftsPattern),
+                        DatabaseManager.CreateParameter("@LikePattern", searchPattern)));
 
                 // If no results and contains Latin letters, try transliteration
                 if (books.Count == 0 && ContainsLatinLetters(searchPattern))
@@ -702,9 +819,10 @@ namespace TinyOPDS.Data
                     if (!string.IsNullOrEmpty(transliteratedGOST) && transliteratedGOST != searchPattern)
                     {
                         string ftsPatternGOST = PrepareSearchPatternForFTS(transliteratedGOST);
-                        var gostBooks = db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksByTitleFTS, MapBook,
-                            DatabaseManager.CreateParameter("@SearchPattern", ftsPatternGOST),
-                            DatabaseManager.CreateParameter("@LikePattern", transliteratedGOST));
+                        var gostBooks = db.ExecuteQuery<Book>(ftsQuery, MapBook,
+                            AddLanguageParameter(
+                                DatabaseManager.CreateParameter("@SearchPattern", ftsPatternGOST),
+                                DatabaseManager.CreateParameter("@LikePattern", transliteratedGOST)));
 
                         if (gostBooks.Count > 0)
                         {
@@ -721,9 +839,10 @@ namespace TinyOPDS.Data
                         if (!string.IsNullOrEmpty(transliteratedISO) && transliteratedISO != searchPattern && transliteratedISO != transliteratedGOST)
                         {
                             string ftsPatternISO = PrepareSearchPatternForFTS(transliteratedISO);
-                            var isoBooks = db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksByTitleFTS, MapBook,
-                                DatabaseManager.CreateParameter("@SearchPattern", ftsPatternISO),
-                                DatabaseManager.CreateParameter("@LikePattern", transliteratedISO));
+                            var isoBooks = db.ExecuteQuery<Book>(ftsQuery, MapBook,
+                                AddLanguageParameter(
+                                    DatabaseManager.CreateParameter("@SearchPattern", ftsPatternISO),
+                                    DatabaseManager.CreateParameter("@LikePattern", transliteratedISO)));
 
                             if (isoBooks.Count > 0)
                             {
@@ -739,8 +858,16 @@ namespace TinyOPDS.Data
                 if (books.Count == 0)
                 {
                     Log.WriteLine(LogLevel.Info, "GetBooksForOpenSearch: FTS found nothing, trying LIKE search");
-                    books = db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksByTitleLike, MapBook,
-                        DatabaseManager.CreateParameter("@Title", searchPattern));
+
+                    // Apply language filter to LIKE query
+                    string likeQuery = DatabaseSchema.SelectBooksByTitleLike;
+                    if (!string.IsNullOrEmpty(languageFilter))
+                    {
+                        likeQuery = likeQuery.Replace("WHERE", "WHERE Language = @Language AND");
+                    }
+
+                    books = db.ExecuteQuery<Book>(likeQuery, MapBook,
+                        AddLanguageParameter(DatabaseManager.CreateParameter("@Title", searchPattern)));
                 }
 
                 // Load book relations
@@ -761,8 +888,16 @@ namespace TinyOPDS.Data
 
         public List<Book> GetNewBooks(DateTime fromDate)
         {
-            var books = db.ExecuteQuery<Book>(DatabaseSchema.SelectNewBooks, MapBook,
-                DatabaseManager.CreateParameter("@FromDate", fromDate));
+            string languageFilter = GetLanguageFilter();
+            string query = DatabaseSchema.SelectNewBooks;
+
+            if (!string.IsNullOrEmpty(languageFilter))
+            {
+                query = query.Replace("WHERE", "WHERE Language = @Language AND");
+            }
+
+            var books = db.ExecuteQuery<Book>(query, MapBook,
+                AddLanguageParameter(DatabaseManager.CreateParameter("@FromDate", fromDate)));
 
             foreach (var book in books)
             {
@@ -773,14 +908,22 @@ namespace TinyOPDS.Data
 
         public List<Book> GetBooksByFileNamePrefix(string fileNamePrefix)
         {
-            // MODIFIED: Query without Sequence/NumberInSequence fields
-            var books = db.ExecuteQuery<Book>(@"
+            string languageFilter = GetLanguageFilter();
+
+            // MODIFIED: Query without Sequence/NumberInSequence fields and with language filter
+            string query = @"
                 SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
                        Annotation, DocumentSize, AddedDate
                 FROM Books 
-                WHERE FileName LIKE @FileNamePrefix || '%'",
-                MapBook,
-                DatabaseManager.CreateParameter("@FileNamePrefix", fileNamePrefix));
+                WHERE FileName LIKE @FileNamePrefix || '%'";
+
+            if (!string.IsNullOrEmpty(languageFilter))
+            {
+                query += " AND Language = @Language";
+            }
+
+            var books = db.ExecuteQuery<Book>(query, MapBook,
+                AddLanguageParameter(DatabaseManager.CreateParameter("@FileNamePrefix", fileNamePrefix)));
 
             foreach (var book in books)
             {
@@ -794,21 +937,64 @@ namespace TinyOPDS.Data
         #region Sequence Methods - NEW
 
         /// <summary>
-        /// Get all sequences for navigation
+        /// Get all sequences for navigation (considers language filter)
         /// </summary>
         public List<string> GetSequencesForNavigation(string searchPattern)
         {
             try
             {
+                string languageFilter = GetLanguageFilter();
+
                 if (string.IsNullOrEmpty(searchPattern))
                 {
-                    return db.ExecuteQuery<string>(DatabaseSchema.SelectSequences,
-                        reader => reader.GetString(0));
-                }
+                    if (string.IsNullOrEmpty(languageFilter))
+                    {
+                        return db.ExecuteQuery<string>(DatabaseSchema.SelectSequences,
+                            reader => reader.GetString(0));
+                    }
+                    else
+                    {
+                        // Get sequences only from books in the filtered language
+                        string query = @"
+                            SELECT DISTINCT s.Name
+                            FROM Sequences s
+                            INNER JOIN BookSequences bs ON s.ID = bs.SequenceID
+                            INNER JOIN Books b ON bs.BookID = b.ID
+                            WHERE b.Language = @Language AND b.ReplacedByID IS NULL
+                            ORDER BY s.Name";
 
-                return db.ExecuteQuery<string>(DatabaseSchema.SelectSequencesByPrefix,
-                    reader => reader.GetString(0),
-                    DatabaseManager.CreateParameter("@Pattern", searchPattern));
+                        return db.ExecuteQuery<string>(query,
+                            reader => reader.GetString(0),
+                            DatabaseManager.CreateParameter("@Language", languageFilter));
+                    }
+                }
+                else
+                {
+                    if (string.IsNullOrEmpty(languageFilter))
+                    {
+                        return db.ExecuteQuery<string>(DatabaseSchema.SelectSequencesByPrefix,
+                            reader => reader.GetString(0),
+                            DatabaseManager.CreateParameter("@Pattern", searchPattern));
+                    }
+                    else
+                    {
+                        // Get sequences by prefix only from books in the filtered language
+                        string query = @"
+                            SELECT DISTINCT s.Name
+                            FROM Sequences s
+                            INNER JOIN BookSequences bs ON s.ID = bs.SequenceID
+                            INNER JOIN Books b ON bs.BookID = b.ID
+                            WHERE s.Name LIKE @Pattern || '%' 
+                              AND b.Language = @Language 
+                              AND b.ReplacedByID IS NULL
+                            ORDER BY s.Name";
+
+                        return db.ExecuteQuery<string>(query,
+                            reader => reader.GetString(0),
+                            DatabaseManager.CreateParameter("@Pattern", searchPattern),
+                            DatabaseManager.CreateParameter("@Language", languageFilter));
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -818,24 +1004,64 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Get sequences with book count
+        /// Get sequences with book count (considers language filter)
         /// </summary>
         public List<(string Name, int BookCount)> GetSequencesWithCount(string searchPattern = null)
         {
             try
             {
                 List<(string, int)> result;
+                string languageFilter = GetLanguageFilter();
 
                 if (string.IsNullOrEmpty(searchPattern))
                 {
-                    result = db.ExecuteQuery<(string, int)>(DatabaseSchema.SelectSequencesWithCount,
-                        reader => (reader.GetString(0), reader.GetInt32(1)));
+                    if (string.IsNullOrEmpty(languageFilter))
+                    {
+                        result = db.ExecuteQuery<(string, int)>(DatabaseSchema.SelectSequencesWithCount,
+                            reader => (reader.GetString(0), reader.GetInt32(1)));
+                    }
+                    else
+                    {
+                        string query = @"
+                            SELECT s.Name, COUNT(DISTINCT b.ID) as BookCount
+                            FROM Sequences s
+                            INNER JOIN BookSequences bs ON s.ID = bs.SequenceID
+                            INNER JOIN Books b ON bs.BookID = b.ID
+                            WHERE b.Language = @Language AND b.ReplacedByID IS NULL
+                            GROUP BY s.Name
+                            ORDER BY s.Name";
+
+                        result = db.ExecuteQuery<(string, int)>(query,
+                            reader => (reader.GetString(0), reader.GetInt32(1)),
+                            DatabaseManager.CreateParameter("@Language", languageFilter));
+                    }
                 }
                 else
                 {
-                    result = db.ExecuteQuery<(string, int)>(DatabaseSchema.SelectSequencesWithCountByPrefix,
-                        reader => (reader.GetString(0), reader.GetInt32(1)),
-                        DatabaseManager.CreateParameter("@Pattern", searchPattern));
+                    if (string.IsNullOrEmpty(languageFilter))
+                    {
+                        result = db.ExecuteQuery<(string, int)>(DatabaseSchema.SelectSequencesWithCountByPrefix,
+                            reader => (reader.GetString(0), reader.GetInt32(1)),
+                            DatabaseManager.CreateParameter("@Pattern", searchPattern));
+                    }
+                    else
+                    {
+                        string query = @"
+                            SELECT s.Name, COUNT(DISTINCT b.ID) as BookCount
+                            FROM Sequences s
+                            INNER JOIN BookSequences bs ON s.ID = bs.SequenceID
+                            INNER JOIN Books b ON bs.BookID = b.ID
+                            WHERE s.Name LIKE @Pattern || '%' 
+                              AND b.Language = @Language 
+                              AND b.ReplacedByID IS NULL
+                            GROUP BY s.Name
+                            ORDER BY s.Name";
+
+                        result = db.ExecuteQuery<(string, int)>(query,
+                            reader => (reader.GetString(0), reader.GetInt32(1)),
+                            DatabaseManager.CreateParameter("@Pattern", searchPattern),
+                            DatabaseManager.CreateParameter("@Language", languageFilter));
+                    }
                 }
 
                 return result;
@@ -852,20 +1078,61 @@ namespace TinyOPDS.Data
         #region Author Search Methods - USING FTS5
 
         /// <summary>
-        /// Get authors for navigation (catalog browsing with pagination)
+        /// Get authors for navigation (catalog browsing with pagination) - considers language filter
         /// </summary>
         public List<string> GetAuthorsForNavigation(string searchPattern)
         {
             try
             {
+                string languageFilter = GetLanguageFilter();
+
                 if (string.IsNullOrEmpty(searchPattern))
                 {
-                    return db.ExecuteQuery<string>(DatabaseSchema.SelectAuthors, reader => reader.GetString(0));
+                    if (string.IsNullOrEmpty(languageFilter))
+                    {
+                        return db.ExecuteQuery<string>(DatabaseSchema.SelectAuthors, reader => reader.GetString(0));
+                    }
+                    else
+                    {
+                        // Get authors only from books in the filtered language
+                        string query = @"
+                            SELECT DISTINCT a.Name
+                            FROM Authors a
+                            INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
+                            INNER JOIN Books b ON ba.BookID = b.ID
+                            WHERE b.Language = @Language AND b.ReplacedByID IS NULL
+                            ORDER BY a.Name";
+
+                        return db.ExecuteQuery<string>(query,
+                            reader => reader.GetString(0),
+                            DatabaseManager.CreateParameter("@Language", languageFilter));
+                    }
                 }
 
-                return db.ExecuteQuery<string>(DatabaseSchema.SelectAuthorsByPrefix,
-                    reader => reader.GetString(0),
-                    DatabaseManager.CreateParameter("@Pattern", searchPattern));
+                if (string.IsNullOrEmpty(languageFilter))
+                {
+                    return db.ExecuteQuery<string>(DatabaseSchema.SelectAuthorsByPrefix,
+                        reader => reader.GetString(0),
+                        DatabaseManager.CreateParameter("@Pattern", searchPattern));
+                }
+                else
+                {
+                    // Get authors by prefix only from books in the filtered language
+                    string query = @"
+                        SELECT DISTINCT a.Name
+                        FROM Authors a
+                        INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
+                        INNER JOIN Books b ON ba.BookID = b.ID
+                        WHERE a.Name LIKE @Pattern || '%' COLLATE NOCASE
+                          AND b.Language = @Language 
+                          AND b.ReplacedByID IS NULL
+                        ORDER BY a.Name";
+
+                    return db.ExecuteQuery<string>(query,
+                        reader => reader.GetString(0),
+                        DatabaseManager.CreateParameter("@Pattern", searchPattern),
+                        DatabaseManager.CreateParameter("@Language", languageFilter));
+                }
             }
             catch (Exception ex)
             {
@@ -884,7 +1151,7 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Get authors for OpenSearch with search method information
+        /// Get authors for OpenSearch with search method information - considers language filter
         /// </summary>
         /// <returns>Tuple with authors list and search method used</returns>
         public (List<string> authors, AuthorSearchMethod method) GetAuthorsForOpenSearchWithMethod(string searchPattern)
@@ -901,6 +1168,7 @@ namespace TinyOPDS.Data
 
                 var authors = new List<string>();
                 var words = searchPattern.Split(new char[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
+                string languageFilter = GetLanguageFilter();
 
                 if (words.Length == 0)
                 {
@@ -921,13 +1189,32 @@ namespace TinyOPDS.Data
                         SELECT DISTINCT a.Name
                         FROM Authors a
                         INNER JOIN AuthorsFTS fts ON a.ID = fts.AuthorID
-                        INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
+                        INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID";
+
+                    if (!string.IsNullOrEmpty(languageFilter))
+                    {
+                        sql += @"
+                        INNER JOIN Books b ON ba.BookID = b.ID
+                        WHERE AuthorsFTS MATCH @SearchPattern
+                          AND b.Language = @Language
+                          AND b.ReplacedByID IS NULL
+                        ORDER BY a.Name";
+
+                        authors = db.ExecuteQuery<string>(sql,
+                            reader => reader.GetString(0),
+                            DatabaseManager.CreateParameter("@SearchPattern", ftsQuery),
+                            DatabaseManager.CreateParameter("@Language", languageFilter));
+                    }
+                    else
+                    {
+                        sql += @"
                         WHERE AuthorsFTS MATCH @SearchPattern
                         ORDER BY a.Name";
 
-                    authors = db.ExecuteQuery<string>(sql,
-                        reader => reader.GetString(0),
-                        DatabaseManager.CreateParameter("@SearchPattern", ftsQuery));
+                        authors = db.ExecuteQuery<string>(sql,
+                            reader => reader.GetString(0),
+                            DatabaseManager.CreateParameter("@SearchPattern", ftsQuery));
+                    }
 
                     if (authors.Count > 0)
                     {
@@ -940,9 +1227,19 @@ namespace TinyOPDS.Data
                     string escapedReversedPattern = EscapeForFTS(reversedPattern);
                     string reversedFtsQuery = $"\"{escapedReversedPattern}\"";
 
-                    authors = db.ExecuteQuery<string>(sql,
-                        reader => reader.GetString(0),
-                        DatabaseManager.CreateParameter("@SearchPattern", reversedFtsQuery));
+                    if (!string.IsNullOrEmpty(languageFilter))
+                    {
+                        authors = db.ExecuteQuery<string>(sql,
+                            reader => reader.GetString(0),
+                            DatabaseManager.CreateParameter("@SearchPattern", reversedFtsQuery),
+                            DatabaseManager.CreateParameter("@Language", languageFilter));
+                    }
+                    else
+                    {
+                        authors = db.ExecuteQuery<string>(sql,
+                            reader => reader.GetString(0),
+                            DatabaseManager.CreateParameter("@SearchPattern", reversedFtsQuery));
+                    }
 
                     if (authors.Count > 0)
                     {
@@ -966,13 +1263,32 @@ namespace TinyOPDS.Data
                         SELECT DISTINCT a.Name
                         FROM Authors a
                         INNER JOIN AuthorsFTS fts ON a.ID = fts.AuthorID
-                        INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
+                        INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID";
+
+                    if (!string.IsNullOrEmpty(languageFilter))
+                    {
+                        sql += @"
+                        INNER JOIN Books b ON ba.BookID = b.ID
+                        WHERE AuthorsFTS MATCH @SearchPattern
+                          AND b.Language = @Language
+                          AND b.ReplacedByID IS NULL
+                        ORDER BY a.Name";
+
+                        authors = db.ExecuteQuery<string>(sql,
+                            reader => reader.GetString(0),
+                            DatabaseManager.CreateParameter("@SearchPattern", ftsPattern),
+                            DatabaseManager.CreateParameter("@Language", languageFilter));
+                    }
+                    else
+                    {
+                        sql += @"
                         WHERE AuthorsFTS MATCH @SearchPattern
                         ORDER BY a.Name";
 
-                    authors = db.ExecuteQuery<string>(sql,
-                        reader => reader.GetString(0),
-                        DatabaseManager.CreateParameter("@SearchPattern", ftsPattern));
+                        authors = db.ExecuteQuery<string>(sql,
+                            reader => reader.GetString(0),
+                            DatabaseManager.CreateParameter("@SearchPattern", ftsPattern));
+                    }
 
                     if (authors.Count > 0)
                     {
@@ -1022,9 +1338,30 @@ namespace TinyOPDS.Data
                 {
                     Log.WriteLine(LogLevel.Info, "Step 4: Trying Soundex search for '{0}' -> '{1}'", soundexPattern, soundex);
 
-                    authors = db.ExecuteQuery<string>(DatabaseSchema.SelectAuthorsBySoundex,
-                        reader => reader.GetString(0),
-                        DatabaseManager.CreateParameter("@Soundex", soundex));
+                    if (!string.IsNullOrEmpty(languageFilter))
+                    {
+                        // Apply language filter to Soundex query
+                        string sql = @"
+                            SELECT DISTINCT a.Name
+                            FROM Authors a
+                            INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
+                            INNER JOIN Books b ON ba.BookID = b.ID
+                            WHERE a.LastNameSoundex = @Soundex
+                              AND b.Language = @Language
+                              AND b.ReplacedByID IS NULL
+                            ORDER BY a.Name";
+
+                        authors = db.ExecuteQuery<string>(sql,
+                            reader => reader.GetString(0),
+                            DatabaseManager.CreateParameter("@Soundex", soundex),
+                            DatabaseManager.CreateParameter("@Language", languageFilter));
+                    }
+                    else
+                    {
+                        authors = db.ExecuteQuery<string>(DatabaseSchema.SelectAuthorsBySoundex,
+                            reader => reader.GetString(0),
+                            DatabaseManager.CreateParameter("@Soundex", soundex));
+                    }
 
                     if (authors.Count > 0)
                     {
@@ -1056,23 +1393,44 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Get genres with book count > 0
+        /// Get genres with book count > 0 (considers language filter)
         /// </summary>
         public List<(Genre genre, int bookCount)> GetGenresWithBooks()
         {
             try
             {
                 var result = new List<(Genre genre, int bookCount)>();
+                string languageFilter = GetLanguageFilter();
+
+                string query;
+                if (string.IsNullOrEmpty(languageFilter))
+                {
+                    query = DatabaseSchema.SelectGenresWithBookCount;
+                }
+                else
+                {
+                    // Apply language filter
+                    query = @"
+                        SELECT g.Tag, g.ParentName, g.Name, g.Translation, COUNT(DISTINCT b.ID) as BookCount
+                        FROM Genres g
+                        LEFT JOIN BookGenres bg ON g.Tag = bg.GenreTag
+                        LEFT JOIN Books b ON bg.BookID = b.ID AND b.Language = @Language AND b.ReplacedByID IS NULL
+                        GROUP BY g.Tag, g.ParentName, g.Name, g.Translation
+                        HAVING BookCount > 0
+                        ORDER BY g.ParentName, g.Name";
+                }
 
                 var data = db.ExecuteQuery<(string Tag, string ParentName, string Name, string Translation, int BookCount)>(
-                    DatabaseSchema.SelectGenresWithBookCount,
+                    query,
                     reader => (
                         reader.GetString(0),  // Tag
                         DatabaseManager.GetString(reader, "ParentName"),
                         reader.GetString(2),  // Name
                         DatabaseManager.GetString(reader, "Translation"),
                         reader.GetInt32(4)   // BookCount
-                    ));
+                    ),
+                    string.IsNullOrEmpty(languageFilter) ? null :
+                        new[] { DatabaseManager.CreateParameter("@Language", languageFilter) });
 
                 foreach (var item in data)
                 {
@@ -1138,44 +1496,96 @@ namespace TinyOPDS.Data
 
         public int GetTotalBooksCount()
         {
-            var result = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE ReplacedByID IS NULL");
-            return Convert.ToInt32(result);
+            string languageFilter = GetLanguageFilter();
+
+            if (string.IsNullOrEmpty(languageFilter))
+            {
+                var result = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE ReplacedByID IS NULL");
+                return Convert.ToInt32(result);
+            }
+            else
+            {
+                var result = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE ReplacedByID IS NULL AND Language = @Language",
+                    DatabaseManager.CreateParameter("@Language", languageFilter));
+                return Convert.ToInt32(result);
+            }
         }
 
         public int GetFB2BooksCount()
         {
-            var result = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE FileName LIKE '%.fb2%' AND ReplacedByID IS NULL");
-            return Convert.ToInt32(result);
+            string languageFilter = GetLanguageFilter();
+
+            if (string.IsNullOrEmpty(languageFilter))
+            {
+                var result = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE FileName LIKE '%.fb2%' AND ReplacedByID IS NULL");
+                return Convert.ToInt32(result);
+            }
+            else
+            {
+                var result = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE FileName LIKE '%.fb2%' AND ReplacedByID IS NULL AND Language = @Language",
+                    DatabaseManager.CreateParameter("@Language", languageFilter));
+                return Convert.ToInt32(result);
+            }
         }
 
         public int GetEPUBBooksCount()
         {
-            var result = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE FileName LIKE '%.epub%' AND ReplacedByID IS NULL");
-            return Convert.ToInt32(result);
+            string languageFilter = GetLanguageFilter();
+
+            if (string.IsNullOrEmpty(languageFilter))
+            {
+                var result = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE FileName LIKE '%.epub%' AND ReplacedByID IS NULL");
+                return Convert.ToInt32(result);
+            }
+            else
+            {
+                var result = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE FileName LIKE '%.epub%' AND ReplacedByID IS NULL AND Language = @Language",
+                    DatabaseManager.CreateParameter("@Language", languageFilter));
+                return Convert.ToInt32(result);
+            }
         }
 
         public int GetNewBooksCount(DateTime fromDate)
         {
-            var result = db.ExecuteScalar(DatabaseSchema.CountNewBooks,
-                DatabaseManager.CreateParameter("@FromDate", fromDate));
-            return Convert.ToInt32(result);
+            string languageFilter = GetLanguageFilter();
+
+            if (string.IsNullOrEmpty(languageFilter))
+            {
+                var result = db.ExecuteScalar(DatabaseSchema.CountNewBooks,
+                    DatabaseManager.CreateParameter("@FromDate", fromDate));
+                return Convert.ToInt32(result);
+            }
+            else
+            {
+                var result = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE AddedDate >= @FromDate AND ReplacedByID IS NULL AND Language = @Language",
+                    DatabaseManager.CreateParameter("@FromDate", fromDate),
+                    DatabaseManager.CreateParameter("@Language", languageFilter));
+                return Convert.ToInt32(result);
+            }
         }
 
         /// <summary>
-        /// Get new books with pagination support
+        /// Get new books with pagination support (considers language filter)
         /// </summary>
         public List<Book> GetNewBooksPaginated(DateTime fromDate, int offset, int limit, bool sortByDate = true)
         {
             try
             {
+                string languageFilter = GetLanguageFilter();
                 string query = sortByDate
                     ? DatabaseSchema.SelectNewBooksPaginatedByDate
                     : DatabaseSchema.SelectNewBooksPaginatedByTitle;
 
+                if (!string.IsNullOrEmpty(languageFilter))
+                {
+                    query = query.Replace("WHERE", "WHERE Language = @Language AND");
+                }
+
                 var books = db.ExecuteQuery<Book>(query, MapBook,
-                    DatabaseManager.CreateParameter("@FromDate", fromDate),
-                    DatabaseManager.CreateParameter("@Offset", offset),
-                    DatabaseManager.CreateParameter("@Limit", limit));
+                    AddLanguageParameter(
+                        DatabaseManager.CreateParameter("@FromDate", fromDate),
+                        DatabaseManager.CreateParameter("@Offset", offset),
+                        DatabaseManager.CreateParameter("@Limit", limit)));
 
                 foreach (var book in books)
                 {
@@ -1193,13 +1603,51 @@ namespace TinyOPDS.Data
 
         public List<string> GetAllAuthors()
         {
-            return db.ExecuteQuery<string>(DatabaseSchema.SelectAuthors, reader => reader.GetString(0));
+            string languageFilter = GetLanguageFilter();
+
+            if (string.IsNullOrEmpty(languageFilter))
+            {
+                return db.ExecuteQuery<string>(DatabaseSchema.SelectAuthors, reader => reader.GetString(0));
+            }
+            else
+            {
+                string query = @"
+                    SELECT DISTINCT a.Name
+                    FROM Authors a
+                    INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
+                    INNER JOIN Books b ON ba.BookID = b.ID
+                    WHERE b.Language = @Language AND b.ReplacedByID IS NULL
+                    ORDER BY a.Name";
+
+                return db.ExecuteQuery<string>(query,
+                    reader => reader.GetString(0),
+                    DatabaseManager.CreateParameter("@Language", languageFilter));
+            }
         }
 
-        // MODIFIED: Now gets sequences from Sequences table
+        // MODIFIED: Now gets sequences from Sequences table (considers language filter)
         public List<string> GetAllSequences()
         {
-            return db.ExecuteQuery<string>(DatabaseSchema.SelectSequences, reader => reader.GetString(0));
+            string languageFilter = GetLanguageFilter();
+
+            if (string.IsNullOrEmpty(languageFilter))
+            {
+                return db.ExecuteQuery<string>(DatabaseSchema.SelectSequences, reader => reader.GetString(0));
+            }
+            else
+            {
+                string query = @"
+                    SELECT DISTINCT s.Name
+                    FROM Sequences s
+                    INNER JOIN BookSequences bs ON s.ID = bs.SequenceID
+                    INNER JOIN Books b ON bs.BookID = b.ID
+                    WHERE b.Language = @Language AND b.ReplacedByID IS NULL
+                    ORDER BY s.Name";
+
+                return db.ExecuteQuery<string>(query,
+                    reader => reader.GetString(0),
+                    DatabaseManager.CreateParameter("@Language", languageFilter));
+            }
         }
 
         public List<string> GetAllGenreTags()
@@ -1209,26 +1657,81 @@ namespace TinyOPDS.Data
 
         public int GetAuthorsCount()
         {
-            var result = db.ExecuteScalar(DatabaseSchema.SelectAuthorsCount);
-            return Convert.ToInt32(result);
+            string languageFilter = GetLanguageFilter();
+
+            if (string.IsNullOrEmpty(languageFilter))
+            {
+                var result = db.ExecuteScalar(DatabaseSchema.SelectAuthorsCount);
+                return Convert.ToInt32(result);
+            }
+            else
+            {
+                string query = @"
+                    SELECT COUNT(DISTINCT a.ID) 
+                    FROM Authors a
+                    INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
+                    INNER JOIN Books b ON ba.BookID = b.ID
+                    WHERE b.Language = @Language AND b.ReplacedByID IS NULL";
+
+                var result = db.ExecuteScalar(query,
+                    DatabaseManager.CreateParameter("@Language", languageFilter));
+                return Convert.ToInt32(result);
+            }
         }
 
         public int GetSequencesCount()
         {
-            var result = db.ExecuteScalar(DatabaseSchema.SelectSequencesCount);
-            return Convert.ToInt32(result);
+            string languageFilter = GetLanguageFilter();
+
+            if (string.IsNullOrEmpty(languageFilter))
+            {
+                var result = db.ExecuteScalar(DatabaseSchema.SelectSequencesCount);
+                return Convert.ToInt32(result);
+            }
+            else
+            {
+                string query = @"
+                    SELECT COUNT(DISTINCT s.ID)
+                    FROM Sequences s
+                    INNER JOIN BookSequences bs ON s.ID = bs.SequenceID
+                    INNER JOIN Books b ON bs.BookID = b.ID
+                    WHERE b.Language = @Language AND b.ReplacedByID IS NULL";
+
+                var result = db.ExecuteScalar(query,
+                    DatabaseManager.CreateParameter("@Language", languageFilter));
+                return Convert.ToInt32(result);
+            }
         }
 
         /// <summary>
-        /// Get count of books by genre
+        /// Get count of books by genre (considers language filter)
         /// </summary>
         public int GetBooksByGenreCount(string genreTag)
         {
             try
             {
-                var result = db.ExecuteScalar(DatabaseSchema.CountBooksByGenre,
-                    DatabaseManager.CreateParameter("@GenreTag", genreTag));
-                return Convert.ToInt32(result);
+                string languageFilter = GetLanguageFilter();
+
+                if (string.IsNullOrEmpty(languageFilter))
+                {
+                    var result = db.ExecuteScalar(DatabaseSchema.CountBooksByGenre,
+                        DatabaseManager.CreateParameter("@GenreTag", genreTag));
+                    return Convert.ToInt32(result);
+                }
+                else
+                {
+                    string query = @"
+                        SELECT COUNT(*) FROM Books b
+                        INNER JOIN BookGenres bg ON b.ID = bg.BookID
+                        WHERE bg.GenreTag = @GenreTag 
+                          AND b.ReplacedByID IS NULL 
+                          AND b.Language = @Language";
+
+                    var result = db.ExecuteScalar(query,
+                        DatabaseManager.CreateParameter("@GenreTag", genreTag),
+                        DatabaseManager.CreateParameter("@Language", languageFilter));
+                    return Convert.ToInt32(result);
+                }
             }
             catch (Exception ex)
             {
@@ -1238,15 +1741,35 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Get count of books by sequence
+        /// Get count of books by sequence (considers language filter)
         /// </summary>
         public int GetBooksBySequenceCount(string sequenceName)
         {
             try
             {
-                var result = db.ExecuteScalar(DatabaseSchema.CountBooksBySequence,
-                    DatabaseManager.CreateParameter("@SequenceName", sequenceName));
-                return Convert.ToInt32(result);
+                string languageFilter = GetLanguageFilter();
+
+                if (string.IsNullOrEmpty(languageFilter))
+                {
+                    var result = db.ExecuteScalar(DatabaseSchema.CountBooksBySequence,
+                        DatabaseManager.CreateParameter("@SequenceName", sequenceName));
+                    return Convert.ToInt32(result);
+                }
+                else
+                {
+                    string query = @"
+                        SELECT COUNT(*) FROM Books b
+                        INNER JOIN BookSequences bs ON b.ID = bs.BookID
+                        INNER JOIN Sequences s ON bs.SequenceID = s.ID
+                        WHERE s.Name = @SequenceName 
+                          AND b.ReplacedByID IS NULL 
+                          AND b.Language = @Language";
+
+                    var result = db.ExecuteScalar(query,
+                        DatabaseManager.CreateParameter("@SequenceName", sequenceName),
+                        DatabaseManager.CreateParameter("@Language", languageFilter));
+                    return Convert.ToInt32(result);
+                }
             }
             catch (Exception ex)
             {
@@ -1256,17 +1779,36 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Get statistics for all genres with book counts
+        /// Get statistics for all genres with book counts (considers language filter)
         /// </summary>
         public Dictionary<string, int> GetAllGenreStatistics()
         {
             try
             {
                 var result = new Dictionary<string, int>();
+                string languageFilter = GetLanguageFilter();
+
+                string query;
+                if (string.IsNullOrEmpty(languageFilter))
+                {
+                    query = DatabaseSchema.SelectGenreStatistics;
+                }
+                else
+                {
+                    query = @"
+                        SELECT bg.GenreTag, COUNT(DISTINCT b.ID) as BookCount
+                        FROM BookGenres bg
+                        INNER JOIN Books b ON bg.BookID = b.ID
+                        WHERE b.Language = @Language AND b.ReplacedByID IS NULL
+                        GROUP BY bg.GenreTag
+                        HAVING BookCount > 0";
+                }
 
                 var statistics = db.ExecuteQuery<(string GenreTag, int BookCount)>(
-                    DatabaseSchema.SelectGenreStatistics,
-                    reader => (reader.GetString(0), reader.GetInt32(1)));
+                    query,
+                    reader => (reader.GetString(0), reader.GetInt32(1)),
+                    string.IsNullOrEmpty(languageFilter) ? null :
+                        new[] { DatabaseManager.CreateParameter("@Language", languageFilter) });
 
                 foreach (var (genreTag, bookCount) in statistics)
                 {
@@ -1284,23 +1826,43 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Get full genre statistics including parent and translation info
+        /// Get full genre statistics including parent and translation info (considers language filter)
         /// </summary>
         public List<(Genre genre, int bookCount)> GetFullGenreStatistics()
         {
             try
             {
                 var result = new List<(Genre genre, int bookCount)>();
+                string languageFilter = GetLanguageFilter();
+
+                string query;
+                if (string.IsNullOrEmpty(languageFilter))
+                {
+                    query = DatabaseSchema.SelectGenreStatisticsFull;
+                }
+                else
+                {
+                    query = @"
+                        SELECT g.Tag, g.ParentName, g.Name, g.Translation, COUNT(DISTINCT b.ID) as BookCount
+                        FROM Genres g
+                        INNER JOIN BookGenres bg ON g.Tag = bg.GenreTag
+                        INNER JOIN Books b ON bg.BookID = b.ID
+                        WHERE b.Language = @Language AND b.ReplacedByID IS NULL
+                        GROUP BY g.Tag, g.ParentName, g.Name, g.Translation
+                        HAVING BookCount > 0";
+                }
 
                 var statistics = db.ExecuteQuery<(string Tag, string ParentName, string Name, string Translation, int BookCount)>(
-                    DatabaseSchema.SelectGenreStatisticsFull,
+                    query,
                     reader => (
                         reader.GetString(0),
                         DatabaseManager.GetString(reader, "ParentName"),
                         reader.GetString(2),
                         DatabaseManager.GetString(reader, "Translation"),
                         reader.GetInt32(4)
-                    ));
+                    ),
+                    string.IsNullOrEmpty(languageFilter) ? null :
+                        new[] { DatabaseManager.CreateParameter("@Language", languageFilter) });
 
                 foreach (var stat in statistics)
                 {

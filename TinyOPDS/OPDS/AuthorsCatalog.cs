@@ -196,28 +196,24 @@ namespace TinyOPDS.OPDS
                     );
                 }
 
-                // Filter authors - show only those not covered by groups
-                if (!string.IsNullOrEmpty(searchPattern))
+                // Filter out authors covered by groups
+                var groupKeys = navigationGroups.Keys.ToList();
+
+                // Keep only authors that don't start with any group prefix
+                var remainingAuthors = authors.Where(author =>
                 {
-                    // For second level navigation, show only authors matching the pattern 
-                    // but not those that would go into subgroups
-                    var groupPrefixes = navigationGroups.Keys.ToList();
-                    authors = authors
-                        .Where(a => a.StartsWith(searchPattern, StringComparison.InvariantCultureIgnoreCase))
-                        .Where(a => !groupPrefixes.Any(prefix =>
-                            a.StartsWith(prefix, StringComparison.InvariantCultureIgnoreCase) &&
-                            a.Length > prefix.Length))
-                        .ToList();
-                }
-                else
-                {
-                    // For root level, exclude all authors that are in groups
-                    var groupPrefixes = navigationGroups.Keys.ToList();
-                    authors = authors
-                        .Where(a => !groupPrefixes.Any(prefix =>
-                            a.StartsWith(prefix, StringComparison.InvariantCultureIgnoreCase)))
-                        .ToList();
-                }
+                    // Check if author starts with any of the group prefixes
+                    foreach (var groupKey in groupKeys)
+                    {
+                        if (author.StartsWith(groupKey, StringComparison.InvariantCultureIgnoreCase))
+                        {
+                            return false; // Author belongs to a group
+                        }
+                    }
+                    return true; // Author doesn't belong to any group
+                }).ToList();
+
+                authors = remainingAuthors;
             }
 
             // Add individual author entries
@@ -282,8 +278,10 @@ namespace TinyOPDS.OPDS
                     .ToList();
 
                 // Create groups for the next character position
-                var extendedGroups = filteredAuthors
+                // Only group by letters, skip special characters
+                var potentialGroups = filteredAuthors
                     .Where(a => a.Length > nextCharPos)
+                    .Where(a => char.IsLetter(a[nextCharPos])) // Only process if next character is a letter
                     .GroupBy(a => {
                         // Get substring up to the next character
                         string prefix = a.Substring(0, nextCharPos + 1);
@@ -301,10 +299,26 @@ namespace TinyOPDS.OPDS
                         }
                         return prefix;
                     })
-                    .Where(g => g.Count() > 1) // Only create groups if there are multiple authors
-                    .ToDictionary(g => g.Key, g => g.Count());
+                    .ToList();
 
-                return extendedGroups;
+                // Create groups only if we have multiple authors with the same prefix
+                foreach (var group in potentialGroups)
+                {
+                    var groupKey = group.Key;
+
+                    // Count all authors that would belong to this group
+                    // This includes authors with both Cyrillic and Latin characters
+                    var totalAuthorsForGroup = filteredAuthors
+                        .Count(a => a.StartsWith(groupKey, StringComparison.InvariantCultureIgnoreCase));
+
+                    // Only create group if we have multiple authors
+                    if (totalAuthorsForGroup > 1)
+                    {
+                        groups[groupKey] = totalAuthorsForGroup;
+                    }
+                }
+
+                return groups;
             }
         }
     }

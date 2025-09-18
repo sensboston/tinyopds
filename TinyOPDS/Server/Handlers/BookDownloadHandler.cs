@@ -7,6 +7,7 @@
  *
  * This module handles books download requests (FB2 and EPUB)
  * ENHANCED: Added download tracking to database
+ * FIXED: Always convert FB2 to EPUB when .epub is requested
  * 
  */
 
@@ -211,7 +212,7 @@ namespace TinyOPDS.Server
         }
 
         /// <summary>
-        /// Handles EPUB book download (with optional FB2 to EPUB conversion)
+        /// Handles EPUB book download (with FB2 to EPUB conversion when needed)
         /// </summary>
         private void HandleEpubDownload(HttpProcessor processor, Book book, bool acceptFB2)
         {
@@ -227,13 +228,23 @@ namespace TinyOPDS.Server
                     }
                 }
 
-                if (book.BookType == BookType.FB2 && !acceptFB2)
+                // FIXED: Always convert FB2 to EPUB when .epub is requested,
+                // regardless of whether the client accepts FB2 or not.
+                // When user explicitly requests .epub, they want EPUB format!
+                if (book.BookType == BookType.FB2)
                 {
+                    Log.WriteLine(LogLevel.Info, "Converting FB2 to EPUB for book: {0}", book.FileName);
+
                     if (!ConvertFB2ToEpub(book, memStream))
                     {
+                        Log.WriteLine(LogLevel.Error, "Failed to convert FB2 to EPUB for book: {0}", book.FileName);
                         processor.WriteFailure();
                         return;
                     }
+                }
+                else if (book.BookType == BookType.EPUB)
+                {
+                    Log.WriteLine(LogLevel.Info, "Book is already in EPUB format: {0}", book.FileName);
                 }
 
                 // Set proper filename for download
@@ -253,6 +264,8 @@ namespace TinyOPDS.Server
                 memStream.Position = 0;
                 memStream.CopyTo(processor.OutputStream.BaseStream);
                 processor.OutputStream.BaseStream.Flush();
+
+                Log.WriteLine(LogLevel.Info, "Successfully sent EPUB file: {0}", downloadFileName);
             }
         }
 

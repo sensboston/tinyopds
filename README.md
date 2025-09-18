@@ -1,15 +1,15 @@
-# TinyOPDS 3.1
+# TinyOPDS 3.2
 Lightweight and powerful OPDS server for home libraries
 
 ![](https://github.com/sensboston/tinyopds/blob/master/wiki/ss1.png?raw=true)
 
 TinyOPDS is a simple and lightweight OPDS server written in C#. Works on Windows, Linux and macOS via .NET or Mono.
 
-## TinyOPDS 3.1 - Revolutionary Update!
+## TinyOPDS 3.2 - Revolutionary Update!
 
-**TinyOPDS 3.1** - the result of intensive development with **over 85% of code rewritten**. The main change is the transition from in-memory storage to using a **standard SQL engine**, paving the way for porting to any server platform.
+**TinyOPDS 3.2** - the result of intensive development with **over 85% of code rewritten**. The main change is the transition from in-memory storage to using a **standard SQL engine**, paving the way for porting to any server platform.
 
-### Key changes in version 3.1:
+### Key changes in version 3.2:
 
 - **SQLite database** - instead of loading the entire library into memory, now uses a standard SQL engine with FTS5 full-text search
 - **Modern web interface** - fully functional embedded website with beautiful design, responsive layout, and pagination support for large collections
@@ -24,7 +24,7 @@ TinyOPDS is a simple and lightweight OPDS server written in C#. Works on Windows
 
 ### Real performance metrics:
 
-| Metric | Version 2.x | Version 3.1 |
+| Metric | Version 2.x | Version 3.x |
 |--------|------------|------------|
 | Architecture | All in memory | SQL engine |
 | RAM for 500K books | ~1.6 GB | ~120-150 MB |
@@ -52,16 +52,16 @@ If TinyOPDS helped organize your library, you can support development - donation
 
 ---
 
-## TinyOPDS 3.1
+## TinyOPDS 3.2
 Легкий та потужний OPDS сервер для домашніх бібліотек
 
 TinyOPDS - це простий та легкий OPDS сервер, написаний на C#. Працює на Windows, Linux та macOS через .NET або Mono.
 
 ## TinyOPDS отримав революційне оновлення!
 
-**TinyOPDS 3.1** - результат інтенсивної розробки, в ході якої **переписано понад 85% коду**. Головна зміна - перехід від зберігання даних в пам'яті до використання **стандартного SQL рушія**, що відкриває шлях до портування на будь-які серверні платформи.
+**TinyOPDS 3.2** - результат інтенсивної розробки, в ході якої **переписано понад 85% коду**. Головна зміна - перехід від зберігання даних в пам'яті до використання **стандартного SQL рушія**, що відкриває шлях до портування на будь-які серверні платформи.
 
-### Ключові зміни версії 3.1:
+### Ключові зміни версії 3.2:
 
 - **SQLite база даних** - замість завантаження всієї бібліотеки в пам'ять тепер використовується стандартний SQL рушій з повнотекстовим пошуком FTS5
 - **Сучасний веб-інтерфейс** - повноцінний вбудований веб-сайт з красивим дизайном, адаптивною версткою та підтримкою пагінації для великих колекцій
@@ -76,7 +76,7 @@ TinyOPDS - це простий та легкий OPDS сервер, написа
 
 ### Реальні показники:
 
-| Метрика | Версія 2.x | Версія 3.1 |
+| Метрика | Версія 2.x | Версія 3.x |
 |---------|------------|------------|
 | Архітектура | Все в пам'яті | SQL рушій |
 | RAM для 500K книг | ~1.6 GB | ~120-150 MB |
@@ -104,16 +104,16 @@ TinyOPDS - це простий та легкий OPDS сервер, написа
 
 ---
 
-## TinyOPDS 3.1
+## TinyOPDS 3.2
 Легкий, но мощный OPDS сервер для домашних библиотек
 
 TinyOPDS - это простой OPDS сервер, написанный на C#. Работает на Windows, Linux и macOS через .NET или Mono.
 
 ## TinyOPDS получил революционное обновление!
 
-**TinyOPDS 3.1** - результат интенсивной разработки, в ходе которой **переписано более 85% кода**. Главное изменение - переход от хранения данных в памяти к использованию **стандартного SQL движка**, что открывает путь к портированию на любые серверные платформы.
+**TinyOPDS 3.2** - результат интенсивной разработки, в ходе которой **переписано более 85% кода**. Главное изменение - переход от хранения данных в памяти к использованию **стандартного SQL движка**, что открывает путь к портированию на любые серверные платформы.
 
-### Ключевые изменения версии 3.1:
+### Ключевые изменения версии 3.2:
 
 - **SQLite база данных** - вместо загрузки всей библиотеки в память теперь используется стандартный SQL движок с полнотекстовым поиском FTS5
 - **Современный веб-интерфейс** - полноценный встроенный веб-сайт с красивым дизайном, адаптивной вёрсткой и поддержкой пагинации для больших коллекций
@@ -128,7 +128,7 @@ TinyOPDS - это простой OPDS сервер, написанный на C#
 
 ### Реальные показатели:
 
-| Метрика | Версия 2.x | Версия 3.1 |
+| Метрика | Версия 2.x | Версия 3.x |
 |---------|------------|------------|
 | Архитектура | Всё в памяти | SQL движок |
 | RAM для 500K книг | ~1.6 GB | ~120-150 MB |

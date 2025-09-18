@@ -107,7 +107,9 @@ namespace TinyOPDS
             // Init localization service
             Localizer.Init();
             Localizer.AddMenu(contextMenuStrip);
+            langCombo.SelectedValueChanged -= new EventHandler(LangCombo_SelectedValueChanged);
             langCombo.DataSource = Localizer.Languages.ToArray();
+            langCombo.SelectedValueChanged += new EventHandler(LangCombo_SelectedValueChanged);
 
             // Load application settings
             LoadSettings();
@@ -456,6 +458,7 @@ namespace TinyOPDS
                 databaseFileName.Text = "books.sqlite";
             }
 
+            filterByLanguage.Checked = Settings.Default.FilterBooksByInterfaceLanguage;
             oneInstance.Checked = Settings.Default.OnlyOneInstance;
 
             if (Utils.IsLinux) startWithWindows.Enabled = false;
@@ -1471,6 +1474,12 @@ namespace TinyOPDS
         private void StartMinimized_CheckedChanged(object sender, EventArgs e)
         {
             Settings.Default.StartMinimized = startMinimized.Checked;
+            Settings.Default.Save();
+        }
+
+        private void filterByLanguage_CheckedChanged(object sender, EventArgs e)
+        {
+            Settings.Default.FilterBooksByInterfaceLanguage = filterByLanguage.Checked;
             Settings.Default.Save();
         }
 

@@ -8,6 +8,7 @@
  * Database manager for SQLite operations with FTS5 support
  * ENHANCED: Added library statistics persistence support
  * ENHANCED: Added downloads tracking support
+ * ENHANCED: Added performance optimizations and cold start prevention
  *
  */
 
@@ -17,6 +18,7 @@ using System.Data;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using System.Xml.Linq;
 
 namespace TinyOPDS.Data
@@ -26,6 +28,11 @@ namespace TinyOPDS.Data
         private IDbConnection connection;
         private readonly string connectionString;
         private bool disposed = false;
+
+        // Performance optimization fields
+        private Timer _keepAliveTimer;
+        private DateTime _lastAccessTime = DateTime.Now;
+        private readonly TimeSpan _idleThreshold = TimeSpan.FromMinutes(5);
 
         public DatabaseManager(string databasePath)
         {
@@ -52,10 +59,118 @@ namespace TinyOPDS.Data
             connection = SqliteConnectionFactory.CreateConnection(connectionString);
             connection.Open();
 
-            // Enable foreign keys
-            ExecuteNonQuery("PRAGMA foreign_keys = ON");
+            // Apply performance optimizations
+            ApplyPerformanceOptimizations();
 
             InitializeSchema();
+
+            // Start keep-alive timer to prevent cold starts
+            StartKeepAliveTimer();
+        }
+
+        /// <summary>
+        /// Apply SQLite performance optimizations
+        /// </summary>
+        private void ApplyPerformanceOptimizations()
+        {
+            try
+            {
+                // Enable foreign keys
+                ExecuteNonQuery("PRAGMA foreign_keys = ON");
+
+                // Performance optimizations
+                ExecuteNonQuery("PRAGMA journal_mode = WAL");        // Write-Ahead Logging for better concurrency
+                ExecuteNonQuery("PRAGMA synchronous = NORMAL");      // Faster writes with reasonable safety
+                ExecuteNonQuery("PRAGMA cache_size = -64000");       // 64MB cache in RAM
+                ExecuteNonQuery("PRAGMA temp_store = MEMORY");       // Temp tables in memory
+                ExecuteNonQuery("PRAGMA mmap_size = 268435456");     // 256MB memory-mapped I/O
+                ExecuteNonQuery("PRAGMA page_size = 4096");          // 4KB page size
+                ExecuteNonQuery("PRAGMA busy_timeout = 10000");      // 10 seconds timeout for locked database
+
+                Log.WriteLine("Applied SQLite performance optimizations");
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Warning, "Could not apply all performance optimizations: {0}", ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Start keep-alive timer to prevent connection from going cold
+        /// </summary>
+        private void StartKeepAliveTimer()
+        {
+            _keepAliveTimer = new Timer(KeepConnectionAlive, null,
+                TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+        }
+
+        /// <summary>
+        /// Keep-alive callback to maintain warm connection
+        /// </summary>
+        private void KeepConnectionAlive(object state)
+        {
+            try
+            {
+                ExecuteScalar("SELECT 1");
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Warning, "Keep-alive query failed: {0}", ex.Message);
+                // Try to reconnect if connection is broken
+                TryReconnect();
+            }
+        }
+
+        /// <summary>
+        /// Try to reconnect if connection is broken
+        /// </summary>
+        private void TryReconnect()
+        {
+            try
+            {
+                if (connection?.State != ConnectionState.Open)
+                {
+                    connection?.Close();
+                    connection?.Dispose();
+
+                    connection = SqliteConnectionFactory.CreateConnection(connectionString);
+                    connection.Open();
+                    ApplyPerformanceOptimizations();
+
+                    Log.WriteLine(LogLevel.Info, "Successfully reconnected to database");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Failed to reconnect to database: {0}", ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Warm up database caches if idle for too long
+        /// </summary>
+        public void WarmUpIfNeeded()
+        {
+            if (DateTime.Now - _lastAccessTime > _idleThreshold)
+            {
+                try
+                {
+                    // Warm up cache with lightweight queries
+                    ExecuteScalar("SELECT COUNT(*) FROM Books LIMIT 1");
+                    ExecuteScalar("SELECT COUNT(*) FROM Authors LIMIT 1");
+                    ExecuteScalar("SELECT COUNT(*) FROM Genres LIMIT 1");
+
+                    // Update SQLite statistics for query optimizer
+                    ExecuteNonQuery("ANALYZE");
+
+                    Log.WriteLine(LogLevel.Info, "Database cache warmed up after idle period");
+                }
+                catch (Exception ex)
+                {
+                    Log.WriteLine(LogLevel.Warning, "Warm-up failed: {0}", ex.Message);
+                }
+            }
+            _lastAccessTime = DateTime.Now;
         }
 
         private void InitializeSchema()
@@ -268,6 +383,7 @@ namespace TinyOPDS.Data
         {
             try
             {
+                WarmUpIfNeeded();
                 ExecuteNonQuery(DatabaseSchema.InsertDownload,
                     CreateParameter("@BookID", bookId),
                     CreateParameter("@DownloadDate", DateTime.Now.ToBinary()),
@@ -290,6 +406,7 @@ namespace TinyOPDS.Data
         {
             try
             {
+                WarmUpIfNeeded();
                 return ExecuteQuery(DatabaseSchema.SelectRecentDownloads,
                     reader => BookFromReader(reader),
                     CreateParameter("@Limit", limit),
@@ -309,6 +426,7 @@ namespace TinyOPDS.Data
         {
             try
             {
+                WarmUpIfNeeded();
                 return ExecuteQuery(DatabaseSchema.SelectDownloadsAlphabetic,
                     reader => BookFromReader(reader),
                     CreateParameter("@Limit", limit),
@@ -328,6 +446,7 @@ namespace TinyOPDS.Data
         {
             try
             {
+                WarmUpIfNeeded();
                 var result = ExecuteScalar(DatabaseSchema.CountUniqueDownloads);
                 return Convert.ToInt32(result ?? 0);
             }
@@ -345,6 +464,7 @@ namespace TinyOPDS.Data
         {
             try
             {
+                WarmUpIfNeeded();
                 var result = ExecuteScalar(DatabaseSchema.CountTotalDownloads);
                 return Convert.ToInt32(result ?? 0);
             }
@@ -427,7 +547,7 @@ namespace TinyOPDS.Data
                 var downloadDate = GetDateTime(reader, "LastDownloadDate");
                 if (downloadDate.HasValue) book.LastDownloadDate = downloadDate.Value;
             }
-            catch {}
+            catch { }
 
             return book;
         }
@@ -445,6 +565,7 @@ namespace TinyOPDS.Data
         {
             try
             {
+                WarmUpIfNeeded();
                 var result = ExecuteScalar(DatabaseSchema.SelectLibraryStats, CreateParameter("@Key", key));
                 if (result != null && result != DBNull.Value)
                 {
@@ -499,6 +620,7 @@ namespace TinyOPDS.Data
 
             try
             {
+                WarmUpIfNeeded();
                 using (var reader = ExecuteReader(DatabaseSchema.SelectAllLibraryStats))
                 {
                     while (reader.Read())
@@ -600,6 +722,8 @@ namespace TinyOPDS.Data
             var genres = new List<Genre>();
             var parentGenres = new Dictionary<string, Genre>();
 
+            WarmUpIfNeeded();
+
             // Load main genre translations first
             var mainGenreTranslations = new Dictionary<string, string>();
             var translationReader = ExecuteReader(DatabaseSchema.SelectMainGenreTranslations);
@@ -672,6 +796,7 @@ namespace TinyOPDS.Data
 
         public int ExecuteNonQuery(string sql, params IDbDataParameter[] parameters)
         {
+            _lastAccessTime = DateTime.Now;
             var command = SqliteConnectionFactory.CreateCommand(sql, connection);
             try
             {
@@ -692,6 +817,7 @@ namespace TinyOPDS.Data
 
         public object ExecuteScalar(string sql, params IDbDataParameter[] parameters)
         {
+            _lastAccessTime = DateTime.Now;
             var command = SqliteConnectionFactory.CreateCommand(sql, connection);
             try
             {
@@ -712,6 +838,7 @@ namespace TinyOPDS.Data
 
         public IDataReader ExecuteReader(string sql, params IDbDataParameter[] parameters)
         {
+            _lastAccessTime = DateTime.Now;
             var command = SqliteConnectionFactory.CreateCommand(sql, connection);
             if (parameters != null)
             {
@@ -879,8 +1006,19 @@ namespace TinyOPDS.Data
             {
                 if (disposing)
                 {
+                    // Stop keep-alive timer
+                    _keepAliveTimer?.Dispose();
+
                     if (connection != null)
                     {
+                        // Optimize database before closing
+                        try
+                        {
+                            ExecuteNonQuery("PRAGMA optimize");
+                            ExecuteNonQuery("PRAGMA wal_checkpoint(TRUNCATE)");
+                        }
+                        catch { }
+
                         connection.Close();
                         connection.Dispose();
                     }

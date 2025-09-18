@@ -6,6 +6,7 @@
  * SPDX-License-Identifier: MIT
  *
  * This module defines the Book class
+ * UPDATED: Made IsTrustedGuid static for use in DuplicateDetector
  */
 
 using System;
@@ -189,9 +190,9 @@ namespace TinyOPDS.Data
 
         /// <summary>
         /// Check if GUID is trusted (not a placeholder from bad converters)
-        /// MODIFIED: Less aggressive checking to avoid false positives
+        /// MODIFIED: Made static and public for use in other classes
         /// </summary>
-        private bool IsTrustedGuid(Guid guid)
+        public static bool IsTrustedGuid(Guid guid)
         {
             // Check for common placeholder GUIDs
             if (guid == Guid.Empty) return false;

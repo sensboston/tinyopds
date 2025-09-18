@@ -9,6 +9,8 @@
  * and abstract class for HTTP server with enhanced stability
  * and request cancellation support
  * 
+ * MODIFIED: Fixed ClientHash to use session tokens instead of User-Agent
+ * 
  */
 
 using System;
@@ -33,6 +35,29 @@ namespace TinyOPDS.Server
     }
 
     /// <summary>
+    /// Session info for better authorization persistence
+    /// </summary>
+    public class SessionInfo
+    {
+        public string Token { get; set; }
+        public string IpAddress { get; set; }
+        public DateTime Created { get; set; }
+        public DateTime LastAccess { get; set; }
+        public string Username { get; set; }
+
+        // Session valid for 30 days of inactivity
+        public bool IsValid()
+        {
+            return (DateTime.Now - LastAccess).TotalDays < 30;
+        }
+
+        public void UpdateLastAccess()
+        {
+            LastAccess = DateTime.Now;
+        }
+    }
+
+    /// <summary>
     /// Simple HTTP processor with client tracking
     /// </summary>
     public class HttpProcessor : IDisposable
@@ -52,7 +77,15 @@ namespace TinyOPDS.Server
         public string ClientHash { get; private set; }
 
         public static BindingList<Credential> Credentials = new BindingList<Credential>();
+
+        // MODIFIED: Changed from simple list to session-based dictionary
+        // Key is session token, value is SessionInfo
+        public static Dictionary<string, SessionInfo> AuthorizedSessions = new Dictionary<string, SessionInfo>();
+        private static readonly object sessionLock = new object();
+
+        // Keep for backward compatibility but will be phased out
         public static List<string> AuthorizedClients = new List<string>();
+
         public static Dictionary<string, int> BannedClients = new Dictionary<string, int>();
 
         // Cache for fast credential lookup
@@ -134,6 +167,50 @@ namespace TinyOPDS.Server
             return buffer.ToString();
         }
 
+        // Generate session token
+        private static string GenerateSessionToken()
+        {
+            var random = new Random();
+            var bytes = new byte[32];
+            random.NextBytes(bytes);
+            return Convert.ToBase64String(bytes).Replace("+", "-").Replace("/", "_").TrimEnd('=');
+        }
+
+        // Parse session token from Cookie header
+        private string GetSessionTokenFromCookie()
+        {
+            if (HttpHeaders.ContainsKey("Cookie"))
+            {
+                var cookies = HttpHeaders["Cookie"].Split(';');
+                foreach (var cookie in cookies)
+                {
+                    var parts = cookie.Trim().Split('=');
+                    if (parts.Length == 2 && parts[0] == "TinyOPDS_Session")
+                    {
+                        return parts[1];
+                    }
+                }
+            }
+            return null;
+        }
+
+        // Clean up expired sessions periodically
+        private static void CleanupExpiredSessions()
+        {
+            lock (sessionLock)
+            {
+                var expiredTokens = AuthorizedSessions
+                    .Where(kvp => !kvp.Value.IsValid())
+                    .Select(kvp => kvp.Key)
+                    .ToList();
+
+                foreach (var token in expiredTokens)
+                {
+                    AuthorizedSessions.Remove(token);
+                }
+            }
+        }
+
         public void Process()
         {
             try
@@ -177,15 +254,14 @@ namespace TinyOPDS.Server
                 bool authorized = true;
                 bool checkLogin = true;
 
-                // Compute client hash string based on User-Agent + IP address
-                string clientHash = string.Empty;
-                if (HttpHeaders.ContainsKey("User-Agent")) clientHash += HttpHeaders["User-Agent"];
                 string remoteIP = (Socket.Client.RemoteEndPoint as IPEndPoint).Address.ToString();
-                clientHash += remoteIP;
-                clientHash = Utils.CreateGuid(Utils.IsoOidNamespace, clientHash).ToString();
 
-                // Store client hash for request cancellation support
-                this.ClientHash = clientHash;
+                // MODIFIED: Use IP-only for ClientHash (for backward compatibility and request tracking)
+                // This is now only used for request cancellation, not for authorization
+                this.ClientHash = Utils.CreateGuid(Utils.IsoOidNamespace, remoteIP).ToString();
+
+                string sessionToken = null;
+                bool sendSessionCookie = false;
 
                 if (Properties.Settings.Default.UseHTTPAuth)
                 {
@@ -196,7 +272,8 @@ namespace TinyOPDS.Server
                     {
                         lock (BannedClients)
                         {
-                            if (BannedClients.Count > 0 && BannedClients.ContainsKey(remoteIP) && BannedClients[remoteIP] >= TinyOPDS.Properties.Settings.Default.WrongAttemptsCount)
+                            if (BannedClients.Count > 0 && BannedClients.ContainsKey(remoteIP) &&
+                                BannedClients[remoteIP] >= TinyOPDS.Properties.Settings.Default.WrongAttemptsCount)
                             {
                                 checkLogin = false;
                             }
@@ -205,12 +282,56 @@ namespace TinyOPDS.Server
 
                     if (checkLogin)
                     {
-                        // First, check authorized client list (if enabled)
+                        // MODIFIED: Check for session token first
                         if (Properties.Settings.Default.RememberClients)
                         {
-                            if (AuthorizedClients.Contains(clientHash))
+                            sessionToken = GetSessionTokenFromCookie();
+
+                            if (!string.IsNullOrEmpty(sessionToken))
+                            {
+                                lock (sessionLock)
+                                {
+                                    if (AuthorizedSessions.ContainsKey(sessionToken))
+                                    {
+                                        var session = AuthorizedSessions[sessionToken];
+
+                                        // Validate session: check if not expired and optionally check IP
+                                        // For better security, we check IP match, but you can disable this
+                                        // if users have dynamic IPs
+                                        bool ipCheck = true; // Set to false if you want to allow IP changes
+
+                                        if (session.IsValid() && (!ipCheck || session.IpAddress == remoteIP))
+                                        {
+                                            session.UpdateLastAccess();
+                                            authorized = true;
+                                            Log.WriteLine(LogLevel.Authentication,
+                                                "Session authenticated for user {0} from {1}",
+                                                session.Username, remoteIP);
+                                        }
+                                        else if (!session.IsValid())
+                                        {
+                                            // Remove expired session
+                                            AuthorizedSessions.Remove(sessionToken);
+                                            Log.WriteLine(LogLevel.Authentication,
+                                                "Expired session removed for user {0}", session.Username);
+                                        }
+                                        else
+                                        {
+                                            // IP mismatch - possible session hijacking attempt
+                                            Log.WriteLine(LogLevel.Authentication,
+                                                "IP mismatch for session. Expected: {0}, Got: {1}",
+                                                session.IpAddress, remoteIP);
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Also check old system for backward compatibility
+                            if (!authorized && AuthorizedClients.Contains(ClientHash))
                             {
                                 authorized = true;
+                                // Migrate to new session system
+                                sendSessionCookie = true;
                             }
                         }
 
@@ -233,19 +354,51 @@ namespace TinyOPDS.Server
                                         authorized = ValidateCredentials(user, password);
                                         if (authorized)
                                         {
-                                            AuthorizedClients.Add(clientHash);
+                                            // MODIFIED: Create new session
+                                            if (Properties.Settings.Default.RememberClients)
+                                            {
+                                                sessionToken = GenerateSessionToken();
+                                                var sessionInfo = new SessionInfo
+                                                {
+                                                    Token = sessionToken,
+                                                    IpAddress = remoteIP,
+                                                    Created = DateTime.Now,
+                                                    LastAccess = DateTime.Now,
+                                                    Username = user
+                                                };
+
+                                                lock (sessionLock)
+                                                {
+                                                    AuthorizedSessions[sessionToken] = sessionInfo;
+
+                                                    // Cleanup old sessions periodically (every 100 logins)
+                                                    if (AuthorizedSessions.Count % 100 == 0)
+                                                    {
+                                                        CleanupExpiredSessions();
+                                                    }
+                                                }
+
+                                                sendSessionCookie = true;
+                                            }
+
+                                            // Keep old system for backward compatibility
+                                            AuthorizedClients.Add(ClientHash);
+
                                             HttpServer.ServerStatistics.IncrementSuccessfulLoginAttempts();
-                                            Log.WriteLine(LogLevel.Authentication, "User {0} from {1} successfully logged in", user, remoteIP);
+                                            Log.WriteLine(LogLevel.Authentication,
+                                                "User {0} from {1} successfully logged in", user, remoteIP);
                                         }
                                         else
                                         {
-                                            Log.WriteLine(LogLevel.Authentication, "Authentication failed! IP: {0} user: {1}", remoteIP, user);
+                                            Log.WriteLine(LogLevel.Authentication,
+                                                "Authentication failed! IP: {0} user: {1}", remoteIP, user);
                                         }
                                     }
                                 }
                                 catch (Exception e)
                                 {
-                                    Log.WriteLine(LogLevel.Authentication, "Authentication exception: IP: {0}, {1}", remoteIP, e.Message);
+                                    Log.WriteLine(LogLevel.Authentication,
+                                        "Authentication exception: IP: {0}, {1}", remoteIP, e.Message);
                                 }
                             }
                         }
@@ -254,12 +407,21 @@ namespace TinyOPDS.Server
 
                 if (authorized)
                 {
-                    HttpServer.ServerStatistics.AddClient(clientHash);
+                    HttpServer.ServerStatistics.AddClient(ClientHash);
 
                     if (HttpMethod.Equals("GET"))
                     {
                         HttpServer.ServerStatistics.IncrementGetRequests();
-                        HandleGETRequest();
+
+                        // MODIFIED: Send session cookie with response if needed
+                        if (sendSessionCookie && !string.IsNullOrEmpty(sessionToken))
+                        {
+                            HandleGETRequestWithSession(sessionToken);
+                        }
+                        else
+                        {
+                            HandleGETRequest();
+                        }
                     }
                     else if (HttpMethod.Equals("POST"))
                     {
@@ -375,6 +537,17 @@ namespace TinyOPDS.Server
             Server.HandleGETRequest(this);
         }
 
+        // MODIFIED: New method to handle GET with session cookie
+        private void HandleGETRequestWithSession(string sessionToken)
+        {
+            // This will be handled by Server.HandleGETRequest, but we need to set the cookie
+            // Store the token temporarily so WriteSuccess can add the cookie header
+            this.pendingSessionToken = sessionToken;
+            Server.HandleGETRequest(this);
+        }
+
+        private string pendingSessionToken = null;
+
         private const int BUF_SIZE = 4096; // Increased from 1024
         public void HandlePOSTRequest()
         {
@@ -421,13 +594,23 @@ namespace TinyOPDS.Server
             try
             {
                 OutputStream.Write("HTTP/1.1 " + statusLine + "\n");
+
+                // MODIFIED: Add session cookie if pending
+                if (!string.IsNullOrEmpty(pendingSessionToken))
+                {
+                    OutputStream.Write($"Set-Cookie: TinyOPDS_Session={pendingSessionToken}; " +
+                                     $"HttpOnly; Path=/; Max-Age=2592000\n"); // 30 days
+                    pendingSessionToken = null; // Clear after sending
+                }
+
                 if (!string.IsNullOrEmpty(additionalHeaders))
                 {
                     OutputStream.Write(additionalHeaders + "\n");
                 }
 
                 // Support for Keep-Alive connections
-                if (keepAlive && HttpHeaders.ContainsKey("Connection") && HttpHeaders["Connection"].ToLower().Contains("keep-alive"))
+                if (keepAlive && HttpHeaders.ContainsKey("Connection") &&
+                    HttpHeaders["Connection"].ToLower().Contains("keep-alive"))
                 {
                     OutputStream.Write("Connection: keep-alive\n");
                     OutputStream.Write("Keep-Alive: timeout=30, max=100\n");

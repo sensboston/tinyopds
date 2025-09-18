@@ -45,7 +45,7 @@ namespace TinyOPDS.OPDS
                 new XElement("id", "tag:genres"),
                 new XElement("title", string.IsNullOrEmpty(searchPattern) ?
                     Localizer.Text("Books by genres") :
-                    string.Format(Localizer.Text("Genres: {0}"), searchPattern)),
+                    string.Format(Localizer.Text("Genre: {0}"), searchPattern)),
                 new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                 new XElement("icon", "/genres.ico"),
                 // Add links
@@ -61,7 +61,6 @@ namespace TinyOPDS.OPDS
             try
             {
                 genreStatistics = Library.GetBookRepository()?.GetAllGenreStatistics() ?? new Dictionary<string, int>();
-                Log.WriteLine(LogLevel.Info, "Loaded statistics for {0} genres from database", genreStatistics.Count);
             }
             catch (Exception ex)
             {

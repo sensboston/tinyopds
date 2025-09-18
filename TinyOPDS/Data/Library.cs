@@ -1189,8 +1189,8 @@ namespace TinyOPDS.Data
         {
             if (db == null) return;
 
-            // Refresh every 5 minutes or if never loaded
-            if (cachedGenres == null || DateTime.Now - lastGenresUpdate > TimeSpan.FromMinutes(5))
+            // Refresh if never loaded
+            if (cachedGenres == null)
             {
                 LoadGenresFromDatabase();
             }

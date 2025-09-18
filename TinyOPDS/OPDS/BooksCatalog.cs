@@ -82,7 +82,19 @@ namespace TinyOPDS.OPDS
                     feedTitle = Localizer.Text("Books in series: ") + searchPattern;
                     break;
                 case SearchFor.Genre:
-                    feedTitle = Localizer.Text("Books by genre: ") + searchPattern;
+                    bool useRu = Properties.Settings.Default.Language.Equals("ru") || Properties.Settings.Default.Language.Equals("uk");
+                    string genreName = searchPattern;
+                    foreach (var mainGenre in Library.FB2Genres)
+                    {
+                        // Check if searchPattern is a subgenre tag
+                        var subgenre = mainGenre.Subgenres.FirstOrDefault(sg => sg.Tag.Equals(searchPattern));
+                        if (subgenre != null)
+                        {
+                            genreName = useRu ? subgenre.Translation : subgenre.Name;
+                            break;
+                        }
+                    }
+                    feedTitle = Localizer.Text("Books by genre: ") + genreName;
                     break;
                 case SearchFor.Title:
                     if (isOpenSearch)

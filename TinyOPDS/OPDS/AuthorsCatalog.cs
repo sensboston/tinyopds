@@ -196,9 +196,28 @@ namespace TinyOPDS.OPDS
                     );
                 }
 
-                // Filter out authors that are now in groups
-                var groupPrefixes = navigationGroups.Keys.ToList();
-                authors = authors.Where(a => !groupPrefixes.Any(prefix => a.StartsWith(prefix, StringComparison.InvariantCultureIgnoreCase) && a.Length > prefix.Length)).ToList();
+                // Filter authors - show only those not covered by groups
+                if (!string.IsNullOrEmpty(searchPattern))
+                {
+                    // For second level navigation, show only authors matching the pattern 
+                    // but not those that would go into subgroups
+                    var groupPrefixes = navigationGroups.Keys.ToList();
+                    authors = authors
+                        .Where(a => a.StartsWith(searchPattern, StringComparison.InvariantCultureIgnoreCase))
+                        .Where(a => !groupPrefixes.Any(prefix =>
+                            a.StartsWith(prefix, StringComparison.InvariantCultureIgnoreCase) &&
+                            a.Length > prefix.Length))
+                        .ToList();
+                }
+                else
+                {
+                    // For root level, exclude all authors that are in groups
+                    var groupPrefixes = navigationGroups.Keys.ToList();
+                    authors = authors
+                        .Where(a => !groupPrefixes.Any(prefix =>
+                            a.StartsWith(prefix, StringComparison.InvariantCultureIgnoreCase)))
+                        .ToList();
+                }
             }
 
             // Add individual author entries
@@ -256,9 +275,32 @@ namespace TinyOPDS.OPDS
             {
                 // Deeper level - extend current pattern by one character
                 int nextCharPos = currentPattern.Length;
-                var extendedGroups = authors
+
+                // Filter authors that start with current pattern (case-insensitive)
+                var filteredAuthors = authors
+                    .Where(a => a.StartsWith(currentPattern, StringComparison.InvariantCultureIgnoreCase))
+                    .ToList();
+
+                // Create groups for the next character position
+                var extendedGroups = filteredAuthors
                     .Where(a => a.Length > nextCharPos)
-                    .GroupBy(a => a.Substring(0, nextCharPos + 1).Capitalize(true))
+                    .GroupBy(a => {
+                        // Get substring up to the next character
+                        string prefix = a.Substring(0, nextCharPos + 1);
+                        // Properly handle case for Cyrillic and other alphabets
+                        if (prefix.Length > 0)
+                        {
+                            // First character uppercase, rest lowercase
+                            char[] chars = prefix.ToCharArray();
+                            chars[0] = char.ToUpperInvariant(chars[0]);
+                            for (int i = 1; i < chars.Length; i++)
+                            {
+                                chars[i] = char.ToLowerInvariant(chars[i]);
+                            }
+                            return new string(chars);
+                        }
+                        return prefix;
+                    })
                     .Where(g => g.Count() > 1) // Only create groups if there are multiple authors
                     .ToDictionary(g => g.Key, g => g.Count());
 

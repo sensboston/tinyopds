@@ -6,6 +6,8 @@
  * SPDX-License-Identifier: MIT
  *
  * Smart duplicate detection for books - OPTIMIZED with batch loading
+ * FIXED: Proper GUID-based duplicate detection for FB Editor documents
+ * UPDATED: Using same trusted GUID logic as Book class
  */
 
 using System;
@@ -35,7 +37,7 @@ namespace TinyOPDS.Data
     public enum DuplicateMatchType
     {
         None = 0,
-        TrustedID = 1,      // DEPRECATED - No longer used since IDs are always unique
+        TrustedID = 1,      // Valid GUID from FB Editor
         ContentHash = 2,    // Exact file content
         DuplicateKey = 3,   // Title + Author + Language match
         Fuzzy = 4           // Fuzzy matching (future)
@@ -78,7 +80,71 @@ namespace TinyOPDS.Data
             if (fileStream != null && string.IsNullOrEmpty(newBook.ContentHash))
                 newBook.ContentHash = newBook.GenerateContentHash(fileStream);
 
-            // Step 1: Check by content hash (exact file duplicate)
+            // Step 1: Check if Document ID is a valid GUID (trusted source like FB Editor)
+            if (!string.IsNullOrEmpty(newBook.ID) && IsValidTrustedGuid(newBook.ID))
+            {
+                // Note: DocumentIDTrusted is already set by Book.ID setter, no need to set it here
+
+                // This is a trusted ID from FB Editor or similar
+                var sameDocumentBooks = FindByDocumentID(newBook.ID);
+                if (sameDocumentBooks != null && sameDocumentBooks.Count > 0)
+                {
+                    // Found same document, compare versions
+                    var existingBook = sameDocumentBooks[0]; // Should typically be only one active
+
+                    result.IsDuplicate = true;
+                    result.ExistingBook = existingBook;
+                    result.MatchType = DuplicateMatchType.TrustedID;
+
+                    // Compare versions - higher version wins
+                    if (newBook.Version > existingBook.Version)
+                    {
+                        result.ShouldReplace = true;
+                        result.ComparisonScore = (int)((newBook.Version - existingBook.Version) * 100);
+                        result.Reason = $"Newer version of same document (v{existingBook.Version:F1} → v{newBook.Version:F1})";
+
+                        Log.WriteLine(LogLevel.Info,
+                            "Found newer version: {0} v{1} → v{2}",
+                            newBook.Title, existingBook.Version, newBook.Version);
+                    }
+                    else if (Math.Abs(newBook.Version - existingBook.Version) < 0.01f) // Same version (with float tolerance)
+                    {
+                        // Same version - check by document date and size
+                        if (newBook.DocumentDate > existingBook.DocumentDate)
+                        {
+                            result.ShouldReplace = true;
+                            result.ComparisonScore = 10;
+                            result.Reason = $"Same version (v{newBook.Version:F1}) but newer document date";
+                        }
+                        else if (newBook.DocumentDate == existingBook.DocumentDate &&
+                                 newBook.DocumentSize > existingBook.DocumentSize)
+                        {
+                            result.ShouldReplace = true;
+                            result.ComparisonScore = 5;
+                            result.Reason = $"Same version (v{newBook.Version:F1}) but larger file size";
+                        }
+                        else
+                        {
+                            result.ShouldReplace = false;
+                            result.Reason = $"Same version (v{newBook.Version:F1}) already exists";
+                        }
+                    }
+                    else
+                    {
+                        result.ShouldReplace = false;
+                        result.ComparisonScore = (int)((newBook.Version - existingBook.Version) * 100);
+                        result.Reason = $"Older version (v{newBook.Version:F1} < v{existingBook.Version:F1})";
+
+                        Log.WriteLine(LogLevel.Info,
+                            "Skipping older version: {0} v{1} < v{2}",
+                            newBook.Title, newBook.Version, existingBook.Version);
+                    }
+
+                    return result;
+                }
+            }
+
+            // Step 2: Check by content hash (exact file duplicate)
             if (!string.IsNullOrEmpty(newBook.ContentHash))
             {
                 var contentMatch = FindByContentHash(newBook.ContentHash);
@@ -96,7 +162,7 @@ namespace TinyOPDS.Data
                 }
             }
 
-            // Step 2: Check by duplicate key (Title + Author + Language + Translator + Volume info)
+            // Step 3: Check by duplicate key (Title + Author + Language + Translator + Volume info)
             if (!string.IsNullOrEmpty(newBook.DuplicateKey))
             {
                 var keyMatches = FindByDuplicateKey(newBook.DuplicateKey);
@@ -185,6 +251,58 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
+        /// Check if string is a valid and trusted GUID
+        /// Using same logic as Book.IsTrustedGuid to ensure consistency
+        /// </summary>
+        private bool IsValidTrustedGuid(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return false;
+
+            // Try parsing as GUID
+            Guid guid;
+            if (Guid.TryParse(id, out guid))
+            {
+                return IsTrustedGuid(guid);
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Check if GUID is trusted (not a placeholder from bad converters)
+        /// Copied from Book class for consistency
+        /// </summary>
+        private bool IsTrustedGuid(Guid guid)
+        {
+            // Check for common placeholder GUIDs
+            if (guid == Guid.Empty) return false;
+
+            string guidStr = guid.ToString().ToLowerInvariant();
+
+            // Only check for the most obvious placeholders
+            if (guidStr == "00000000-0000-0000-0000-000000000000") return false;
+            if (guidStr == "11111111-1111-1111-1111-111111111111") return false;
+            if (guidStr == "12345678-1234-1234-1234-123456789012") return false;
+            if (guidStr == "ffffffff-ffff-ffff-ffff-ffffffffffff") return false;
+
+            // Check for timestamp strings that are not proper GUIDs
+            // LibRusEc kit generates IDs like "Mon Jun 10 19:52:43 2013" which are NOT proper GUIDs
+            if (guidStr.Contains("mon") || guidStr.Contains("tue") || guidStr.Contains("wed") ||
+                guidStr.Contains("thu") || guidStr.Contains("fri") || guidStr.Contains("sat") ||
+                guidStr.Contains("sun") || guidStr.Contains("jan") || guidStr.Contains("feb") ||
+                guidStr.Contains("mar") || guidStr.Contains("apr") || guidStr.Contains("may") ||
+                guidStr.Contains("jun") || guidStr.Contains("jul") || guidStr.Contains("aug") ||
+                guidStr.Contains("sep") || guidStr.Contains("oct") || guidStr.Contains("nov") ||
+                guidStr.Contains("dec"))
+            {
+                return false;
+            }
+
+            // If it passed all checks, it's likely from FictionBookEditor or similar proper tool
+            return true;
+        }
+
+        /// <summary>
         /// Process duplicate - either skip, replace, or add as new
         /// </summary>
         public bool ProcessDuplicate(Book newBook, DuplicateCheckResult checkResult)
@@ -233,6 +351,22 @@ namespace TinyOPDS.Data
             {
                 Log.WriteLine(LogLevel.Error, "Error finding book by content hash: {0}", ex.Message);
                 return null;
+            }
+        }
+
+        private List<Book> FindByDocumentID(string documentID)
+        {
+            try
+            {
+                return db.ExecuteQuery<Book>(
+                    "SELECT * FROM Books WHERE ID = @ID AND ReplacedByID IS NULL",
+                    MapBook,
+                    DatabaseManager.CreateParameter("@ID", documentID));
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error finding books by document ID: {0}", ex.Message);
+                return new List<Book>();
             }
         }
 
@@ -379,7 +513,7 @@ namespace TinyOPDS.Data
                 var replacedCount = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE ReplacedByID IS NOT NULL");
                 stats.ReplacedBooksCount = Convert.ToInt32(replacedCount);
 
-                // Count books with trusted IDs (will be 0 after our changes)
+                // Count books with trusted IDs
                 var trustedCount = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE DocumentIDTrusted = 1 AND ReplacedByID IS NULL");
                 stats.TrustedIDCount = Convert.ToInt32(trustedCount);
 

@@ -418,29 +418,6 @@ namespace TinyOPDS
         }
 
         /// <summary>
-        /// Wrapper for Library.Add with batch support - used by individual book operations
-        /// </summary>
-        /// <param name="book"></param>
-        /// <returns></returns>
-        private bool AddBook(Book book)
-        {
-            // For individual book additions (not during scan), add directly
-            return Library.Add(book);
-        }
-
-        /// <summary>
-        /// Wrapper for Library.Save with SQLite support
-        /// </summary>
-        private async void SaveLibrary()
-        {
-            // First flush any pending books
-            await FlushRemainingBooksAsync();
-
-            // Then call the library save (no-op for SQLite, but maintains API compatibility)
-            Library.Save();
-        }
-
-        /// <summary>
         /// Get library statistics with SQLite support
         /// </summary>
         /// <returns></returns>
@@ -590,7 +567,6 @@ namespace TinyOPDS
             if (!string.IsNullOrEmpty(databaseFileName.Text) && !Library.LibraryPath.Equals(databaseFileName.Text.SanitizePathName()) &&
                 Directory.Exists(libraryPath.Text.SanitizePathName()))
             {
-                if (Library.IsChanged) Library.Save();
                 Library.LibraryPath = Settings.Default.LibraryPath = libraryPath.Text.SanitizePathName();
 
                 var (Total, FB2, EPUB) = GetLibraryStats();
@@ -636,14 +612,9 @@ namespace TinyOPDS
                 };
                 scanner.OnScanCompleted += async (_, __) =>
                 {
-                    // Flush any remaining books at scan completion
                     await FlushRemainingBooksAsync();
-                    SaveLibrary();
-                    BeginInvoke((MethodInvoker)delegate
-                    {
-                        UpdateInfo(true);
-                        Log.WriteLine("Directory scanner completed");
-                    });
+                    UpdateInfo(true);
+                    Log.WriteLine("Directory scanner completed");
                 };
                 fb2Count = epubCount = skippedFiles = invalidFiles = dups = 0;
                 scanStartTime = DateTime.Now;
@@ -660,8 +631,6 @@ namespace TinyOPDS
                 Task.Run(async () =>
                 {
                     await FlushRemainingBooksAsync();
-                    SaveLibrary();
-
                     BeginInvoke((MethodInvoker)delegate
                     {
                         UpdateInfo(true);
@@ -895,9 +864,6 @@ namespace TinyOPDS
             }
 
             if (scanner.Status == FileScannerStatus.SCANNING) scanner.Stop();
-
-            // Save library using appropriate method
-            if (Library.IsChanged) Library.Save();
 
             notifyIcon.Visible = false;
 

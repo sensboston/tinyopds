@@ -136,7 +136,6 @@ namespace TinyOPDS.Parsers
 
                 // Fix XML encoding issues
                 string xmlContent = FixXmlEncoding(content);
-                debugxml = xmlContent + "</FictionBook>";
                 var doc = XDocument.Parse(xmlContent + "</FictionBook>");
                 return doc.Root?.Element(fb2Ns + "description");
             }
@@ -146,8 +145,6 @@ namespace TinyOPDS.Parsers
                 return null;
             }
         }
-
-        string debugxml = "";
 
         private string FixXmlEncoding(string xmlText)
         {

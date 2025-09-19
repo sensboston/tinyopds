@@ -172,7 +172,6 @@ namespace TinyOPDSCLI
                         {
                             scanner.Stop();
                             await FlushRemainingBooksAsync();
-                            SaveLibrary();
                             Console.WriteLine("\nScanner interruped by user.");
                             Log.WriteLine("Directory scanner stopped");
                         }
@@ -477,10 +476,11 @@ namespace TinyOPDSCLI
         {
             try
             {
-                // Flush any remaining books before exit - synchronously
-                Task.Run(async () => await FlushRemainingBooksAsync()).Wait();
-                SaveLibrary();
-                Log.WriteLine("Application cleanup completed");
+                Task.Run(async () =>
+                {
+                    await FlushRemainingBooksAsync();
+                    Log.WriteLine("Application cleanup completed");
+                });
             }
             catch (Exception ex)
             {
@@ -636,17 +636,6 @@ namespace TinyOPDSCLI
             Log.WriteLine($"Scan completed, elapsed time {dt:hh\\:mm\\:ss}");
         }
 
-        /// <summary>
-        /// Wrapper for Library.Save with SQLite support
-        /// </summary>
-        private static void SaveLibrary()
-        {
-            // First flush any remaining books synchronously
-            Task.Run(async () => await FlushRemainingBooksAsync()).Wait();
-
-            // Then call the library save (no-op for SQLite, but maintains API compatibility)
-            Library.Save();
-        }
 
         /// <summary>
         /// Get library statistics with SQLite support
@@ -886,7 +875,7 @@ namespace TinyOPDSCLI
             }
         }
 
-        private static void ScanFolder()
+        private static async void ScanFolder()
         {
             // Init log file settings
             Log.SaveToFile = Settings.Default.SaveLogToDisk;
@@ -913,7 +902,6 @@ namespace TinyOPDSCLI
             {
                 // Flush any remaining books at scan completion
                 await FlushRemainingBooksAsync();
-                SaveLibrary();
                 UpdateInfo();
 
                 Log.WriteLine("Directory scanner completed");
@@ -929,8 +917,7 @@ namespace TinyOPDSCLI
             while (scanner != null && scanner.Status == FileScannerStatus.SCANNING) Thread.Sleep(500);
 
             // Final flush and save at the end
-            Task.Run(async () => await FlushRemainingBooksAsync()).Wait();
-            SaveLibrary();
+            await FlushRemainingBooksAsync();
         }
 
         /// <summary>

@@ -902,15 +902,6 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Save library - for SQLite this is essentially a no-op since data is written immediately
-        /// </summary>
-        public static void Save()
-        {
-            // In SQLite mode, data is saved immediately, so this is just for API compatibility
-            Log.WriteLine("Library save requested - data already persisted in SQLite");
-        }
-
-        /// <summary>
         /// Add unique book descriptor to the library
         /// </summary>
         public static bool Add(Book book)
@@ -992,7 +983,12 @@ namespace TinyOPDS.Data
                 if (result.Added > 0 || result.Replaced > 0)
                 {
                     IsChanged = true;
-                    InvalidateCache();
+
+                    // Force immediate synchronous cache refresh for batch operations
+                    lock (cacheLock)
+                    {
+                        RefreshCacheInternal();
+                    }
                 }
 
                 return result;

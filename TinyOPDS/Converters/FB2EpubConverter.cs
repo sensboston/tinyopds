@@ -5,7 +5,7 @@
  * Copyright (c) 2013-2025 SeNSSoFT
  * SPDX-License-Identifier: MIT
  *
- * FB2 to EPUB converter - creates valid EPUB 3.0 without external libraries
+ * Native FB2 to EPUB converter - creates valid EPUB 3.0 without external libraries
  *
  */
 
@@ -17,7 +17,6 @@ using System.Linq;
 using System.Xml.Linq;
 using System.Collections.Generic;
 
-using FB2Library;
 using TinyOPDS.Data;
 
 namespace TinyOPDS
@@ -25,6 +24,7 @@ namespace TinyOPDS
     public class FB2EpubConverter
     {
         private XDocument fb2Xml = null;
+        private XNamespace fb2Ns;
         private readonly XNamespace opfNs = "http://www.idpf.org/2007/opf";
         private readonly XNamespace dcNs = "http://purl.org/dc/elements/1.1/";
 
@@ -39,16 +39,15 @@ namespace TinyOPDS
         {
             try
             {
-                // Parse FB2
-                FB2File fb2File = LoadFB2File(fb2Stream);
-                if (fb2File == null)
+                // Parse FB2 XML
+                if (!LoadFB2Xml(fb2Stream))
                 {
                     Log.WriteLine(LogLevel.Error, "Failed to parse FB2 content for {0}", book.FileName);
                     return false;
                 }
 
                 // Create EPUB
-                CreateEpubArchive(epubStream, book, fb2File);
+                CreateEpubArchive(epubStream, book);
 
                 Log.WriteLine(LogLevel.Info, "Successfully converted {0} to EPUB", book.FileName);
                 return true;
@@ -60,7 +59,7 @@ namespace TinyOPDS
             }
         }
 
-        private FB2File LoadFB2File(Stream stream)
+        private bool LoadFB2Xml(Stream stream)
         {
             try
             {
@@ -79,18 +78,18 @@ namespace TinyOPDS
                     fb2Xml = XDocument.Load(stream);
                 }
 
-                var fb2File = new FB2File();
-                fb2File.Load(fb2Xml, false);
-                return fb2File;
+                // Get FB2 namespace
+                fb2Ns = fb2Xml.Root?.Name.Namespace ?? XNamespace.None;
+                return true;
             }
             catch (Exception ex)
             {
-                Log.WriteLine(LogLevel.Error, "Error loading FB2: {0}", ex.Message);
-                return null;
+                Log.WriteLine(LogLevel.Error, "Error loading FB2 XML: {0}", ex.Message);
+                return false;
             }
         }
 
-        private void CreateEpubArchive(Stream outputStream, Book book, FB2File fb2File)
+        private void CreateEpubArchive(Stream outputStream, Book book)
         {
             // Create ZIP manually with proper mimetype handling
             using (var tempStream = new MemoryStream())
@@ -105,11 +104,11 @@ namespace TinyOPDS
                     AddContainer(archive);
 
                     // Extract chapters and images
-                    var chapters = ExtractChapters(fb2File);
-                    var images = ExtractImages(fb2File);
+                    var chapters = ExtractChapters();
+                    var images = ExtractImages();
 
                     // Add package.opf
-                    AddPackage(archive, book, fb2File, chapters, images);
+                    AddPackage(archive, book, chapters, images);
 
                     // Add navigation
                     AddNavigation(archive, chapters);
@@ -127,7 +126,7 @@ namespace TinyOPDS
                     }
 
                     // Add cover if exists
-                    AddCoverImage(archive, fb2File);
+                    AddCoverImage(archive);
                 }
 
                 // Copy to output stream
@@ -212,7 +211,7 @@ namespace TinyOPDS
             }
         }
 
-        private void AddPackage(ZipArchive archive, Book book, FB2File fb2File, List<ChapterInfo> chapters, List<ImageInfo> images)
+        private void AddPackage(ZipArchive archive, Book book, List<ChapterInfo> chapters, List<ImageInfo> images)
         {
             var entry = archive.CreateEntry("EPUB/package.opf");
             using (var stream = entry.Open())
@@ -222,9 +221,9 @@ namespace TinyOPDS
                     new XElement(opfNs + "package",
                         new XAttribute("version", "3.0"),
                         new XAttribute("unique-identifier", "book-id"),
-                        new XAttribute(XNamespace.Xml + "lang", GetLanguage(book, fb2File)),
-                        CreateMetadata(book, fb2File),
-                        CreateManifest(chapters, images, HasCover(fb2File)),
+                        new XAttribute(XNamespace.Xml + "lang", GetLanguage(book)),
+                        CreateMetadata(book),
+                        CreateManifest(chapters, images),
                         CreateSpine(chapters)
                     )
                 );
@@ -233,7 +232,7 @@ namespace TinyOPDS
             }
         }
 
-        private XElement CreateMetadata(Book book, FB2File fb2File)
+        private XElement CreateMetadata(Book book)
         {
             var metadata = new XElement(opfNs + "metadata",
                 new XAttribute(XNamespace.Xmlns + "dc", dcNs));
@@ -245,12 +244,11 @@ namespace TinyOPDS
                 "urn:uuid:" + bookId));
 
             // Title (required)
-            string title = !string.IsNullOrEmpty(book.Title) ? book.Title :
-                          fb2File.TitleInfo?.BookTitle?.Text ?? "Unknown Title";
+            string title = GetTitle(book);
             metadata.Add(new XElement(dcNs + "title", title));
 
             // Language (required)
-            metadata.Add(new XElement(dcNs + "language", GetLanguage(book, fb2File)));
+            metadata.Add(new XElement(dcNs + "language", GetLanguage(book)));
 
             // Modified date (required for EPUB 3.0)
             metadata.Add(new XElement(opfNs + "meta",
@@ -258,7 +256,7 @@ namespace TinyOPDS
                 DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")));
 
             // Authors
-            AddAuthors(metadata, book, fb2File);
+            AddAuthors(metadata, book);
 
             // Publication date
             if (book.BookDate != DateTime.MinValue && book.BookDate.Year > 1)
@@ -269,31 +267,61 @@ namespace TinyOPDS
             return metadata;
         }
 
-        private void AddAuthors(XElement metadata, Book book, FB2File fb2File)
+        private void AddAuthors(XElement metadata, Book book)
         {
+            // Try book authors first
             if (book.Authors != null && book.Authors.Any())
             {
                 foreach (var author in book.Authors)
                 {
                     metadata.Add(new XElement(dcNs + "creator", author));
                 }
+                return;
             }
-            else if (fb2File.TitleInfo != null && fb2File.TitleInfo.BookAuthors != null && fb2File.TitleInfo.BookAuthors.Any())
+
+            // Try to get from FB2 XML
+            var titleInfo = fb2Xml?.Root?.Element(fb2Ns + "description")?.Element(fb2Ns + "title-info");
+            if (titleInfo != null)
             {
-                foreach (var author in fb2File.TitleInfo.BookAuthors)
+                var authors = titleInfo.Elements(fb2Ns + "author");
+                foreach (var author in authors)
                 {
-                    string name = GetAuthorName(author);
+                    string name = ExtractAuthorName(author);
                     if (!string.IsNullOrEmpty(name))
                         metadata.Add(new XElement(dcNs + "creator", name));
                 }
             }
-            else
+
+            // Fallback to unknown
+            if (!metadata.Elements(dcNs + "creator").Any())
             {
                 metadata.Add(new XElement(dcNs + "creator", "Unknown Author"));
             }
         }
 
-        private XElement CreateManifest(List<ChapterInfo> chapters, List<ImageInfo> images, bool hasCover)
+        private string ExtractAuthorName(XElement author)
+        {
+            var parts = new List<string>();
+
+            var lastName = author.Element(fb2Ns + "last-name")?.Value;
+            var firstName = author.Element(fb2Ns + "first-name")?.Value;
+            var middleName = author.Element(fb2Ns + "middle-name")?.Value;
+            var nickName = author.Element(fb2Ns + "nickname")?.Value;
+
+            if (!string.IsNullOrEmpty(lastName))
+                parts.Add(lastName);
+            if (!string.IsNullOrEmpty(firstName))
+                parts.Add(firstName);
+            if (!string.IsNullOrEmpty(middleName))
+                parts.Add(middleName);
+
+            if (parts.Count == 0 && !string.IsNullOrEmpty(nickName))
+                parts.Add(nickName);
+
+            return string.Join(" ", parts);
+        }
+
+        private XElement CreateManifest(List<ChapterInfo> chapters, List<ImageInfo> images)
         {
             var manifest = new XElement(opfNs + "manifest");
 
@@ -305,7 +333,7 @@ namespace TinyOPDS
                 new XAttribute("properties", "nav")));
 
             // Cover
-            if (hasCover)
+            if (HasCover())
             {
                 manifest.Add(new XElement(opfNs + "item",
                     new XAttribute("id", "cover-image"),
@@ -329,7 +357,7 @@ namespace TinyOPDS
                 manifest.Add(new XElement(opfNs + "item",
                     new XAttribute("id", "img-" + image.Id),
                     new XAttribute("href", image.FileName),
-                    new XAttribute("media-type", GetImageMimeType(image.ContentType))));
+                    new XAttribute("media-type", image.MimeType)));
             }
 
             return manifest;
@@ -415,21 +443,19 @@ namespace TinyOPDS
             }
         }
 
-        private void AddCoverImage(ZipArchive archive, FB2File fb2File)
+        private void AddCoverImage(ZipArchive archive)
         {
-            if (!HasCover(fb2File)) return;
+            if (!HasCover()) return;
 
             try
             {
-                string coverHRef = fb2File.TitleInfo.Cover.CoverpageImages.First().HRef.Substring(1);
-                var binaryObject = fb2File.Images.FirstOrDefault(item => item.Value.Id == coverHRef);
-
-                if (binaryObject.Value != null && binaryObject.Value.BinaryData != null)
+                var coverData = ExtractCoverData();
+                if (coverData != null && coverData.Length > 0)
                 {
                     var entry = archive.CreateEntry("EPUB/cover.jpg");
                     using (var stream = entry.Open())
                     {
-                        stream.Write(binaryObject.Value.BinaryData, 0, binaryObject.Value.BinaryData.Length);
+                        stream.Write(coverData, 0, coverData.Length);
                     }
                 }
             }
@@ -439,15 +465,13 @@ namespace TinyOPDS
             }
         }
 
-        private List<ChapterInfo> ExtractChapters(FB2File fb2File)
+        private List<ChapterInfo> ExtractChapters()
         {
             var chapters = new List<ChapterInfo>();
 
             if (fb2Xml == null) return chapters;
 
-            XNamespace ns = fb2Xml.Root != null ? fb2Xml.Root.Name.Namespace : XNamespace.None;
-            var bodies = fb2Xml.Descendants(ns + "body").ToList();
-
+            var bodies = fb2Xml.Descendants(fb2Ns + "body").ToList();
             if (!bodies.Any()) return chapters;
 
             var mainBody = bodies.FirstOrDefault(b =>
@@ -455,14 +479,14 @@ namespace TinyOPDS
                 b.Attribute("name").Value == "main" ||
                 b.Attribute("name").Value == "") ?? bodies.First();
 
-            var sections = mainBody.Elements(ns + "section").ToList();
+            var sections = mainBody.Elements(fb2Ns + "section").ToList();
 
             if (sections.Any())
             {
                 int chapterNum = 1;
                 foreach (var section in sections)
                 {
-                    ProcessFB2Section(chapters, section, ns, ref chapterNum);
+                    ProcessFB2Section(chapters, section, ref chapterNum);
                 }
             }
             else
@@ -472,25 +496,25 @@ namespace TinyOPDS
                 {
                     Title = "Content",
                     FileName = "chapter1.xhtml",
-                    Content = ConvertToHtml(mainBody, ns)
+                    Content = ConvertToHtml(mainBody)
                 });
             }
 
             return chapters;
         }
 
-        private void ProcessFB2Section(List<ChapterInfo> chapters, XElement section, XNamespace ns, ref int chapterNum)
+        private void ProcessFB2Section(List<ChapterInfo> chapters, XElement section, ref int chapterNum)
         {
-            string title = ExtractTitle(section, ns);
+            string title = ExtractTitle(section);
             if (string.IsNullOrEmpty(title))
                 title = $"Chapter {chapterNum}";
 
-            var subsections = section.Elements(ns + "section").ToList();
+            var subsections = section.Elements(fb2Ns + "section").ToList();
 
             if (!subsections.Any())
             {
                 // Leaf section - add as chapter
-                string content = ConvertToHtml(section, ns);
+                string content = ConvertToHtml(section);
                 if (!string.IsNullOrWhiteSpace(content))
                 {
                     chapters.Add(new ChapterInfo
@@ -507,28 +531,44 @@ namespace TinyOPDS
                 // Process subsections recursively
                 foreach (var subsection in subsections)
                 {
-                    ProcessFB2Section(chapters, subsection, ns, ref chapterNum);
+                    ProcessFB2Section(chapters, subsection, ref chapterNum);
                 }
             }
         }
 
-        private List<ImageInfo> ExtractImages(FB2File fb2File)
+        private List<ImageInfo> ExtractImages()
         {
             var images = new List<ImageInfo>();
 
-            if (fb2File.Images != null && fb2File.Images.Any())
+            if (fb2Xml == null) return images;
+
+            var binaries = fb2Xml.Root?.Elements(fb2Ns + "binary");
+            if (binaries == null) return images;
+
+            foreach (var binary in binaries)
             {
-                foreach (var image in fb2File.Images)
+                var id = binary.Attribute("id")?.Value;
+                var contentType = binary.Attribute("content-type")?.Value ?? "image/jpeg";
+
+                if (!string.IsNullOrEmpty(id))
                 {
-                    if (image.Value != null && image.Value.BinaryData != null && image.Value.BinaryData.Length > 0)
+                    try
                     {
-                        images.Add(new ImageInfo
+                        byte[] data = Convert.FromBase64String(binary.Value);
+                        if (data.Length > 0)
                         {
-                            Id = image.Value.Id,
-                            FileName = $"{image.Value.Id}.{GetImageExt(image.Value.ContentType.ToString())}",
-                            ContentType = image.Value.ContentType.ToString(),
-                            Data = image.Value.BinaryData
-                        });
+                            images.Add(new ImageInfo
+                            {
+                                Id = id,
+                                FileName = $"{id}.{GetImageExtension(contentType)}",
+                                MimeType = GetImageMimeType(contentType),
+                                Data = data
+                            });
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.WriteLine(LogLevel.Warning, "Error extracting image {0}: {1}", id, ex.Message);
                     }
                 }
             }
@@ -536,9 +576,9 @@ namespace TinyOPDS
             return images;
         }
 
-        private string ExtractTitle(XElement element, XNamespace ns)
+        private string ExtractTitle(XElement element)
         {
-            var titleElement = element.Element(ns + "title");
+            var titleElement = element.Element(fb2Ns + "title");
             if (titleElement == null) return "";
 
             var sb = new StringBuilder();
@@ -555,7 +595,7 @@ namespace TinyOPDS
             return sb.ToString().Trim();
         }
 
-        private string ConvertToHtml(XElement element, XNamespace ns)
+        private string ConvertToHtml(XElement element)
         {
             var html = new StringBuilder();
 
@@ -583,10 +623,10 @@ namespace TinyOPDS
 
                     case "poem":
                         html.AppendLine("<div class=\"poem\">");
-                        foreach (var stanza in child.Elements(ns + "stanza"))
+                        foreach (var stanza in child.Elements(fb2Ns + "stanza"))
                         {
                             html.AppendLine("<div class=\"stanza\">");
-                            foreach (var verse in stanza.Elements(ns + "v"))
+                            foreach (var verse in stanza.Elements(fb2Ns + "v"))
                             {
                                 html.AppendLine($"<p class=\"verse\">{ProcessInline(verse)}</p>");
                             }
@@ -597,24 +637,24 @@ namespace TinyOPDS
 
                     case "cite":
                         html.AppendLine("<blockquote>");
-                        html.AppendLine(ConvertToHtml(child, ns));
+                        html.AppendLine(ConvertToHtml(child));
                         html.AppendLine("</blockquote>");
                         break;
 
                     case "epigraph":
                         html.AppendLine("<div class=\"epigraph\">");
-                        html.AppendLine(ConvertToHtml(child, ns));
+                        html.AppendLine(ConvertToHtml(child));
                         html.AppendLine("</div>");
                         break;
 
                     case "image":
-                        string href = child.Attribute(XNamespace.Xml + "href") != null ?
-                                     child.Attribute(XNamespace.Xml + "href").Value :
-                                     child.Attribute("href") != null ? child.Attribute("href").Value : "";
+                        string href = child.Attribute(XNamespace.Xml + "href")?.Value ??
+                                     child.Attribute("href")?.Value ?? "";
                         if (!string.IsNullOrEmpty(href))
                         {
                             href = href.TrimStart('#');
-                            html.AppendLine($"<img src=\"{href}.jpg\" alt=\"\"/>");
+                            string ext = GetImageExtension("image/jpeg");
+                            html.AppendLine($"<img src=\"{href}.{ext}\" alt=\"\"/>");
                         }
                         break;
 
@@ -623,7 +663,7 @@ namespace TinyOPDS
                         break;
 
                     case "section":
-                        html.AppendLine(ConvertToHtml(child, ns));
+                        html.AppendLine(ConvertToHtml(child));
                         break;
                 }
             }
@@ -660,9 +700,8 @@ namespace TinyOPDS
                             break;
 
                         case "a":
-                            string href = elem.Attribute(XNamespace.Xml + "href") != null ?
-                                         elem.Attribute(XNamespace.Xml + "href").Value :
-                                         elem.Attribute("href") != null ? elem.Attribute("href").Value : "#";
+                            string href = elem.Attribute(XNamespace.Xml + "href")?.Value ??
+                                         elem.Attribute("href")?.Value ?? "#";
                             sb.Append($"<a href=\"{EscapeXml(href)}\">{ProcessInline(elem)}</a>");
                             break;
 
@@ -683,13 +722,13 @@ namespace TinyOPDS
                             break;
 
                         case "image":
-                            string imgHref = elem.Attribute(XNamespace.Xml + "href") != null ?
-                                           elem.Attribute(XNamespace.Xml + "href").Value :
-                                           elem.Attribute("href") != null ? elem.Attribute("href").Value : "";
+                            string imgHref = elem.Attribute(XNamespace.Xml + "href")?.Value ??
+                                           elem.Attribute("href")?.Value ?? "";
                             if (!string.IsNullOrEmpty(imgHref))
                             {
                                 imgHref = imgHref.TrimStart('#');
-                                sb.Append($"<img src=\"{imgHref}.jpg\" alt=\"\" style=\"display:inline;\"/>");
+                                string ext = GetImageExtension("image/jpeg");
+                                sb.Append($"<img src=\"{imgHref}.{ext}\" alt=\"\" style=\"display:inline;\"/>");
                             }
                             break;
 
@@ -722,39 +761,86 @@ namespace TinyOPDS
             return sb.ToString().Trim();
         }
 
-        private string GetAuthorName(FB2Library.HeaderItems.AuthorType author)
+        private string GetTitle(Book book)
         {
-            var parts = new List<string>();
+            // From book object
+            if (!string.IsNullOrEmpty(book.Title))
+                return book.Title;
 
-            if (author.FirstName != null && !string.IsNullOrEmpty(author.FirstName.Text))
-                parts.Add(author.FirstName.Text);
-            if (author.MiddleName != null && !string.IsNullOrEmpty(author.MiddleName.Text))
-                parts.Add(author.MiddleName.Text);
-            if (author.LastName != null && !string.IsNullOrEmpty(author.LastName.Text))
-                parts.Add(author.LastName.Text);
+            // From FB2 XML
+            var titleInfo = fb2Xml?.Root?.Element(fb2Ns + "description")?.Element(fb2Ns + "title-info");
+            var bookTitle = titleInfo?.Element(fb2Ns + "book-title")?.Value;
 
-            if (parts.Count == 0 && author.NickName != null && !string.IsNullOrEmpty(author.NickName.Text))
-                parts.Add(author.NickName.Text);
-
-            return string.Join(" ", parts);
+            return !string.IsNullOrEmpty(bookTitle) ? bookTitle : "Unknown Title";
         }
 
-        private string GetLanguage(Book book, FB2File fb2File)
+        private string GetLanguage(Book book)
         {
+            // From book object
             if (!string.IsNullOrEmpty(book.Language))
                 return book.Language;
-            if (fb2File.TitleInfo != null && !string.IsNullOrEmpty(fb2File.TitleInfo.Language))
-                return fb2File.TitleInfo.Language;
-            return "en";
+
+            // From FB2 XML
+            var titleInfo = fb2Xml?.Root?.Element(fb2Ns + "description")?.Element(fb2Ns + "title-info");
+            var lang = titleInfo?.Element(fb2Ns + "lang")?.Value;
+
+            return !string.IsNullOrEmpty(lang) ? lang : "en";
         }
 
-        private bool HasCover(FB2File fb2File)
+        private bool HasCover()
         {
-            return fb2File.TitleInfo != null &&
-                   fb2File.TitleInfo.Cover != null &&
-                   fb2File.TitleInfo.Cover.HasImages() &&
-                   fb2File.Images != null &&
-                   fb2File.Images.Count > 0;
+            if (fb2Xml == null) return false;
+
+            var titleInfo = fb2Xml.Root?.Element(fb2Ns + "description")?.Element(fb2Ns + "title-info");
+            var coverpage = titleInfo?.Element(fb2Ns + "coverpage");
+            if (coverpage == null) return false;
+
+            var imageElement = coverpage.Element(fb2Ns + "image");
+            if (imageElement == null) return false;
+
+            string href = imageElement.Attribute(XNamespace.Xml + "href")?.Value ??
+                         imageElement.Attribute("href")?.Value;
+
+            if (string.IsNullOrEmpty(href)) return false;
+
+            // Check if binary with this ID exists
+            href = href.TrimStart('#');
+            var binary = fb2Xml.Root?.Elements(fb2Ns + "binary")
+                .FirstOrDefault(b => b.Attribute("id")?.Value == href);
+
+            return binary != null;
+        }
+
+        private byte[] ExtractCoverData()
+        {
+            if (!HasCover()) return null;
+
+            var titleInfo = fb2Xml.Root?.Element(fb2Ns + "description")?.Element(fb2Ns + "title-info");
+            var coverpage = titleInfo?.Element(fb2Ns + "coverpage");
+            var imageElement = coverpage?.Element(fb2Ns + "image");
+
+            string href = imageElement?.Attribute(XNamespace.Xml + "href")?.Value ??
+                         imageElement?.Attribute("href")?.Value;
+
+            if (string.IsNullOrEmpty(href)) return null;
+
+            href = href.TrimStart('#');
+            var binary = fb2Xml.Root?.Elements(fb2Ns + "binary")
+                .FirstOrDefault(b => b.Attribute("id")?.Value == href);
+
+            if (binary != null)
+            {
+                try
+                {
+                    return Convert.FromBase64String(binary.Value);
+                }
+                catch (Exception ex)
+                {
+                    Log.WriteLine(LogLevel.Warning, "Error decoding cover image: {0}", ex.Message);
+                }
+            }
+
+            return null;
         }
 
         private string GetImageMimeType(string contentType)
@@ -766,7 +852,7 @@ namespace TinyOPDS
             return "image/jpeg";
         }
 
-        private string GetImageExt(string contentType)
+        private string GetImageExtension(string contentType)
         {
             if (string.IsNullOrEmpty(contentType)) return "jpg";
             contentType = contentType.ToLower();
@@ -799,7 +885,7 @@ namespace TinyOPDS
         {
             public string Id { get; set; }
             public string FileName { get; set; }
-            public string ContentType { get; set; }
+            public string MimeType { get; set; }
             public byte[] Data { get; set; }
         }
     }

@@ -5,7 +5,8 @@
  * Copyright (c) 2013-2025 SeNSSoFT
  * SPDX-License-Identifier: MIT
  *
- * FB2 parser implementation using MindTouch SGMLReader
+ * Native FB2 parser without external dependencies - optimized version
+ *
  */
 
 using System;
@@ -16,18 +17,16 @@ using System.Text;
 using System.Xml;
 using System.Xml.Linq;
 using System.Drawing;
-using System.Drawing.Imaging;
+using System.Globalization;
 
-using FB2Library;
-using FB2Library.Elements;
 using TinyOPDS.Data;
-using Sgml;
+using System.Text.RegularExpressions;
 
 namespace TinyOPDS.Parsers
 {
     public class FB2Parser : BookParser
     {
-        private XDocument xml = null;
+        private XNamespace fb2Ns = "http://www.gribuser.ru/xml/fictionbook/2.0";
 
         public override Book Parse(Stream stream, string fileName)
         {
@@ -51,108 +50,16 @@ namespace TinyOPDS.Parsers
 
             try
             {
-                FB2File fb2 = new FB2File();
-
-                if (!stream.CanSeek)
+                // Read only description block
+                var description = ReadDescriptionBlock(stream, fileName);
+                if (description != null)
                 {
-                    xml = ParseNonSeekableStream(stream, fileName);
-                }
-                else
-                {
-                    xml = ParseSeekableStream(stream, fileName);
-                }
+                    // Always generate unique ID
+                    book.ID = Guid.NewGuid().ToString();
+                    book.DocumentIDTrusted = false;
 
-                if (xml != null)
-                {
-                    fb2.Load(xml, true);
-
-                    if (fb2.DocumentInfo != null)
-                    {
-                        book.ID = Guid.NewGuid().ToString();
-                        book.DocumentIDTrusted = false;
-
-                        if (fb2.DocumentInfo.DocumentVersion != null)
-                            book.Version = (float)fb2.DocumentInfo.DocumentVersion;
-
-                        if (fb2.DocumentInfo.DocumentDate != null)
-                        {
-                            book.DocumentDate = DateParser.ParseFB2Date(fb2.DocumentInfo.DocumentDate, fileName);
-                        }
-                        else
-                        {
-                            book.DocumentDate = DateParser.GetFileDate(fileName);
-                        }
-                    }
-                    else
-                    {
-                        book.ID = Guid.NewGuid().ToString();
-                        book.DocumentIDTrusted = false;
-                        book.DocumentDate = DateParser.GetFileDate(fileName);
-                    }
-
-                    if (fb2.TitleInfo != null)
-                    {
-                        if (fb2.TitleInfo.BookTitle != null) book.Title = fb2.TitleInfo.BookTitle.Text;
-                        if (fb2.TitleInfo.Annotation != null) book.Annotation = fb2.TitleInfo.Annotation.ToString();
-                        if (fb2.TitleInfo.Sequences != null && fb2.TitleInfo.Sequences.Count > 0)
-                        {
-                            book.Sequence = fb2.TitleInfo.Sequences.First().Name.Capitalize(true);
-                            if (fb2.TitleInfo.Sequences.First().Number != null)
-                            {
-                                book.NumberInSequence = (UInt32)(fb2.TitleInfo.Sequences.First().Number);
-                            }
-                        }
-                        if (fb2.TitleInfo.Language != null) book.Language = fb2.TitleInfo.Language;
-
-                        if (fb2.TitleInfo.BookDate != null)
-                        {
-                            book.BookDate = DateParser.ParseFB2Date(fb2.TitleInfo.BookDate, fileName);
-                        }
-                        else
-                        {
-                            book.BookDate = DateParser.GetFileDate(fileName);
-                        }
-
-                        if (fb2.TitleInfo.BookAuthors != null && fb2.TitleInfo.BookAuthors.Any())
-                        {
-                            book.Authors = new List<string>();
-                            foreach (var ba in fb2.TitleInfo.BookAuthors)
-                            {
-                                string firstName = ba.FirstName?.Text ?? "";
-                                string middleName = ba.MiddleName?.Text ?? "";
-                                string lastName = ba.LastName?.Text ?? "";
-
-                                string authorName = BuildAuthorName(firstName, middleName, lastName);
-                                if (!string.IsNullOrEmpty(authorName))
-                                {
-                                    book.Authors.Add(authorName);
-                                }
-                            }
-                        }
-
-                        if (fb2.TitleInfo.Translators != null && fb2.TitleInfo.Translators.Any())
-                        {
-                            book.Translators = new List<string>();
-                            foreach (var tr in fb2.TitleInfo.Translators)
-                            {
-                                string firstName = tr.FirstName?.Text ?? "";
-                                string middleName = tr.MiddleName?.Text ?? "";
-                                string lastName = tr.LastName?.Text ?? "";
-
-                                string translatorName = BuildAuthorName(firstName, middleName, lastName);
-                                if (!string.IsNullOrEmpty(translatorName))
-                                {
-                                    book.Translators.Add(translatorName);
-                                }
-                            }
-                        }
-
-                        if (fb2.TitleInfo.Genres != null && fb2.TitleInfo.Genres.Any())
-                        {
-                            book.Genres = new List<string>();
-                            book.Genres.AddRange((from g in fb2.TitleInfo.Genres select g.Genre).ToList());
-                        }
-                    }
+                    // Parse description content
+                    ParseDescriptionContent(description, book, fileName);
                 }
             }
             catch (Exception e)
@@ -163,8 +70,320 @@ namespace TinyOPDS.Parsers
             return book;
         }
 
-        private string BuildAuthorName(string firstName, string middleName, string lastName)
+        private XElement ReadDescriptionBlock(Stream stream, string fileName)
         {
+            try
+            {
+                const int chunkSize = 1024 * 8;
+                var buffer = new byte[chunkSize];
+                var sb = new StringBuilder();
+                bool foundDescription = false;
+
+                // Reset stream position
+                if (stream.CanSeek)
+                {
+                    stream.Position = 0;
+                }
+
+                // Detect encoding from first few bytes
+                Encoding encoding = Encoding.UTF8;
+                byte[] encodingBuffer = new byte[1024];
+                int encBytes = stream.Read(encodingBuffer, 0, Math.Min(1024, (int)stream.Length));
+                if (encBytes > 0)
+                {
+                    string encodingTest = Encoding.UTF8.GetString(encodingBuffer, 0, encBytes);
+                    encoding = DetectEncoding(encodingTest);
+                }
+
+                // Reset to beginning
+                stream.Position = 0;
+
+                string content = string.Empty;
+
+                // Read chunks with correct encoding
+                while (true)
+                {
+                    int bytesRead = stream.Read(buffer, 0, chunkSize);
+                    if (bytesRead == 0) break;
+
+                    string chunk = encoding.GetString(buffer, 0, bytesRead);
+                    sb.Append(chunk);
+
+                    // Check if we have complete description
+                    content = sb.ToString();
+                    int descEnd = content.IndexOf("</description>", StringComparison.OrdinalIgnoreCase);
+                    if (descEnd >= 0)
+                    {
+                        foundDescription = true;
+                        // Extract only up to </description>
+                        content = content.Substring(0, descEnd + 14);
+                        break;
+                    }
+
+                    // Safety check - don't read more than 64KB for description
+                    if (sb.Length > 1024 * 64)
+                    {
+                        Log.WriteLine(LogLevel.Warning, "Description block too large in file: {0}", fileName);
+                        break;
+                    }
+                }
+
+                if (!foundDescription)
+                {
+                    Log.WriteLine(LogLevel.Warning, "No description block found in file: {0}", fileName);
+                    return null;
+                }
+
+                // Fix XML encoding issues
+                string xmlContent = FixXmlEncoding(content);
+                debugxml = xmlContent + "</FictionBook>";
+                var doc = XDocument.Parse(xmlContent + "</FictionBook>");
+                return doc.Root?.Element(fb2Ns + "description");
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Failed to read description block for {0}: {1}", fileName, ex.Message);
+                return null;
+            }
+        }
+
+        string debugxml = "";
+
+        private string FixXmlEncoding(string xmlText)
+        {
+            // Remove BOM if present
+            if (xmlText.Length > 0 && xmlText[0] == '\ufeff')
+            {
+                xmlText = xmlText.Substring(1);
+            }
+
+            // First decode HTML entities (like &#1041; -> Б)
+            if (xmlText.Contains("&#"))
+            {
+                xmlText = Regex.Replace(xmlText, @"&#(\d+);",
+                    match => ((char)int.Parse(match.Groups[1].Value)).ToString());
+            }
+
+            // Fix broken paragraph tags in annotations
+            xmlText = FixBrokenParagraphs(xmlText);
+
+            // Then escape unescaped ampersands (but not already escaped ones)
+            xmlText = Regex.Replace(xmlText, @"&(?!(amp|lt|gt|quot|apos);)", "&amp;");
+
+            return xmlText;
+        }
+
+        private string FixBrokenParagraphs(string xmlText)
+        {
+            // Find annotations and fix them
+            int annotationStart = xmlText.IndexOf("<annotation>");
+            if (annotationStart >= 0)
+            {
+                int annotationEnd = xmlText.IndexOf("</annotation>");
+                if (annotationEnd > annotationStart)
+                {
+                    string before = xmlText.Substring(0, annotationStart);
+                    string annotation = xmlText.Substring(annotationStart, annotationEnd - annotationStart + 13);
+                    string after = xmlText.Substring(annotationEnd + 13);
+
+                    // Fix broken paragraphs in annotation
+                    annotation = Regex.Replace(annotation, @"<p>([^<]*(?:<(?!/?p|empty-line)[^>]*>[^<]*)*)<(?=p>|empty-line)", "<p>$1</p><");
+
+                    xmlText = before + annotation + after;
+                }
+            }
+
+            return xmlText;
+        }
+
+        private Encoding DetectEncoding(string xmlStart)
+        {
+            try
+            {
+                if (xmlStart.Contains("encoding="))
+                {
+                    int encStart = xmlStart.IndexOf("encoding=\"") + 10;
+                    if (encStart > 10)
+                    {
+                        int encEnd = xmlStart.IndexOf('"', encStart);
+                        if (encEnd > encStart)
+                        {
+                            string encodingName = xmlStart.Substring(encStart, encEnd - encStart);
+                            return Encoding.GetEncoding(encodingName);
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Fallback to UTF-8
+            }
+
+            return Encoding.UTF8;
+        }
+
+        private void ParseDescriptionContent(XElement description, Book book, string fileName)
+        {
+            // Parse title-info
+            var titleInfo = description.Element(fb2Ns + "title-info");
+            if (titleInfo != null)
+            {
+                ParseTitleInfo(titleInfo, book, fileName);
+            }
+
+            // Parse document-info
+            var documentInfo = description.Element(fb2Ns + "document-info");
+            if (documentInfo != null)
+            {
+                ParseDocumentInfo(documentInfo, book, fileName);
+            }
+
+            // Parse publish-info (optional)
+            var publishInfo = description.Element(fb2Ns + "publish-info");
+            if (publishInfo != null)
+            {
+                ParsePublishInfo(publishInfo, book);
+            }
+        }
+
+        private void ParseTitleInfo(XElement titleInfo, Book book, string fileName)
+        {
+            // Genres
+            var genres = titleInfo.Elements(fb2Ns + "genre").Select(g => g.Value).ToList();
+            if (genres.Any())
+            {
+                book.Genres = genres;
+            }
+
+            // Authors
+            var authors = titleInfo.Elements(fb2Ns + "author");
+            if (authors.Any())
+            {
+                book.Authors = new List<string>();
+                foreach (var author in authors)
+                {
+                    string authorName = ParsePersonName(author);
+                    if (!string.IsNullOrEmpty(authorName))
+                    {
+                        book.Authors.Add(authorName);
+                    }
+                }
+            }
+
+            // Book title
+            var bookTitle = titleInfo.Element(fb2Ns + "book-title")?.Value;
+            if (!string.IsNullOrEmpty(bookTitle))
+            {
+                book.Title = bookTitle;
+            }
+
+            // Annotation
+            var annotation = titleInfo.Element(fb2Ns + "annotation");
+            if (annotation != null)
+            {
+                book.Annotation = ExtractTextFromAnnotation(annotation);
+            }
+
+            // Date
+            var date = titleInfo.Element(fb2Ns + "date");
+            if (date != null)
+            {
+                book.BookDate = ParseDate(date, fileName);
+            }
+            else
+            {
+                book.BookDate = DateParser.GetFileDate(fileName);
+            }
+
+            // Language
+            var lang = titleInfo.Element(fb2Ns + "lang")?.Value;
+            if (!string.IsNullOrEmpty(lang))
+            {
+                book.Language = lang;
+            }
+
+            // Translators
+            var translators = titleInfo.Elements(fb2Ns + "translator");
+            if (translators.Any())
+            {
+                book.Translators = new List<string>();
+                foreach (var translator in translators)
+                {
+                    string translatorName = ParsePersonName(translator);
+                    if (!string.IsNullOrEmpty(translatorName))
+                    {
+                        book.Translators.Add(translatorName);
+                    }
+                }
+            }
+
+            // Sequences (series)
+            var sequences = titleInfo.Elements(fb2Ns + "sequence");
+            if (sequences.Any())
+            {
+                var firstSequence = sequences.First();
+                var seqName = firstSequence.Attribute("name")?.Value;
+                if (!string.IsNullOrEmpty(seqName))
+                {
+                    book.Sequence = seqName.Capitalize(true);
+
+                    var seqNumber = firstSequence.Attribute("number")?.Value;
+                    if (!string.IsNullOrEmpty(seqNumber) && uint.TryParse(seqNumber, out uint num))
+                    {
+                        book.NumberInSequence = num;
+                    }
+                }
+            }
+
+            var coverpage = titleInfo.Element(fb2Ns + "coverpage");
+        }
+
+        private void ParseDocumentInfo(XElement documentInfo, Book book, string fileName)
+        {
+            // Document date
+            var date = documentInfo.Element(fb2Ns + "date");
+            if (date != null)
+            {
+                book.DocumentDate = ParseDate(date, fileName);
+            }
+            else
+            {
+                book.DocumentDate = DateParser.GetFileDate(fileName);
+            }
+
+            // Version
+            var version = documentInfo.Element(fb2Ns + "version")?.Value;
+            if (!string.IsNullOrEmpty(version) && float.TryParse(version, NumberStyles.Any, CultureInfo.InvariantCulture, out float ver))
+            {
+                book.Version = ver;
+            }
+        }
+
+        private void ParsePublishInfo(XElement publishInfo, Book book)
+        {
+            // Publisher
+            var publisher = publishInfo.Element(fb2Ns + "publisher")?.Value;
+
+            // Year
+            var year = publishInfo.Element(fb2Ns + "year")?.Value;
+            if (!string.IsNullOrEmpty(year) && int.TryParse(year, out int yearNum))
+            {
+                // Can override book date if needed
+                // book.BookDate = new DateTime(yearNum, 1, 1);
+            }
+
+            // ISBN
+            var isbn = publishInfo.Element(fb2Ns + "isbn")?.Value;
+        }
+
+        private string ParsePersonName(XElement person)
+        {
+            var firstName = person.Element(fb2Ns + "first-name")?.Value ?? "";
+            var middleName = person.Element(fb2Ns + "middle-name")?.Value ?? "";
+            var lastName = person.Element(fb2Ns + "last-name")?.Value ?? "";
+            var nickName = person.Element(fb2Ns + "nickname")?.Value ?? "";
+
+            // Build name in format: LastName FirstName MiddleName
             var nameParts = new List<string>();
 
             if (!string.IsNullOrEmpty(lastName))
@@ -182,209 +401,186 @@ namespace TinyOPDS.Parsers
                 nameParts.Add(middleName.Trim().Capitalize());
             }
 
+            // Use nickname if no other name parts
+            if (nameParts.Count == 0 && !string.IsNullOrEmpty(nickName))
+            {
+                nameParts.Add(nickName.Trim().Capitalize());
+            }
+
             return string.Join(" ", nameParts);
         }
 
-        private XDocument ParseNonSeekableStream(Stream stream, string fileName)
+        private DateTime ParseDate(XElement dateElement, string fileName)
         {
-            try
+            // Try value attribute first
+            var dateValue = dateElement.Attribute("value")?.Value;
+            if (!string.IsNullOrEmpty(dateValue))
             {
-                using (var memoryStream = new MemoryStream())
+                if (DateTime.TryParse(dateValue, out DateTime parsedDate))
                 {
-                    stream.CopyTo(memoryStream);
-                    memoryStream.Position = 0;
-                    return ParseSeekableStream(memoryStream, fileName);
+                    return ValidateDate(parsedDate);
                 }
             }
-            catch (Exception ex)
+
+            // Try element text
+            var dateText = dateElement.Value;
+            if (!string.IsNullOrEmpty(dateText))
             {
-                Log.WriteLine(LogLevel.Error, "Failed to parse non-seekable stream for {0}: {1}", fileName, ex.Message);
-                return null;
+                // Try full date
+                if (DateTime.TryParse(dateText, out DateTime parsedDate))
+                {
+                    return ValidateDate(parsedDate);
+                }
+
+                // Try year only
+                if (int.TryParse(dateText.Substring(0, Math.Min(4, dateText.Length)), out int year))
+                {
+                    if (year >= 1 && year <= 9999)
+                    {
+                        return new DateTime(year, 1, 1);
+                    }
+                }
             }
+
+            return DateParser.GetFileDate(fileName);
         }
 
-        private XDocument ParseSeekableStream(Stream stream, string fileName)
+        private DateTime ValidateDate(DateTime date)
         {
-            XDocument xml = null;
+            if (date.Year < 1 || date.Year > 9999)
+                return DateTime.Now;
 
-            try
-            {
-                stream.Position = 0;
+            if (date > DateTime.Now.AddYears(10))
+                return DateTime.Now;
 
-                string encoding = string.Empty;
-                if (Utils.IsLinux)
-                {
-                    using (StreamReader sr = new StreamReader(stream, Encoding.UTF8, true, 1024, true))
-                    {
-                        encoding = sr.ReadLine();
-                        int idx = encoding.ToLower().IndexOf("encoding=\"");
-                        if (idx > 0)
-                        {
-                            encoding = encoding.Substring(idx + 10);
-                            encoding = encoding.Substring(0, encoding.IndexOf('"'));
-                            stream.Position = 0;
-                            using (StreamReader esr = new StreamReader(stream, Encoding.GetEncoding(encoding), false, 1024, true))
-                            {
-                                string xmlStr = esr.ReadToEnd();
-                                try
-                                {
-                                    xml = XDocument.Parse(xmlStr, LoadOptions.PreserveWhitespace);
-                                }
-                                catch
-                                {
-                                    stream.Position = 0;
-                                    xml = TryParseBySgml(stream, fileName);
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if (xml == null)
-                {
-                    try
-                    {
-                        stream.Position = 0;
-                        xml = XDocument.Load(stream);
-                    }
-                    catch
-                    {
-                        stream.Position = 0;
-                        xml = TryParseBySgml(stream, fileName);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.WriteLine(LogLevel.Warning, "Error parsing seekable stream for {0}: {1}", fileName, ex.Message);
-            }
-
-            return xml;
+            return date;
         }
 
-        private XDocument TryParseBySgml(Stream stream, string fileName)
+        private string ExtractTextFromAnnotation(XElement annotation)
         {
-            try
+            var sb = new StringBuilder();
+
+            foreach (var node in annotation.DescendantNodes())
             {
-                using (SgmlReader sgmlReader = new SgmlReader())
+                if (node is XText textNode)
                 {
-                    sgmlReader.CaseFolding = CaseFolding.None;
-                    sgmlReader.WhitespaceHandling = WhitespaceHandling.All;
-                    sgmlReader.StripDocType = true;
-
-                    StreamReader streamReader = null;
-                    try
-                    {
-                        byte[] buffer = new byte[1024];
-                        int bytesRead = stream.Read(buffer, 0, buffer.Length);
-                        stream.Position = 0;
-
-                        string start = Encoding.UTF8.GetString(buffer, 0, Math.Min(bytesRead, 200));
-                        Encoding detectedEncoding = Encoding.UTF8;
-
-                        if (start.Contains("encoding="))
-                        {
-                            int encStart = start.IndexOf("encoding=\"") + 10;
-                            if (encStart > 10)
-                            {
-                                int encEnd = start.IndexOf('"', encStart);
-                                if (encEnd > encStart)
-                                {
-                                    string encodingName = start.Substring(encStart, encEnd - encStart);
-                                    try
-                                    {
-                                        detectedEncoding = Encoding.GetEncoding(encodingName);
-                                    }
-                                    catch
-                                    {
-                                        detectedEncoding = Encoding.UTF8;
-                                    }
-                                }
-                            }
-                        }
-
-                        streamReader = new StreamReader(stream, detectedEncoding, false, 1024, true);
-                    }
-                    catch
-                    {
-                        stream.Position = 0;
-                        streamReader = new StreamReader(stream, Encoding.UTF8, true, 1024, true);
-                    }
-
-                    using (streamReader)
-                    {
-                        sgmlReader.InputStream = streamReader;
-                        return XDocument.Load(sgmlReader);
-                    }
+                    sb.Append(textNode.Value);
                 }
             }
-            catch (Exception ex)
-            {
-                Log.WriteLine(LogLevel.Warning, "SGML parsing failed for {0}: {1}", fileName, ex.Message);
-                return null;
-            }
+
+            return sb.ToString().Trim();
         }
 
         public override Image GetCoverImage(Stream stream, string fileName)
         {
+            // This method is called separately when cover is actually needed
+            // We need to read the full file here to extract binary data
             Image image = null;
             try
             {
-                FB2File fb2 = new FB2File();
+                XDocument xml = null;
 
-                Stream workingStream = stream;
-                bool needsDisposal = false;
-
+                // Parse full file for cover extraction
                 if (!stream.CanSeek)
                 {
-                    var memStream = new MemoryStream();
-                    stream.CopyTo(memStream);
-                    memStream.Position = 0;
-                    workingStream = memStream;
-                    needsDisposal = true;
+                    using (var memStream = new MemoryStream())
+                    {
+                        stream.CopyTo(memStream);
+                        memStream.Position = 0;
+                        xml = ParseFullDocument(memStream, fileName);
+                    }
                 }
                 else
                 {
-                    workingStream.Position = 0;
+                    stream.Position = 0;
+                    xml = ParseFullDocument(stream, fileName);
                 }
 
-                try
-                {
-                    xml = XDocument.Load(workingStream);
-                    fb2.Load(xml, false);
+                if (xml == null) return null;
 
-                    if (fb2.TitleInfo != null && fb2.TitleInfo.Cover != null && fb2.TitleInfo.Cover.HasImages() && fb2.Images.Count > 0)
+                // Get namespace
+                fb2Ns = xml.Root?.Name.Namespace ?? XNamespace.None;
+
+                // Find coverpage in title-info
+                var titleInfo = xml.Root?.Element(fb2Ns + "description")?.Element(fb2Ns + "title-info");
+                if (titleInfo == null) return null;
+
+                var coverpage = titleInfo.Element(fb2Ns + "coverpage");
+                if (coverpage == null) return null;
+
+                // Get image href
+                var imageElement = coverpage.Element(fb2Ns + "image");
+                if (imageElement == null) return null;
+
+                string href = imageElement.Attribute(XNamespace.Xml + "href")?.Value ??
+                             imageElement.Attribute("href")?.Value;
+
+                if (string.IsNullOrEmpty(href)) return null;
+
+                // Remove # prefix if present
+                if (href.StartsWith("#"))
+                    href = href.Substring(1);
+
+                // Find binary element with this id
+                var binaries = xml.Root.Elements(fb2Ns + "binary");
+                foreach (var binary in binaries)
+                {
+                    var id = binary.Attribute("id")?.Value;
+                    if (id == href)
                     {
-                        string coverHRef = fb2.TitleInfo.Cover.CoverpageImages.First().HRef.Substring(1);
-                        var binaryObject = fb2.Images.FirstOrDefault(item => item.Value.Id == coverHRef);
-                        if (binaryObject.Value.BinaryData != null && binaryObject.Value.BinaryData.Length > 0)
+                        // Decode base64 image
+                        string base64Data = binary.Value;
+                        byte[] imageData = Convert.FromBase64String(base64Data);
+
+                        using (var memStream = new MemoryStream(imageData))
                         {
-                            using (MemoryStream memStream = new MemoryStream(binaryObject.Value.BinaryData))
-                            {
-                                image = Image.FromStream(memStream);
-                                ImageFormat fmt = binaryObject.Value.ContentType == ContentTypeEnum.ContentTypePng ? ImageFormat.Png : ImageFormat.Gif;
-                                if (binaryObject.Value.ContentType != ContentTypeEnum.ContentTypeJpeg)
-                                {
-                                    image = Image.FromStream(image.ToStream(fmt));
-                                }
-                                image = image.Resize(CoverImage.CoverSize);
-                            }
+                            image = Image.FromStream(memStream);
+                            image = image.Resize(CoverImage.CoverSize);
                         }
-                    }
-                }
-                finally
-                {
-                    if (needsDisposal)
-                    {
-                        workingStream?.Dispose();
+                        break;
                     }
                 }
             }
             catch (Exception e)
             {
-                Log.WriteLine(LogLevel.Error, "Book.GetCoverImage() exception {0} on file: {1}", e.Message, fileName);
+                Log.WriteLine(LogLevel.Error, "GetCoverImage() exception {0} on file: {1}", e.Message, fileName);
             }
             return image;
+        }
+
+        private XDocument ParseFullDocument(Stream stream, string fileName)
+        {
+            try
+            {
+                // Simple full document parsing for cover extraction
+                stream.Position = 0;
+                return XDocument.Load(stream);
+            }
+            catch
+            {
+                // Try with encoding detection
+                try
+                {
+                    stream.Position = 0;
+                    byte[] buffer = new byte[1024];
+                    int bytesRead = stream.Read(buffer, 0, Math.Min(buffer.Length, (int)stream.Length));
+                    string start = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+
+                    Encoding encoding = DetectEncoding(start);
+
+                    stream.Position = 0;
+                    using (var reader = new StreamReader(stream, encoding, false, 1024, true))
+                    {
+                        string xmlStr = reader.ReadToEnd();
+                        return XDocument.Parse(xmlStr, LoadOptions.PreserveWhitespace);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.WriteLine(LogLevel.Warning, "Error parsing full document for {0}: {1}", fileName, ex.Message);
+                    return null;
+                }
+            }
         }
     }
 }

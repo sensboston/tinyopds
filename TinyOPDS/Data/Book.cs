@@ -218,16 +218,11 @@ namespace TinyOPDS.Data
                 return false;
             }
 
-            // Removed the checks for all bytes being the same and sequential patterns
-            // as they might reject valid GUIDs
-
-            // If it passed all checks, it's likely from FictionBookEditor or similar proper tool
             return true;
         }
 
         /// <summary>
         /// Generate duplicate detection key based on title, first author and language
-        /// MODIFIED: More precise key generation to avoid false positives
         /// </summary>
         public string GenerateDuplicateKey()
         {

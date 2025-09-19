@@ -447,8 +447,7 @@ namespace TinyOPDS
         private void LoadSettings()
         {
             // Setup link labels
-            linkLabel3.Links.Add(0, linkLabel3.Text.Length, "https://github.com/wcoder/FB2Library");
-            linkLabel6.Links.Add(0, linkLabel6.Text.Length, "https://github.com/MindTouch/SGMLReader");
+            linkLabel6.Links.Add(0, linkLabel6.Text.Length, "https://github.com/rsarov/SQLiteFTS5NET");
 
             // Setup settings controls
             libraryPath.Text = Settings.Default.LibraryPath;

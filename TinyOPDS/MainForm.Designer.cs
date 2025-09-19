@@ -135,7 +135,6 @@
             this.tabPage4 = new System.Windows.Forms.TabPage();
             this.pictureBox2 = new System.Windows.Forms.PictureBox();
             this.linkLabel6 = new System.Windows.Forms.LinkLabel();
-            this.linkLabel3 = new System.Windows.Forms.LinkLabel();
             this.label20 = new System.Windows.Forms.Label();
             this.label19 = new System.Windows.Forms.Label();
             this.linkLabel2 = new System.Windows.Forms.LinkLabel();
@@ -1417,7 +1416,6 @@
             this.tabPage4.BackColor = System.Drawing.SystemColors.Control;
             this.tabPage4.Controls.Add(this.pictureBox2);
             this.tabPage4.Controls.Add(this.linkLabel6);
-            this.tabPage4.Controls.Add(this.linkLabel3);
             this.tabPage4.Controls.Add(this.label20);
             this.tabPage4.Controls.Add(this.label19);
             this.tabPage4.Controls.Add(this.linkLabel2);
@@ -1449,26 +1447,14 @@
             // linkLabel6
             // 
             this.linkLabel6.AutoSize = true;
-            this.linkLabel6.Location = new System.Drawing.Point(515, 496);
+            this.linkLabel6.Location = new System.Drawing.Point(515, 449);
             this.linkLabel6.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.linkLabel6.Name = "linkLabel6";
             this.linkLabel6.Size = new System.Drawing.Size(323, 32);
             this.linkLabel6.TabIndex = 13;
             this.linkLabel6.TabStop = true;
-            this.linkLabel6.Text = "Authors of SGMLReader";
+            this.linkLabel6.Text = "Author of SQLite FTS5 NET";
             this.linkLabel6.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.LinkLabel3_LinkClicked);
-            // 
-            // linkLabel3
-            // 
-            this.linkLabel3.AutoSize = true;
-            this.linkLabel3.Location = new System.Drawing.Point(515, 449);
-            this.linkLabel3.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
-            this.linkLabel3.Name = "linkLabel3";
-            this.linkLabel3.Size = new System.Drawing.Size(275, 32);
-            this.linkLabel3.TabIndex = 10;
-            this.linkLabel3.TabStop = true;
-            this.linkLabel3.Text = "Authors of fb2library ";
-            this.linkLabel3.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.LinkLabel3_LinkClicked);
             // 
             // label20
             // 
@@ -1715,7 +1701,6 @@
         private System.Windows.Forms.Label label20;
         private System.Windows.Forms.LinkLabel intLink;
         private System.Windows.Forms.LinkLabel extLink;
-        private System.Windows.Forms.LinkLabel linkLabel3;
         private System.Windows.Forms.TextBox databaseFileName;
         private System.Windows.Forms.Label label21;
         private System.Windows.Forms.TabPage tabPage5;

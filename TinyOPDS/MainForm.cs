@@ -65,6 +65,7 @@ namespace TinyOPDS
             Log.WriteLine("TinyOPDS version {0}.{1} started", Utils.Version.Major, Utils.Version.Minor);
 
             InitializeComponent();
+            AutoScaleMode = AutoScaleMode.Dpi;
 
             // Fix TabControl height for high DPI displays
             float dpiScale = 1.0f;

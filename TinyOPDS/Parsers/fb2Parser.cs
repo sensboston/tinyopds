@@ -473,8 +473,6 @@ namespace TinyOPDS.Parsers
 
         public override Image GetCoverImage(Stream stream, string fileName)
         {
-            // This method is called separately when cover is actually needed
-            // We need to read the full file here to extract binary data
             Image image = null;
             try
             {
@@ -483,11 +481,11 @@ namespace TinyOPDS.Parsers
                 // Parse full file for cover extraction
                 if (!stream.CanSeek)
                 {
-                    using (var memStream = new MemoryStream())
+                    using (var memoryStream = new MemoryStream())
                     {
-                        stream.CopyTo(memStream);
-                        memStream.Position = 0;
-                        xml = ParseFullDocument(memStream, fileName);
+                        stream.CopyTo(memoryStream);
+                        memoryStream.Position = 0;
+                        xml = ParseFullDocument(memoryStream, fileName);
                     }
                 }
                 else
@@ -498,22 +496,24 @@ namespace TinyOPDS.Parsers
 
                 if (xml == null) return null;
 
-                // Get namespace
-                fb2Ns = xml.Root?.Name.Namespace ?? XNamespace.None;
+                // Get namespaces from document
+                XNamespace fb2Namespace = xml.Root?.Name.Namespace ?? XNamespace.None;
+                XNamespace xlinkNs = "http://www.w3.org/1999/xlink";
 
                 // Find coverpage in title-info
-                var titleInfo = xml.Root?.Element(fb2Ns + "description")?.Element(fb2Ns + "title-info");
+                var titleInfo = xml.Root?.Element(fb2Namespace + "description")?.Element(fb2Namespace + "title-info");
                 if (titleInfo == null) return null;
 
-                var coverpage = titleInfo.Element(fb2Ns + "coverpage");
+                var coverpage = titleInfo.Element(fb2Namespace + "coverpage");
                 if (coverpage == null) return null;
 
-                // Get image href
-                var imageElement = coverpage.Element(fb2Ns + "image");
+                // Get image href - FB2 uses xlink:href
+                var imageElement = coverpage.Element(fb2Namespace + "image");
                 if (imageElement == null) return null;
 
-                string href = imageElement.Attribute(XNamespace.Xml + "href")?.Value ??
-                             imageElement.Attribute("href")?.Value;
+                string href = imageElement.Attribute(xlinkNs + "href")?.Value ??
+                             imageElement.Attribute("href")?.Value ?? // fallback for non-standard FB2
+                             imageElement.Attribute("l:href")?.Value; // sometimes used in broken files
 
                 if (string.IsNullOrEmpty(href)) return null;
 
@@ -522,20 +522,33 @@ namespace TinyOPDS.Parsers
                     href = href.Substring(1);
 
                 // Find binary element with this id
-                var binaries = xml.Root.Elements(fb2Ns + "binary");
+                var binaries = xml.Root.Elements(fb2Namespace + "binary");
                 foreach (var binary in binaries)
                 {
                     var id = binary.Attribute("id")?.Value;
                     if (id == href)
                     {
-                        // Decode base64 image
-                        string base64Data = binary.Value;
-                        byte[] imageData = Convert.FromBase64String(base64Data);
+                        // Get content type if available
+                        var contentType = binary.Attribute("content-type")?.Value ?? "image/jpeg";
 
-                        using (var memStream = new MemoryStream(imageData))
+                        // Decode base64 image
+                        string base64Data = binary.Value.Replace("\r", "").Replace("\n", "").Replace(" ", "");
+
+                        try
                         {
-                            image = Image.FromStream(memStream);
-                            image = image.Resize(CoverImage.CoverSize);
+                            byte[] imageData = Convert.FromBase64String(base64Data);
+
+                            using (var memStream = new MemoryStream(imageData))
+                            {
+                                image = Image.FromStream(memStream);
+
+                                // Resize to standard cover size
+                                image = image.Resize(CoverImage.CoverSize);
+                            }
+                        }
+                        catch (FormatException)
+                        {
+                            Log.WriteLine(LogLevel.Warning, "Invalid base64 image data for {0}", fileName);
                         }
                         break;
                     }

@@ -694,7 +694,7 @@ namespace TinyOPDS
 
             TimeSpan dt = DateTime.Now.Subtract(scanStartTime);
             elapsedTime.Text = dt.ToString(@"hh\:mm\:ss");
-            rate.Text = (dt.TotalSeconds) > 0 ? string.Format("{0:0.} books/min", totalProcessed / dt.TotalSeconds * 60) : "---";
+            rate.Text = (dt.TotalSeconds) > 0 ? string.Format(Localizer.Text("{0} books/min"), (int)(totalProcessed / dt.TotalSeconds * 60)) : "---";
             if (scannerButton.Enabled)
             {
                 status.Text = IsScanFinished ? Localizer.Text("FINISHED") : (scanner.Status == FileScannerStatus.SCANNING ? Localizer.Text("SCANNING") : Localizer.Text("STOPPED"));

@@ -6,9 +6,6 @@
  * SPDX-License-Identifier: MIT
  *
  * Database manager for SQLite operations with FTS5 support
- * ENHANCED: Added library statistics persistence support
- * ENHANCED: Added downloads tracking support
- * ENHANCED: Added performance optimizations and cold start prevention
  *
  */
 

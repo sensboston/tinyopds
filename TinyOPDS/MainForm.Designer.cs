@@ -1450,7 +1450,7 @@
             this.linkLabel6.Location = new System.Drawing.Point(515, 449);
             this.linkLabel6.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.linkLabel6.Name = "linkLabel6";
-            this.linkLabel6.Size = new System.Drawing.Size(323, 32);
+            this.linkLabel6.Size = new System.Drawing.Size(363, 32);
             this.linkLabel6.TabIndex = 13;
             this.linkLabel6.TabStop = true;
             this.linkLabel6.Text = "Author of SQLite FTS5 NET";
@@ -1483,10 +1483,10 @@
             this.linkLabel2.Location = new System.Drawing.Point(515, 396);
             this.linkLabel2.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.linkLabel2.Name = "linkLabel2";
-            this.linkLabel2.Size = new System.Drawing.Size(294, 32);
+            this.linkLabel2.Size = new System.Drawing.Size(286, 32);
             this.linkLabel2.TabIndex = 7;
             this.linkLabel2.TabStop = true;
-            this.linkLabel2.Text = "https://mit-license.org/";
+            this.linkLabel2.Text = "https://mit-license.org";
             this.linkLabel2.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.LinkLabel_LinkClicked);
             // 
             // label18

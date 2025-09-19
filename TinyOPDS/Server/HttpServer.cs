@@ -10,6 +10,7 @@
  * and request cancellation support
  * 
  * MODIFIED: Fixed ClientHash to use session tokens instead of User-Agent
+ * FIXED: Allow anonymous access to images for OPDS clients compatibility
  * 
  */
 
@@ -265,140 +266,158 @@ namespace TinyOPDS.Server
 
                 if (Properties.Settings.Default.UseHTTPAuth)
                 {
-                    authorized = false;
+                    // FIXED: Check if this is an image request - bypass auth for OPDS client compatibility
+                    // OPDS clients often don't send Authorization headers for embedded resources
+                    bool isImageRequest = HttpUrl.Contains("/cover/") ||
+                                        HttpUrl.Contains("/thumbnail/") ||
+                                        HttpUrl.EndsWith(".jpeg") ||
+                                        HttpUrl.EndsWith(".jpg") ||
+                                        HttpUrl.EndsWith(".png");
 
-                    // Is remote IP banned?
-                    if (Properties.Settings.Default.BanClients)
+                    if (isImageRequest)
                     {
-                        lock (BannedClients)
+                        // Allow image requests without authentication for OPDS compatibility
+                        authorized = true;
+                        Log.WriteLine(LogLevel.Info, "Bypassing auth for image request from {0}: {1}", remoteIP, HttpUrl);
+                    }
+                    else
+                    {
+                        // Normal authorization flow for non-image requests
+                        authorized = false;
+
+                        // Is remote IP banned?
+                        if (Properties.Settings.Default.BanClients)
                         {
-                            if (BannedClients.Count > 0 && BannedClients.ContainsKey(remoteIP) &&
-                                BannedClients[remoteIP] >= TinyOPDS.Properties.Settings.Default.WrongAttemptsCount)
+                            lock (BannedClients)
                             {
-                                checkLogin = false;
+                                if (BannedClients.Count > 0 && BannedClients.ContainsKey(remoteIP) &&
+                                    BannedClients[remoteIP] >= TinyOPDS.Properties.Settings.Default.WrongAttemptsCount)
+                                {
+                                    checkLogin = false;
+                                }
                             }
                         }
-                    }
 
-                    if (checkLogin)
-                    {
-                        // MODIFIED: Check for session token first
-                        if (Properties.Settings.Default.RememberClients)
+                        if (checkLogin)
                         {
-                            sessionToken = GetSessionTokenFromCookie();
-
-                            if (!string.IsNullOrEmpty(sessionToken))
+                            // MODIFIED: Check for session token first
+                            if (Properties.Settings.Default.RememberClients)
                             {
-                                lock (sessionLock)
+                                sessionToken = GetSessionTokenFromCookie();
+
+                                if (!string.IsNullOrEmpty(sessionToken))
                                 {
-                                    if (AuthorizedSessions.ContainsKey(sessionToken))
+                                    lock (sessionLock)
                                     {
-                                        var session = AuthorizedSessions[sessionToken];
+                                        if (AuthorizedSessions.ContainsKey(sessionToken))
+                                        {
+                                            var session = AuthorizedSessions[sessionToken];
 
-                                        // Validate session: check if not expired and optionally check IP
-                                        // For better security, we check IP match, but you can disable this
-                                        // if users have dynamic IPs
-                                        bool ipCheck = true; // Set to false if you want to allow IP changes
+                                            // Validate session: check if not expired and optionally check IP
+                                            // For better security, we check IP match, but you can disable this
+                                            // if users have dynamic IPs
+                                            bool ipCheck = true; // Set to false if you want to allow IP changes
 
-                                        if (session.IsValid() && (!ipCheck || session.IpAddress == remoteIP))
-                                        {
-                                            session.UpdateLastAccess();
-                                            authorized = true;
-                                            Log.WriteLine(LogLevel.Authentication,
-                                                "Session authenticated for user {0} from {1}",
-                                                session.Username, remoteIP);
-                                        }
-                                        else if (!session.IsValid())
-                                        {
-                                            // Remove expired session
-                                            AuthorizedSessions.Remove(sessionToken);
-                                            Log.WriteLine(LogLevel.Authentication,
-                                                "Expired session removed for user {0}", session.Username);
-                                        }
-                                        else
-                                        {
-                                            // IP mismatch - possible session hijacking attempt
-                                            Log.WriteLine(LogLevel.Authentication,
-                                                "IP mismatch for session. Expected: {0}, Got: {1}",
-                                                session.IpAddress, remoteIP);
+                                            if (session.IsValid() && (!ipCheck || session.IpAddress == remoteIP))
+                                            {
+                                                session.UpdateLastAccess();
+                                                authorized = true;
+                                                Log.WriteLine(LogLevel.Authentication,
+                                                    "Session authenticated for user {0} from {1}",
+                                                    session.Username, remoteIP);
+                                            }
+                                            else if (!session.IsValid())
+                                            {
+                                                // Remove expired session
+                                                AuthorizedSessions.Remove(sessionToken);
+                                                Log.WriteLine(LogLevel.Authentication,
+                                                    "Expired session removed for user {0}", session.Username);
+                                            }
+                                            else
+                                            {
+                                                // IP mismatch - possible session hijacking attempt
+                                                Log.WriteLine(LogLevel.Authentication,
+                                                    "IP mismatch for session. Expected: {0}, Got: {1}",
+                                                    session.IpAddress, remoteIP);
+                                            }
                                         }
                                     }
                                 }
-                            }
 
-                            // Also check old system for backward compatibility
-                            if (!authorized && AuthorizedClients.Contains(ClientHash))
-                            {
-                                authorized = true;
-                                // Migrate to new session system
-                                sendSessionCookie = true;
-                            }
-                        }
-
-                        if (!authorized && HttpHeaders.ContainsKey("Authorization"))
-                        {
-                            string hash = HttpHeaders["Authorization"];
-
-                            if (hash.StartsWith("Basic "))
-                            {
-                                try
+                                // Also check old system for backward compatibility
+                                if (!authorized && AuthorizedClients.Contains(ClientHash))
                                 {
-                                    string[] credential = hash.Substring(6).DecodeFromBase64().Split(':');
+                                    authorized = true;
+                                    // Migrate to new session system
+                                    sendSessionCookie = true;
+                                }
+                            }
 
-                                    if (credential.Length == 2)
+                            if (!authorized && HttpHeaders.ContainsKey("Authorization"))
+                            {
+                                string hash = HttpHeaders["Authorization"];
+
+                                if (hash.StartsWith("Basic "))
+                                {
+                                    try
                                     {
-                                        string user = credential[0];
-                                        string password = credential[1];
+                                        string[] credential = hash.Substring(6).DecodeFromBase64().Split(':');
 
-                                        // Use cached credentials for faster lookup
-                                        authorized = ValidateCredentials(user, password);
-                                        if (authorized)
+                                        if (credential.Length == 2)
                                         {
-                                            // MODIFIED: Create new session
-                                            if (Properties.Settings.Default.RememberClients)
+                                            string user = credential[0];
+                                            string password = credential[1];
+
+                                            // Use cached credentials for faster lookup
+                                            authorized = ValidateCredentials(user, password);
+                                            if (authorized)
                                             {
-                                                sessionToken = GenerateSessionToken();
-                                                var sessionInfo = new SessionInfo
+                                                // MODIFIED: Create new session
+                                                if (Properties.Settings.Default.RememberClients)
                                                 {
-                                                    Token = sessionToken,
-                                                    IpAddress = remoteIP,
-                                                    Created = DateTime.Now,
-                                                    LastAccess = DateTime.Now,
-                                                    Username = user
-                                                };
-
-                                                lock (sessionLock)
-                                                {
-                                                    AuthorizedSessions[sessionToken] = sessionInfo;
-
-                                                    // Cleanup old sessions periodically (every 100 logins)
-                                                    if (AuthorizedSessions.Count % 100 == 0)
+                                                    sessionToken = GenerateSessionToken();
+                                                    var sessionInfo = new SessionInfo
                                                     {
-                                                        CleanupExpiredSessions();
+                                                        Token = sessionToken,
+                                                        IpAddress = remoteIP,
+                                                        Created = DateTime.Now,
+                                                        LastAccess = DateTime.Now,
+                                                        Username = user
+                                                    };
+
+                                                    lock (sessionLock)
+                                                    {
+                                                        AuthorizedSessions[sessionToken] = sessionInfo;
+
+                                                        // Cleanup old sessions periodically (every 100 logins)
+                                                        if (AuthorizedSessions.Count % 100 == 0)
+                                                        {
+                                                            CleanupExpiredSessions();
+                                                        }
                                                     }
+
+                                                    sendSessionCookie = true;
                                                 }
 
-                                                sendSessionCookie = true;
+                                                // Keep old system for backward compatibility
+                                                AuthorizedClients.Add(ClientHash);
+
+                                                HttpServer.ServerStatistics.IncrementSuccessfulLoginAttempts();
+                                                Log.WriteLine(LogLevel.Authentication,
+                                                    "User {0} from {1} successfully logged in", user, remoteIP);
                                             }
-
-                                            // Keep old system for backward compatibility
-                                            AuthorizedClients.Add(ClientHash);
-
-                                            HttpServer.ServerStatistics.IncrementSuccessfulLoginAttempts();
-                                            Log.WriteLine(LogLevel.Authentication,
-                                                "User {0} from {1} successfully logged in", user, remoteIP);
-                                        }
-                                        else
-                                        {
-                                            Log.WriteLine(LogLevel.Authentication,
-                                                "Authentication failed! IP: {0} user: {1}", remoteIP, user);
+                                            else
+                                            {
+                                                Log.WriteLine(LogLevel.Authentication,
+                                                    "Authentication failed! IP: {0} user: {1}", remoteIP, user);
+                                            }
                                         }
                                     }
-                                }
-                                catch (Exception e)
-                                {
-                                    Log.WriteLine(LogLevel.Authentication,
-                                        "Authentication exception: IP: {0}, {1}", remoteIP, e.Message);
+                                    catch (Exception e)
+                                    {
+                                        Log.WriteLine(LogLevel.Authentication,
+                                            "Authentication exception: IP: {0}, {1}", remoteIP, e.Message);
+                                    }
                                 }
                             }
                         }

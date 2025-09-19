@@ -6,6 +6,7 @@
  * SPDX-License-Identifier: MIT
  *
  * Native FB2 to EPUB converter - creates valid EPUB 3.0 without external libraries
+ * Now with automatic cover generation using CoverImage class
  *
  */
 
@@ -108,14 +109,44 @@ namespace TinyOPDS
                     var chapters = ExtractChapters();
                     var images = ExtractImages();
 
+                    // Check if we need to generate cover
+                    bool coverGenerated = false;
+                    byte[] generatedCoverData = null;
+
+                    if (!HasCover())
+                    {
+                        Log.WriteLine(LogLevel.Info, "No cover found in FB2, generating using CoverImage class");
+
+                        // Use existing CoverImage class to generate cover
+                        var coverImage = new CoverImage(book);
+                        if (coverImage.HasImages && coverImage.CoverImageStream != null)
+                        {
+                            using (var coverStream = coverImage.CoverImageStream)
+                            using (var ms = new MemoryStream())
+                            {
+                                coverStream.CopyTo(ms);
+                                generatedCoverData = ms.ToArray();
+                                coverGenerated = generatedCoverData.Length > 0;
+                            }
+
+                            if (coverGenerated)
+                            {
+                                Log.WriteLine(LogLevel.Info, "Cover generated successfully: {0} bytes", generatedCoverData.Length);
+                            }
+                        }
+                    }
+
                     // Add package.opf with guide section
-                    AddPackage(archive, book, chapters, images);
+                    AddPackage(archive, book, chapters, images, coverGenerated);
 
                     // Add navigation
-                    AddNavigation(archive, chapters);
+                    AddNavigation(archive, chapters, coverGenerated || HasCover());
 
-                    // Add cover page HTML (must be before adding cover image)
-                    AddCoverPage(archive);
+                    // Add cover page HTML
+                    if (coverGenerated || HasCover())
+                    {
+                        AddCoverPage(archive, coverGenerated);
+                    }
 
                     // Add content chapters
                     foreach (var chapter in chapters)
@@ -130,16 +161,36 @@ namespace TinyOPDS
                     }
 
                     // Add cover image
-                    AddCoverImage(archive);
+                    if (coverGenerated)
+                    {
+                        AddGeneratedCoverImage(archive, generatedCoverData);
+                    }
+                    else if (HasCover())
+                    {
+                        AddCoverImage(archive);
+                    }
 
                     // Add NCX for EPUB 2 compatibility
-                    AddNCX(archive, book, chapters);
+                    AddNCX(archive, book, chapters, coverGenerated || HasCover());
                 }
 
                 // Copy to output stream
                 tempStream.Position = 0;
                 tempStream.CopyTo(outputStream);
             }
+        }
+
+        private void AddGeneratedCoverImage(ZipArchive archive, byte[] coverData)
+        {
+            if (coverData == null || coverData.Length == 0) return;
+
+            var entry = archive.CreateEntry("EPUB/bookcover-generated.jpg");
+            using (var stream = entry.Open())
+            {
+                stream.Write(coverData, 0, coverData.Length);
+            }
+
+            Log.WriteLine(LogLevel.Info, "Generated cover image added to EPUB");
         }
 
         private void WriteRawMimetype(Stream stream)
@@ -218,7 +269,7 @@ namespace TinyOPDS
             }
         }
 
-        private void AddPackage(ZipArchive archive, Book book, List<ChapterInfo> chapters, List<ImageInfo> images)
+        private void AddPackage(ZipArchive archive, Book book, List<ChapterInfo> chapters, List<ImageInfo> images, bool hasGeneratedCover)
         {
             var entry = archive.CreateEntry("EPUB/package.opf");
             using (var stream = entry.Open())
@@ -229,10 +280,10 @@ namespace TinyOPDS
                         new XAttribute("version", "3.0"),
                         new XAttribute("unique-identifier", "book-id"),
                         new XAttribute(XNamespace.Xml + "lang", GetLanguage(book)),
-                        CreateMetadata(book),
-                        CreateManifest(chapters, images),
-                        CreateSpine(chapters),
-                        CreateGuide() // Add guide for EPUB 2 compatibility
+                        CreateMetadata(book, hasGeneratedCover),
+                        CreateManifest(chapters, images, hasGeneratedCover),
+                        CreateSpine(chapters, hasGeneratedCover),
+                        CreateGuide(hasGeneratedCover)
                     )
                 );
 
@@ -240,7 +291,7 @@ namespace TinyOPDS
             }
         }
 
-        private XElement CreateMetadata(Book book)
+        private XElement CreateMetadata(Book book, bool hasGeneratedCover)
         {
             var metadata = new XElement(opfNs + "metadata",
                 new XAttribute(XNamespace.Xmlns + "dc", dcNs));
@@ -263,8 +314,8 @@ namespace TinyOPDS
                 new XAttribute("property", "dcterms:modified"),
                 DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")));
 
-            // CRITICAL: Add cover meta tag for reader compatibility
-            if (HasCover())
+            // Add cover meta tag
+            if (HasCover() || hasGeneratedCover)
             {
                 metadata.Add(new XElement(opfNs + "meta",
                     new XAttribute("name", "cover"),
@@ -337,7 +388,7 @@ namespace TinyOPDS
             return string.Join(" ", parts);
         }
 
-        private XElement CreateManifest(List<ChapterInfo> chapters, List<ImageInfo> images)
+        private XElement CreateManifest(List<ChapterInfo> chapters, List<ImageInfo> images, bool hasGeneratedCover)
         {
             var manifest = new XElement(opfNs + "manifest");
 
@@ -355,23 +406,34 @@ namespace TinyOPDS
                 new XAttribute("properties", "nav")));
 
             // Cover items
-            if (HasCover())
+            if (HasCover() || hasGeneratedCover)
             {
-                var coverInfo = GetCoverImageInfo();
-                if (coverInfo != null)
-                {
-                    // Cover HTML page - use "cover" as ID like in working example
-                    manifest.Add(new XElement(opfNs + "item",
-                        new XAttribute("id", "cover"),
-                        new XAttribute("href", "cover.xhtml"),
-                        new XAttribute("media-type", "application/xhtml+xml")));
+                // Cover HTML page
+                manifest.Add(new XElement(opfNs + "item",
+                    new XAttribute("id", "cover"),
+                    new XAttribute("href", "cover.xhtml"),
+                    new XAttribute("media-type", "application/xhtml+xml")));
 
-                    // Cover image with consistent ID - properties before href
+                // Cover image
+                if (hasGeneratedCover)
+                {
                     manifest.Add(new XElement(opfNs + "item",
                         new XAttribute("id", "cover-image"),
                         new XAttribute("properties", "cover-image"),
-                        new XAttribute("href", coverInfo.FileName),
-                        new XAttribute("media-type", coverInfo.MimeType)));
+                        new XAttribute("href", "bookcover-generated.jpg"),
+                        new XAttribute("media-type", "image/jpeg")));
+                }
+                else
+                {
+                    var coverInfo = GetCoverImageInfo();
+                    if (coverInfo != null)
+                    {
+                        manifest.Add(new XElement(opfNs + "item",
+                            new XAttribute("id", "cover-image"),
+                            new XAttribute("properties", "cover-image"),
+                            new XAttribute("href", coverInfo.FileName),
+                            new XAttribute("media-type", coverInfo.MimeType)));
+                    }
                 }
             }
 
@@ -401,13 +463,13 @@ namespace TinyOPDS
             return manifest;
         }
 
-        private XElement CreateSpine(List<ChapterInfo> chapters)
+        private XElement CreateSpine(List<ChapterInfo> chapters, bool hasCover)
         {
             var spine = new XElement(opfNs + "spine",
-                new XAttribute("toc", "ncx")); // Reference to NCX for EPUB 2
+                new XAttribute("toc", "ncx"));
 
-            // Add cover page first with linear="no" like in working example
-            if (HasCover())
+            // Add cover page first
+            if (hasCover)
             {
                 spine.Add(new XElement(opfNs + "itemref",
                     new XAttribute("idref", "cover"),
@@ -424,12 +486,12 @@ namespace TinyOPDS
             return spine;
         }
 
-        private XElement CreateGuide()
+        private XElement CreateGuide(bool hasCover)
         {
             var guide = new XElement(opfNs + "guide");
 
-            // Add cover reference for EPUB 2 compatibility
-            if (HasCover())
+            // Add cover reference
+            if (hasCover)
             {
                 guide.Add(new XElement(opfNs + "reference",
                     new XAttribute("type", "cover"),
@@ -446,7 +508,7 @@ namespace TinyOPDS
             return guide;
         }
 
-        private void AddNavigation(ZipArchive archive, List<ChapterInfo> chapters)
+        private void AddNavigation(ZipArchive archive, List<ChapterInfo> chapters, bool hasCover)
         {
             var entry = archive.CreateEntry("EPUB/nav.xhtml");
             using (var writer = new StreamWriter(entry.Open(), Encoding.UTF8))
@@ -462,8 +524,7 @@ namespace TinyOPDS
     <h1>Table of Contents</h1>
     <ol>");
 
-                // Add cover to navigation if exists
-                if (HasCover())
+                if (hasCover)
                 {
                     writer.WriteLine($"      <li><a href=\"cover.xhtml\">Cover</a></li>");
                 }
@@ -480,7 +541,7 @@ namespace TinyOPDS
             }
         }
 
-        private void AddNCX(ZipArchive archive, Book book, List<ChapterInfo> chapters)
+        private void AddNCX(ZipArchive archive, Book book, List<ChapterInfo> chapters, bool hasCover)
         {
             var entry = archive.CreateEntry("EPUB/toc.ncx");
             using (var writer = new StreamWriter(entry.Open(), Encoding.UTF8))
@@ -504,8 +565,7 @@ namespace TinyOPDS
 
                 int playOrder = 1;
 
-                // Add cover to NCX
-                if (HasCover())
+                if (hasCover)
                 {
                     writer.WriteLine(@"    <navPoint id=""navpoint-cover"" playOrder=""" + playOrder++ + @""">
       <navLabel>
@@ -515,7 +575,6 @@ namespace TinyOPDS
     </navPoint>");
                 }
 
-                // Add chapters
                 for (int i = 0; i < chapters.Count; i++)
                 {
                     writer.WriteLine(@"    <navPoint id=""navpoint-" + (i + 1) + @""" playOrder=""" + playOrder++ + @""">
@@ -531,17 +590,13 @@ namespace TinyOPDS
             }
         }
 
-        private void AddCoverPage(ZipArchive archive)
+        private void AddCoverPage(ZipArchive archive, bool isGenerated)
         {
-            if (!HasCover()) return;
-
-            var coverInfo = GetCoverImageInfo();
-            if (coverInfo == null) return;
-
             var entry = archive.CreateEntry("EPUB/cover.xhtml");
             using (var writer = new StreamWriter(entry.Open(), Encoding.UTF8))
             {
-                // Use simple structure exactly like in the working example
+                string fileName = isGenerated ? "bookcover-generated.jpg" : GetCoverImageInfo()?.FileName ?? "cover.jpg";
+
                 writer.Write(@"<?xml version=""1.0"" encoding=""utf-8"" standalone=""no""?>
 <html xmlns=""http://www.w3.org/1999/xhtml"">
 <head>
@@ -552,7 +607,7 @@ namespace TinyOPDS
 </head>
 <body>
   <div id=""cover-image"">
-    <img src=""" + coverInfo.FileName + @"""/>
+    <img src=""" + fileName + @"""/>
   </div>
 </body>
 </html>");

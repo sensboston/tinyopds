@@ -27,6 +27,7 @@ namespace TinyOPDS
         private XNamespace fb2Ns;
         private readonly XNamespace opfNs = "http://www.idpf.org/2007/opf";
         private readonly XNamespace dcNs = "http://purl.org/dc/elements/1.1/";
+        private readonly XNamespace xlinkNs = "http://www.w3.org/1999/xlink";
 
         /// <summary>
         /// Convert FB2 stream to EPUB stream in memory
@@ -107,11 +108,14 @@ namespace TinyOPDS
                     var chapters = ExtractChapters();
                     var images = ExtractImages();
 
-                    // Add package.opf
+                    // Add package.opf with guide section
                     AddPackage(archive, book, chapters, images);
 
                     // Add navigation
                     AddNavigation(archive, chapters);
+
+                    // Add cover page HTML (must be before adding cover image)
+                    AddCoverPage(archive);
 
                     // Add content chapters
                     foreach (var chapter in chapters)
@@ -125,8 +129,11 @@ namespace TinyOPDS
                         AddImageFile(archive, image);
                     }
 
-                    // Add cover if exists
+                    // Add cover image
                     AddCoverImage(archive);
+
+                    // Add NCX for EPUB 2 compatibility
+                    AddNCX(archive, book, chapters);
                 }
 
                 // Copy to output stream
@@ -224,7 +231,8 @@ namespace TinyOPDS
                         new XAttribute(XNamespace.Xml + "lang", GetLanguage(book)),
                         CreateMetadata(book),
                         CreateManifest(chapters, images),
-                        CreateSpine(chapters)
+                        CreateSpine(chapters),
+                        CreateGuide() // Add guide for EPUB 2 compatibility
                     )
                 );
 
@@ -254,6 +262,14 @@ namespace TinyOPDS
             metadata.Add(new XElement(opfNs + "meta",
                 new XAttribute("property", "dcterms:modified"),
                 DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")));
+
+            // CRITICAL: Add cover meta tag for reader compatibility
+            if (HasCover())
+            {
+                metadata.Add(new XElement(opfNs + "meta",
+                    new XAttribute("name", "cover"),
+                    new XAttribute("content", "cover-image")));
+            }
 
             // Authors
             AddAuthors(metadata, book);
@@ -325,6 +341,12 @@ namespace TinyOPDS
         {
             var manifest = new XElement(opfNs + "manifest");
 
+            // NCX for EPUB 2 compatibility
+            manifest.Add(new XElement(opfNs + "item",
+                new XAttribute("id", "ncx"),
+                new XAttribute("href", "toc.ncx"),
+                new XAttribute("media-type", "application/x-dtbncx+xml")));
+
             // Navigation
             manifest.Add(new XElement(opfNs + "item",
                 new XAttribute("id", "nav"),
@@ -332,14 +354,25 @@ namespace TinyOPDS
                 new XAttribute("media-type", "application/xhtml+xml"),
                 new XAttribute("properties", "nav")));
 
-            // Cover
+            // Cover items
             if (HasCover())
             {
-                manifest.Add(new XElement(opfNs + "item",
-                    new XAttribute("id", "cover-image"),
-                    new XAttribute("href", "cover.jpg"),
-                    new XAttribute("media-type", "image/jpeg"),
-                    new XAttribute("properties", "cover-image")));
+                var coverInfo = GetCoverImageInfo();
+                if (coverInfo != null)
+                {
+                    // Cover HTML page - use "cover" as ID like in working example
+                    manifest.Add(new XElement(opfNs + "item",
+                        new XAttribute("id", "cover"),
+                        new XAttribute("href", "cover.xhtml"),
+                        new XAttribute("media-type", "application/xhtml+xml")));
+
+                    // Cover image with consistent ID - properties before href
+                    manifest.Add(new XElement(opfNs + "item",
+                        new XAttribute("id", "cover-image"),
+                        new XAttribute("properties", "cover-image"),
+                        new XAttribute("href", coverInfo.FileName),
+                        new XAttribute("media-type", coverInfo.MimeType)));
+                }
             }
 
             // Chapters
@@ -351,9 +384,14 @@ namespace TinyOPDS
                     new XAttribute("media-type", "application/xhtml+xml")));
             }
 
-            // Images
+            // Images (excluding cover)
+            string coverId = GetCoverImageId();
             foreach (var image in images)
             {
+                // Skip cover image as it's already added
+                if (!string.IsNullOrEmpty(coverId) && image.Id == coverId)
+                    continue;
+
                 manifest.Add(new XElement(opfNs + "item",
                     new XAttribute("id", "img-" + image.Id),
                     new XAttribute("href", image.FileName),
@@ -365,8 +403,18 @@ namespace TinyOPDS
 
         private XElement CreateSpine(List<ChapterInfo> chapters)
         {
-            var spine = new XElement(opfNs + "spine");
+            var spine = new XElement(opfNs + "spine",
+                new XAttribute("toc", "ncx")); // Reference to NCX for EPUB 2
 
+            // Add cover page first with linear="no" like in working example
+            if (HasCover())
+            {
+                spine.Add(new XElement(opfNs + "itemref",
+                    new XAttribute("idref", "cover"),
+                    new XAttribute("linear", "no")));
+            }
+
+            // Then chapters
             for (int i = 0; i < chapters.Count; i++)
             {
                 spine.Add(new XElement(opfNs + "itemref",
@@ -374,6 +422,28 @@ namespace TinyOPDS
             }
 
             return spine;
+        }
+
+        private XElement CreateGuide()
+        {
+            var guide = new XElement(opfNs + "guide");
+
+            // Add cover reference for EPUB 2 compatibility
+            if (HasCover())
+            {
+                guide.Add(new XElement(opfNs + "reference",
+                    new XAttribute("type", "cover"),
+                    new XAttribute("title", "Cover"),
+                    new XAttribute("href", "cover.xhtml")));
+            }
+
+            // Add text reference
+            guide.Add(new XElement(opfNs + "reference",
+                new XAttribute("type", "text"),
+                new XAttribute("title", "Text"),
+                new XAttribute("href", "chapter1.xhtml")));
+
+            return guide;
         }
 
         private void AddNavigation(ZipArchive archive, List<ChapterInfo> chapters)
@@ -392,6 +462,12 @@ namespace TinyOPDS
     <h1>Table of Contents</h1>
     <ol>");
 
+                // Add cover to navigation if exists
+                if (HasCover())
+                {
+                    writer.WriteLine($"      <li><a href=\"cover.xhtml\">Cover</a></li>");
+                }
+
                 for (int i = 0; i < chapters.Count; i++)
                 {
                     writer.WriteLine($"      <li><a href=\"chapter{i + 1}.xhtml\">{EscapeXml(chapters[i].Title)}</a></li>");
@@ -399,6 +475,85 @@ namespace TinyOPDS
 
                 writer.WriteLine(@"    </ol>
   </nav>
+</body>
+</html>");
+            }
+        }
+
+        private void AddNCX(ZipArchive archive, Book book, List<ChapterInfo> chapters)
+        {
+            var entry = archive.CreateEntry("EPUB/toc.ncx");
+            using (var writer = new StreamWriter(entry.Open(), Encoding.UTF8))
+            {
+                string bookId = !string.IsNullOrEmpty(book.ID) ? book.ID : Guid.NewGuid().ToString();
+                string title = GetTitle(book);
+
+                writer.WriteLine(@"<?xml version=""1.0"" encoding=""UTF-8""?>
+<!DOCTYPE ncx PUBLIC ""-//NISO//DTD ncx 2005-1//EN"" ""http://www.daisy.org/z3986/2005/ncx-2005-1.dtd"">
+<ncx xmlns=""http://www.daisy.org/z3986/2005/ncx/"" version=""2005-1"">
+  <head>
+    <meta name=""dtb:uid"" content=""urn:uuid:" + bookId + @"""/>
+    <meta name=""dtb:depth"" content=""1""/>
+    <meta name=""dtb:totalPageCount"" content=""0""/>
+    <meta name=""dtb:maxPageNumber"" content=""0""/>
+  </head>
+  <docTitle>
+    <text>" + EscapeXml(title) + @"</text>
+  </docTitle>
+  <navMap>");
+
+                int playOrder = 1;
+
+                // Add cover to NCX
+                if (HasCover())
+                {
+                    writer.WriteLine(@"    <navPoint id=""navpoint-cover"" playOrder=""" + playOrder++ + @""">
+      <navLabel>
+        <text>Cover</text>
+      </navLabel>
+      <content src=""cover.xhtml""/>
+    </navPoint>");
+                }
+
+                // Add chapters
+                for (int i = 0; i < chapters.Count; i++)
+                {
+                    writer.WriteLine(@"    <navPoint id=""navpoint-" + (i + 1) + @""" playOrder=""" + playOrder++ + @""">
+      <navLabel>
+        <text>" + EscapeXml(chapters[i].Title) + @"</text>
+      </navLabel>
+      <content src=""chapter" + (i + 1) + @".xhtml""/>
+    </navPoint>");
+                }
+
+                writer.WriteLine(@"  </navMap>
+</ncx>");
+            }
+        }
+
+        private void AddCoverPage(ZipArchive archive)
+        {
+            if (!HasCover()) return;
+
+            var coverInfo = GetCoverImageInfo();
+            if (coverInfo == null) return;
+
+            var entry = archive.CreateEntry("EPUB/cover.xhtml");
+            using (var writer = new StreamWriter(entry.Open(), Encoding.UTF8))
+            {
+                // Use simple structure exactly like in the working example
+                writer.Write(@"<?xml version=""1.0"" encoding=""utf-8"" standalone=""no""?>
+<html xmlns=""http://www.w3.org/1999/xhtml"">
+<head>
+  <title>Cover</title>
+  <style type=""text/css"">
+    img { max-width: 100%; }
+  </style>
+</head>
+<body>
+  <div id=""cover-image"">
+    <img src=""" + coverInfo.FileName + @"""/>
+  </div>
 </body>
 </html>");
             }
@@ -445,24 +600,97 @@ namespace TinyOPDS
 
         private void AddCoverImage(ZipArchive archive)
         {
-            if (!HasCover()) return;
+            if (!HasCover())
+            {
+                Log.WriteLine(LogLevel.Warning, "No cover found in FB2");
+                return;
+            }
 
             try
             {
                 var coverData = ExtractCoverData();
-                if (coverData != null && coverData.Length > 0)
+                if (coverData == null || coverData.Length == 0)
                 {
-                    var entry = archive.CreateEntry("EPUB/cover.jpg");
-                    using (var stream = entry.Open())
-                    {
-                        stream.Write(coverData, 0, coverData.Length);
-                    }
+                    Log.WriteLine(LogLevel.Warning, "Cover data is empty or null");
+                    return;
                 }
+
+                Log.WriteLine(LogLevel.Info, "Cover data extracted: {0} bytes", coverData.Length);
+
+                var coverInfo = GetCoverImageInfo();
+                if (coverInfo == null)
+                {
+                    Log.WriteLine(LogLevel.Warning, "Cover info is null");
+                    return;
+                }
+
+                // Add cover image to EPUB
+                var entry = archive.CreateEntry($"EPUB/{coverInfo.FileName}");
+                using (var stream = entry.Open())
+                {
+                    stream.Write(coverData, 0, coverData.Length);
+                }
+
+                Log.WriteLine(LogLevel.Info, "Cover image added as {0}", coverInfo.FileName);
             }
             catch (Exception ex)
             {
-                Log.WriteLine(LogLevel.Warning, "Error adding cover: {0}", ex.Message);
+                Log.WriteLine(LogLevel.Error, "Error adding cover: {0}", ex.Message);
             }
+        }
+
+        private CoverImageInfo GetCoverImageInfo()
+        {
+            if (!HasCover()) return null;
+
+            var titleInfo = fb2Xml.Root?.Element(fb2Ns + "description")?.Element(fb2Ns + "title-info");
+            var coverpage = titleInfo?.Element(fb2Ns + "coverpage");
+            var imageElement = coverpage?.Element(fb2Ns + "image");
+
+            string href = GetImageHref(imageElement);
+            if (string.IsNullOrEmpty(href)) return null;
+
+            href = href.TrimStart('#');
+            var binary = fb2Xml.Root?.Elements(fb2Ns + "binary")
+                .FirstOrDefault(b => b.Attribute("id")?.Value == href);
+
+            if (binary != null)
+            {
+                var contentType = binary.Attribute("content-type")?.Value ?? "image/jpeg";
+
+                // Check if the ID already has an extension
+                string fileName = href;
+                if (!HasImageExtension(fileName))
+                {
+                    fileName = $"{href}.{GetImageExtension(contentType)}";
+                }
+
+                return new CoverImageInfo
+                {
+                    FileName = fileName,
+                    MimeType = GetImageMimeType(contentType),
+                    Extension = GetImageExtension(contentType)
+                };
+            }
+
+            return null;
+        }
+
+        private string GetCoverImageId()
+        {
+            if (!HasCover()) return null;
+
+            var titleInfo = fb2Xml.Root?.Element(fb2Ns + "description")?.Element(fb2Ns + "title-info");
+            var coverpage = titleInfo?.Element(fb2Ns + "coverpage");
+            var imageElement = coverpage?.Element(fb2Ns + "image");
+
+            string href = GetImageHref(imageElement);
+            if (!string.IsNullOrEmpty(href))
+            {
+                return href.TrimStart('#');
+            }
+
+            return null;
         }
 
         private List<ChapterInfo> ExtractChapters()
@@ -557,10 +785,17 @@ namespace TinyOPDS
                         byte[] data = Convert.FromBase64String(binary.Value);
                         if (data.Length > 0)
                         {
+                            // Check if the ID already has an extension
+                            string fileName = id;
+                            if (!HasImageExtension(fileName))
+                            {
+                                fileName = $"{id}.{GetImageExtension(contentType)}";
+                            }
+
                             images.Add(new ImageInfo
                             {
                                 Id = id,
-                                FileName = $"{id}.{GetImageExtension(contentType)}",
+                                FileName = fileName,
                                 MimeType = GetImageMimeType(contentType),
                                 Data = data
                             });
@@ -648,13 +883,17 @@ namespace TinyOPDS
                         break;
 
                     case "image":
-                        string href = child.Attribute(XNamespace.Xml + "href")?.Value ??
-                                     child.Attribute("href")?.Value ?? "";
+                        string href = GetImageHref(child);
                         if (!string.IsNullOrEmpty(href))
                         {
                             href = href.TrimStart('#');
-                            string ext = GetImageExtension("image/jpeg");
-                            html.AppendLine($"<img src=\"{href}.{ext}\" alt=\"\"/>");
+                            // Check if already has extension
+                            if (!HasImageExtension(href))
+                            {
+                                string ext = GetImageExtension("image/jpeg");
+                                href = $"{href}.{ext}";
+                            }
+                            html.AppendLine($"<img src=\"{href}\" alt=\"\"/>");
                         }
                         break;
 
@@ -700,8 +939,9 @@ namespace TinyOPDS
                             break;
 
                         case "a":
-                            string href = elem.Attribute(XNamespace.Xml + "href")?.Value ??
-                                         elem.Attribute("href")?.Value ?? "#";
+                            string href = GetImageHref(elem);
+                            if (string.IsNullOrEmpty(href))
+                                href = "#";
                             sb.Append($"<a href=\"{EscapeXml(href)}\">{ProcessInline(elem)}</a>");
                             break;
 
@@ -722,13 +962,17 @@ namespace TinyOPDS
                             break;
 
                         case "image":
-                            string imgHref = elem.Attribute(XNamespace.Xml + "href")?.Value ??
-                                           elem.Attribute("href")?.Value ?? "";
+                            string imgHref = GetImageHref(elem);
                             if (!string.IsNullOrEmpty(imgHref))
                             {
                                 imgHref = imgHref.TrimStart('#');
-                                string ext = GetImageExtension("image/jpeg");
-                                sb.Append($"<img src=\"{imgHref}.{ext}\" alt=\"\" style=\"display:inline;\"/>");
+                                // Check if already has extension
+                                if (!HasImageExtension(imgHref))
+                                {
+                                    string ext = GetImageExtension("image/jpeg");
+                                    imgHref = $"{imgHref}.{ext}";
+                                }
+                                sb.Append($"<img src=\"{imgHref}\" alt=\"\" style=\"display:inline;\"/>");
                             }
                             break;
 
@@ -740,6 +984,30 @@ namespace TinyOPDS
             }
 
             return sb.ToString();
+        }
+
+        private string GetImageHref(XElement element)
+        {
+            if (element == null) return null;
+
+            // Try different attribute names used in FB2
+            string href = element.Attribute(xlinkNs + "href")?.Value ??       // xlink:href
+                         element.Attribute(XNamespace.Xml + "href")?.Value ?? // xml:href
+                         element.Attribute("href")?.Value ??                  // plain href
+                         element.Attributes()
+                            .FirstOrDefault(a => a.Name.LocalName == "href")?.Value; // l:href or any namespace
+
+            return href;
+        }
+
+        private bool HasImageExtension(string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName)) return false;
+
+            string lower = fileName.ToLower();
+            return lower.EndsWith(".jpg") || lower.EndsWith(".jpeg") ||
+                   lower.EndsWith(".png") || lower.EndsWith(".gif") ||
+                   lower.EndsWith(".svg") || lower.EndsWith(".webp");
         }
 
         private string GetText(XElement element)
@@ -798,9 +1066,7 @@ namespace TinyOPDS
             var imageElement = coverpage.Element(fb2Ns + "image");
             if (imageElement == null) return false;
 
-            string href = imageElement.Attribute(XNamespace.Xml + "href")?.Value ??
-                         imageElement.Attribute("href")?.Value;
-
+            string href = GetImageHref(imageElement);
             if (string.IsNullOrEmpty(href)) return false;
 
             // Check if binary with this ID exists
@@ -819,9 +1085,7 @@ namespace TinyOPDS
             var coverpage = titleInfo?.Element(fb2Ns + "coverpage");
             var imageElement = coverpage?.Element(fb2Ns + "image");
 
-            string href = imageElement?.Attribute(XNamespace.Xml + "href")?.Value ??
-                         imageElement?.Attribute("href")?.Value;
-
+            string href = GetImageHref(imageElement);
             if (string.IsNullOrEmpty(href)) return null;
 
             href = href.TrimStart('#');
@@ -887,6 +1151,13 @@ namespace TinyOPDS
             public string FileName { get; set; }
             public string MimeType { get; set; }
             public byte[] Data { get; set; }
+        }
+
+        private class CoverImageInfo
+        {
+            public string FileName { get; set; }
+            public string MimeType { get; set; }
+            public string Extension { get; set; }
         }
     }
 }

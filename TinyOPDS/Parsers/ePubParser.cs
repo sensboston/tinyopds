@@ -5,216 +5,276 @@
  * Copyright (c) 2013-2025 SeNSSoFT
  * SPDX-License-Identifier: MIT
  *
- * ePub parser implementation (based on EpubSharp) - FIXED for duplicate ID issues
+ * Native EPUB parser without external dependencies
  *
  */
 
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
+using System.Xml.Linq;
 using System.Drawing;
+using System.Net;
 
 using TinyOPDS.Data;
-using EpubSharp;
 
 namespace TinyOPDS.Parsers
 {
     public class ePubParser : BookParser
     {
+        private readonly XNamespace opfNs = "http://www.idpf.org/2007/opf";
+        private readonly XNamespace dcNs = "http://purl.org/dc/elements/1.1/";
+        private readonly XNamespace containerNs = "urn:oasis:names:tc:opendocument:xmlns:container";
+
         /// <summary>
         /// Parse EPUB book and normalize author names to standard format
-        /// MODIFIED: Always generates unique ID to avoid conflicts
         /// </summary>
-        /// <param name="stream"></param>
-        /// <param name="fileName"></param>
-        /// <returns></returns>
         public override Book Parse(Stream stream, string fileName)
         {
             Book book = new Book(fileName);
+
             try
             {
                 book.DocumentSize = (UInt32)stream.Length;
 
-                // Convert stream to byte array as EpubReader.Read doesn't accept Stream directly
-                stream.Position = 0;
-                byte[] epubData = new byte[stream.Length];
-                stream.Read(epubData, 0, epubData.Length);
-
-                EpubBook epub = EpubReader.Read(epubData);
-
-                // MODIFIED: Always generate unique ID to avoid conflicts
-                var identifiers = epub.Format.Opf.Metadata.Identifiers;
-                string originalID = identifiers?.FirstOrDefault()?.Text;
-
-                // ALWAYS generate new unique ID for our database
-                book.ID = Guid.NewGuid().ToString();
-
-                // Never trust EPUB IDs as they can be duplicated or missing
-                book.DocumentIDTrusted = false;
-
-                // MODIFIED: Accept any valid date for BookDate (no year restrictions)
-                var dates = epub.Format.Opf.Metadata.Dates;
-                if (dates?.Count > 0)
+                using (var archive = new ZipArchive(stream, ZipArchiveMode.Read, true))
                 {
-                    try
+                    // Find and read package.opf
+                    string opfPath = FindPackageOpf(archive);
+                    if (string.IsNullOrEmpty(opfPath))
                     {
-                        book.BookDate = DateTime.Parse(dates.First().Text);
-
-                        // Only validate that it's a reasonable date for storage
-                        if (book.BookDate < new DateTime(1, 1, 1) ||
-                            book.BookDate > new DateTime(9999, 12, 31))
-                        {
-                            book.BookDate = DateTime.Now;
-                        }
+                        Log.WriteLine(LogLevel.Error, "Could not find package.opf in {0}", fileName);
+                        return book;
                     }
-                    catch
+
+                    var opfEntry = archive.GetEntry(opfPath);
+                    if (opfEntry == null)
                     {
-                        // Try parsing as year only
-                        int year;
-                        if (int.TryParse(dates.First().Text, out year))
-                        {
-                            try
-                            {
-                                // Accept any year that DateTime can handle
-                                if (year >= 1 && year <= 9999)
-                                {
-                                    book.BookDate = new DateTime(year, 1, 1);
-                                }
-                                else
-                                {
-                                    book.BookDate = DateTime.Now;
-                                }
-                            }
-                            catch
-                            {
-                                book.BookDate = DateTime.Now;
-                            }
-                        }
-                        else
-                        {
-                            book.BookDate = DateTime.Now;
-                        }
+                        Log.WriteLine(LogLevel.Error, "Could not read package.opf from {0}", fileName);
+                        return book;
                     }
-                }
 
-                book.Title = epub.Title ?? fileName;
-                book.Authors = new List<string>();
-
-                // Process and normalize author names for EPUB
-                if (epub.Authors != null)
-                {
-                    foreach (var author in epub.Authors)
+                    XDocument opfDoc;
+                    using (var opfStream = opfEntry.Open())
                     {
-                        string normalizedAuthor = NormalizeAuthorName(author);
-                        if (!string.IsNullOrEmpty(normalizedAuthor))
-                        {
-                            book.Authors.Add(normalizedAuthor);
-                        }
+                        opfDoc = XDocument.Load(opfStream);
                     }
+
+                    // Parse metadata
+                    ParseMetadata(opfDoc, book);
+
+                    // Always generate unique ID to avoid conflicts
+                    book.ID = Guid.NewGuid().ToString();
+                    book.DocumentIDTrusted = false;
                 }
-
-                // Handle genres/subjects
-                var subjects = epub.Format.Opf.Metadata.Subjects?.ToList() ?? new List<string>();
-                book.Genres = LookupGenres(subjects);
-
-                // Handle description
-                if (epub.Format.Opf.Metadata.Descriptions?.Count > 0)
-                {
-                    book.Annotation = CleanHtmlFromDescription(epub.Format.Opf.Metadata.Descriptions.First());
-                }
-
-                // Handle language
-                if (epub.Format.Opf.Metadata.Languages?.Count > 0)
-                    book.Language = epub.Format.Opf.Metadata.Languages.First();
-
-                // Handle series information
-                ExtractSeriesInfo(epub, book);
             }
             catch (Exception e)
             {
-                Log.WriteLine(LogLevel.Error, "exception {0}", e.Message);
+                Log.WriteLine(LogLevel.Error, "Error parsing EPUB {0}: {1}", fileName, e.Message);
             }
+
             return book;
         }
 
         /// <summary>
-        /// Extract series information from EPUB metadata
-        /// Supports calibre:series format (most common)
+        /// Find package.opf path from container.xml
         /// </summary>
-        /// <param name="epub">EPUB book object</param>
-        /// <param name="book">Book object to populate with series info</param>
-        private void ExtractSeriesInfo(EpubBook epub, Book book)
+        private string FindPackageOpf(ZipArchive archive)
+        {
+            var containerEntry = archive.GetEntry("META-INF/container.xml");
+            if (containerEntry == null)
+                return null;
+
+            try
+            {
+                using (var stream = containerEntry.Open())
+                {
+                    var containerDoc = XDocument.Load(stream);
+                    var rootfile = containerDoc.Descendants(containerNs + "rootfile").FirstOrDefault();
+                    return rootfile?.Attribute("full-path")?.Value;
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error reading container.xml: {0}", ex.Message);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Parse metadata from package.opf
+        /// </summary>
+        private void ParseMetadata(XDocument opfDoc, Book book)
+        {
+            var metadata = opfDoc.Root?.Element(opfNs + "metadata");
+            if (metadata == null) return;
+
+            // Title
+            var title = metadata.Element(dcNs + "title")?.Value;
+            book.Title = !string.IsNullOrEmpty(title) ? title : book.FileName;
+
+            // Authors
+            book.Authors = new List<string>();
+            var creators = metadata.Elements(dcNs + "creator");
+            foreach (var creator in creators)
+            {
+                string authorName = creator.Value;
+                if (!string.IsNullOrEmpty(authorName))
+                {
+                    string normalized = NormalizeAuthorName(authorName);
+                    if (!string.IsNullOrEmpty(normalized))
+                        book.Authors.Add(normalized);
+                }
+            }
+
+            // Language
+            var language = metadata.Element(dcNs + "language")?.Value;
+            if (!string.IsNullOrEmpty(language))
+                book.Language = language;
+
+            // Date
+            ParseDate(metadata, book);
+
+            // Description/Annotation
+            var description = metadata.Element(dcNs + "description")?.Value;
+            if (!string.IsNullOrEmpty(description))
+                book.Annotation = CleanHtmlFromDescription(description);
+
+            // Subjects/Genres
+            var subjects = metadata.Elements(dcNs + "subject").Select(s => s.Value).ToList();
+            book.Genres = LookupGenres(subjects);
+
+            // Series information
+            ParseSeriesInfo(metadata, book);
+        }
+
+        /// <summary>
+        /// Parse date from metadata
+        /// </summary>
+        private void ParseDate(XElement metadata, Book book)
+        {
+            var dateElement = metadata.Element(dcNs + "date");
+            if (dateElement == null)
+            {
+                book.BookDate = DateTime.Now;
+                return;
+            }
+
+            string dateText = dateElement.Value;
+            if (string.IsNullOrEmpty(dateText))
+            {
+                book.BookDate = DateTime.Now;
+                return;
+            }
+
+            try
+            {
+                // Try full date parse
+                book.BookDate = DateTime.Parse(dateText);
+
+                // Validate date range
+                if (book.BookDate < new DateTime(1, 1, 1) ||
+                    book.BookDate > new DateTime(9999, 12, 31))
+                {
+                    book.BookDate = DateTime.Now;
+                }
+            }
+            catch
+            {
+                // Try year-only parse
+                if (int.TryParse(dateText.Substring(0, Math.Min(4, dateText.Length)), out int year))
+                {
+                    if (year >= 1 && year <= 9999)
+                    {
+                        book.BookDate = new DateTime(year, 1, 1);
+                    }
+                    else
+                    {
+                        book.BookDate = DateTime.Now;
+                    }
+                }
+                else
+                {
+                    book.BookDate = DateTime.Now;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Parse series information from metadata
+        /// </summary>
+        private void ParseSeriesInfo(XElement metadata, Book book)
         {
             try
             {
-                // Try to get series from metadata
-                if (epub.Format?.Opf?.Metadata?.Metas != null)
+                string seriesName = null;
+                uint seriesIndex = 0;
+
+                // Look for meta elements
+                var metas = metadata.Elements(opfNs + "meta");
+
+                foreach (var meta in metas)
                 {
-                    string seriesName = null;
-                    uint seriesIndex = 0;
+                    // Check for calibre format
+                    var nameAttr = meta.Attribute("name")?.Value;
+                    var contentAttr = meta.Attribute("content")?.Value;
 
-                    // Look through all meta tags for series information
-                    foreach (var meta in epub.Format.Opf.Metadata.Metas)
+                    if (!string.IsNullOrEmpty(nameAttr))
                     {
-                        // Check Name property for calibre format
-                        if (!string.IsNullOrEmpty(meta.Name))
+                        if (nameAttr.Equals("calibre:series", StringComparison.OrdinalIgnoreCase))
                         {
-                            if (meta.Name.Equals("calibre:series", StringComparison.OrdinalIgnoreCase))
-                            {
-                                // The series name should be in Text or Scheme property
-                                seriesName = meta.Text ?? meta.Scheme;
-                            }
-                            else if (meta.Name.Equals("calibre:series_index", StringComparison.OrdinalIgnoreCase))
-                            {
-                                string indexStr = meta.Text ?? meta.Scheme;
-                                if (!string.IsNullOrEmpty(indexStr))
-                                {
-                                    uint.TryParse(indexStr, out seriesIndex);
-                                }
-                            }
+                            seriesName = contentAttr;
                         }
-
-                        // Also check Property for EPUB 3 format
-                        if (!string.IsNullOrEmpty(meta.Property))
+                        else if (nameAttr.Equals("calibre:series_index", StringComparison.OrdinalIgnoreCase))
                         {
-                            if (meta.Property.Equals("belongs-to-collection", StringComparison.OrdinalIgnoreCase))
+                            if (!string.IsNullOrEmpty(contentAttr))
                             {
-                                seriesName = meta.Text ?? meta.Scheme;
-                            }
-                            else if (meta.Property.Equals("group-position", StringComparison.OrdinalIgnoreCase))
-                            {
-                                string posStr = meta.Text ?? meta.Scheme;
-                                if (!string.IsNullOrEmpty(posStr))
+                                if (float.TryParse(contentAttr, out float index))
                                 {
-                                    uint.TryParse(posStr, out seriesIndex);
+                                    seriesIndex = (uint)index;
                                 }
                             }
                         }
                     }
 
-                    // Set the series information if found
-                    if (!string.IsNullOrEmpty(seriesName))
+                    // Check for EPUB 3 format
+                    var propertyAttr = meta.Attribute("property")?.Value;
+                    if (!string.IsNullOrEmpty(propertyAttr))
                     {
-                        book.Sequence = seriesName.Trim();
-                        book.NumberInSequence = seriesIndex;
-
-                        Log.WriteLine(LogLevel.Info, "Found series: {0} #{1}", book.Sequence, book.NumberInSequence);
+                        if (propertyAttr.Equals("belongs-to-collection", StringComparison.OrdinalIgnoreCase))
+                        {
+                            seriesName = meta.Value;
+                        }
+                        else if (propertyAttr.Equals("group-position", StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (uint.TryParse(meta.Value, out uint pos))
+                            {
+                                seriesIndex = pos;
+                            }
+                        }
                     }
                 }
+
+                // Set series info if found
+                if (!string.IsNullOrEmpty(seriesName))
+                {
+                    book.Sequence = seriesName.Trim();
+                    book.NumberInSequence = seriesIndex;
+                    Log.WriteLine(LogLevel.Info, "Found series: {0} #{1}", book.Sequence, book.NumberInSequence);
+                }
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                Log.WriteLine(LogLevel.Warning, "Error extracting series info: {0}", e.Message);
+                Log.WriteLine(LogLevel.Warning, "Error parsing series info: {0}", ex.Message);
             }
         }
 
         /// <summary>
         /// Normalize EPUB author name to standard "LastName FirstName MiddleName" format
-        /// EPUB authors can come in various formats: "John Smith", "Smith, John", "John Middle Smith"
         /// </summary>
-        /// <param name="authorName">Raw author name from EPUB</param>
-        /// <returns>Normalized author name in "LastName FirstName MiddleName" format</returns>
         private string NormalizeAuthorName(string authorName)
         {
             if (string.IsNullOrEmpty(authorName))
@@ -277,33 +337,33 @@ namespace TinyOPDS.Parsers
         }
 
         /// <summary>
-        /// Clean HTML tags from description for OPDS compatibility
-        /// OPDS clients expect plain text in metadata fields
+        /// Clean HTML tags from description
         /// </summary>
-        /// <param name="htmlDescription">Description that may contain HTML tags</param>
-        /// <returns>Clean text description</returns>
         private string CleanHtmlFromDescription(string htmlDescription)
         {
             if (string.IsNullOrEmpty(htmlDescription))
                 return string.Empty;
 
-            // Remove HTML tags using regex
-            string cleaned = System.Text.RegularExpressions.Regex.Replace(
+            // Remove HTML tags
+            string cleaned = Regex.Replace(
                 htmlDescription,
                 @"<[^>]*>",
                 " ",
-                System.Text.RegularExpressions.RegexOptions.IgnoreCase
+                RegexOptions.IgnoreCase
             );
 
             // Decode HTML entities
-            cleaned = System.Net.WebUtility.HtmlDecode(cleaned);
+            cleaned = WebUtility.HtmlDecode(cleaned);
 
-            // Clean up multiple spaces and trim
-            cleaned = System.Text.RegularExpressions.Regex.Replace(cleaned, @"\s+", " ").Trim();
+            // Clean up multiple spaces
+            cleaned = Regex.Replace(cleaned, @"\s+", " ").Trim();
 
             return cleaned;
         }
 
+        /// <summary>
+        /// Lookup genres based on subjects
+        /// </summary>
         private List<string> LookupGenres(List<string> subjects)
         {
             List<string> genres = new List<string>();
@@ -315,10 +375,17 @@ namespace TinyOPDS.Parsers
             {
                 foreach (string subj in subjects)
                 {
-                    var genre = Library.SoundexedGenres.Where(g => g.Key.StartsWith(subj.SoundexByWord()) && g.Key.WordsCount() <= subj.WordsCount() + 1).FirstOrDefault();
-                    if (genre.Key != null) genres.Add(genre.Value);
+                    var genre = Library.SoundexedGenres
+                        .Where(g => g.Key.StartsWith(subj.SoundexByWord()) &&
+                                   g.Key.WordsCount() <= subj.WordsCount() + 1)
+                        .FirstOrDefault();
+
+                    if (genre.Key != null)
+                        genres.Add(genre.Value);
                 }
-                if (genres.Count < 1) genres.Add("prose");
+
+                if (genres.Count < 1)
+                    genres.Add("prose");
             }
             return genres;
         }
@@ -326,46 +393,52 @@ namespace TinyOPDS.Parsers
         /// <summary>
         /// Get cover image from EPUB file
         /// </summary>
-        /// <param name="stream"></param>
-        /// <param name="fileName"></param>
-        /// <returns></returns>
         public override Image GetCoverImage(Stream stream, string fileName)
         {
             Image image = null;
+
             try
             {
-                // Convert stream to byte array
-                stream.Position = 0;
-                byte[] epubData = new byte[stream.Length];
-                stream.Read(epubData, 0, epubData.Length);
-
-                EpubBook epub = EpubReader.Read(epubData);
-
-                // EpubSharp provides direct access to cover image
-                if (epub.CoverImage != null && epub.CoverImage.Length > 0)
+                using (var archive = new ZipArchive(stream, ZipArchiveMode.Read, true))
                 {
-                    using (MemoryStream memStream = new MemoryStream(epub.CoverImage))
+                    // Try to find cover from manifest
+                    string coverPath = FindCoverPath(archive);
+
+                    if (!string.IsNullOrEmpty(coverPath))
                     {
-                        image = Image.FromStream(memStream);
-                        image = image.Resize(CoverImage.CoverSize);
-                    }
-                }
-                else
-                {
-                    // Fallback: search through images for cover
-                    if (epub.Resources?.Images?.Count > 0)
-                    {
-                        foreach (var imageFile in epub.Resources.Images)
+                        var coverEntry = archive.GetEntry(coverPath);
+                        if (coverEntry != null)
                         {
-                            string imageFileName = imageFile.FileName?.ToLower() ?? string.Empty;
-                            if (imageFileName.Contains("cover"))
+                            using (var coverStream = coverEntry.Open())
+                            using (var memStream = new MemoryStream())
                             {
-                                using (MemoryStream memStream = new MemoryStream(imageFile.Content))
+                                coverStream.CopyTo(memStream);
+                                memStream.Position = 0;
+                                image = Image.FromStream(memStream);
+                                image = image.Resize(CoverImage.CoverSize);
+                            }
+                        }
+                    }
+
+                    // Fallback: search for cover by name
+                    if (image == null)
+                    {
+                        foreach (var entry in archive.Entries)
+                        {
+                            string entryName = entry.Name.ToLower();
+                            if (entryName.Contains("cover") &&
+                                (entryName.EndsWith(".jpg") || entryName.EndsWith(".jpeg") ||
+                                 entryName.EndsWith(".png") || entryName.EndsWith(".gif")))
+                            {
+                                using (var coverStream = entry.Open())
+                                using (var memStream = new MemoryStream())
                                 {
+                                    coverStream.CopyTo(memStream);
+                                    memStream.Position = 0;
                                     image = Image.FromStream(memStream);
                                     image = image.Resize(CoverImage.CoverSize);
+                                    break;
                                 }
-                                break;
                             }
                         }
                     }
@@ -373,9 +446,117 @@ namespace TinyOPDS.Parsers
             }
             catch (Exception e)
             {
-                Log.WriteLine(LogLevel.Error, "GetCoverImage exception {0}", e.Message);
+                Log.WriteLine(LogLevel.Error, "GetCoverImage exception: {0}", e.Message);
             }
+
             return image;
+        }
+
+        /// <summary>
+        /// Find cover path from package.opf
+        /// </summary>
+        private string FindCoverPath(ZipArchive archive)
+        {
+            try
+            {
+                string opfPath = FindPackageOpf(archive);
+                if (string.IsNullOrEmpty(opfPath))
+                    return null;
+
+                var opfEntry = archive.GetEntry(opfPath);
+                if (opfEntry == null)
+                    return null;
+
+                XDocument opfDoc;
+                using (var opfStream = opfEntry.Open())
+                {
+                    opfDoc = XDocument.Load(opfStream);
+                }
+
+                // Get OPF directory for relative paths
+                string opfDir = Path.GetDirectoryName(opfPath)?.Replace('\\', '/') ?? "";
+                if (!string.IsNullOrEmpty(opfDir))
+                    opfDir += "/";
+
+                var manifest = opfDoc.Root?.Element(opfNs + "manifest");
+                if (manifest == null) return null;
+
+                // Look for cover in metadata
+                var metadata = opfDoc.Root?.Element(opfNs + "metadata");
+                if (metadata != null)
+                {
+                    // Find cover meta element
+                    var coverMeta = metadata.Elements(opfNs + "meta")
+                        .Where(m => m.Attribute("name")?.Value == "cover")
+                        .FirstOrDefault();
+
+                    if (coverMeta != null)
+                    {
+                        string coverId = coverMeta.Attribute("content")?.Value;
+                        if (!string.IsNullOrEmpty(coverId))
+                        {
+                            // Find item with this ID in manifest
+                            var coverItem = manifest.Elements(opfNs + "item")
+                                .Where(i => i.Attribute("id")?.Value == coverId)
+                                .FirstOrDefault();
+
+                            if (coverItem != null)
+                            {
+                                string href = coverItem.Attribute("href")?.Value;
+                                if (!string.IsNullOrEmpty(href))
+                                {
+                                    // Handle relative paths
+                                    if (!href.StartsWith("/"))
+                                        href = opfDir + href;
+                                    return href;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Look for cover-image property in manifest
+                var coverImageItem = manifest.Elements(opfNs + "item")
+                    .Where(i => i.Attribute("properties")?.Value?.Contains("cover-image") == true)
+                    .FirstOrDefault();
+
+                if (coverImageItem != null)
+                {
+                    string href = coverImageItem.Attribute("href")?.Value;
+                    if (!string.IsNullOrEmpty(href))
+                    {
+                        if (!href.StartsWith("/"))
+                            href = opfDir + href;
+                        return href;
+                    }
+                }
+
+                // Look for item with id="cover" or id containing "cover"
+                var coverItems = manifest.Elements(opfNs + "item")
+                    .Where(i =>
+                    {
+                        string id = i.Attribute("id")?.Value?.ToLower() ?? "";
+                        string mediaType = i.Attribute("media-type")?.Value ?? "";
+                        return id.Contains("cover") && mediaType.StartsWith("image/");
+                    });
+
+                foreach (var item in coverItems)
+                {
+                    string href = item.Attribute("href")?.Value;
+                    if (!string.IsNullOrEmpty(href))
+                    {
+                        if (!href.StartsWith("/"))
+                            href = opfDir + href;
+                        return href;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Warning, "Error finding cover path: {0}", ex.Message);
+            }
+
+            return null;
         }
     }
 }

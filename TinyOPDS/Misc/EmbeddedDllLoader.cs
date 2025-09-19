@@ -338,7 +338,7 @@ namespace TinyOPDS
         {
             try
             {
-                string[] managedDlls = {"EpubSharp", "FB2Library","System.Data.SQLite"};
+                string[] managedDlls = {"FB2Library","System.Data.SQLite"};
 
                 foreach (string dllName in managedDlls)
                 {

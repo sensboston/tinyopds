@@ -448,7 +448,6 @@ namespace TinyOPDS
         {
             // Setup link labels
             linkLabel3.Links.Add(0, linkLabel3.Text.Length, "https://github.com/wcoder/FB2Library");
-            linkLabel5.Links.Add(0, linkLabel5.Text.Length, "https://github.com/lsmithmier/ePubReader.Portable");
             linkLabel6.Links.Add(0, linkLabel6.Text.Length, "https://github.com/MindTouch/SGMLReader");
 
             // Setup settings controls

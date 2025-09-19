@@ -659,7 +659,7 @@ namespace TinyOPDS.Data
             int score = 0;
 
             // FIRST: Check archive priority for numbered FB2 archives
-            int thisPriority = this.GetArchivePriority();
+            int thisPriority = GetArchivePriority();
             int otherPriority = other.GetArchivePriority();
 
             // If both books are from numbered archives, prefer the one from newer archive
@@ -673,36 +673,36 @@ namespace TinyOPDS.Data
             }
 
             // For books with trusted IDs (from FictionBookEditor)
-            if (this.DocumentIDTrusted && other.DocumentIDTrusted && this.ID == other.ID)
+            if (DocumentIDTrusted && other.DocumentIDTrusted && ID == other.ID)
             {
                 // Compare version numbers - higher weight for version differences
-                if (this.Version > other.Version) score += 5;
-                else if (this.Version < other.Version) score -= 5;
+                if (Version > other.Version) score += 5;
+                else if (Version < other.Version) score -= 5;
 
                 // Compare document dates
-                if (this.DocumentDate > other.DocumentDate.AddDays(1)) score += 2;
-                else if (this.DocumentDate < other.DocumentDate.AddDays(-1)) score -= 2;
+                if (DocumentDate > other.DocumentDate.AddDays(1)) score += 2;
+                else if (DocumentDate < other.DocumentDate.AddDays(-1)) score -= 2;
             }
             else
             {
                 // For books without trusted IDs or different IDs
 
                 // Prefer FB2 over EPUB (more metadata)
-                if (this.BookType == BookType.FB2 && other.BookType == BookType.EPUB) score += 2;
-                else if (this.BookType == BookType.EPUB && other.BookType == BookType.FB2) score -= 2;
+                if (BookType == BookType.FB2 && other.BookType == BookType.EPUB) score += 2;
+                else if (BookType == BookType.EPUB && other.BookType == BookType.FB2) score -= 2;
 
                 // Compare document dates (with tolerance of 1 day)
-                if (this.DocumentDate > other.DocumentDate.AddDays(1)) score += 3;
-                else if (this.DocumentDate < other.DocumentDate.AddDays(-1)) score -= 3;
+                if (DocumentDate > other.DocumentDate.AddDays(1)) score += 3;
+                else if (DocumentDate < other.DocumentDate.AddDays(-1)) score -= 3;
 
                 // Compare file sizes (bigger often means more complete, but only if significant difference)
-                if (this.DocumentSize > other.DocumentSize * 1.2) score += 1;
-                else if (this.DocumentSize < other.DocumentSize * 0.8) score -= 1;
+                if (DocumentSize > other.DocumentSize * 1.2) score += 1;
+                else if (DocumentSize < other.DocumentSize * 0.8) score -= 1;
             }
 
             // Prefer books with trusted IDs
-            if (this.DocumentIDTrusted && !other.DocumentIDTrusted) score += 1;
-            else if (!this.DocumentIDTrusted && other.DocumentIDTrusted) score -= 1;
+            if (DocumentIDTrusted && !other.DocumentIDTrusted) score += 1;
+            else if (!DocumentIDTrusted && other.DocumentIDTrusted) score -= 1;
 
             return score;
         }
@@ -716,26 +716,26 @@ namespace TinyOPDS.Data
             if (other == null) return false;
 
             // Same trusted ID = definite duplicate ONLY if both IDs are trusted
-            if (this.DocumentIDTrusted && other.DocumentIDTrusted && this.ID == other.ID)
+            if (DocumentIDTrusted && other.DocumentIDTrusted && ID == other.ID)
                 return true;
 
             // Same content hash = exact duplicate
-            if (!string.IsNullOrEmpty(this.ContentHash) && this.ContentHash == other.ContentHash)
+            if (!string.IsNullOrEmpty(ContentHash) && ContentHash == other.ContentHash)
                 return true;
 
             // Same duplicate key = likely duplicate, but need to check translators
-            if (!string.IsNullOrEmpty(this.DuplicateKey) && this.DuplicateKey == other.DuplicateKey)
+            if (!string.IsNullOrEmpty(DuplicateKey) && DuplicateKey == other.DuplicateKey)
             {
                 // If both have translators, they must match
-                if (this.Translators?.Count > 0 && other.Translators?.Count > 0)
+                if (Translators?.Count > 0 && other.Translators?.Count > 0)
                 {
-                    var thisTranslators = new HashSet<string>(this.Translators.Select(t => t.ToLowerInvariant()));
+                    var thisTranslators = new HashSet<string>(Translators.Select(t => t.ToLowerInvariant()));
                     var otherTranslators = new HashSet<string>(other.Translators.Select(t => t.ToLowerInvariant()));
                     return thisTranslators.SetEquals(otherTranslators);
                 }
 
                 // If neither has translators, consider duplicate
-                if ((this.Translators == null || this.Translators.Count == 0) &&
+                if ((Translators == null || Translators.Count == 0) &&
                     (other.Translators == null || other.Translators.Count == 0))
                 {
                     return true;

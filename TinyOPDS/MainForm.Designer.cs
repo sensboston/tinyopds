@@ -135,7 +135,6 @@
             this.tabPage4 = new System.Windows.Forms.TabPage();
             this.pictureBox2 = new System.Windows.Forms.PictureBox();
             this.linkLabel6 = new System.Windows.Forms.LinkLabel();
-            this.linkLabel5 = new System.Windows.Forms.LinkLabel();
             this.linkLabel3 = new System.Windows.Forms.LinkLabel();
             this.label20 = new System.Windows.Forms.Label();
             this.label19 = new System.Windows.Forms.Label();
@@ -1418,7 +1417,6 @@
             this.tabPage4.BackColor = System.Drawing.SystemColors.Control;
             this.tabPage4.Controls.Add(this.pictureBox2);
             this.tabPage4.Controls.Add(this.linkLabel6);
-            this.tabPage4.Controls.Add(this.linkLabel5);
             this.tabPage4.Controls.Add(this.linkLabel3);
             this.tabPage4.Controls.Add(this.label20);
             this.tabPage4.Controls.Add(this.label19);
@@ -1451,7 +1449,7 @@
             // linkLabel6
             // 
             this.linkLabel6.AutoSize = true;
-            this.linkLabel6.Location = new System.Drawing.Point(515, 555);
+            this.linkLabel6.Location = new System.Drawing.Point(515, 496);
             this.linkLabel6.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.linkLabel6.Name = "linkLabel6";
             this.linkLabel6.Size = new System.Drawing.Size(323, 32);
@@ -1459,18 +1457,6 @@
             this.linkLabel6.TabStop = true;
             this.linkLabel6.Text = "Authors of SGMLReader";
             this.linkLabel6.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.LinkLabel3_LinkClicked);
-            // 
-            // linkLabel5
-            // 
-            this.linkLabel5.AutoSize = true;
-            this.linkLabel5.Location = new System.Drawing.Point(515, 502);
-            this.linkLabel5.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
-            this.linkLabel5.Name = "linkLabel5";
-            this.linkLabel5.Size = new System.Drawing.Size(381, 32);
-            this.linkLabel5.TabIndex = 12;
-            this.linkLabel5.TabStop = true;
-            this.linkLabel5.Text = "Author of ePubReader library";
-            this.linkLabel5.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.LinkLabel3_LinkClicked);
             // 
             // linkLabel3
             // 
@@ -1729,7 +1715,6 @@
         private System.Windows.Forms.Label label20;
         private System.Windows.Forms.LinkLabel intLink;
         private System.Windows.Forms.LinkLabel extLink;
-        private System.Windows.Forms.LinkLabel linkLabel5;
         private System.Windows.Forms.LinkLabel linkLabel3;
         private System.Windows.Forms.TextBox databaseFileName;
         private System.Windows.Forms.Label label21;

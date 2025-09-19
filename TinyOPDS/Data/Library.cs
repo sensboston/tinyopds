@@ -18,6 +18,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace TinyOPDS.Data
 {
@@ -946,7 +947,16 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Add multiple books in batch - optimized for performance with detailed results
+        /// Add multiple books in batch asynchronously
+        /// </summary>
+        public static async Task<BookRepository.BatchResult> AddBatchAsync(List<Book> books)
+        {
+            return await Task.Run(() => AddBatch(books));
+        }
+
+
+        /// <summary>
+        /// Add multiple books in batch
         /// </summary>
         public static BookRepository.BatchResult AddBatch(List<Book> books)
         {

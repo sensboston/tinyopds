@@ -6,12 +6,14 @@
  * SPDX-License-Identifier: MIT
  *
  * TinyOPDS CLI main thread 
+ * MODIFIED: Added async batch processing support
  *
  */
 
 using System;
 using System.ServiceProcess;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Reflection;
 using System.Diagnostics;
 using System.IO;
@@ -161,7 +163,7 @@ namespace TinyOPDSCLI
                 if (Utils.IsLinux || Environment.UserInteractive)
                 {
                     // Add Ctrl+c handler with proper cleanup
-                    Console.CancelKeyPress += (sender, eventArgs) =>
+                    Console.CancelKeyPress += async (sender, eventArgs) =>
                     {
                         eventArgs.Cancel = true;
                         StopServer();
@@ -169,7 +171,7 @@ namespace TinyOPDSCLI
                         if (scanner != null)
                         {
                             scanner.Stop();
-                            FlushRemainingBooks();
+                            await FlushRemainingBooksAsync();
                             SaveLibrary();
                             Console.WriteLine("\nScanner interruped by user.");
                             Log.WriteLine("Directory scanner stopped");
@@ -475,8 +477,8 @@ namespace TinyOPDSCLI
         {
             try
             {
-                // Flush any remaining books before exit
-                FlushRemainingBooks();
+                // Flush any remaining books before exit - synchronously
+                Task.Run(async () => await FlushRemainingBooksAsync()).Wait();
                 SaveLibrary();
                 Log.WriteLine("Application cleanup completed");
             }
@@ -533,7 +535,7 @@ namespace TinyOPDSCLI
                 // Check if we need to flush the batch
                 if (pendingBooks.Count >= batchSize)
                 {
-                    FlushPendingBooks();
+                    _ = FlushPendingBooksAsync();
                 }
 
                 return true; // For console counting purposes, always return true here
@@ -541,9 +543,9 @@ namespace TinyOPDSCLI
         }
 
         /// <summary>
-        /// Flush pending books to database using batch insert
+        /// Flush pending books to database using batch insert asynchronously
         /// </summary>
-        private static void FlushPendingBooks()
+        private static async Task FlushPendingBooksAsync()
         {
             List<Book> booksToProcess;
 
@@ -557,7 +559,8 @@ namespace TinyOPDSCLI
 
             try
             {
-                var batchResult = Library.AddBatch(booksToProcess);
+                // Process batch asynchronously to avoid blocking
+                var batchResult = await Library.AddBatchAsync(booksToProcess);
 
                 // Update counters based on actual results
                 if (batchResult.Duplicates > 0 || batchResult.Errors > 0)
@@ -610,20 +613,27 @@ namespace TinyOPDSCLI
         }
 
         /// <summary>
-        /// Flush any remaining pending books (call at scan completion)
+        /// Flush any remaining pending books asynchronously (call at scan completion)
         /// </summary>
-        private static void FlushRemainingBooks()
+        private static async Task FlushRemainingBooksAsync()
         {
             lock (batchLock)
             {
                 if (pendingBooks.Count > 0)
                 {
                     Log.WriteLine("Flushing {0} remaining books at scan completion", pendingBooks.Count);
-                    FlushPendingBooks();
-                    TimeSpan dt = DateTime.Now.Subtract(scanStartTime);
-                    Log.WriteLine($"Scan completed, elapsed time {dt:hh\\:mm\\:ss}");
+                }
+                else
+                {
+                    return; // Nothing to flush
                 }
             }
+
+            // Wait for the last batch to complete
+            await FlushPendingBooksAsync();
+
+            TimeSpan dt = DateTime.Now.Subtract(scanStartTime);
+            Log.WriteLine($"Scan completed, elapsed time {dt:hh\\:mm\\:ss}");
         }
 
         /// <summary>
@@ -631,8 +641,8 @@ namespace TinyOPDSCLI
         /// </summary>
         private static void SaveLibrary()
         {
-            // First flush any pending books
-            FlushRemainingBooks();
+            // First flush any remaining books synchronously
+            Task.Run(async () => await FlushRemainingBooksAsync()).Wait();
 
             // Then call the library save (no-op for SQLite, but maintains API compatibility)
             Library.Save();
@@ -899,10 +909,10 @@ namespace TinyOPDSCLI
                 skippedFiles = _e.Count;
                 UpdateInfo();
             };
-            scanner.OnScanCompleted += (_, __) =>
+            scanner.OnScanCompleted += async (_, __) =>
             {
                 // Flush any remaining books at scan completion
-                FlushRemainingBooks();
+                await FlushRemainingBooksAsync();
                 SaveLibrary();
                 UpdateInfo();
 
@@ -919,7 +929,7 @@ namespace TinyOPDSCLI
             while (scanner != null && scanner.Status == FileScannerStatus.SCANNING) Thread.Sleep(500);
 
             // Final flush and save at the end
-            FlushRemainingBooks();
+            Task.Run(async () => await FlushRemainingBooksAsync()).Wait();
             SaveLibrary();
         }
 
@@ -943,7 +953,7 @@ namespace TinyOPDSCLI
             // Force flush every 1000 books to prevent "freezing"
             if (totalProcessed % 1000 == 0)
             {
-                FlushPendingBooks(); // Forced flush every 1000 books
+                _ = FlushPendingBooksAsync(); // Async flush every 1000 books
                 Log.WriteLine("Forced flush at {0} books processed", totalProcessed);
             }
 

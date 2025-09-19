@@ -54,17 +54,7 @@
     <Reference Include="System.Data.SQLite, Version=1.0.114.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=MSIL">
       <HintPath>packages\System.Data.SQLite.Core.FTS5.1.0.114.1\lib\net45\System.Data.SQLite.dll</HintPath>
     </Reference>
-    <Reference Include="SgmlReaderDll, Version=1.8.11.0, Culture=neutral, PublicKeyToken=46b2db9ca481831b, processorArchitecture=MSIL">
-      <HintPath>packages\SgmlReader.1.8.11\lib\4.0\SgmlReaderDll.dll</HintPath>
-    </Reference>
-    <Reference Include="EpubSharp, Version=1.1.5.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\EpubSharp.dll.1.1.5\lib\net451\EpubSharp.dll</HintPath>
-    </Reference>
     <!-- Local Library Reference -->
-    <Reference Include="FB2Library, Version=1.0.22.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>Libs\FB2Library.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <!-- ============== SOURCE CODE FILES ============== -->
   <ItemGroup>
@@ -199,9 +189,6 @@
     <EmbeddedResource Include="Resources\reader\reader-themes.css" />
     <EmbeddedResource Include="Resources\reader\reader.css" />
     <!-- Embedded Libraries -->
-    <EmbeddedResource Include="Libs\FB2Library.dll" />
-    <EmbeddedResource Include="Libs\SgmlReaderDll.dll" />
-    <EmbeddedResource Include="Libs\EpubSharp.dll" />
     <EmbeddedResource Include="Libs\System.Data.SQLite.dll" />
     <EmbeddedResource Include="Libs\x64\SQLite.Interop.dll" />
     <EmbeddedResource Include="Libs\x86\SQLite.Interop.dll" />

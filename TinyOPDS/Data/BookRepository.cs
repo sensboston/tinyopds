@@ -236,7 +236,7 @@ namespace TinyOPDS.Data
 
                 db.BeginTransaction();
 
-                // MODIFIED: Insert book WITHOUT Sequence/NumberInSequence fields
+                // Insert book WITHOUT Sequence/NumberInSequence fields
                 var bookParams = new[]
                 {
                     DatabaseManager.CreateParameter("@ID", book.ID),

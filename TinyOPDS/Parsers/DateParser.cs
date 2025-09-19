@@ -14,7 +14,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using System.IO;
-using FB2Library.Elements;
+using System.Xml.Linq;
 
 namespace TinyOPDS.Parsers
 {
@@ -69,6 +69,49 @@ namespace TinyOPDS.Parsers
         }
 
         /// <summary>
+        /// Parse date from FB2 XML element
+        /// </summary>
+        /// <param name="dateElement">XElement containing date information</param>
+        /// <param name="fileName">File name for fallback date</param>
+        /// <returns>Parsed date</returns>
+        public static DateTime ParseFB2Date(XElement dateElement, string fileName)
+        {
+            if (dateElement == null)
+                return GetFileDate(fileName);
+
+            try
+            {
+                // Try value attribute first (standard FB2 format)
+                var valueAttr = dateElement.Attribute("value")?.Value;
+                if (!string.IsNullOrEmpty(valueAttr))
+                {
+                    // FB2 date value is usually in ISO format
+                    if (DateTime.TryParse(valueAttr, out DateTime dateFromValue))
+                    {
+                        return ValidateDate(dateFromValue, GetFileDate(fileName));
+                    }
+                }
+
+                // Try element text content
+                string dateText = dateElement.Value;
+                if (!string.IsNullOrEmpty(dateText))
+                {
+                    DateTime fallback = GetFileDate(fileName);
+                    return ParseDate(dateText, fallback);
+                }
+
+                // No date found, use file date
+                return GetFileDate(fileName);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Warning, "Could not parse date from FB2 element for {0}: {1}",
+                    fileName, ex.Message);
+                return GetFileDate(fileName);
+            }
+        }
+
+        /// <summary>
         /// Try standard DateTime.Parse with multiple cultures
         /// </summary>
         private static bool TryStandardParse(string dateString, out DateTime result)
@@ -106,7 +149,7 @@ namespace TinyOPDS.Parsers
         /// </summary>
         private static bool TryParseRussianDate(string dateString, out DateTime result)
         {
-            result = default;
+            result = default(DateTime);
 
             // Remove common suffixes
             dateString = dateString.Replace("г.", "").Replace("год", "").Replace("года", "").Trim();
@@ -187,7 +230,7 @@ namespace TinyOPDS.Parsers
         /// </summary>
         private static bool TryParseYearOnly(string dateString, out DateTime result)
         {
-            result = default;
+            result = default(DateTime);
 
             // Extract 4-digit year
             var yearMatch = Regex.Match(dateString, @"\b(\d{4})\b");
@@ -215,13 +258,14 @@ namespace TinyOPDS.Parsers
         /// </summary>
         private static bool TryParseFlexibleFormat(string dateString, out DateTime result)
         {
-            result = default;
+            result = default(DateTime);
 
             // Common date patterns
             string[] patterns = new[]
             {
                 "yyyy-MM-dd", "dd-MM-yyyy", "dd.MM.yyyy", "MM/dd/yyyy", "yyyy/MM/dd",
-                "yyyyMMdd", "dd MMM yyyy","MMM dd, yyyy", "MMMM dd, yyyy", "dd MMMM yyyy"
+                "yyyyMMdd", "dd MMM yyyy", "MMM dd, yyyy", "MMMM dd, yyyy", "dd MMMM yyyy",
+                "yyyy-MM-ddTHH:mm:ss", "yyyy-MM-dd HH:mm:ss", "dd.MM.yyyy HH:mm:ss"
             };
 
             foreach (var pattern in patterns)
@@ -229,6 +273,16 @@ namespace TinyOPDS.Parsers
                 if (DateTime.TryParseExact(dateString, pattern, CultureInfo.InvariantCulture,
                     DateTimeStyles.AllowWhiteSpaces, out result))
                     return true;
+
+                // Try with Russian culture too
+                try
+                {
+                    var ruCulture = new CultureInfo("ru-RU");
+                    if (DateTime.TryParseExact(dateString, pattern, ruCulture,
+                        DateTimeStyles.AllowWhiteSpaces, out result))
+                        return true;
+                }
+                catch { }
             }
 
             return false;
@@ -292,56 +346,6 @@ namespace TinyOPDS.Parsers
             }
 
             return DateTime.Now;
-        }
-
-        /// <summary>
-        /// Safe wrapper for FB2Library date parsing with fallback
-        /// </summary>
-        public static DateTime ParseFB2Date(DateItem dateItem, string fileName)
-        {
-            if (dateItem == null)
-                return GetFileDate(fileName);
-
-            try
-            {
-                // Try FB2Library's built-in parser first
-                DateTime dateValue = dateItem.DateValue;
-
-                // Check if FB2Library returned MinValue (failed to parse)
-                if (dateValue == DateTime.MinValue || dateValue.Year == 1)
-                {
-                    // FB2Library couldn't parse, use our parser
-                    string dateText = dateItem.Text ?? "";
-
-                    if (!string.IsNullOrEmpty(dateText))
-                    {
-                        DateTime fallback = GetFileDate(fileName);
-                        DateTime parsedDate = ParseDate(dateText, fallback);
-                        return parsedDate;
-                    }
-
-                    // No text to parse, use file date
-                    return GetFileDate(fileName);
-                }
-
-                // FB2Library parsed successfully, validate the date
-                return ValidateDate(dateValue, GetFileDate(fileName));
-            }
-            catch (Exception ex)
-            {
-                // Any exception - try to parse text or use file date
-                string dateText = dateItem?.Text ?? "";
-
-                if (!string.IsNullOrEmpty(dateText))
-                {
-                    DateTime fallback = GetFileDate(fileName);
-                    return ParseDate(dateText, fallback);
-                }
-
-                Log.WriteLine(LogLevel.Warning, "Could not parse date from FB2, using file date for {0}: {1}",
-                    fileName, ex.Message);
-                return GetFileDate(fileName);
-            }
         }
     }
 }

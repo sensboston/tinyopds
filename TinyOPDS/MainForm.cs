@@ -25,6 +25,7 @@ using TinyOPDS.Data;
 using TinyOPDS.Scanner;
 using TinyOPDS.Server;
 using TinyOPDS.Properties;
+using System.Threading.Tasks;
 
 namespace TinyOPDS
 {
@@ -312,7 +313,7 @@ namespace TinyOPDS
                 int batchSize = Math.Max(1, Settings.Default.BatchSize);
                 if (pendingBooks.Count >= batchSize)
                 {
-                    FlushPendingBooks();
+                    _ = FlushPendingBooksAsync();
                 }
 
                 return true; // For UI counting purposes, always return true here
@@ -320,9 +321,9 @@ namespace TinyOPDS
         }
 
         /// <summary>
-        /// Flush pending books to database using batch insert
+        /// Flush pending books to database using batch insert asynchronously
         /// </summary>
-        private void FlushPendingBooks()
+        private async Task FlushPendingBooksAsync()
         {
             List<Book> booksToProcess;
 
@@ -336,7 +337,8 @@ namespace TinyOPDS
 
             try
             {
-                var batchResult = Library.AddBatch(booksToProcess);
+                // Process batch asynchronously to avoid blocking UI thread
+                var batchResult = await Library.AddBatchAsync(booksToProcess);
 
                 // Update counters based on actual results
                 // Note: We subtract what we already counted and add the real results
@@ -394,18 +396,25 @@ namespace TinyOPDS
         /// <summary>
         /// Flush any remaining pending books (call at scan completion)
         /// </summary>
-        private void FlushRemainingBooks()
+        private async Task FlushRemainingBooksAsync()
         {
             lock (batchLock)
             {
                 if (pendingBooks.Count > 0)
                 {
                     Log.WriteLine("Flushing {0} remaining books at scan completion", pendingBooks.Count);
-                    FlushPendingBooks();
-                    TimeSpan dt = DateTime.Now.Subtract(scanStartTime);
-                    Log.WriteLine($"Scan completed, elapsed time {dt:hh\\:mm\\:ss}");
+                }
+                else
+                {
+                    return; // Nothing to flush
                 }
             }
+
+            // Wait for the last batch to complete
+            await FlushPendingBooksAsync();
+
+            TimeSpan dt = DateTime.Now.Subtract(scanStartTime);
+            Log.WriteLine($"Scan completed, elapsed time {dt:hh\\:mm\\:ss}");
         }
 
         /// <summary>
@@ -422,10 +431,10 @@ namespace TinyOPDS
         /// <summary>
         /// Wrapper for Library.Save with SQLite support
         /// </summary>
-        private void SaveLibrary()
+        private async void SaveLibrary()
         {
             // First flush any pending books
-            FlushRemainingBooks();
+            await FlushRemainingBooksAsync();
 
             // Then call the library save (no-op for SQLite, but maintains API compatibility)
             Library.Save();
@@ -447,9 +456,7 @@ namespace TinyOPDS
         private void LoadSettings()
         {
             // Setup link labels
-            linkLabel3.Links.Add(0, linkLabel3.Text.Length, "https://github.com/wcoder/FB2Library");
-            linkLabel5.Links.Add(0, linkLabel5.Text.Length, "https://github.com/lsmithmier/ePubReader.Portable");
-            linkLabel6.Links.Add(0, linkLabel6.Text.Length, "https://github.com/MindTouch/SGMLReader");
+            linkLabel6.Links.Add(0, linkLabel6.Text.Length, "https://github.com/rsarov/SQLiteFTS5NET");
 
             // Setup settings controls
             libraryPath.Text = Settings.Default.LibraryPath;
@@ -457,6 +464,10 @@ namespace TinyOPDS
             {
                 databaseFileName.Text = "books.sqlite";
             }
+
+            serverName.TextChanged -= ServerName_TextChanged;
+            serverName.Text = Settings.Default.ServerName ?? "Home library";
+            serverName.TextChanged += ServerName_TextChanged;
 
             appVersion.Text = string.Format(Localizer.Text("version {0}.{1} {2}"), Utils.Version.Major, Utils.Version.Minor, Utils.Version.Major == 0 ? " (beta)" : "");
             filterByLanguage.Checked = Settings.Default.FilterBooksByInterfaceLanguage;
@@ -623,14 +634,16 @@ namespace TinyOPDS
                     skippedFiles = _e.Count;
                     UpdateInfo();
                 };
-                scanner.OnScanCompleted += (_, __) =>
+                scanner.OnScanCompleted += async (_, __) =>
                 {
                     // Flush any remaining books at scan completion
-                    FlushRemainingBooks();
+                    await FlushRemainingBooksAsync();
                     SaveLibrary();
-                    UpdateInfo(true);
-
-                    Log.WriteLine("Directory scanner completed");
+                    BeginInvoke((MethodInvoker)delegate
+                    {
+                        UpdateInfo(true);
+                        Log.WriteLine("Directory scanner completed");
+                    });
                 };
                 fb2Count = epubCount = skippedFiles = invalidFiles = dups = 0;
                 scanStartTime = DateTime.Now;
@@ -644,12 +657,18 @@ namespace TinyOPDS
             {
                 scanner.Stop();
                 // Flush any remaining books when stopping
-                FlushRemainingBooks();
-                SaveLibrary();
-                UpdateInfo(true);
-                scannerButton.Text = Localizer.Text("Start scanning");
+                Task.Run(async () =>
+                {
+                    await FlushRemainingBooksAsync();
+                    SaveLibrary();
 
-                Log.WriteLine("Directory scanner stopped");
+                    BeginInvoke((MethodInvoker)delegate
+                    {
+                        UpdateInfo(true);
+                        scannerButton.Text = Localizer.Text("Start scanning");
+                        Log.WriteLine("Directory scanner stopped");
+                    });
+                });
             }
         }
 
@@ -696,7 +715,7 @@ namespace TinyOPDS
 
             TimeSpan dt = DateTime.Now.Subtract(scanStartTime);
             elapsedTime.Text = dt.ToString(@"hh\:mm\:ss");
-            rate.Text = (dt.TotalSeconds) > 0 ? string.Format("{0:0.} books/min", totalProcessed / dt.TotalSeconds * 60) : "---";
+            rate.Text = (dt.TotalSeconds) > 0 ? string.Format(Localizer.Text("{0} books/min"), (int)(totalProcessed / dt.TotalSeconds * 60)) : "---";
             if (scannerButton.Enabled)
             {
                 status.Text = IsScanFinished ? Localizer.Text("FINISHED") : (scanner.Status == FileScannerStatus.SCANNING ? Localizer.Text("SCANNING") : Localizer.Text("STOPPED"));

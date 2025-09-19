@@ -128,7 +128,12 @@ namespace TinyOPDS
             bs.DataSource = HttpProcessor.Credentials;
             dataGridView1.DataSource = bs;
             bs.CurrentItemChanged += Bs_CurrentItemChanged;
-            foreach (DataGridViewColumn col in dataGridView1.Columns) col.Width = 180;
+            dataGridView1.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            foreach (DataGridViewColumn col in dataGridView1.Columns)
+            {
+                col.MinimumWidth = 100;
+                col.FillWeight = 100;
+            }
 
             Library.LibraryPath = Settings.Default.LibraryPath.SanitizePathName();
 

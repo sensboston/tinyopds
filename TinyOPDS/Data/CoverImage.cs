@@ -29,7 +29,7 @@ namespace TinyOPDS.Data
     {
         // Backward-compatible public sizes
         public static readonly Size CoverSize = new Size(240, 400);
-        public static readonly Size ThumbnailSize = new Size(48, 80);
+        public static readonly Size ThumbnailSize = new Size(96, 160);
 
         // Internal design size for default cover
         public static readonly Size DefaultDesignSize = new Size(480, 800);

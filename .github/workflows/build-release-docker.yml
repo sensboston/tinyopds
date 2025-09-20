@@ -1,0 +1,204 @@
+﻿name: Build, Release & Docker (CLI + GUI)
+
+on:
+  workflow_dispatch: {}   # allows manual run
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+        with:
+          nuget-version: 'latest'
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Restore NuGet (TinyOPDS)
+        run: nuget restore TinyOPDS\TinyOPDS.csproj -PackagesDirectory TinyOPDS\packages
+
+      - name: Restore NuGet (TinyOPDSCLI)
+        run: nuget restore TinyOPDSCLI\TinyOPDSCLI.csproj -PackagesDirectory TinyOPDS\packages
+
+      - name: Build solution
+        run: msbuild TinyOPDS.sln /p:Configuration=Release /p:Platform="Any CPU" /m
+
+      - name: Upload release assets to main release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            TinyOPDS/bin/Release/TinyOPDS.exe
+            TinyOPDSCLI/bin/Release/TinyOPDSCLI.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare artifacts for Docker
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path docker-artifacts
+          Copy-Item TinyOPDS\bin\Release\TinyOPDS.exe docker-artifacts\
+          Copy-Item TinyOPDSCLI\bin\Release\TinyOPDSCLI.exe docker-artifacts\
+
+      - name: Upload artifacts for Docker job
+        uses: actions/upload-artifact@v4
+        with:
+          name: tinyopds-binaries
+          path: docker-artifacts/*
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: tinyopds-binaries
+          path: docker/app
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            VERSION="${{ github.event.release.tag_name }}"
+          else
+            VERSION="dev-$(date +%Y%m%d)-${GITHUB_SHA::7}"
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Version: ${VERSION}"
+
+      - name: Metadata (CLI)
+        id: meta_cli
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/tinyopds-cli
+          tags: |
+            type=raw,value=latest,enable=${{ github.event_name == 'release' && !github.event.release.prerelease }}
+            type=raw,value=dev,enable=${{ github.event_name != 'release' }}
+            type=raw,value=${{ steps.version.outputs.version }}
+
+      - name: Build & Push (CLI)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./docker
+          file: ./docker/Dockerfile
+          target: cli
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta_cli.outputs.tags }}
+          labels: ${{ steps.meta_cli.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Metadata (GUI)
+        id: meta_gui
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/tinyopds
+          tags: |
+            type=raw,value=latest,enable=${{ github.event_name == 'release' && !github.event.release.prerelease }}
+            type=raw,value=dev,enable=${{ github.event_name != 'release' }}
+            type=raw,value=${{ steps.version.outputs.version }}
+
+      - name: Build & Push (GUI)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./docker
+          file: ./docker/Dockerfile
+          target: gui
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta_gui.outputs.tags }}
+          labels: ${{ steps.meta_gui.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Prepare docker release notes
+        id: notes
+        if: github.event_name == 'release'
+        shell: bash
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          VERSION="${TAG#v}"
+          OWNER="${{ github.repository_owner }}"
+          CLI_IMG="ghcr.io/${OWNER}/tinyopds-cli:${VERSION}"
+          GUI_IMG="ghcr.io/${OWNER}/tinyopds:${VERSION}"
+
+          mkdir -p docker/out
+          cat > docker/out/DOCKER_RELEASE_NOTES.md <<EOF
+# TinyOPDS ${VERSION} Docker Images
+
+Two Docker images are published:
+
+## 1. CLI (headless) — \`${CLI_IMG}\`
+   
+Command-line version for servers and automation.
+
+Usage example:
+\`\`\`bash
+docker run --rm -d \
+  --name tinyopds-cli \
+  -p 8080:8080 \
+  -v ~/Books:/data \
+  ghcr.io/${OWNER}/tinyopds-cli:${VERSION} \
+  --library=/data --port=8080
+\`\`\`
+
+## 2. GUI (with noVNC) — \`${GUI_IMG}\`
+   
+Full WinForms interface accessible via browser.
+
+Ports:
+- 80/8080 - OPDS service
+- 6080 - Web GUI (noVNC)
+
+Usage example:
+\`\`\`bash
+docker run --rm -d \
+  --name tinyopds \
+  -p 8080:8080 -p 80:80 -p 6080:6080 \
+  -v ~/Books:/data \
+  ghcr.io/${OWNER}/tinyopds:${VERSION}
+\`\`\`
+
+Then open http://localhost:6080 in your browser.
+
+Both images support multi-architecture (linux/amd64, linux/arm64) and work on Apple Silicon.
+EOF
+
+      - name: Create separate docker release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ format('{0}-docker', github.event.release.tag_name) }}
+          name: ${{ format('{0} (Docker Images)', github.event.release.name) }}
+          target_commitish: ${{ github.sha }}
+          body_path: docker/out/DOCKER_RELEASE_NOTES.md
+          draft: false
+          prerelease: ${{ github.event.release.prerelease }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

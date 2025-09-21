@@ -232,7 +232,7 @@
             this.databaseFileName.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.databaseFileName.Name = "databaseFileName";
             this.databaseFileName.ReadOnly = true;
-            this.databaseFileName.Size = new System.Drawing.Size(916, 38);
+            this.databaseFileName.Size = new System.Drawing.Size(953, 38);
             this.databaseFileName.TabIndex = 32;
             // 
             // label21
@@ -247,13 +247,12 @@
             // 
             // useWatcher
             // 
-            this.useWatcher.AutoSize = true;
             this.useWatcher.Checked = global::TinyOPDS.Properties.Settings.Default.WatchLibrary;
             this.useWatcher.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "WatchLibrary", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.useWatcher.Location = new System.Drawing.Point(877, 88);
+            this.useWatcher.Location = new System.Drawing.Point(874, 88);
             this.useWatcher.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.useWatcher.Name = "useWatcher";
-            this.useWatcher.Size = new System.Drawing.Size(262, 36);
+            this.useWatcher.Size = new System.Drawing.Size(412, 36);
             this.useWatcher.TabIndex = 30;
             this.useWatcher.Text = "Monitor changes";
             this.useWatcher.UseVisualStyleBackColor = true;
@@ -261,7 +260,6 @@
             // 
             // duplicates
             // 
-            this.duplicates.AutoSize = true;
             this.duplicates.Location = new System.Drawing.Point(328, 546);
             this.duplicates.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.duplicates.MinimumSize = new System.Drawing.Size(133, 0);
@@ -292,12 +290,11 @@
             // 
             // status
             // 
-            this.status.AutoSize = true;
             this.status.Location = new System.Drawing.Point(1034, 546);
             this.status.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.status.MinimumSize = new System.Drawing.Size(133, 0);
             this.status.Name = "status";
-            this.status.Size = new System.Drawing.Size(149, 32);
+            this.status.Size = new System.Drawing.Size(252, 32);
             this.status.TabIndex = 26;
             this.status.Text = "STOPPED";
             // 
@@ -313,12 +310,11 @@
             // 
             // rate
             // 
-            this.rate.AutoSize = true;
             this.rate.Location = new System.Drawing.Point(1034, 475);
             this.rate.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.rate.MinimumSize = new System.Drawing.Size(133, 0);
             this.rate.Name = "rate";
-            this.rate.Size = new System.Drawing.Size(167, 32);
+            this.rate.Size = new System.Drawing.Size(252, 32);
             this.rate.TabIndex = 24;
             this.rate.Text = "0 books/min";
             // 
@@ -334,12 +330,11 @@
             // 
             // elapsedTime
             // 
-            this.elapsedTime.AutoSize = true;
             this.elapsedTime.Location = new System.Drawing.Point(1034, 403);
             this.elapsedTime.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.elapsedTime.MinimumSize = new System.Drawing.Size(133, 0);
             this.elapsedTime.Name = "elapsedTime";
-            this.elapsedTime.Size = new System.Drawing.Size(133, 32);
+            this.elapsedTime.Size = new System.Drawing.Size(252, 32);
             this.elapsedTime.TabIndex = 22;
             this.elapsedTime.Text = "00:00:00";
             // 
@@ -355,12 +350,11 @@
             // 
             // startTime
             // 
-            this.startTime.AutoSize = true;
             this.startTime.Location = new System.Drawing.Point(1034, 331);
             this.startTime.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.startTime.MinimumSize = new System.Drawing.Size(133, 0);
             this.startTime.Name = "startTime";
-            this.startTime.Size = new System.Drawing.Size(133, 32);
+            this.startTime.Size = new System.Drawing.Size(252, 32);
             this.startTime.TabIndex = 20;
             this.startTime.Text = "00:00:00";
             // 
@@ -376,7 +370,6 @@
             // 
             // booksProcessed
             // 
-            this.booksProcessed.AutoSize = true;
             this.booksProcessed.Location = new System.Drawing.Point(328, 620);
             this.booksProcessed.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.booksProcessed.MinimumSize = new System.Drawing.Size(133, 0);
@@ -397,7 +390,6 @@
             // 
             // invalidBooks
             // 
-            this.invalidBooks.AutoSize = true;
             this.invalidBooks.Location = new System.Drawing.Point(328, 403);
             this.invalidBooks.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.invalidBooks.MinimumSize = new System.Drawing.Size(133, 0);
@@ -418,7 +410,6 @@
             // 
             // skippedBooks
             // 
-            this.skippedBooks.AutoSize = true;
             this.skippedBooks.Location = new System.Drawing.Point(328, 475);
             this.skippedBooks.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.skippedBooks.MinimumSize = new System.Drawing.Size(133, 0);
@@ -439,7 +430,6 @@
             // 
             // booksFound
             // 
-            this.booksFound.AutoSize = true;
             this.booksFound.Location = new System.Drawing.Point(328, 331);
             this.booksFound.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.booksFound.MinimumSize = new System.Drawing.Size(341, 0);
@@ -450,7 +440,6 @@
             // 
             // booksInDB
             // 
-            this.booksInDB.AutoSize = true;
             this.booksInDB.Location = new System.Drawing.Point(328, 253);
             this.booksInDB.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.booksInDB.MinimumSize = new System.Drawing.Size(501, 0);
@@ -496,7 +485,7 @@
             this.scannerButton.Location = new System.Drawing.Point(749, 620);
             this.scannerButton.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.scannerButton.Name = "scannerButton";
-            this.scannerButton.Size = new System.Drawing.Size(507, 95);
+            this.scannerButton.Size = new System.Drawing.Size(537, 95);
             this.scannerButton.TabIndex = 7;
             this.scannerButton.Text = "Start scanning";
             this.scannerButton.UseVisualStyleBackColor = true;
@@ -545,7 +534,7 @@
             this.tabPage2.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.tabPage2.Name = "tabPage2";
             this.tabPage2.Padding = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.tabPage2.Size = new System.Drawing.Size(1343, 789);
+            this.tabPage2.Size = new System.Drawing.Size(1343, 797);
             this.tabPage2.TabIndex = 1;
             this.tabPage2.Text = "Server";
             // 
@@ -614,11 +603,10 @@
             // 
             // statUniqueClients
             // 
-            this.statUniqueClients.AutoSize = true;
             this.statUniqueClients.Location = new System.Drawing.Point(376, 472);
             this.statUniqueClients.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.statUniqueClients.Name = "statUniqueClients";
-            this.statUniqueClients.Size = new System.Drawing.Size(30, 32);
+            this.statUniqueClients.Size = new System.Drawing.Size(191, 32);
             this.statUniqueClients.TabIndex = 45;
             this.statUniqueClients.Text = "0";
             // 
@@ -634,11 +622,10 @@
             // 
             // statImages
             // 
-            this.statImages.AutoSize = true;
             this.statImages.Location = new System.Drawing.Point(1085, 551);
             this.statImages.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.statImages.Name = "statImages";
-            this.statImages.Size = new System.Drawing.Size(30, 32);
+            this.statImages.Size = new System.Drawing.Size(197, 32);
             this.statImages.TabIndex = 43;
             this.statImages.Text = "0";
             // 
@@ -654,11 +641,10 @@
             // 
             // statBooks
             // 
-            this.statBooks.AutoSize = true;
             this.statBooks.Location = new System.Drawing.Point(376, 551);
             this.statBooks.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.statBooks.Name = "statBooks";
-            this.statBooks.Size = new System.Drawing.Size(30, 32);
+            this.statBooks.Size = new System.Drawing.Size(191, 32);
             this.statBooks.TabIndex = 41;
             this.statBooks.Text = "0";
             // 
@@ -674,11 +660,10 @@
             // 
             // statRequests
             // 
-            this.statRequests.AutoSize = true;
             this.statRequests.Location = new System.Drawing.Point(1085, 472);
             this.statRequests.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.statRequests.Name = "statRequests";
-            this.statRequests.Size = new System.Drawing.Size(30, 32);
+            this.statRequests.Size = new System.Drawing.Size(197, 32);
             this.statRequests.TabIndex = 39;
             this.statRequests.Text = "0";
             // 
@@ -770,7 +755,7 @@
             this.serverButton.Location = new System.Drawing.Point(749, 620);
             this.serverButton.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.serverButton.Name = "serverButton";
-            this.serverButton.Size = new System.Drawing.Size(507, 95);
+            this.serverButton.Size = new System.Drawing.Size(537, 95);
             this.serverButton.TabIndex = 8;
             this.serverButton.Text = "Start server";
             this.serverButton.Click += new System.EventHandler(this.ServerButton_Click);
@@ -796,7 +781,7 @@
             this.serverPort.Location = new System.Drawing.Point(1136, 88);
             this.serverPort.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.serverPort.Name = "serverPort";
-            this.serverPort.Size = new System.Drawing.Size(100, 38);
+            this.serverPort.Size = new System.Drawing.Size(146, 38);
             this.serverPort.TabIndex = 10;
             this.serverPort.Text = global::TinyOPDS.Properties.Settings.Default.ServerPort;
             this.serverPort.Validated += new System.EventHandler(this.ServerPort_Validated);
@@ -842,7 +827,7 @@
             this.tabPage6.Location = new System.Drawing.Point(10, 40);
             this.tabPage6.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.tabPage6.Name = "tabPage6";
-            this.tabPage6.Size = new System.Drawing.Size(1343, 789);
+            this.tabPage6.Size = new System.Drawing.Size(1343, 797);
             this.tabPage6.TabIndex = 5;
             this.tabPage6.Text = "OPDS catalog";
             // 
@@ -1058,7 +1043,7 @@
             this.tabPage7.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.tabPage7.Name = "tabPage7";
             this.tabPage7.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.tabPage7.Size = new System.Drawing.Size(1343, 789);
+            this.tabPage7.Size = new System.Drawing.Size(1343, 797);
             this.tabPage7.TabIndex = 6;
             this.tabPage7.Text = "OPDS routes";
             this.tabPage7.UseVisualStyleBackColor = true;
@@ -1073,7 +1058,7 @@
             this.treeViewOPDS.Location = new System.Drawing.Point(5, 5);
             this.treeViewOPDS.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.treeViewOPDS.Name = "treeViewOPDS";
-            this.treeViewOPDS.Size = new System.Drawing.Size(1324, 748);
+            this.treeViewOPDS.Size = new System.Drawing.Size(1335, 788);
             this.treeViewOPDS.TabIndex = 2;
             this.treeViewOPDS.AfterCheck += new System.Windows.Forms.TreeViewEventHandler(this.TreeViewOPDS_AfterCheck);
             // 
@@ -1096,17 +1081,16 @@
             this.tabPage5.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.tabPage5.Name = "tabPage5";
             this.tabPage5.Padding = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.tabPage5.Size = new System.Drawing.Size(1343, 789);
+            this.tabPage5.Size = new System.Drawing.Size(1343, 797);
             this.tabPage5.TabIndex = 4;
             this.tabPage5.Text = "Auth";
             // 
             // statBannedClients
             // 
-            this.statBannedClients.AutoSize = true;
-            this.statBannedClients.Location = new System.Drawing.Point(1200, 584);
+            this.statBannedClients.Location = new System.Drawing.Point(1164, 584);
             this.statBannedClients.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.statBannedClients.Name = "statBannedClients";
-            this.statBannedClients.Size = new System.Drawing.Size(30, 32);
+            this.statBannedClients.Size = new System.Drawing.Size(111, 32);
             this.statBannedClients.TabIndex = 48;
             this.statBannedClients.Text = "0";
             this.statBannedClients.TextAlign = System.Drawing.ContentAlignment.TopRight;
@@ -1123,21 +1107,19 @@
             // 
             // label24
             // 
-            this.label24.AutoSize = true;
             this.label24.Location = new System.Drawing.Point(1011, 122);
             this.label24.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label24.Name = "label24";
-            this.label24.Size = new System.Drawing.Size(200, 32);
+            this.label24.Size = new System.Drawing.Size(264, 32);
             this.label24.TabIndex = 46;
             this.label24.Text = "failed attempts";
             // 
             // statWrongLogins
             // 
-            this.statWrongLogins.AutoSize = true;
-            this.statWrongLogins.Location = new System.Drawing.Point(773, 584);
+            this.statWrongLogins.Location = new System.Drawing.Point(685, 584);
             this.statWrongLogins.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.statWrongLogins.Name = "statWrongLogins";
-            this.statWrongLogins.Size = new System.Drawing.Size(30, 32);
+            this.statWrongLogins.Size = new System.Drawing.Size(142, 32);
             this.statWrongLogins.TabIndex = 43;
             this.statWrongLogins.Text = "0";
             this.statWrongLogins.TextAlign = System.Drawing.ContentAlignment.TopRight;
@@ -1145,7 +1127,7 @@
             // label30
             // 
             this.label30.AutoSize = true;
-            this.label30.Location = new System.Drawing.Point(523, 584);
+            this.label30.Location = new System.Drawing.Point(492, 584);
             this.label30.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label30.Name = "label30";
             this.label30.Size = new System.Drawing.Size(184, 32);
@@ -1154,11 +1136,10 @@
             // 
             // statGoodLogins
             // 
-            this.statGoodLogins.AutoSize = true;
-            this.statGoodLogins.Location = new System.Drawing.Point(341, 584);
+            this.statGoodLogins.Location = new System.Drawing.Point(313, 584);
             this.statGoodLogins.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.statGoodLogins.Name = "statGoodLogins";
-            this.statGoodLogins.Size = new System.Drawing.Size(30, 32);
+            this.statGoodLogins.Size = new System.Drawing.Size(124, 32);
             this.statGoodLogins.TabIndex = 41;
             this.statGoodLogins.Text = "0";
             this.statGoodLogins.TextAlign = System.Drawing.ContentAlignment.TopRight;
@@ -1180,7 +1161,7 @@
             this.dataGridView1.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.dataGridView1.Name = "dataGridView1";
             this.dataGridView1.RowHeadersWidth = 102;
-            this.dataGridView1.Size = new System.Drawing.Size(1181, 320);
+            this.dataGridView1.Size = new System.Drawing.Size(1206, 320);
             this.dataGridView1.TabIndex = 1;
             this.dataGridView1.CellFormatting += new System.Windows.Forms.DataGridViewCellFormattingEventHandler(this.DataGridView1_CellFormatting);
             // 
@@ -1202,13 +1183,12 @@
             // 
             // banClients
             // 
-            this.banClients.AutoSize = true;
             this.banClients.Checked = global::TinyOPDS.Properties.Settings.Default.BanClients;
             this.banClients.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "BanClients", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
             this.banClients.Location = new System.Drawing.Point(888, 55);
             this.banClients.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.banClients.Name = "banClients";
-            this.banClients.Size = new System.Drawing.Size(256, 36);
+            this.banClients.Size = new System.Drawing.Size(362, 36);
             this.banClients.TabIndex = 44;
             this.banClients.Text = "Ban clients after";
             this.banClients.UseVisualStyleBackColor = true;
@@ -1216,13 +1196,12 @@
             // 
             // rememberClients
             // 
-            this.rememberClients.AutoSize = true;
             this.rememberClients.Checked = global::TinyOPDS.Properties.Settings.Default.RememberClients;
             this.rememberClients.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "RememberClients", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
             this.rememberClients.Location = new System.Drawing.Point(69, 122);
             this.rememberClients.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.rememberClients.Name = "rememberClients";
-            this.rememberClients.Size = new System.Drawing.Size(421, 36);
+            this.rememberClients.Size = new System.Drawing.Size(560, 36);
             this.rememberClients.TabIndex = 2;
             this.rememberClients.Text = "Remember authorized clients";
             this.rememberClients.UseVisualStyleBackColor = true;
@@ -1230,13 +1209,12 @@
             // 
             // useHTTPAuth
             // 
-            this.useHTTPAuth.AutoSize = true;
             this.useHTTPAuth.Checked = global::TinyOPDS.Properties.Settings.Default.UseHTTPAuth;
             this.useHTTPAuth.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "UseHTTPAuth", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
             this.useHTTPAuth.Location = new System.Drawing.Point(69, 55);
             this.useHTTPAuth.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.useHTTPAuth.Name = "useHTTPAuth";
-            this.useHTTPAuth.Size = new System.Drawing.Size(443, 36);
+            this.useHTTPAuth.Size = new System.Drawing.Size(560, 36);
             this.useHTTPAuth.TabIndex = 0;
             this.useHTTPAuth.Text = "Use HTTP basic authentication";
             this.useHTTPAuth.UseVisualStyleBackColor = true;
@@ -1261,7 +1239,7 @@
             this.tabPage3.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.tabPage3.Name = "tabPage3";
             this.tabPage3.Padding = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.tabPage3.Size = new System.Drawing.Size(1343, 789);
+            this.tabPage3.Size = new System.Drawing.Size(1343, 797);
             this.tabPage3.TabIndex = 2;
             this.tabPage3.Text = "Misc";
             // 
@@ -1437,7 +1415,7 @@
             this.tabPage4.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.tabPage4.Name = "tabPage4";
             this.tabPage4.Padding = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.tabPage4.Size = new System.Drawing.Size(1343, 789);
+            this.tabPage4.Size = new System.Drawing.Size(1343, 797);
             this.tabPage4.TabIndex = 3;
             this.tabPage4.Text = "About";
             // 

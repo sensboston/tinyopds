@@ -86,8 +86,8 @@ namespace TinyOPDS
             }
 
             treeViewOPDS.ShowLines = true;
-            treeViewOPDS.Indent = (int) (treeViewOPDS.Indent * dpiScale * 2);
-            treeViewOPDS.ItemHeight = (int) (21 * dpiScale);
+            treeViewOPDS.Indent = (int)(treeViewOPDS.Indent * dpiScale * 2);
+            treeViewOPDS.ItemHeight = (int)(21 * dpiScale);
 
             // Assign combo data source to the list of all available interfaces
             interfaceCombo.DataSource = UPnPController.LocalInterfaces;
@@ -216,6 +216,14 @@ namespace TinyOPDS
             // Update UI after form is fully loaded
             UpdateInfo(); // Show correct book counts
             databaseFileName.Text = "books.sqlite";
+
+            // Ensure icon is visible if starting minimized
+            if (Settings.Default.StartMinimized && Settings.Default.CloseToTray)
+            {
+                WindowState = FormWindowState.Minimized;
+                Visible = false;
+                notifyIcon.Visible = true; // Force icon to be visible
+            }
         }
 
         /// <summary>
@@ -290,7 +298,7 @@ namespace TinyOPDS
                 Log.WriteLine(LogLevel.Error, "Error initializing SQLite: {0}", ex.Message);
             }
         }
-                
+
         /// <summary>
         /// Get SQLite database path
         /// </summary>
@@ -812,14 +820,37 @@ namespace TinyOPDS
         {
             if (Settings.Default.CloseToTray)
             {
-                Visible = (WindowState == FormWindowState.Normal);
-                windowMenuItem.Text = Localizer.Text("Show window");
+                if (WindowState == FormWindowState.Minimized)
+                {
+                    Visible = false;
+                    notifyIcon.Visible = true; // Explicitly ensure icon is visible
+                    windowMenuItem.Text = Localizer.Text("Show window");
+                }
+                else if (WindowState == FormWindowState.Normal)
+                {
+                    Visible = true;
+                    notifyIcon.Visible = true; // Keep icon visible when form is normal
+                    windowMenuItem.Text = Localizer.Text("Hide window");
+                }
             }
         }
 
         private void WindowMenuItem_Click(object sender, EventArgs e)
         {
-            if (!ShowInTaskbar) ShowInTaskbar = true; else Visible = !Visible;
+            if (!ShowInTaskbar)
+            {
+                ShowInTaskbar = true;
+                notifyIcon.Visible = Settings.Default.CloseToTray; // Ensure icon stays if needed
+            }
+            else
+            {
+                Visible = !Visible;
+                if (!Visible && Settings.Default.CloseToTray)
+                {
+                    notifyIcon.Visible = true; // Force icon visible when hiding form
+                }
+            }
+
             if (Visible) WindowState = FormWindowState.Normal;
             windowMenuItem.Text = Localizer.Text(Visible ? "Hide window" : "Show window");
         }
@@ -930,6 +961,13 @@ namespace TinyOPDS
         private void CloseToTray_CheckedChanged(object sender, EventArgs e)
         {
             notifyIcon.Visible = closeToTray.Checked;
+
+            // If unchecking and form is hidden, show it
+            if (!closeToTray.Checked && !Visible)
+            {
+                Visible = true;
+                WindowState = FormWindowState.Normal;
+            }
         }
 
         private void StartWithWindows_CheckedChanged(object sender, EventArgs e)
@@ -1168,7 +1206,10 @@ namespace TinyOPDS
         /// </summary>
         void NotifyIcon_BalloonTipClosed(object sender, EventArgs e)
         {
-            notifyIcon.Visible = Settings.Default.CloseToTray;
+            // Keep icon visible if CloseToTray is enabled OR if form is minimized/hidden
+            notifyIcon.Visible = Settings.Default.CloseToTray ||
+                                WindowState == FormWindowState.Minimized ||
+                                !Visible;
         }
 
         #endregion

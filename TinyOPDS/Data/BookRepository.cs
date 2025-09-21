@@ -365,6 +365,10 @@ namespace TinyOPDS.Data
         /// <summary>
         /// Add multiple books in batch with FTS5 synchronization and duplicate detection
         /// </summary>
+        /// <summary>
+        /// Add multiple books in batch with FTS5 synchronization and duplicate detection
+        /// FIXED: Now checks for duplicates within the batch itself, not just in DB
+        /// </summary>
         public BatchResult AddBooksBatch(List<Book> books)
         {
             var result = new BatchResult();
@@ -386,11 +390,24 @@ namespace TinyOPDS.Data
                 db.ExecuteNonQuery("PRAGMA temp_store = MEMORY");
                 db.ExecuteNonQuery("PRAGMA cache_size = 10000");
 
-                db.BeginTransaction();
+                // CRITICAL FIX: Create in-memory indices for batch duplicate detection
+                // These will track books already processed in this batch
+                var batchByDocumentID = new Dictionary<string, Book>();
+                var batchByContentHash = new Dictionary<string, Book>();
+                var batchByDuplicateKey = new Dictionary<string, List<Book>>();
+
+                // Track which books to actually add (some may be skipped due to in-batch duplicates)
+                var booksToAdd = new List<Book>();
+                var inBatchReplacements = new Dictionary<string, string>(); // old_id -> new_id mappings
+
+                // FIRST PASS: Analyze batch for internal duplicates
+                Log.WriteLine(LogLevel.Info, "Analyzing batch of {0} books for duplicates...", books.Count);
 
                 foreach (var book in books)
                 {
                     DuplicateCheckResult duplicateResult = null;
+                    bool skipBook = false;
+                    Book replacedBook = null;
 
                     try
                     {
@@ -409,30 +426,127 @@ namespace TinyOPDS.Data
                                     book.ContentHash = book.GenerateContentHash(fileStream);
                             }
 
-                            // Check for duplicates
-                            duplicateResult = duplicateDetector.CheckDuplicate(book, fileStream);
+                            // STEP 1: Check for duplicates within the current batch
+                            bool foundInBatch = false;
 
-                            if (duplicateResult.IsDuplicate)
+                            // Check by trusted Document ID
+                            if (book.DocumentIDTrusted && !string.IsNullOrEmpty(book.ID))
                             {
-                                bool shouldAdd = duplicateDetector.ProcessDuplicate(book, duplicateResult);
+                                if (batchByDocumentID.ContainsKey(book.ID))
+                                {
+                                    var existingInBatch = batchByDocumentID[book.ID];
+                                    int comparisonScore = book.CompareTo(existingInBatch);
 
-                                if (!shouldAdd)
-                                {
-                                    // Definite duplicate that should be skipped
-                                    result.Duplicates++;
-                                    continue;
+                                    if (comparisonScore > 0)
+                                    {
+                                        // New book is better - replace the old one
+                                        Log.WriteLine(LogLevel.Info,
+                                            "In-batch replacement: {0} v{1} replaces v{2}",
+                                            book.Title, book.Version, existingInBatch.Version);
+
+                                        // Remove old book from all indices
+                                        RemoveFromBatchIndices(existingInBatch, batchByDocumentID, batchByContentHash, batchByDuplicateKey);
+                                        booksToAdd.Remove(existingInBatch);
+
+                                        // Track the replacement
+                                        inBatchReplacements[existingInBatch.ID] = book.ID;
+                                        replacedBook = existingInBatch;
+                                        foundInBatch = false; // Allow this book to be added
+                                        result.Replaced++;
+                                    }
+                                    else
+                                    {
+                                        // Existing book is better or same - skip new one
+                                        Log.WriteLine(LogLevel.Info,
+                                            "In-batch duplicate skipped: {0} v{1} (keeping v{2})",
+                                            book.Title, book.Version, existingInBatch.Version);
+                                        skipBook = true;
+                                        foundInBatch = true;
+                                        result.Duplicates++;
+                                    }
                                 }
-                                else if (duplicateResult.ShouldReplace)
+                            }
+
+                            // Check by content hash
+                            if (!foundInBatch && !string.IsNullOrEmpty(book.ContentHash))
+                            {
+                                if (batchByContentHash.ContainsKey(book.ContentHash))
                                 {
-                                    // Mark as replacement AND as duplicate (since old book is being replaced)
-                                    result.Replaced++;
+                                    // Exact duplicate in batch - skip
+                                    Log.WriteLine(LogLevel.Info,
+                                        "In-batch exact duplicate (same content): {0}", book.FileName);
+                                    skipBook = true;
+                                    foundInBatch = true;
                                     result.Duplicates++;
-                                    result.ReplacedBooks.Add($"{duplicateResult.ExistingBook.FileName} -> {book.FileName}");
                                 }
-                                else
+                            }
+
+                            // Check by duplicate key
+                            if (!foundInBatch && !string.IsNullOrEmpty(book.DuplicateKey))
+                            {
+                                if (batchByDuplicateKey.ContainsKey(book.DuplicateKey))
                                 {
-                                    // Enhanced logging for uncertain duplicates
-                                    result.UncertainDuplicatesAdded++;
+                                    // Check each potential duplicate more carefully
+                                    var potentialDuplicates = batchByDuplicateKey[book.DuplicateKey].ToList();
+                                    foreach (var existingInBatch in potentialDuplicates)
+                                    {
+                                        if (book.IsDuplicateOf(existingInBatch))
+                                        {
+                                            int comparisonScore = book.CompareTo(existingInBatch);
+
+                                            if (comparisonScore > 0)
+                                            {
+                                                // New book is better
+                                                Log.WriteLine(LogLevel.Info,
+                                                    "In-batch replacement by key: {0} replaces {1}",
+                                                    book.FileName, existingInBatch.FileName);
+
+                                                // Remove old book
+                                                RemoveFromBatchIndices(existingInBatch, batchByDocumentID, batchByContentHash, batchByDuplicateKey);
+                                                booksToAdd.Remove(existingInBatch);
+
+                                                replacedBook = existingInBatch;
+                                                result.Replaced++;
+                                            }
+                                            else
+                                            {
+                                                // Existing is better - skip new
+                                                Log.WriteLine(LogLevel.Info,
+                                                    "In-batch duplicate by key skipped: {0}", book.FileName);
+                                                skipBook = true;
+                                                foundInBatch = true;
+                                                result.Duplicates++;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // STEP 2: If not found in batch, check database
+                            if (!skipBook && !foundInBatch)
+                            {
+                                duplicateResult = duplicateDetector.CheckDuplicate(book, fileStream);
+
+                                if (duplicateResult.IsDuplicate)
+                                {
+                                    bool shouldAdd = duplicateDetector.ProcessDuplicate(book, duplicateResult);
+
+                                    if (!shouldAdd)
+                                    {
+                                        skipBook = true;
+                                        result.Duplicates++;
+                                    }
+                                    else if (duplicateResult.ShouldReplace)
+                                    {
+                                        result.Replaced++;
+                                        result.Duplicates++;
+                                        result.ReplacedBooks.Add($"{duplicateResult.ExistingBook.FileName} -> {book.FileName}");
+                                    }
+                                    else
+                                    {
+                                        result.UncertainDuplicatesAdded++;
+                                    }
                                 }
                             }
                         }
@@ -441,24 +555,51 @@ namespace TinyOPDS.Data
                             fileStream?.Dispose();
                         }
 
-                        // MODIFIED: Insert book WITHOUT Sequence/NumberInSequence fields
+                        // If book should be added, add it to batch indices and list
+                        if (!skipBook)
+                        {
+                            // Add to batch indices for future duplicate checking
+                            AddToBatchIndices(book, batchByDocumentID, batchByContentHash, batchByDuplicateKey);
+                            booksToAdd.Add(book);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        result.Errors++;
+                        result.ErrorMessages.Add($"Book {book.FileName}: {ex.Message}");
+                        Log.WriteLine(LogLevel.Error, "Error processing book {0}: {1}", book.FileName, ex.Message);
+                    }
+                }
+
+                Log.WriteLine(LogLevel.Info,
+                    "Batch analysis complete. Adding {0} books out of {1} total",
+                    booksToAdd.Count, books.Count);
+
+                // SECOND PASS: Actually add the filtered books to database
+                db.BeginTransaction();
+
+                foreach (var book in booksToAdd)
+                {
+                    try
+                    {
+                        // Insert book WITHOUT Sequence/NumberInSequence fields
                         var bookParams = new[]
                         {
-                            DatabaseManager.CreateParameter("@ID", book.ID),
-                            DatabaseManager.CreateParameter("@Version", book.Version),
-                            DatabaseManager.CreateParameter("@FileName", book.FileName),
-                            DatabaseManager.CreateParameter("@Title", book.Title),
-                            DatabaseManager.CreateParameter("@Language", book.Language),
-                            DatabaseManager.CreateParameter("@BookDate", book.BookDate),
-                            DatabaseManager.CreateParameter("@DocumentDate", book.DocumentDate),
-                            DatabaseManager.CreateParameter("@Annotation", book.Annotation),
-                            DatabaseManager.CreateParameter("@DocumentSize", (long)book.DocumentSize),
-                            DatabaseManager.CreateParameter("@AddedDate", book.AddedDate),
-                            DatabaseManager.CreateParameter("@DocumentIDTrusted", book.DocumentIDTrusted),
-                            DatabaseManager.CreateParameter("@DuplicateKey", book.DuplicateKey),
-                            DatabaseManager.CreateParameter("@ReplacedByID", book.ReplacedByID),
-                            DatabaseManager.CreateParameter("@ContentHash", book.ContentHash)
-                        };
+                    DatabaseManager.CreateParameter("@ID", book.ID),
+                    DatabaseManager.CreateParameter("@Version", book.Version),
+                    DatabaseManager.CreateParameter("@FileName", book.FileName),
+                    DatabaseManager.CreateParameter("@Title", book.Title),
+                    DatabaseManager.CreateParameter("@Language", book.Language),
+                    DatabaseManager.CreateParameter("@BookDate", book.BookDate),
+                    DatabaseManager.CreateParameter("@DocumentDate", book.DocumentDate),
+                    DatabaseManager.CreateParameter("@Annotation", book.Annotation),
+                    DatabaseManager.CreateParameter("@DocumentSize", (long)book.DocumentSize),
+                    DatabaseManager.CreateParameter("@AddedDate", book.AddedDate),
+                    DatabaseManager.CreateParameter("@DocumentIDTrusted", book.DocumentIDTrusted),
+                    DatabaseManager.CreateParameter("@DuplicateKey", book.DuplicateKey),
+                    DatabaseManager.CreateParameter("@ReplacedByID", book.ReplacedByID),
+                    DatabaseManager.CreateParameter("@ContentHash", book.ContentHash)
+                };
                         db.ExecuteNonQuery(DatabaseSchema.InsertBook, bookParams);
 
                         // Insert authors and relationships
@@ -469,7 +610,6 @@ namespace TinyOPDS.Data
                             string lastNameSoundex = !string.IsNullOrEmpty(lastName) ? StringUtils.Soundex(lastName) : "";
                             string nameTranslit = GenerateTransliteration(authorName);
 
-                            // Insert author if not exists
                             db.ExecuteNonQuery(DatabaseSchema.InsertAuthor,
                                 DatabaseManager.CreateParameter("@Name", authorName),
                                 DatabaseManager.CreateParameter("@FirstName", firstName),
@@ -479,7 +619,6 @@ namespace TinyOPDS.Data
                                 DatabaseManager.CreateParameter("@LastNameSoundex", lastNameSoundex),
                                 DatabaseManager.CreateParameter("@NameTranslit", nameTranslit));
 
-                            // Insert book-author relationship
                             db.ExecuteNonQuery(DatabaseSchema.InsertBookAuthor,
                                 DatabaseManager.CreateParameter("@BookID", book.ID),
                                 DatabaseManager.CreateParameter("@AuthorName", authorName));
@@ -522,13 +661,11 @@ namespace TinyOPDS.Data
                             {
                                 if (!string.IsNullOrEmpty(sequenceInfo.Name))
                                 {
-                                    // Insert sequence if not exists
                                     string searchName = NormalizeForSearch(sequenceInfo.Name);
                                     db.ExecuteNonQuery(DatabaseSchema.InsertSequence,
                                         DatabaseManager.CreateParameter("@Name", sequenceInfo.Name),
                                         DatabaseManager.CreateParameter("@SearchName", searchName));
 
-                                    // Link book to sequence
                                     db.ExecuteNonQuery(DatabaseSchema.InsertBookSequence,
                                         DatabaseManager.CreateParameter("@BookID", book.ID),
                                         DatabaseManager.CreateParameter("@SequenceName", sequenceInfo.Name),
@@ -537,21 +674,18 @@ namespace TinyOPDS.Data
                             }
                         }
 
-                        // Only count as added if it's not a replacement
-                        if (duplicateResult == null || !duplicateResult.IsDuplicate || !duplicateResult.ShouldReplace)
-                        {
-                            result.Added++;
+                        result.Added++;
 
-                            // Count by type for statistics
-                            if (book.BookType == BookType.FB2)
-                                result.FB2Count++;
-                            else
-                                result.EPUBCount++;
-                        }
+                        // Count by type for statistics
+                        if (book.BookType == BookType.FB2)
+                            result.FB2Count++;
+                        else
+                            result.EPUBCount++;
                     }
                     catch (Exception ex)
                     {
                         result.Errors++;
+                        result.Added--; // Compensate for the increment above
                         result.ErrorMessages.Add($"Book {book.FileName}: {ex.Message}");
                         Log.WriteLine(LogLevel.Error, "BookRepository.AddBooksBatch - Book {0}: {1}", book.FileName, ex.Message);
                     }
@@ -561,6 +695,7 @@ namespace TinyOPDS.Data
 
                 result.ProcessingTime = DateTime.Now - startTime;
 
+                // Log statistics
                 if (result.InvalidGenresSkipped > 0)
                 {
                     Log.WriteLine(LogLevel.Warning, "Batch insert: {0} invalid genre tags skipped. Tags: {1}",
@@ -577,6 +712,10 @@ namespace TinyOPDS.Data
                     Log.WriteLine(LogLevel.Info, "Batch insert: {0} uncertain duplicates added as new books",
                         result.UncertainDuplicatesAdded);
                 }
+
+                Log.WriteLine(LogLevel.Info,
+                    "Batch processing complete: Added {0}, Duplicates {1}, Replaced {2}, Errors {3}",
+                    result.Added, result.Duplicates, result.Replaced, result.Errors);
 
                 return result;
             }
@@ -598,6 +737,72 @@ namespace TinyOPDS.Data
                 db.ExecuteNonQuery("PRAGMA cache_size = 2000");
             }
         }
+
+        #region Helper Methods for Batch Duplicate Detection
+
+        /// <summary>
+        /// Add book to batch tracking indices
+        /// </summary>
+        private void AddToBatchIndices(Book book,
+            Dictionary<string, Book> byDocumentID,
+            Dictionary<string, Book> byContentHash,
+            Dictionary<string, List<Book>> byDuplicateKey)
+        {
+            // Add to Document ID index if trusted
+            if (book.DocumentIDTrusted && !string.IsNullOrEmpty(book.ID))
+            {
+                byDocumentID[book.ID] = book;
+            }
+
+            // Add to content hash index
+            if (!string.IsNullOrEmpty(book.ContentHash))
+            {
+                byContentHash[book.ContentHash] = book;
+            }
+
+            // Add to duplicate key index
+            if (!string.IsNullOrEmpty(book.DuplicateKey))
+            {
+                if (!byDuplicateKey.ContainsKey(book.DuplicateKey))
+                {
+                    byDuplicateKey[book.DuplicateKey] = new List<Book>();
+                }
+                byDuplicateKey[book.DuplicateKey].Add(book);
+            }
+        }
+
+        /// <summary>
+        /// Remove book from batch tracking indices
+        /// </summary>
+        private void RemoveFromBatchIndices(Book book,
+            Dictionary<string, Book> byDocumentID,
+            Dictionary<string, Book> byContentHash,
+            Dictionary<string, List<Book>> byDuplicateKey)
+        {
+            // Remove from Document ID index
+            if (book.DocumentIDTrusted && !string.IsNullOrEmpty(book.ID) && byDocumentID.ContainsKey(book.ID))
+            {
+                byDocumentID.Remove(book.ID);
+            }
+
+            // Remove from content hash index
+            if (!string.IsNullOrEmpty(book.ContentHash) && byContentHash.ContainsKey(book.ContentHash))
+            {
+                byContentHash.Remove(book.ContentHash);
+            }
+
+            // Remove from duplicate key index
+            if (!string.IsNullOrEmpty(book.DuplicateKey) && byDuplicateKey.ContainsKey(book.DuplicateKey))
+            {
+                byDuplicateKey[book.DuplicateKey].Remove(book);
+                if (byDuplicateKey[book.DuplicateKey].Count == 0)
+                {
+                    byDuplicateKey.Remove(book.DuplicateKey);
+                }
+            }
+        }
+
+        #endregion
 
         public Book GetBookById(string id)
         {

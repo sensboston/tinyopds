@@ -6,6 +6,7 @@
  * SPDX-License-Identifier: MIT
  *
  * Native FB2 parser without external dependencies - optimized version
+ * FIXED: Now properly extracts document ID from FB2 instead of generating random GUIDs
  *
  */
 
@@ -54,9 +55,8 @@ namespace TinyOPDS.Parsers
                 var description = ReadDescriptionBlock(stream, fileName);
                 if (description != null)
                 {
-                    // Always generate unique ID
-                    book.ID = Guid.NewGuid().ToString();
-                    book.DocumentIDTrusted = false;
+                    // FIXED: Removed automatic GUID generation - will be extracted from document-info
+                    // or generated only if missing
 
                     // Parse description content
                     ParseDescriptionContent(description, book, fileName);
@@ -228,11 +228,22 @@ namespace TinyOPDS.Parsers
                 ParseTitleInfo(titleInfo, book, fileName);
             }
 
-            // Parse document-info
+            // Parse document-info - MUST be after title-info to extract ID
             var documentInfo = description.Element(fb2Ns + "document-info");
             if (documentInfo != null)
             {
                 ParseDocumentInfo(documentInfo, book, fileName);
+            }
+
+            // FIXED: If no ID was extracted from document-info, generate one based on book data
+            if (string.IsNullOrEmpty(book.ID))
+            {
+                // Generate ID based on file name and content (deterministic)
+                book.ID = Utils.CreateGuid(Utils.IsoOidNamespace, fileName).ToString();
+                book.DocumentIDTrusted = false;
+
+                Log.WriteLine(LogLevel.Info, "No document ID found in FB2, generated: {0} for file: {1}",
+                    book.ID, fileName);
             }
 
             // Parse publish-info (optional)
@@ -337,6 +348,20 @@ namespace TinyOPDS.Parsers
 
         private void ParseDocumentInfo(XElement documentInfo, Book book, string fileName)
         {
+            // CRITICAL FIX: Extract document ID from FB2
+            var documentId = documentInfo.Element(fb2Ns + "id")?.Value;
+            if (!string.IsNullOrEmpty(documentId))
+            {
+                // Clean up the ID (remove any whitespace or extra characters)
+                documentId = documentId.Trim();
+
+                // Set the ID - the setter in Book.cs will validate if it's a trusted GUID
+                book.ID = documentId;
+
+                Log.WriteLine(LogLevel.Info, "Extracted document ID: {0} (trusted: {1}) from file: {2}",
+                    book.ID, book.DocumentIDTrusted, fileName);
+            }
+
             // Document date
             var date = documentInfo.Element(fb2Ns + "date");
             if (date != null)

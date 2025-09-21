@@ -76,8 +76,8 @@ namespace TinyOPDS.Data
                 ExecuteNonQuery("PRAGMA foreign_keys = ON");
 
                 // Performance optimizations
-                ExecuteNonQuery("PRAGMA journal_mode = WAL");        // Write-Ahead Logging for better concurrency
-                ExecuteNonQuery("PRAGMA synchronous = NORMAL");      // Faster writes with reasonable safety
+                ExecuteNonQuery("PRAGMA journal_mode = MEMORY");     // Write-Ahead Logging for better concurrency
+                ExecuteNonQuery("PRAGMA synchronous = OFF");         // Faster writes with reasonable safety
                 ExecuteNonQuery("PRAGMA cache_size = -64000");       // 64MB cache in RAM
                 ExecuteNonQuery("PRAGMA temp_store = MEMORY");       // Temp tables in memory
                 ExecuteNonQuery("PRAGMA mmap_size = 268435456");     // 256MB memory-mapped I/O
@@ -1012,7 +1012,6 @@ namespace TinyOPDS.Data
                         try
                         {
                             ExecuteNonQuery("PRAGMA optimize");
-                            ExecuteNonQuery("PRAGMA wal_checkpoint(TRUNCATE)");
                         }
                         catch { }
 

@@ -18,6 +18,7 @@ using System.Threading;
 using System.Net;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Threading.Tasks;
 
 using UPnP;
 
@@ -25,7 +26,6 @@ using TinyOPDS.Data;
 using TinyOPDS.Scanner;
 using TinyOPDS.Server;
 using TinyOPDS.Properties;
-using System.Threading.Tasks;
 
 namespace TinyOPDS
 {
@@ -65,10 +65,12 @@ namespace TinyOPDS
             Log.WriteLine("TinyOPDS version {0}.{1} started", Utils.Version.Major, Utils.Version.Minor);
 
             InitializeComponent();
-            AutoScaleMode = AutoScaleMode.Dpi;
+
+            // Windows - use DPI awareness
+            AutoScaleMode = Utils.IsLinux ? AutoScaleMode.Font : AutoScaleMode.Dpi;
+            float dpiScale = 1.0f;
 
             // Fix TabControl height for high DPI displays
-            float dpiScale = 1.0f;
             using (Graphics g = CreateGraphics())
             {
                 dpiScale = g.DpiX / 96f;
@@ -79,15 +81,11 @@ namespace TinyOPDS
                 }
             }
 
-            // Adjust TreeView appearance for Mono
-            if (Utils.IsLinux)
-            {
-                treeViewOPDS.Font = new Font("DejaVu Sans", 22, FontStyle.Regular);
-            }
-
+            // Fix TreeeView
             treeViewOPDS.ShowLines = true;
             treeViewOPDS.Indent = (int)(treeViewOPDS.Indent * dpiScale * 2);
             treeViewOPDS.ItemHeight = (int)(21 * dpiScale);
+            if (Utils.IsLinux) treeViewOPDS.Font = new Font("DejaVu Sans", 22, FontStyle.Regular);
 
             // Assign combo data source to the list of all available interfaces
             interfaceCombo.DataSource = UPnPController.LocalInterfaces;
@@ -198,6 +196,7 @@ namespace TinyOPDS
             scanStartTime = DateTime.Now;
             notifyIcon.Visible = Settings.Default.CloseToTray;
 
+            // Build OPDS structure tree
             InitializeOPDSStructure();
             LoadOPDSSettings();
             BuildOPDSTree();
@@ -268,7 +267,7 @@ namespace TinyOPDS
             }
         }
 
-        #endregion
+#endregion
 
         #region SQLite initialization
 

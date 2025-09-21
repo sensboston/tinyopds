@@ -250,7 +250,7 @@
             this.useWatcher.AutoSize = true;
             this.useWatcher.Checked = global::TinyOPDS.Properties.Settings.Default.WatchLibrary;
             this.useWatcher.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "WatchLibrary", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.useWatcher.Location = new System.Drawing.Point(976, 88);
+            this.useWatcher.Location = new System.Drawing.Point(877, 88);
             this.useWatcher.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.useWatcher.Name = "useWatcher";
             this.useWatcher.Size = new System.Drawing.Size(262, 36);
@@ -293,7 +293,7 @@
             // status
             // 
             this.status.AutoSize = true;
-            this.status.Location = new System.Drawing.Point(1006, 546);
+            this.status.Location = new System.Drawing.Point(1034, 546);
             this.status.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.status.MinimumSize = new System.Drawing.Size(133, 0);
             this.status.Name = "status";
@@ -314,7 +314,7 @@
             // rate
             // 
             this.rate.AutoSize = true;
-            this.rate.Location = new System.Drawing.Point(1006, 475);
+            this.rate.Location = new System.Drawing.Point(1034, 475);
             this.rate.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.rate.MinimumSize = new System.Drawing.Size(133, 0);
             this.rate.Name = "rate";
@@ -335,7 +335,7 @@
             // elapsedTime
             // 
             this.elapsedTime.AutoSize = true;
-            this.elapsedTime.Location = new System.Drawing.Point(1006, 403);
+            this.elapsedTime.Location = new System.Drawing.Point(1034, 403);
             this.elapsedTime.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.elapsedTime.MinimumSize = new System.Drawing.Size(133, 0);
             this.elapsedTime.Name = "elapsedTime";
@@ -356,7 +356,7 @@
             // startTime
             // 
             this.startTime.AutoSize = true;
-            this.startTime.Location = new System.Drawing.Point(1006, 331);
+            this.startTime.Location = new System.Drawing.Point(1034, 331);
             this.startTime.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.startTime.MinimumSize = new System.Drawing.Size(133, 0);
             this.startTime.Name = "startTime";
@@ -462,7 +462,7 @@
             // folderButton
             // 
             this.folderButton.Image = ((System.Drawing.Image)(resources.GetObject("folderButton.Image")));
-            this.folderButton.Location = new System.Drawing.Point(829, 76);
+            this.folderButton.Location = new System.Drawing.Point(767, 74);
             this.folderButton.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.folderButton.Name = "folderButton";
             this.folderButton.Size = new System.Drawing.Size(77, 62);
@@ -507,7 +507,7 @@
             this.libraryPath.Location = new System.Drawing.Point(45, 83);
             this.libraryPath.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.libraryPath.Name = "libraryPath";
-            this.libraryPath.Size = new System.Drawing.Size(767, 38);
+            this.libraryPath.Size = new System.Drawing.Size(710, 38);
             this.libraryPath.TabIndex = 6;
             this.libraryPath.TextChanged += new System.EventHandler(this.LibraryPath_TextChanged);
             this.libraryPath.Validated += new System.EventHandler(this.LibraryPath_Validated);
@@ -1456,7 +1456,7 @@
             // linkLabel6
             // 
             this.linkLabel6.AutoSize = true;
-            this.linkLabel6.Location = new System.Drawing.Point(579, 444);
+            this.linkLabel6.Location = new System.Drawing.Point(587, 444);
             this.linkLabel6.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.linkLabel6.Name = "linkLabel6";
             this.linkLabel6.Size = new System.Drawing.Size(363, 32);
@@ -1467,10 +1467,10 @@
             // 
             // label20
             // 
-            this.label20.Location = new System.Drawing.Point(133, 444);
+            this.label20.Location = new System.Drawing.Point(310, 444);
             this.label20.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label20.Name = "label20";
-            this.label20.Size = new System.Drawing.Size(429, 31);
+            this.label20.Size = new System.Drawing.Size(260, 31);
             this.label20.TabIndex = 9;
             this.label20.Text = "Special thanks to:";
             this.label20.TextAlign = System.Drawing.ContentAlignment.TopRight;
@@ -1489,7 +1489,7 @@
             // linkLabel2
             // 
             this.linkLabel2.AutoSize = true;
-            this.linkLabel2.Location = new System.Drawing.Point(579, 391);
+            this.linkLabel2.Location = new System.Drawing.Point(587, 391);
             this.linkLabel2.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.linkLabel2.Name = "linkLabel2";
             this.linkLabel2.Size = new System.Drawing.Size(286, 32);
@@ -1500,10 +1500,10 @@
             // 
             // label18
             // 
-            this.label18.Location = new System.Drawing.Point(139, 389);
+            this.label18.Location = new System.Drawing.Point(304, 389);
             this.label18.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label18.Name = "label18";
-            this.label18.Size = new System.Drawing.Size(424, 31);
+            this.label18.Size = new System.Drawing.Size(267, 31);
             this.label18.TabIndex = 6;
             this.label18.Text = "Project license:";
             this.label18.TextAlign = System.Drawing.ContentAlignment.TopRight;
@@ -1511,7 +1511,7 @@
             // linkLabel1
             // 
             this.linkLabel1.AutoSize = true;
-            this.linkLabel1.Location = new System.Drawing.Point(579, 339);
+            this.linkLabel1.Location = new System.Drawing.Point(587, 339);
             this.linkLabel1.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.linkLabel1.Name = "linkLabel1";
             this.linkLabel1.Size = new System.Drawing.Size(509, 32);
@@ -1522,10 +1522,10 @@
             // 
             // label17
             // 
-            this.label17.Location = new System.Drawing.Point(131, 336);
+            this.label17.Location = new System.Drawing.Point(298, 336);
             this.label17.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label17.Name = "label17";
-            this.label17.Size = new System.Drawing.Size(432, 31);
+            this.label17.Size = new System.Drawing.Size(273, 31);
             this.label17.TabIndex = 4;
             this.label17.Text = "Project home page:";
             this.label17.TextAlign = System.Drawing.ContentAlignment.TopRight;

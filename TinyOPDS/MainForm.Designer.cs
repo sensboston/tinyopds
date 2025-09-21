@@ -185,7 +185,7 @@
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.Padding = new System.Drawing.Point(16, 3);
             this.tabControl1.SelectedIndex = 0;
-            this.tabControl1.Size = new System.Drawing.Size(1363, 839);
+            this.tabControl1.Size = new System.Drawing.Size(1363, 847);
             this.tabControl1.TabIndex = 8;
             // 
             // tabPage1
@@ -222,7 +222,7 @@
             this.tabPage1.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.tabPage1.Name = "tabPage1";
             this.tabPage1.Padding = new System.Windows.Forms.Padding(8, 7, 8, 7);
-            this.tabPage1.Size = new System.Drawing.Size(1343, 789);
+            this.tabPage1.Size = new System.Drawing.Size(1343, 797);
             this.tabPage1.TabIndex = 0;
             this.tabPage1.Text = "Scanner";
             // 

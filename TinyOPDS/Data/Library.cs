@@ -147,6 +147,33 @@ namespace TinyOPDS.Data
         {
             if (bookRepository == null || isCacheWarming) return;
 
+            // Skip cache initialization on macOS with empty database to avoid crashes
+            if (Utils.IsMacOS)
+            {
+                var totalBooks = bookRepository.GetTotalBooksCount();
+                if (totalBooks == 0)
+                {
+                    Log.WriteLine("Skipping cache initialization on macOS with empty database");
+
+                    // Set zeros for empty database
+                    lock (cacheLock)
+                    {
+                        cachedTotalCount = 0;
+                        cachedFB2Count = 0;
+                        cachedEPUBCount = 0;
+                        cachedAuthorsCount = 0;
+                        cachedSequencesCount = 0;
+                        cachedNewBooksCount = 0;
+                        lastStatsUpdate = DateTime.Now;
+                        lastNewBooksCountUpdate = DateTime.Now;
+                        isCacheInitialized = true;
+                    }
+
+                    LibraryLoaded?.Invoke(null, EventArgs.Empty);
+                    return;
+                }
+            }
+
             try
             {
                 isCacheWarming = true;
@@ -154,18 +181,18 @@ namespace TinyOPDS.Data
                 var startTime = DateTime.Now;
 
                 // Load all counts in parallel
-                var tasks = new System.Threading.Tasks.Task<int>[6];
+                var tasks = new Task<int>[6];
                 var period = periods[Properties.Settings.Default.NewBooksPeriod];
                 var fromDate = DateTime.Now.Subtract(period);
 
-                tasks[0] = System.Threading.Tasks.Task.Run(() => bookRepository.GetTotalBooksCount());
-                tasks[1] = System.Threading.Tasks.Task.Run(() => bookRepository.GetFB2BooksCount());
-                tasks[2] = System.Threading.Tasks.Task.Run(() => bookRepository.GetEPUBBooksCount());
-                tasks[3] = System.Threading.Tasks.Task.Run(() => bookRepository.GetAuthorsCount());
-                tasks[4] = System.Threading.Tasks.Task.Run(() => bookRepository.GetSequencesCount());
-                tasks[5] = System.Threading.Tasks.Task.Run(() => bookRepository.GetNewBooksCount(fromDate));
+                tasks[0] = Task.Run(() => bookRepository.GetTotalBooksCount());
+                tasks[1] = Task.Run(() => bookRepository.GetFB2BooksCount());
+                tasks[2] = Task.Run(() => bookRepository.GetEPUBBooksCount());
+                tasks[3] = Task.Run(() => bookRepository.GetAuthorsCount());
+                tasks[4] = Task.Run(() => bookRepository.GetSequencesCount());
+                tasks[5] = Task.Run(() => bookRepository.GetNewBooksCount(fromDate));
 
-                System.Threading.Tasks.Task.WaitAll(tasks);
+                Task.WaitAll(tasks);
 
                 // Update cache with fresh values
                 lock (cacheLock)

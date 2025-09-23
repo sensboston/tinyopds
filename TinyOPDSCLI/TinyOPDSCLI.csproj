@@ -54,10 +54,6 @@
     <Reference Include="System.Xml" />
     <Reference Include="System.Xml.Linq" />
     <!-- NuGet Package References -->
-    <Reference Include="System.Data.SQLite, Version=1.0.114.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Data.SQLite.Core.FTS5.1.0.114.1\lib\net45\System.Data.SQLite.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <!-- Local Library Reference -->
   </ItemGroup>
   <!-- ============== CLI SPECIFIC FILES ============== -->

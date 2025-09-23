@@ -6,8 +6,6 @@
  * SPDX-License-Identifier: MIT
  *
  * Repository for Book operations with SQLite database with FTS5 support
- * MODIFIED: Support for normalized sequences in separate tables
- * MODIFIED: Added language filtering support
  *
  */
 
@@ -362,9 +360,6 @@ namespace TinyOPDS.Data
             }
         }
 
-        /// <summary>
-        /// Add multiple books in batch with FTS5 synchronization and duplicate detection
-        /// </summary>
         /// <summary>
         /// Add multiple books in batch with FTS5 synchronization and duplicate detection
         /// FIXED: Now checks for duplicates within the batch itself, not just in DB
@@ -864,6 +859,9 @@ namespace TinyOPDS.Data
             }
         }
 
+        /// <summary>
+        /// FIXED: Cross-platform compatible BookExists method
+        /// </summary>
         public bool BookExists(string fileName)
         {
             string languageFilter = GetLanguageFilter();
@@ -872,14 +870,16 @@ namespace TinyOPDS.Data
             {
                 var count = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE FileName = @FileName AND ReplacedByID IS NULL",
                     DatabaseManager.CreateParameter("@FileName", fileName));
-                return Convert.ToInt32(count) > 0;
+                // Use Convert.ToInt32 for cross-platform compatibility
+                return Convert.ToInt32(count ?? 0) > 0;
             }
             else
             {
                 var count = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE FileName = @FileName AND ReplacedByID IS NULL AND Language = @Language",
                     DatabaseManager.CreateParameter("@FileName", fileName),
                     DatabaseManager.CreateParameter("@Language", languageFilter));
-                return Convert.ToInt32(count) > 0;
+                // Use Convert.ToInt32 for cross-platform compatibility
+                return Convert.ToInt32(count ?? 0) > 0;
             }
         }
 
@@ -1223,7 +1223,7 @@ namespace TinyOPDS.Data
                     if (string.IsNullOrEmpty(languageFilter))
                     {
                         result = db.ExecuteQuery<(string, int)>(DatabaseSchema.SelectSequencesWithCount,
-                            reader => (reader.GetString(0), reader.GetInt32(1)));
+                            reader => (reader.GetString(0), Convert.ToInt32(reader.GetValue(1))));
                     }
                     else
                     {
@@ -1237,7 +1237,7 @@ namespace TinyOPDS.Data
                             ORDER BY s.Name";
 
                         result = db.ExecuteQuery<(string, int)>(query,
-                            reader => (reader.GetString(0), reader.GetInt32(1)),
+                            reader => (reader.GetString(0), Convert.ToInt32(reader.GetValue(1))),
                             DatabaseManager.CreateParameter("@Language", languageFilter));
                     }
                 }
@@ -1246,7 +1246,7 @@ namespace TinyOPDS.Data
                     if (string.IsNullOrEmpty(languageFilter))
                     {
                         result = db.ExecuteQuery<(string, int)>(DatabaseSchema.SelectSequencesWithCountByPrefix,
-                            reader => (reader.GetString(0), reader.GetInt32(1)),
+                            reader => (reader.GetString(0), Convert.ToInt32(reader.GetValue(1))),
                             DatabaseManager.CreateParameter("@Pattern", searchPattern));
                     }
                     else
@@ -1263,7 +1263,7 @@ namespace TinyOPDS.Data
                             ORDER BY s.Name";
 
                         result = db.ExecuteQuery<(string, int)>(query,
-                            reader => (reader.GetString(0), reader.GetInt32(1)),
+                            reader => (reader.GetString(0), Convert.ToInt32(reader.GetValue(1))),
                             DatabaseManager.CreateParameter("@Pattern", searchPattern),
                             DatabaseManager.CreateParameter("@Language", languageFilter));
                     }
@@ -1598,7 +1598,7 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Get genres with book count > 0 (considers language filter)
+        /// Get genres with book count > 0 (considers language filter) - FIXED for cross-platform
         /// </summary>
         public List<(Genre genre, int bookCount)> GetGenresWithBooks()
         {
@@ -1632,7 +1632,7 @@ namespace TinyOPDS.Data
                         DatabaseManager.GetString(reader, "ParentName"),
                         reader.GetString(2),  // Name
                         DatabaseManager.GetString(reader, "Translation"),
-                        reader.GetInt32(4)   // BookCount
+                        Convert.ToInt32(reader.GetValue(4))   // BookCount - FIXED: Use Convert.ToInt32
                     ),
                     string.IsNullOrEmpty(languageFilter) ? null :
                         new[] { DatabaseManager.CreateParameter("@Language", languageFilter) });
@@ -1697,7 +1697,7 @@ namespace TinyOPDS.Data
 
         #endregion
 
-        #region Statistics
+        #region Statistics - ALL FIXED for cross-platform compatibility
 
         public int GetTotalBooksCount()
         {
@@ -1706,13 +1706,13 @@ namespace TinyOPDS.Data
             if (string.IsNullOrEmpty(languageFilter))
             {
                 var result = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE ReplacedByID IS NULL");
-                return Convert.ToInt32(result);
+                return Convert.ToInt32(result ?? 0);
             }
             else
             {
                 var result = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE ReplacedByID IS NULL AND Language = @Language",
                     DatabaseManager.CreateParameter("@Language", languageFilter));
-                return Convert.ToInt32(result);
+                return Convert.ToInt32(result ?? 0);
             }
         }
 
@@ -1723,13 +1723,13 @@ namespace TinyOPDS.Data
             if (string.IsNullOrEmpty(languageFilter))
             {
                 var result = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE FileName LIKE '%.fb2%' AND ReplacedByID IS NULL");
-                return Convert.ToInt32(result);
+                return Convert.ToInt32(result ?? 0);
             }
             else
             {
                 var result = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE FileName LIKE '%.fb2%' AND ReplacedByID IS NULL AND Language = @Language",
                     DatabaseManager.CreateParameter("@Language", languageFilter));
-                return Convert.ToInt32(result);
+                return Convert.ToInt32(result ?? 0);
             }
         }
 
@@ -1740,13 +1740,13 @@ namespace TinyOPDS.Data
             if (string.IsNullOrEmpty(languageFilter))
             {
                 var result = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE FileName LIKE '%.epub%' AND ReplacedByID IS NULL");
-                return Convert.ToInt32(result);
+                return Convert.ToInt32(result ?? 0);
             }
             else
             {
                 var result = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE FileName LIKE '%.epub%' AND ReplacedByID IS NULL AND Language = @Language",
                     DatabaseManager.CreateParameter("@Language", languageFilter));
-                return Convert.ToInt32(result);
+                return Convert.ToInt32(result ?? 0);
             }
         }
 
@@ -1758,14 +1758,14 @@ namespace TinyOPDS.Data
             {
                 var result = db.ExecuteScalar(DatabaseSchema.CountNewBooks,
                     DatabaseManager.CreateParameter("@FromDate", fromDate));
-                return Convert.ToInt32(result);
+                return Convert.ToInt32(result ?? 0);
             }
             else
             {
                 var result = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE AddedDate >= @FromDate AND ReplacedByID IS NULL AND Language = @Language",
                     DatabaseManager.CreateParameter("@FromDate", fromDate),
                     DatabaseManager.CreateParameter("@Language", languageFilter));
-                return Convert.ToInt32(result);
+                return Convert.ToInt32(result ?? 0);
             }
         }
 
@@ -1867,7 +1867,7 @@ namespace TinyOPDS.Data
             if (string.IsNullOrEmpty(languageFilter))
             {
                 var result = db.ExecuteScalar(DatabaseSchema.SelectAuthorsCount);
-                return Convert.ToInt32(result);
+                return Convert.ToInt32(result ?? 0);
             }
             else
             {
@@ -1880,7 +1880,7 @@ namespace TinyOPDS.Data
 
                 var result = db.ExecuteScalar(query,
                     DatabaseManager.CreateParameter("@Language", languageFilter));
-                return Convert.ToInt32(result);
+                return Convert.ToInt32(result ?? 0);
             }
         }
 
@@ -1891,7 +1891,7 @@ namespace TinyOPDS.Data
             if (string.IsNullOrEmpty(languageFilter))
             {
                 var result = db.ExecuteScalar(DatabaseSchema.SelectSequencesCount);
-                return Convert.ToInt32(result);
+                return Convert.ToInt32(result ?? 0);
             }
             else
             {
@@ -1904,12 +1904,12 @@ namespace TinyOPDS.Data
 
                 var result = db.ExecuteScalar(query,
                     DatabaseManager.CreateParameter("@Language", languageFilter));
-                return Convert.ToInt32(result);
+                return Convert.ToInt32(result ?? 0);
             }
         }
 
         /// <summary>
-        /// Get count of books by genre (considers language filter)
+        /// Get count of books by genre (considers language filter) - FIXED
         /// </summary>
         public int GetBooksByGenreCount(string genreTag)
         {
@@ -1921,7 +1921,7 @@ namespace TinyOPDS.Data
                 {
                     var result = db.ExecuteScalar(DatabaseSchema.CountBooksByGenre,
                         DatabaseManager.CreateParameter("@GenreTag", genreTag));
-                    return Convert.ToInt32(result);
+                    return Convert.ToInt32(result ?? 0);
                 }
                 else
                 {
@@ -1935,7 +1935,7 @@ namespace TinyOPDS.Data
                     var result = db.ExecuteScalar(query,
                         DatabaseManager.CreateParameter("@GenreTag", genreTag),
                         DatabaseManager.CreateParameter("@Language", languageFilter));
-                    return Convert.ToInt32(result);
+                    return Convert.ToInt32(result ?? 0);
                 }
             }
             catch (Exception ex)
@@ -1946,7 +1946,7 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Get count of books by sequence (considers language filter)
+        /// Get count of books by sequence (considers language filter) - FIXED
         /// </summary>
         public int GetBooksBySequenceCount(string sequenceName)
         {
@@ -1958,7 +1958,7 @@ namespace TinyOPDS.Data
                 {
                     var result = db.ExecuteScalar(DatabaseSchema.CountBooksBySequence,
                         DatabaseManager.CreateParameter("@SequenceName", sequenceName));
-                    return Convert.ToInt32(result);
+                    return Convert.ToInt32(result ?? 0);
                 }
                 else
                 {
@@ -1973,7 +1973,7 @@ namespace TinyOPDS.Data
                     var result = db.ExecuteScalar(query,
                         DatabaseManager.CreateParameter("@SequenceName", sequenceName),
                         DatabaseManager.CreateParameter("@Language", languageFilter));
-                    return Convert.ToInt32(result);
+                    return Convert.ToInt32(result ?? 0);
                 }
             }
             catch (Exception ex)
@@ -1984,7 +1984,7 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Get statistics for all genres with book counts (considers language filter)
+        /// Get statistics for all genres with book counts (considers language filter) - FIXED
         /// </summary>
         public Dictionary<string, int> GetAllGenreStatistics()
         {
@@ -2011,7 +2011,7 @@ namespace TinyOPDS.Data
 
                 var statistics = db.ExecuteQuery<(string GenreTag, int BookCount)>(
                     query,
-                    reader => (reader.GetString(0), reader.GetInt32(1)),
+                    reader => (reader.GetString(0), Convert.ToInt32(reader.GetValue(1))),
                     string.IsNullOrEmpty(languageFilter) ? null :
                         new[] { DatabaseManager.CreateParameter("@Language", languageFilter) });
 
@@ -2031,7 +2031,7 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Get full genre statistics including parent and translation info (considers language filter)
+        /// Get full genre statistics including parent and translation info (considers language filter) - FIXED
         /// </summary>
         public List<(Genre genre, int bookCount)> GetFullGenreStatistics()
         {
@@ -2064,7 +2064,7 @@ namespace TinyOPDS.Data
                         DatabaseManager.GetString(reader, "ParentName"),
                         reader.GetString(2),
                         DatabaseManager.GetString(reader, "Translation"),
-                        reader.GetInt32(4)
+                        Convert.ToInt32(reader.GetValue(4))  // FIXED: Use Convert.ToInt32
                     ),
                     string.IsNullOrEmpty(languageFilter) ? null :
                         new[] { DatabaseManager.CreateParameter("@Language", languageFilter) });

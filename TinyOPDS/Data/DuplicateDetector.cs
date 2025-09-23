@@ -359,7 +359,11 @@ namespace TinyOPDS.Data
             try
             {
                 return db.ExecuteQuery<Book>(
-                    "SELECT * FROM Books WHERE ID = @ID AND ReplacedByID IS NULL",
+                    @"SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
+                     Annotation, DocumentSize, AddedDate, DocumentIDTrusted, 
+                     DuplicateKey, ReplacedByID, ContentHash
+              FROM Books 
+              WHERE ID = @ID AND ReplacedByID IS NULL",
                     MapBook,
                     DatabaseManager.CreateParameter("@ID", documentID));
             }

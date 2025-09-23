@@ -6,6 +6,7 @@
  * SPDX-License-Identifier: MIT
  *
  * Database manager for SQLite operations with FTS5 support
+ * MODIFIED: Cross-platform compatibility for Mono.Data.Sqlite and System.Data.SQLite
  *
  */
 
@@ -36,7 +37,7 @@ namespace TinyOPDS.Data
             connectionString = $"Data Source={databasePath};Version=3;";
 
             // Create database file if it doesn't exist (only on Windows with System.Data.SQLite)
-            if (!Utils.IsLinux && !File.Exists(databasePath))
+            if (!Utils.IsLinux && !Utils.IsMacOS && !File.Exists(databasePath))
             {
                 try
                 {
@@ -72,17 +73,17 @@ namespace TinyOPDS.Data
         {
             try
             {
-                // Enable foreign keys
+                // Enable foreign keys on all platforms
                 ExecuteNonQuery("PRAGMA foreign_keys = ON");
 
-                // Performance optimizations
-                ExecuteNonQuery("PRAGMA journal_mode = MEMORY");     // Write-Ahead Logging for better concurrency
-                ExecuteNonQuery("PRAGMA synchronous = OFF");         // Faster writes with reasonable safety
-                ExecuteNonQuery("PRAGMA cache_size = -64000");       // 64MB cache in RAM
-                ExecuteNonQuery("PRAGMA temp_store = MEMORY");       // Temp tables in memory
-                ExecuteNonQuery("PRAGMA mmap_size = 268435456");     // 256MB memory-mapped I/O
-                ExecuteNonQuery("PRAGMA page_size = 4096");          // 4KB page size
-                ExecuteNonQuery("PRAGMA busy_timeout = 10000");      // 10 seconds timeout for locked database
+                // Aggressive optimizations for all platforms
+                ExecuteNonQuery("PRAGMA journal_mode = MEMORY");
+                ExecuteNonQuery("PRAGMA synchronous = OFF");
+                ExecuteNonQuery("PRAGMA cache_size = -64000");
+                ExecuteNonQuery("PRAGMA temp_store = MEMORY");
+                ExecuteNonQuery("PRAGMA mmap_size = 268435456");
+                ExecuteNonQuery("PRAGMA page_size = 4096");
+                ExecuteNonQuery("PRAGMA busy_timeout = 10000");
 
                 Log.WriteLine("Applied SQLite performance optimizations");
             }
@@ -347,6 +348,7 @@ namespace TinyOPDS.Data
 
         /// <summary>
         /// Initialize library statistics table with default values
+        /// FIXED: Use Convert.ToInt32 for cross-platform compatibility
         /// </summary>
         private void InitializeLibraryStats()
         {
@@ -354,7 +356,7 @@ namespace TinyOPDS.Data
             {
                 // Check if stats table needs initialization
                 var count = ExecuteScalar(DatabaseSchema.CheckLibraryStatsExist);
-                if (Convert.ToInt32(count) >= 6)
+                if (Convert.ToInt32(count ?? 0) >= 6)
                 {
                     Log.WriteLine("Library statistics table already initialized");
                     return;
@@ -438,6 +440,7 @@ namespace TinyOPDS.Data
 
         /// <summary>
         /// Get count of unique downloaded books
+        /// FIXED: Use Convert.ToInt32 for cross-platform compatibility
         /// </summary>
         public int GetUniqueDownloadsCount()
         {
@@ -456,6 +459,7 @@ namespace TinyOPDS.Data
 
         /// <summary>
         /// Get total downloads count (including multiple downloads of same book)
+        /// FIXED: Use Convert.ToInt32 for cross-platform compatibility
         /// </summary>
         public int GetTotalDownloadsCount()
         {
@@ -555,26 +559,15 @@ namespace TinyOPDS.Data
 
         /// <summary>
         /// Get library statistic value by key
+        /// FIXED: Use Convert.ToInt32 for cross-platform compatibility
         /// </summary>
-        /// <param name="key">Statistic key (e.g., 'total_books', 'authors_count')</param>
-        /// <returns>Statistic value, or 0 if not found</returns>
         public int GetLibraryStatistic(string key)
         {
             try
             {
                 WarmUpIfNeeded();
                 var result = ExecuteScalar(DatabaseSchema.SelectLibraryStats, CreateParameter("@Key", key));
-                if (result != null && result != DBNull.Value)
-                {
-                    using (var reader = ExecuteReader(DatabaseSchema.SelectLibraryStats, CreateParameter("@Key", key)))
-                    {
-                        if (reader.Read())
-                        {
-                            return GetInt32(reader, "value");
-                        }
-                    }
-                }
-                return 0;
+                return Convert.ToInt32(result ?? 0);
             }
             catch (Exception ex)
             {
@@ -586,9 +579,6 @@ namespace TinyOPDS.Data
         /// <summary>
         /// Save library statistic value
         /// </summary>
-        /// <param name="key">Statistic key</param>
-        /// <param name="value">Statistic value</param>
-        /// <param name="periodDays">For new_books statistic - period in days</param>
         public void SaveLibraryStatistic(string key, int value, int? periodDays = null)
         {
             try
@@ -610,7 +600,6 @@ namespace TinyOPDS.Data
         /// <summary>
         /// Get all library statistics
         /// </summary>
-        /// <returns>Dictionary of all statistics</returns>
         public Dictionary<string, LibraryStatistic> GetAllLibraryStats()
         {
             var stats = new Dictionary<string, LibraryStatistic>();
@@ -647,7 +636,6 @@ namespace TinyOPDS.Data
         /// <summary>
         /// Update multiple library statistics in a transaction
         /// </summary>
-        /// <param name="statistics">Dictionary of statistics to save</param>
         public void SaveLibraryStatistics(Dictionary<string, int> statistics, int? newBooksPeriod = null)
         {
             if (statistics == null || statistics.Count == 0) return;
@@ -899,25 +887,50 @@ namespace TinyOPDS.Data
             ExecuteNonQuery("ROLLBACK");
         }
 
-        // Helper methods for parameter creation using factory
+        // Helper methods for parameter creation using factory with cross-platform support
         public static IDbDataParameter CreateParameter(string name, object value)
         {
-            if (Utils.IsLinux)
+            // Unix systems (Linux and macOS) use Mono.Data.Sqlite
+            if (Utils.IsLinux || Utils.IsMacOS)
             {
-                var linuxSqliteAssembly = EmbeddedDllLoader.GetLinuxSqliteAssembly();
-                if (linuxSqliteAssembly != null)
+                var unixSqliteAssembly = EmbeddedDllLoader.GetLinuxSqliteAssembly();
+                if (unixSqliteAssembly != null)
                 {
-                    var paramType = linuxSqliteAssembly.GetType("Mono.Data.Sqlite.SqliteParameter");
-                    return (IDbDataParameter)Activator.CreateInstance(paramType, name, value ?? DBNull.Value);
+                    var paramType = unixSqliteAssembly.GetType("Mono.Data.Sqlite.SqliteParameter");
+                    if (paramType != null)
+                    {
+                        return (IDbDataParameter)Activator.CreateInstance(paramType, name, value ?? DBNull.Value);
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException("Mono.Data.Sqlite.SqliteParameter type not found");
+                    }
                 }
                 else
                 {
-                    return new System.Data.SQLite.SQLiteParameter(name, value ?? DBNull.Value);
+                    throw new InvalidOperationException("Mono.Data.Sqlite assembly not loaded on Unix system");
                 }
             }
             else
             {
-                return new System.Data.SQLite.SQLiteParameter(name, value ?? DBNull.Value);
+                // Windows uses System.Data.SQLite loaded via reflection
+                try
+                {
+                    var windowsSqliteAssembly = Assembly.Load("System.Data.SQLite");
+                    var paramType = windowsSqliteAssembly.GetType("System.Data.SQLite.SQLiteParameter");
+                    if (paramType != null)
+                    {
+                        return (IDbDataParameter)Activator.CreateInstance(paramType, name, value ?? DBNull.Value);
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException("System.Data.SQLite.SQLiteParameter type not found");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException("Failed to create SQLite parameter on Windows", ex);
+                }
             }
         }
 
@@ -926,32 +939,12 @@ namespace TinyOPDS.Data
             return CreateParameter(name, string.IsNullOrEmpty(value) ? DBNull.Value : (object)value);
         }
 
-        public static IDbDataParameter CreateParameter(string name, DateTime? value)
-        {
-            if (value.HasValue && value.Value != DateTime.MinValue)
-            {
-                try
-                {
-                    return CreateParameter(name, value.Value.ToBinary());
-                }
-                catch (ArgumentOutOfRangeException ex)
-                {
-                    Log.WriteLine(LogLevel.Warning, "Invalid DateTime parameter '{0}' ({1}), using current date instead: {2}", name, value.Value, ex.Message);
-                    return CreateParameter(name, DateTime.Now.ToBinary());
-                }
-            }
-            else
-            {
-                return CreateParameter(name, DBNull.Value);
-            }
-        }
-
         public static IDbDataParameter CreateParameter(string name, bool value)
         {
             return CreateParameter(name, value ? 1 : 0);
         }
 
-        // Helper methods for reading from IDataReader
+        // Helper methods for reading from IDataReader - FIXED for cross-platform
         public static string GetString(IDataReader reader, string columnName)
         {
             var ordinal = reader.GetOrdinal(columnName);
@@ -963,32 +956,32 @@ namespace TinyOPDS.Data
             var ordinal = reader.GetOrdinal(columnName);
             if (reader.IsDBNull(ordinal)) return null;
 
-            long ticks = reader.GetInt64(ordinal);
+            long ticks = Convert.ToInt64(reader.GetValue(ordinal));
             return ticks == 0 ? (DateTime?)null : DateTime.FromBinary(ticks);
         }
 
         public static bool GetBoolean(IDataReader reader, string columnName)
         {
             var ordinal = reader.GetOrdinal(columnName);
-            return !reader.IsDBNull(ordinal) && reader.GetInt32(ordinal) != 0;
+            return !reader.IsDBNull(ordinal) && Convert.ToInt32(reader.GetValue(ordinal)) != 0;
         }
 
         public static int GetInt32(IDataReader reader, string columnName)
         {
             var ordinal = reader.GetOrdinal(columnName);
-            return reader.IsDBNull(ordinal) ? 0 : reader.GetInt32(ordinal);
+            return reader.IsDBNull(ordinal) ? 0 : Convert.ToInt32(reader.GetValue(ordinal));
         }
 
         public static uint GetUInt32(IDataReader reader, string columnName)
         {
             var ordinal = reader.GetOrdinal(columnName);
-            return reader.IsDBNull(ordinal) ? 0u : (uint)reader.GetInt64(ordinal);
+            return reader.IsDBNull(ordinal) ? 0u : Convert.ToUInt32(reader.GetValue(ordinal));
         }
 
         public static float GetFloat(IDataReader reader, string columnName)
         {
             var ordinal = reader.GetOrdinal(columnName);
-            return reader.IsDBNull(ordinal) ? 0f : reader.GetFloat(ordinal);
+            return reader.IsDBNull(ordinal) ? 0f : Convert.ToSingle(reader.GetValue(ordinal));
         }
 
         public void Dispose()

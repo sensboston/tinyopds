@@ -316,48 +316,48 @@ namespace TinyOPDSCLI
                                 {
                                     try
                                     {
-                                        var installer = ServiceInstallerBase.CreateInstaller(
-                                            SERVICE_NAME, SERVICE_DISPLAY_NAME, exePath, SERVICE_DESCRIPTION);
+                                        var installer = ServiceInstallerBase.CreateInstaller(SERVICE_NAME, SERVICE_DISPLAY_NAME, exePath, SERVICE_DESCRIPTION);
 
                                         if (installer.IsInstalled())
                                         {
-                                            installer.Start();
-                                            Console.WriteLine("{0} started", SERVICE_DISPLAY_NAME);
-                                        }
-                                        else
-                                        {
-                                            // If service is not installed, run in console mode
-                                            StartServer();
-                                        }
-                                    }
-                                    catch (UnauthorizedAccessException)
-                                    {
-                                        if (!Utils.IsWindows)
-                                        {
-                                            Console.WriteLine("Please run with sudo: sudo mono TinyOPDSCLI.exe start");
-                                        }
-                                        else
-                                        {
-                                            // Windows - try to elevate
-                                            if (RunElevated("start"))
+                                            // Service is installed - start it through system service manager
+                                            try
+                                            {
+                                                installer.Start();
                                                 Console.WriteLine("{0} started", SERVICE_DISPLAY_NAME);
-                                            else
-                                                Console.WriteLine("{0} failed to start", SERVICE_DISPLAY_NAME);
+                                                CleanupAndExit(0);
+                                            }
+                                            catch (UnauthorizedAccessException)
+                                            {
+                                                if (!Utils.IsWindows)
+                                                {
+                                                    Console.WriteLine("Please run with sudo: sudo mono TinyOPDSCLI.exe start");
+                                                }
+                                                else
+                                                {
+                                                    // Windows - try to elevate
+                                                    if (RunElevated("start"))
+                                                        Console.WriteLine("{0} started", SERVICE_DISPLAY_NAME);
+                                                    else
+                                                        Console.WriteLine("{0} failed to start", SERVICE_DISPLAY_NAME);
+                                                }
+                                                CleanupAndExit(-1);
+                                            }
                                         }
-                                        CleanupAndExit(-1);
-                                    }
-                                    catch (InvalidOperationException)
-                                    {
-                                        // Service not installed, run in console mode
-                                        Console.WriteLine("Service not installed, starting in console mode...");
-                                        StartServer();
+                                        else
+                                        {
+                                            // Service not installed - run in console mode
+                                            Console.WriteLine("Service not installed, starting in console mode...");
+                                            StartServer();
+                                            // StartServer() has its own wait loop, will exit when done
+                                        }
                                     }
                                     catch (Exception e)
                                     {
-                                        Console.WriteLine("{0} failed to start: {1}", SERVICE_DISPLAY_NAME, e.Message);
-                                        CleanupAndExit(-1);
+                                        // If we can't create installer or check status, run in console mode
+                                        Console.WriteLine("Cannot check service status ({0}), starting in console mode...", e.Message);
+                                        StartServer();
                                     }
-                                    CleanupAndExit(0);
                                 }
                                 break;
 
@@ -380,7 +380,7 @@ namespace TinyOPDSCLI
                                     }
                                     catch (UnauthorizedAccessException)
                                     {
-                                        if (Utils.IsLinux || Utils.IsMacOS)
+                                        if (!Utils.IsWindows)
                                         {
                                             Console.WriteLine("Please run with sudo: sudo mono TinyOPDSCLI.exe stop");
                                         }
@@ -832,7 +832,7 @@ namespace TinyOPDSCLI
             else
             {
                 Log.WriteLine("HTTP server started");
-                if (Utils.IsLinux || Environment.UserInteractive)
+                if (Utils.IsLinux || Utils.IsMacOS || Environment.UserInteractive)
                 {
                     Console.WriteLine("Server is running... Press <Ctrl+c> to shutdown server.");
                     while (server != null && server.IsActive) Thread.Sleep(500);

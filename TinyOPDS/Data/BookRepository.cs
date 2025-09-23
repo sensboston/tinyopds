@@ -2328,12 +2328,8 @@ namespace TinyOPDS.Data
 
             foreach (char c in text)
             {
-                // Basic Cyrillic range (includes Russian, Ukrainian, Belarusian, etc.)
-                if ((c >= '\u0400' && c <= '\u04FF'))
-                    return true;
-
-                // Cyrillic Supplement
-                if ((c >= '\u0500' && c <= '\u052F'))
+                // Full Cyrillic Unicode block (0400-04FF)
+                if (c >= '\u0400' && c <= '\u04FF')
                     return true;
             }
             return false;

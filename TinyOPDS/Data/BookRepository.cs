@@ -1380,76 +1380,94 @@ namespace TinyOPDS.Data
                     return (new List<string>(), AuthorSearchMethod.NotFound);
                 }
 
+                // Determine if input is Latin or Cyrillic
+                bool isLatinInput = ContainsLatinLetters(searchPattern) && !ContainsCyrillicLetters(searchPattern);
+                bool isCyrillicInput = ContainsCyrillicLetters(searchPattern);
+
+                Log.WriteLine(LogLevel.Info, "Input detected as: Latin={0}, Cyrillic={1}", isLatinInput, isCyrillicInput);
+
+                // Prepare transliterated versions if Latin input
+                string transliteratedGOST = null;
+                string transliteratedISO = null;
+                if (isLatinInput)
+                {
+                    transliteratedGOST = Transliteration.Back(searchPattern, TransliterationType.GOST);
+                    transliteratedISO = Transliteration.Back(searchPattern, TransliterationType.ISO);
+                    Log.WriteLine(LogLevel.Info, "Transliterations prepared: GOST='{0}', ISO='{1}'", transliteratedGOST, transliteratedISO);
+                }
+
                 // STEP 1: For two-word input, try EXACT match using FTS
                 if (words.Length == 2)
                 {
                     Log.WriteLine(LogLevel.Info, "Step 1: Trying exact match for two-word query '{0}' using FTS", searchPattern);
 
-                    // Escape the search pattern for FTS
-                    string escapedPattern = EscapeForFTS(searchPattern);
-                    // Use FTS to find exact match - it handles case-insensitive Unicode properly
-                    string ftsQuery = $"\"{escapedPattern}\""; // Exact phrase in FTS
-
-                    string sql = @"
-                        SELECT DISTINCT a.Name
-                        FROM Authors a
-                        INNER JOIN AuthorsFTS fts ON a.ID = fts.AuthorID
-                        INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID";
-
-                    if (!string.IsNullOrEmpty(languageFilter))
-                    {
-                        sql += @"
-                        INNER JOIN Books b ON ba.BookID = b.ID
-                        WHERE AuthorsFTS MATCH @SearchPattern
-                          AND b.Language = @Language
-                          AND b.ReplacedByID IS NULL
-                        ORDER BY a.Name";
-
-                        authors = db.ExecuteQuery<string>(sql,
-                            reader => reader.GetString(0),
-                            DatabaseManager.CreateParameter("@SearchPattern", ftsQuery),
-                            DatabaseManager.CreateParameter("@Language", languageFilter));
-                    }
-                    else
-                    {
-                        sql += @"
-                        WHERE AuthorsFTS MATCH @SearchPattern
-                        ORDER BY a.Name";
-
-                        authors = db.ExecuteQuery<string>(sql,
-                            reader => reader.GetString(0),
-                            DatabaseManager.CreateParameter("@SearchPattern", ftsQuery));
-                    }
-
+                    // Search with original pattern
+                    authors = SearchAuthorsFTS(searchPattern, languageFilter, exactMatch: true);
                     if (authors.Count > 0)
                     {
                         Log.WriteLine(LogLevel.Info, "Found exact match using FTS: {0} authors", authors.Count);
                         return (authors, AuthorSearchMethod.ExactMatch);
                     }
 
-                    // Try reversed order in FTS
+                    // Try reversed order
                     string reversedPattern = $"{words[1]} {words[0]}";
-                    string escapedReversedPattern = EscapeForFTS(reversedPattern);
-                    string reversedFtsQuery = $"\"{escapedReversedPattern}\"";
-
-                    if (!string.IsNullOrEmpty(languageFilter))
-                    {
-                        authors = db.ExecuteQuery<string>(sql,
-                            reader => reader.GetString(0),
-                            DatabaseManager.CreateParameter("@SearchPattern", reversedFtsQuery),
-                            DatabaseManager.CreateParameter("@Language", languageFilter));
-                    }
-                    else
-                    {
-                        authors = db.ExecuteQuery<string>(sql,
-                            reader => reader.GetString(0),
-                            DatabaseManager.CreateParameter("@SearchPattern", reversedFtsQuery));
-                    }
-
+                    authors = SearchAuthorsFTS(reversedPattern, languageFilter, exactMatch: true);
                     if (authors.Count > 0)
                     {
                         Log.WriteLine(LogLevel.Info, "Found exact match with reversed order using FTS: {0} authors", authors.Count);
                         return (authors, AuthorSearchMethod.ExactMatch);
+                    }
+
+                    // For Latin input, ALSO try transliterated versions
+                    if (isLatinInput)
+                    {
+                        // Try GOST transliteration
+                        if (!string.IsNullOrEmpty(transliteratedGOST) && transliteratedGOST != searchPattern)
+                        {
+                            authors = SearchAuthorsFTS(transliteratedGOST, languageFilter, exactMatch: true);
+                            if (authors.Count > 0)
+                            {
+                                Log.WriteLine(LogLevel.Info, "Found exact match via GOST transliteration: {0} authors", authors.Count);
+                                return (authors, AuthorSearchMethod.Transliteration);
+                            }
+
+                            // Try reversed transliterated
+                            string[] translitWords = transliteratedGOST.Split(new char[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
+                            if (translitWords.Length == 2)
+                            {
+                                string reversedTranslit = $"{translitWords[1]} {translitWords[0]}";
+                                authors = SearchAuthorsFTS(reversedTranslit, languageFilter, exactMatch: true);
+                                if (authors.Count > 0)
+                                {
+                                    Log.WriteLine(LogLevel.Info, "Found exact match via reversed GOST transliteration: {0} authors", authors.Count);
+                                    return (authors, AuthorSearchMethod.Transliteration);
+                                }
+                            }
+                        }
+
+                        // Try ISO transliteration
+                        if (!string.IsNullOrEmpty(transliteratedISO) && transliteratedISO != searchPattern && transliteratedISO != transliteratedGOST)
+                        {
+                            authors = SearchAuthorsFTS(transliteratedISO, languageFilter, exactMatch: true);
+                            if (authors.Count > 0)
+                            {
+                                Log.WriteLine(LogLevel.Info, "Found exact match via ISO transliteration: {0} authors", authors.Count);
+                                return (authors, AuthorSearchMethod.Transliteration);
+                            }
+
+                            // Try reversed transliterated
+                            string[] translitWords = transliteratedISO.Split(new char[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
+                            if (translitWords.Length == 2)
+                            {
+                                string reversedTranslit = $"{translitWords[1]} {translitWords[0]}";
+                                authors = SearchAuthorsFTS(reversedTranslit, languageFilter, exactMatch: true);
+                                if (authors.Count > 0)
+                                {
+                                    Log.WriteLine(LogLevel.Info, "Found exact match via reversed ISO transliteration: {0} authors", authors.Count);
+                                    return (authors, AuthorSearchMethod.Transliteration);
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -1459,89 +1477,49 @@ namespace TinyOPDS.Data
                     string pattern = words[0];
                     Log.WriteLine(LogLevel.Info, "Step 2: Trying partial match for single word '{0}' using FTS", pattern);
 
-                    // Escape and prepare for wildcard search
-                    string escapedWord = EscapeForFTS(pattern);
-                    // Use FTS with wildcard for prefix search
-                    string ftsPattern = $"{escapedWord}*";
-
-                    string sql = @"
-                        SELECT DISTINCT a.Name
-                        FROM Authors a
-                        INNER JOIN AuthorsFTS fts ON a.ID = fts.AuthorID
-                        INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID";
-
-                    if (!string.IsNullOrEmpty(languageFilter))
-                    {
-                        sql += @"
-                        INNER JOIN Books b ON ba.BookID = b.ID
-                        WHERE AuthorsFTS MATCH @SearchPattern
-                          AND b.Language = @Language
-                          AND b.ReplacedByID IS NULL
-                        ORDER BY a.Name";
-
-                        authors = db.ExecuteQuery<string>(sql,
-                            reader => reader.GetString(0),
-                            DatabaseManager.CreateParameter("@SearchPattern", ftsPattern),
-                            DatabaseManager.CreateParameter("@Language", languageFilter));
-                    }
-                    else
-                    {
-                        sql += @"
-                        WHERE AuthorsFTS MATCH @SearchPattern
-                        ORDER BY a.Name";
-
-                        authors = db.ExecuteQuery<string>(sql,
-                            reader => reader.GetString(0),
-                            DatabaseManager.CreateParameter("@SearchPattern", ftsPattern));
-                    }
-
+                    // Search with original pattern
+                    authors = SearchAuthorsFTS(pattern, languageFilter, exactMatch: false);
                     if (authors.Count > 0)
                     {
                         Log.WriteLine(LogLevel.Info, "Found partial match using FTS: {0} authors", authors.Count);
                         return (authors, AuthorSearchMethod.PartialMatch);
                     }
-                }
-                // For multi-word queries - NO partial search after exact match fails
 
-                // STEP 3: Transliteration search (if input contains Latin letters)
-                if (ContainsLatinLetters(searchPattern))
-                {
-                    Log.WriteLine(LogLevel.Info, "Step 3: Trying transliteration search");
-
-                    // Try GOST transliteration
-                    string transliteratedGOST = Transliteration.Back(searchPattern, TransliterationType.GOST);
-                    if (!string.IsNullOrEmpty(transliteratedGOST) && transliteratedGOST != searchPattern)
+                    // For Latin input, ALSO try transliterated versions
+                    if (isLatinInput)
                     {
-                        // Recursive call with transliterated text - use the original method to avoid infinite recursion
-                        var (translitAuthors, _) = GetAuthorsForOpenSearchWithMethod(transliteratedGOST);
-                        if (translitAuthors.Count > 0)
+                        // Try GOST transliteration
+                        if (!string.IsNullOrEmpty(transliteratedGOST) && transliteratedGOST != searchPattern)
                         {
-                            Log.WriteLine(LogLevel.Info, "Found via GOST transliteration: {0} authors", translitAuthors.Count);
-                            return (translitAuthors, AuthorSearchMethod.Transliteration);
+                            authors = SearchAuthorsFTS(transliteratedGOST, languageFilter, exactMatch: false);
+                            if (authors.Count > 0)
+                            {
+                                Log.WriteLine(LogLevel.Info, "Found partial match via GOST transliteration: {0} authors", authors.Count);
+                                return (authors, AuthorSearchMethod.Transliteration);
+                            }
                         }
-                    }
 
-                    // Try ISO transliteration
-                    string transliteratedISO = Transliteration.Back(searchPattern, TransliterationType.ISO);
-                    if (!string.IsNullOrEmpty(transliteratedISO) && transliteratedISO != searchPattern && transliteratedISO != transliteratedGOST)
-                    {
-                        // Recursive call with transliterated text
-                        var (translitAuthors, _) = GetAuthorsForOpenSearchWithMethod(transliteratedISO);
-                        if (translitAuthors.Count > 0)
+                        // Try ISO transliteration
+                        if (!string.IsNullOrEmpty(transliteratedISO) && transliteratedISO != searchPattern && transliteratedISO != transliteratedGOST)
                         {
-                            Log.WriteLine(LogLevel.Info, "Found via ISO transliteration: {0} authors", translitAuthors.Count);
-                            return (translitAuthors, AuthorSearchMethod.Transliteration);
+                            authors = SearchAuthorsFTS(transliteratedISO, languageFilter, exactMatch: false);
+                            if (authors.Count > 0)
+                            {
+                                Log.WriteLine(LogLevel.Info, "Found partial match via ISO transliteration: {0} authors", authors.Count);
+                                return (authors, AuthorSearchMethod.Transliteration);
+                            }
                         }
                     }
                 }
 
-                // STEP 4: Soundex search (last resort) - still using regular table as Soundex is pre-calculated
+                // STEP 3: Soundex search (last resort)
+                // Use appropriate Soundex based on input language
                 string soundexPattern = words.Length == 1 ? words[0] : words[words.Length - 1];
                 string soundex = StringUtils.Soundex(soundexPattern);
 
                 if (!string.IsNullOrEmpty(soundex))
                 {
-                    Log.WriteLine(LogLevel.Info, "Step 4: Trying Soundex search for '{0}' -> '{1}'", soundexPattern, soundex);
+                    Log.WriteLine(LogLevel.Info, "Step 3: Trying Soundex search for '{0}' -> '{1}'", soundexPattern, soundex);
 
                     if (!string.IsNullOrEmpty(languageFilter))
                     {
@@ -1582,6 +1560,49 @@ namespace TinyOPDS.Data
             {
                 Log.WriteLine(LogLevel.Error, "Error in GetAuthorsForOpenSearchWithMethod {0}: {1}", searchPattern, ex.Message);
                 return (new List<string>(), AuthorSearchMethod.NotFound);
+            }
+        }
+
+        /// <summary>
+        /// Helper method to search authors using FTS
+        /// </summary>
+        private List<string> SearchAuthorsFTS(string searchPattern, string languageFilter, bool exactMatch)
+        {
+            // Escape the search pattern for FTS
+            string escapedPattern = EscapeForFTS(searchPattern);
+
+            // Prepare FTS query
+            string ftsQuery = exactMatch
+                ? $"\"{escapedPattern}\""  // Exact phrase in FTS
+                : $"{escapedPattern}*";     // Wildcard for prefix search
+
+            string sql = @"
+                SELECT DISTINCT a.Name
+                FROM Authors a
+                INNER JOIN AuthorsFTS fts ON a.ID = fts.AuthorID
+                INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID";
+
+            if (!string.IsNullOrEmpty(languageFilter))
+            {
+                sql += @"
+                INNER JOIN Books b ON ba.BookID = b.ID
+                WHERE AuthorsFTS MATCH @SearchPattern
+                  AND b.Language = @Language
+                  AND b.ReplacedByID IS NULL
+                ORDER BY a.Name";
+
+                return db.ExecuteQuery<string>(sql,
+                    reader => reader.GetString(0),
+                    DatabaseManager.CreateParameter("@SearchPattern", ftsQuery),
+                    DatabaseManager.CreateParameter("@Language", languageFilter));
+            }
+            else
+            {
+                sql += @"WHERE AuthorsFTS MATCH @SearchPattern ORDER BY a.Name";
+
+                return db.ExecuteQuery<string>(sql,
+                    reader => reader.GetString(0),
+                    DatabaseManager.CreateParameter("@SearchPattern", ftsQuery));
             }
         }
 
@@ -2275,7 +2296,7 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Check if string contains Latin letters
+        /// Check if string contains Latin letters (including diacritics)
         /// </summary>
         private bool ContainsLatinLetters(string text)
         {
@@ -2283,7 +2304,16 @@ namespace TinyOPDS.Data
 
             foreach (char c in text)
             {
+                // Basic Latin
                 if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))
+                    return true;
+
+                // Extended Latin (Latin-1 Supplement)
+                if ((c >= '\u00C0' && c <= '\u00FF'))  // À-ÿ
+                    return true;
+
+                // Latin Extended-A
+                if ((c >= '\u0100' && c <= '\u017F'))
                     return true;
             }
             return false;
@@ -2298,7 +2328,12 @@ namespace TinyOPDS.Data
 
             foreach (char c in text)
             {
-                if ((c >= 'А' && c <= 'я') || c == 'Ё' || c == 'ё')
+                // Basic Cyrillic range (includes Russian, Ukrainian, Belarusian, etc.)
+                if ((c >= '\u0400' && c <= '\u04FF'))
+                    return true;
+
+                // Cyrillic Supplement
+                if ((c >= '\u0500' && c <= '\u052F'))
                     return true;
             }
             return false;

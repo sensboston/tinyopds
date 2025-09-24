@@ -375,9 +375,6 @@ namespace TinyOPDS.Parsers
 
                 // Set the ID - the setter in Book.cs will validate if it's a trusted GUID
                 book.ID = documentId;
-
-                Log.WriteLine(LogLevel.Info, "Extracted document ID: {0} (trusted: {1}) from file: {2}",
-                    book.ID, book.DocumentIDTrusted, fileName);
             }
 
             // Document date - FIXED: use DocumentDate, NOT BookDate!

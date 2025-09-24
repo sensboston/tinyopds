@@ -101,12 +101,12 @@ namespace TinyOPDS.OPDS
                     if (isOpenSearch)
                     {
                         // For OpenSearch, show search results title
-                        feedTitle = Localizer.Text("Search results for books: '") + searchPattern + "'";
+                        feedTitle = string.Format(Localizer.Text("Search results for books: «{0}»"), searchPattern);
                     }
                     else
                     {
                         // For navigation, show books starting with
-                        feedTitle = Localizer.Text("Books starting with '") + searchPattern + "'";
+                        feedTitle = string.Format(Localizer.Text("Books starting with «{0}»"), searchPattern);
                     }
                     break;
                 default:

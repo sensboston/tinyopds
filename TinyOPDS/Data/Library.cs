@@ -1445,7 +1445,8 @@ namespace TinyOPDS.Data
         private static List<string> GetAuthorsFromCache(string pattern)
         {
             // Ensure cache is loaded
-            if (cachedAuthorsByFirstLetter == null || DateTime.Now - lastAuthorsByLetterUpdate > AuthorsByLetterCacheTimeout)
+            if (cachedAuthorsByFirstLetter == null || cachedAuthorsByFirstLetter.Count == 0 ||
+                DateTime.Now - lastAuthorsByLetterUpdate > AuthorsByLetterCacheTimeout)
             {
                 // Try to get lock without blocking
                 if (Monitor.TryEnter(authorsByLetterLock, TimeSpan.FromMilliseconds(100)))
@@ -1453,8 +1454,23 @@ namespace TinyOPDS.Data
                     try
                     {
                         // Double-check after acquiring lock
-                        if (cachedAuthorsByFirstLetter == null || DateTime.Now - lastAuthorsByLetterUpdate > AuthorsByLetterCacheTimeout)
+                        if (cachedAuthorsByFirstLetter == null || cachedAuthorsByFirstLetter.Count == 0 ||
+                            DateTime.Now - lastAuthorsByLetterUpdate > AuthorsByLetterCacheTimeout)
                         {
+                            // Log cache state for debugging
+                            if (cachedAuthorsByFirstLetter == null)
+                            {
+                                Log.WriteLine(LogLevel.Info, "Authors cache is null, falling back to database");
+                            }
+                            else if (cachedAuthorsByFirstLetter.Count == 0)
+                            {
+                                Log.WriteLine(LogLevel.Info, "Authors cache is empty, falling back to database");
+                            }
+                            else
+                            {
+                                Log.WriteLine(LogLevel.Info, "Authors cache expired, refreshing and falling back to database");
+                            }
+
                             // Need to refresh cache - do it async
                             RefreshAuthorsCacheAsync();
 
@@ -1470,42 +1486,61 @@ namespace TinyOPDS.Data
                 else
                 {
                     // Could not get lock, fall back to database
+                    Log.WriteLine(LogLevel.Info, "Could not acquire lock for authors cache, falling back to database");
                     return GetAuthorsFromDatabase(pattern);
                 }
             }
 
-            // Use cache
+            // Use cache - but still verify it has content
             lock (authorsByLetterLock)
             {
+                // Additional safety check
+                if (cachedAuthorsByFirstLetter == null || cachedAuthorsByFirstLetter.Count == 0)
+                {
+                    Log.WriteLine(LogLevel.Warning, "Authors cache became empty after initial check, falling back to database");
+                    return GetAuthorsFromDatabase(pattern);
+                }
+
                 if (string.IsNullOrEmpty(pattern))
                 {
                     // For empty pattern, AuthorsCatalog expects ALL authors to build the alphabet
                     // We need to return all authors from all letters
-                    if (cachedAuthorsByFirstLetter != null)
+                    var allAuthors = new List<string>();
+                    foreach (var letterGroup in cachedAuthorsByFirstLetter.Values)
                     {
-                        var allAuthors = new List<string>();
-                        foreach (var letterGroup in cachedAuthorsByFirstLetter.Values)
-                        {
-                            allAuthors.AddRange(letterGroup);
-                        }
-
-                        // Sort all authors
-                        var comparer = new OPDSComparer(Properties.Settings.Default.SortOrder > 0);
-                        var result = allAuthors.Distinct().OrderBy(a => a, comparer).ToList();
-
-                        Log.WriteLine(LogLevel.Info, "Returning {0} total authors from cache for alphabet building", result.Count);
-                        return result;
+                        allAuthors.AddRange(letterGroup);
                     }
+
+                    // Sort all authors
+                    var comparer = new OPDSComparer(Properties.Settings.Default.SortOrder > 0);
+                    var result = allAuthors.Distinct().OrderBy(a => a, comparer).ToList();
+
+                    // If result is empty, something is wrong - fall back to database
+                    if (result.Count == 0)
+                    {
+                        Log.WriteLine(LogLevel.Warning, "Authors cache returned empty list for all authors, falling back to database");
+                        return GetAuthorsFromDatabase(pattern);
+                    }
+
+                    Log.WriteLine(LogLevel.Info, "Returning {0} total authors from cache for alphabet building", result.Count);
+                    return result;
                 }
                 else if (pattern.Length == 1)
                 {
                     // Return authors for specific letter
                     string upperPattern = pattern.ToUpper();
-                    if (cachedAuthorsByFirstLetter != null && cachedAuthorsByFirstLetter.ContainsKey(upperPattern))
+                    if (cachedAuthorsByFirstLetter.ContainsKey(upperPattern))
                     {
                         var authors = cachedAuthorsByFirstLetter[upperPattern];
                         Log.WriteLine(LogLevel.Info, "Returning {0} authors for letter '{1}' from cache", authors.Count, upperPattern);
                         return new List<string>(authors);
+                    }
+                    else
+                    {
+                        // Letter not found in cache - might be legitimate (no authors starting with this letter)
+                        Log.WriteLine(LogLevel.Info, "No authors found for letter '{0}' in cache", upperPattern);
+                        // Still check database in case cache is incomplete
+                        return GetAuthorsFromDatabase(pattern);
                     }
                 }
 

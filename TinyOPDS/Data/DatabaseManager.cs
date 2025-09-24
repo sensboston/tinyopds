@@ -6,7 +6,7 @@
  * SPDX-License-Identifier: MIT
  *
  * Database manager for SQLite operations with FTS5 support
- * MODIFIED: Cross-platform compatibility for Mono.Data.Sqlite and System.Data.SQLite
+ * MODIFIED: Thread-safe version with proper transaction management
  *
  */
 
@@ -26,6 +26,9 @@ namespace TinyOPDS.Data
         private IDbConnection connection;
         private readonly string connectionString;
         private bool disposed = false;
+
+        // Thread safety for connection operations
+        private readonly object connectionLock = new object();
 
         // Performance optimization fields
         private Timer _keepAliveTimer;
@@ -109,12 +112,14 @@ namespace TinyOPDS.Data
         {
             try
             {
-                ExecuteScalar("SELECT 1");
+                lock (connectionLock)
+                {
+                    ExecuteScalar("SELECT 1");
+                }
             }
             catch (Exception ex)
             {
                 Log.WriteLine(LogLevel.Warning, "Keep-alive query failed: {0}", ex.Message);
-                // Try to reconnect if connection is broken
                 TryReconnect();
             }
         }
@@ -133,7 +138,10 @@ namespace TinyOPDS.Data
 
                     connection = SqliteConnectionFactory.CreateConnection(connectionString);
                     connection.Open();
-                    ApplyPerformanceOptimizations();
+
+                    // Don't apply all optimizations here - they should be applied once globally
+                    ExecuteNonQuery("PRAGMA foreign_keys = ON");
+                    ExecuteNonQuery("PRAGMA busy_timeout = 10000");
 
                     Log.WriteLine(LogLevel.Info, "Successfully reconnected to database");
                 }
@@ -171,6 +179,102 @@ namespace TinyOPDS.Data
             _lastAccessTime = DateTime.Now;
         }
 
+        /// <summary>
+        /// Begin transaction with IDbTransaction object (thread-safe)
+        /// </summary>
+        public IDbTransaction BeginTransactionWithObject()
+        {
+            lock (connectionLock)
+            {
+                _lastAccessTime = DateTime.Now;
+                if (connection.State != ConnectionState.Open)
+                {
+                    TryReconnect();
+                }
+                return connection.BeginTransaction();
+            }
+        }
+
+        /// <summary>
+        /// Execute non-query within specific transaction (thread-safe)
+        /// </summary>
+        public int ExecuteNonQueryInTransaction(string sql, IDbTransaction transaction, params IDbDataParameter[] parameters)
+        {
+            if (transaction == null)
+                throw new ArgumentNullException(nameof(transaction));
+
+            _lastAccessTime = DateTime.Now;
+            var command = SqliteConnectionFactory.CreateCommand(sql, transaction.Connection);
+            command.Transaction = transaction;
+
+            try
+            {
+                if (parameters != null)
+                {
+                    foreach (var param in parameters)
+                    {
+                        command.Parameters.Add(param);
+                    }
+                }
+                return command.ExecuteNonQuery();
+            }
+            finally
+            {
+                command.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Execute scalar within specific transaction (thread-safe)
+        /// </summary>
+        public object ExecuteScalarInTransaction(string sql, IDbTransaction transaction, params IDbDataParameter[] parameters)
+        {
+            if (transaction == null)
+                throw new ArgumentNullException(nameof(transaction));
+
+            _lastAccessTime = DateTime.Now;
+            var command = SqliteConnectionFactory.CreateCommand(sql, transaction.Connection);
+            command.Transaction = transaction;
+
+            try
+            {
+                if (parameters != null)
+                {
+                    foreach (var param in parameters)
+                    {
+                        command.Parameters.Add(param);
+                    }
+                }
+                return command.ExecuteScalar();
+            }
+            finally
+            {
+                command.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Execute reader within specific transaction (thread-safe)
+        /// </summary>
+        public IDataReader ExecuteReaderInTransaction(string sql, IDbTransaction transaction, params IDbDataParameter[] parameters)
+        {
+            if (transaction == null)
+                throw new ArgumentNullException(nameof(transaction));
+
+            _lastAccessTime = DateTime.Now;
+            var command = SqliteConnectionFactory.CreateCommand(sql, transaction.Connection);
+            command.Transaction = transaction;
+
+            if (parameters != null)
+            {
+                foreach (var param in parameters)
+                {
+                    command.Parameters.Add(param);
+                }
+            }
+            return command.ExecuteReader();
+        }
+
         private void InitializeSchema()
         {
             try
@@ -180,14 +284,14 @@ namespace TinyOPDS.Data
                 ExecuteNonQuery(DatabaseSchema.CreateAuthorsTable);
                 ExecuteNonQuery(DatabaseSchema.CreateGenresTable);
                 ExecuteNonQuery(DatabaseSchema.CreateTranslatorsTable);
-                ExecuteNonQuery(DatabaseSchema.CreateSequencesTable); // NEW: Create sequences table
-                ExecuteNonQuery(DatabaseSchema.CreateDownloadsTable); // Create downloads table
+                ExecuteNonQuery(DatabaseSchema.CreateSequencesTable);
+                ExecuteNonQuery(DatabaseSchema.CreateDownloadsTable);
 
                 // Create relationship tables
                 ExecuteNonQuery(DatabaseSchema.CreateBookAuthorsTable);
                 ExecuteNonQuery(DatabaseSchema.CreateBookGenresTable);
                 ExecuteNonQuery(DatabaseSchema.CreateBookTranslatorsTable);
-                ExecuteNonQuery(DatabaseSchema.CreateBookSequencesTable); // NEW: Create book-sequences relationship table
+                ExecuteNonQuery(DatabaseSchema.CreateBookSequencesTable);
 
                 // Create library statistics table
                 ExecuteNonQuery(DatabaseSchema.CreateLibraryStatsTable);
@@ -195,12 +299,12 @@ namespace TinyOPDS.Data
                 // Create FTS5 tables
                 ExecuteNonQuery(DatabaseSchema.CreateBooksFTSTable);
                 ExecuteNonQuery(DatabaseSchema.CreateAuthorsFTSTable);
-                ExecuteNonQuery(DatabaseSchema.CreateSequencesFTSTable); // NEW: Create sequences FTS table
+                ExecuteNonQuery(DatabaseSchema.CreateSequencesFTSTable);
 
                 // Create views
                 ExecuteNonQuery(DatabaseSchema.CreateAuthorStatisticsView);
                 ExecuteNonQuery(DatabaseSchema.CreateGenreStatisticsView);
-                ExecuteNonQuery(DatabaseSchema.CreateSequenceStatisticsView); // NEW: Create sequences statistics view
+                ExecuteNonQuery(DatabaseSchema.CreateSequenceStatisticsView);
 
                 // Create indexes
                 ExecuteNonQuery(DatabaseSchema.CreateIndexes);
@@ -216,7 +320,7 @@ namespace TinyOPDS.Data
                 ExecuteNonQuery(DatabaseSchema.CreateAuthorUpdateTrigger);
                 ExecuteNonQuery(DatabaseSchema.CreateAuthorDeleteTrigger);
 
-                // NEW: Sequences triggers for FTS synchronization
+                // Sequences triggers for FTS synchronization
                 ExecuteNonQuery(DatabaseSchema.CreateSequenceInsertTrigger);
                 ExecuteNonQuery(DatabaseSchema.CreateSequenceUpdateTrigger);
                 ExecuteNonQuery(DatabaseSchema.CreateSequenceDeleteTrigger);
@@ -285,9 +389,11 @@ namespace TinyOPDS.Data
 
                     Log.WriteLine("Updating genres: {0} in database, {1} in XML", dbGenreCount, xmlGenreCount);
 
-                    BeginTransaction();
+                    IDbTransaction transaction = null;
                     try
                     {
+                        transaction = BeginTransactionWithObject();
+
                         int genreCount = 0;
                         int mainGenreCount = 0;
 
@@ -300,7 +406,7 @@ namespace TinyOPDS.Data
                             // Insert main genre translation (if not exists)
                             if (!string.IsNullOrEmpty(parentName) && !string.IsNullOrEmpty(parentTranslation))
                             {
-                                ExecuteNonQuery(DatabaseSchema.InsertGenreIfNotExists,
+                                ExecuteNonQueryInTransaction(DatabaseSchema.InsertGenreIfNotExists, transaction,
                                     CreateParameter("@Tag", "_MAIN_" + parentName),
                                     CreateParameter("@ParentName", DBNull.Value),
                                     CreateParameter("@Name", parentName),
@@ -317,7 +423,7 @@ namespace TinyOPDS.Data
 
                                 if (!string.IsNullOrEmpty(tag))
                                 {
-                                    ExecuteNonQuery(DatabaseSchema.InsertGenreIfNotExists,
+                                    ExecuteNonQueryInTransaction(DatabaseSchema.InsertGenreIfNotExists, transaction,
                                         CreateParameter("@Tag", tag),
                                         CreateParameter("@ParentName", parentName),
                                         CreateParameter("@Name", name),
@@ -328,14 +434,18 @@ namespace TinyOPDS.Data
                             }
                         }
 
-                        CommitTransaction();
+                        transaction.Commit();
                         Log.WriteLine("Successfully processed {0} main genres and {1} subgenres from XML",
                             mainGenreCount, genreCount);
                     }
                     catch
                     {
-                        RollbackTransaction();
+                        transaction?.Rollback();
                         throw;
+                    }
+                    finally
+                    {
+                        transaction?.Dispose();
                     }
                 }
             }
@@ -640,33 +750,32 @@ namespace TinyOPDS.Data
         {
             if (statistics == null || statistics.Count == 0) return;
 
+            IDbTransaction transaction = null;
             try
             {
-                BeginTransaction();
-                try
-                {
-                    foreach (var stat in statistics)
-                    {
-                        int? periodDays = stat.Key == "new_books" ? newBooksPeriod : null;
-                        ExecuteNonQuery(DatabaseSchema.UpsertLibraryStats,
-                            CreateParameter("@Key", stat.Key),
-                            CreateParameter("@Value", stat.Value),
-                            CreateParameter("@UpdatedAt", DateTime.Now.ToBinary()),
-                            CreateParameter("@PeriodDays", periodDays));
-                    }
+                transaction = BeginTransactionWithObject();
 
-                    CommitTransaction();
-                    Log.WriteLine("Successfully saved {0} library statistics", statistics.Count);
-                }
-                catch
+                foreach (var stat in statistics)
                 {
-                    RollbackTransaction();
-                    throw;
+                    int? periodDays = stat.Key == "new_books" ? newBooksPeriod : null;
+                    ExecuteNonQueryInTransaction(DatabaseSchema.UpsertLibraryStats, transaction,
+                        CreateParameter("@Key", stat.Key),
+                        CreateParameter("@Value", stat.Value),
+                        CreateParameter("@UpdatedAt", DateTime.Now.ToBinary()),
+                        CreateParameter("@PeriodDays", periodDays));
                 }
+
+                transaction.Commit();
+                Log.WriteLine("Successfully saved {0} library statistics", statistics.Count);
             }
-            catch (Exception ex)
+            catch
             {
-                Log.WriteLine(LogLevel.Error, "Error saving library statistics: {0}", ex.Message);
+                transaction?.Rollback();
+                throw;
+            }
+            finally
+            {
+                transaction?.Dispose();
             }
         }
 
@@ -674,31 +783,33 @@ namespace TinyOPDS.Data
 
         public void ReloadGenres()
         {
+            IDbTransaction transaction = null;
             try
             {
                 Log.WriteLine("Reloading genres from XML...");
 
-                BeginTransaction();
-                try
-                {
-                    // Clear existing genres
-                    ExecuteNonQuery(DatabaseSchema.DeleteAllGenres);
+                transaction = BeginTransactionWithObject();
 
-                    // Reload from XML
-                    InitializeGenres();
+                // Clear existing genres
+                ExecuteNonQueryInTransaction(DatabaseSchema.DeleteAllGenres, transaction);
 
-                    CommitTransaction();
-                }
-                catch
-                {
-                    RollbackTransaction();
-                    throw;
-                }
+                // Commit clearing transaction
+                transaction.Commit();
+                transaction.Dispose();
+                transaction = null;
+
+                // Now call InitializeGenres which will create its own transaction
+                InitializeGenres();
             }
             catch (Exception ex)
             {
+                transaction?.Rollback();
                 Log.WriteLine(LogLevel.Error, "Error reloading genres: {0}", ex.Message);
                 throw;
+            }
+            finally
+            {
+                transaction?.Dispose();
             }
         }
 
@@ -781,31 +892,58 @@ namespace TinyOPDS.Data
 
         public int ExecuteNonQuery(string sql, params IDbDataParameter[] parameters)
         {
-            _lastAccessTime = DateTime.Now;
-            var command = SqliteConnectionFactory.CreateCommand(sql, connection);
-            try
+            lock (connectionLock)
             {
-                if (parameters != null)
+                _lastAccessTime = DateTime.Now;
+                var command = SqliteConnectionFactory.CreateCommand(sql, connection);
+                try
                 {
-                    foreach (var param in parameters)
+                    if (parameters != null)
                     {
-                        command.Parameters.Add(param);
+                        foreach (var param in parameters)
+                        {
+                            command.Parameters.Add(param);
+                        }
                     }
+                    return command.ExecuteNonQuery();
                 }
-                return command.ExecuteNonQuery();
-            }
-            finally
-            {
-                command.Dispose();
+                finally
+                {
+                    command.Dispose();
+                }
             }
         }
 
         public object ExecuteScalar(string sql, params IDbDataParameter[] parameters)
         {
-            _lastAccessTime = DateTime.Now;
-            var command = SqliteConnectionFactory.CreateCommand(sql, connection);
-            try
+            lock (connectionLock)
             {
+                _lastAccessTime = DateTime.Now;
+                var command = SqliteConnectionFactory.CreateCommand(sql, connection);
+                try
+                {
+                    if (parameters != null)
+                    {
+                        foreach (var param in parameters)
+                        {
+                            command.Parameters.Add(param);
+                        }
+                    }
+                    return command.ExecuteScalar();
+                }
+                finally
+                {
+                    command.Dispose();
+                }
+            }
+        }
+
+        public IDataReader ExecuteReader(string sql, params IDbDataParameter[] parameters)
+        {
+            lock (connectionLock)
+            {
+                _lastAccessTime = DateTime.Now;
+                var command = SqliteConnectionFactory.CreateCommand(sql, connection);
                 if (parameters != null)
                 {
                     foreach (var param in parameters)
@@ -813,26 +951,8 @@ namespace TinyOPDS.Data
                         command.Parameters.Add(param);
                     }
                 }
-                return command.ExecuteScalar();
+                return command.ExecuteReader();
             }
-            finally
-            {
-                command.Dispose();
-            }
-        }
-
-        public IDataReader ExecuteReader(string sql, params IDbDataParameter[] parameters)
-        {
-            _lastAccessTime = DateTime.Now;
-            var command = SqliteConnectionFactory.CreateCommand(sql, connection);
-            if (parameters != null)
-            {
-                foreach (var param in parameters)
-                {
-                    command.Parameters.Add(param);
-                }
-            }
-            return command.ExecuteReader();
         }
 
         public List<T> ExecuteQuery<T>(string sql, Func<IDataReader, T> mapper, params IDbDataParameter[] parameters)
@@ -849,7 +969,6 @@ namespace TinyOPDS.Data
             finally
             {
                 reader.Close();
-                reader = null;
             }
             return results;
         }
@@ -867,24 +986,50 @@ namespace TinyOPDS.Data
             finally
             {
                 reader.Close();
-                reader = null;
             }
             return null;
         }
 
+        // OLD transaction methods - mark as obsolete
+        [Obsolete("Use BeginTransactionWithObject() for thread-safe transactions")]
         public void BeginTransaction()
         {
-            ExecuteNonQuery("BEGIN TRANSACTION");
+            lock (connectionLock)
+            {
+                ExecuteNonQuery("BEGIN TRANSACTION");
+            }
         }
 
+        [Obsolete("Use transaction.Commit() instead")]
         public void CommitTransaction()
         {
-            ExecuteNonQuery("COMMIT");
+            lock (connectionLock)
+            {
+                try
+                {
+                    ExecuteNonQuery("COMMIT");
+                }
+                catch
+                {
+                    Log.WriteLine(LogLevel.Warning, "Attempting to commit null transaction");
+                }
+            }
         }
 
+        [Obsolete("Use transaction.Rollback() instead")]
         public void RollbackTransaction()
         {
-            ExecuteNonQuery("ROLLBACK");
+            lock (connectionLock)
+            {
+                try
+                {
+                    ExecuteNonQuery("ROLLBACK");
+                }
+                catch
+                {
+                    Log.WriteLine(LogLevel.Warning, "Attempting to rollback null transaction");
+                }
+            }
         }
 
         // Helper methods for parameter creation using factory with cross-platform support

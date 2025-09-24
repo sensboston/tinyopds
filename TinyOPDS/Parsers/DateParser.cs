@@ -6,6 +6,7 @@
  * SPDX-License-Identifier: MIT
  *
  * Intelligent date parser with Russian language support
+ * FIXED: Proper fallback handling in ValidateDate
  * 
  */
 
@@ -36,14 +37,21 @@ namespace TinyOPDS.Parsers
 
         /// <summary>
         /// Parse date from various formats including Russian
+        /// ENSURES that a valid date is always returned - never DateTime.MinValue
         /// </summary>
         /// <param name="dateString">Date string to parse</param>
         /// <param name="fallbackDate">Fallback date to use if parsing fails</param>
-        /// <returns>Parsed date or fallback</returns>
+        /// <returns>Parsed date or fallback - NEVER DateTime.MinValue</returns>
         public static DateTime ParseDate(string dateString, DateTime? fallbackDate = null)
         {
+            // Ensure we have a valid fallback
+            if (!fallbackDate.HasValue || fallbackDate.Value == DateTime.MinValue || fallbackDate.Value.Year <= 1)
+            {
+                fallbackDate = DateTime.Now;
+            }
+
             if (string.IsNullOrWhiteSpace(dateString))
-                return fallbackDate ?? DateTime.Now;
+                return fallbackDate.Value;
 
             dateString = dateString.Trim();
 
@@ -65,7 +73,7 @@ namespace TinyOPDS.Parsers
 
             // Return fallback if all parsing attempts failed
             Log.WriteLine(LogLevel.Warning, "Could not parse date: '{0}', using fallback", dateString);
-            return fallbackDate ?? DateTime.Now;
+            return fallbackDate.Value;
         }
 
         /// <summary>
@@ -73,11 +81,13 @@ namespace TinyOPDS.Parsers
         /// </summary>
         /// <param name="dateElement">XElement containing date information</param>
         /// <param name="fileName">File name for fallback date</param>
-        /// <returns>Parsed date</returns>
+        /// <returns>Parsed date - NEVER returns invalid date</returns>
         public static DateTime ParseFB2Date(XElement dateElement, string fileName)
         {
+            DateTime fileDate = GetFileDate(fileName);
+
             if (dateElement == null)
-                return GetFileDate(fileName);
+                return fileDate;
 
             try
             {
@@ -88,7 +98,7 @@ namespace TinyOPDS.Parsers
                     // FB2 date value is usually in ISO format
                     if (DateTime.TryParse(valueAttr, out DateTime dateFromValue))
                     {
-                        return ValidateDate(dateFromValue, GetFileDate(fileName));
+                        return ValidateDate(dateFromValue, fileDate);
                     }
                 }
 
@@ -96,18 +106,17 @@ namespace TinyOPDS.Parsers
                 string dateText = dateElement.Value;
                 if (!string.IsNullOrEmpty(dateText))
                 {
-                    DateTime fallback = GetFileDate(fileName);
-                    return ParseDate(dateText, fallback);
+                    return ParseDate(dateText, fileDate);
                 }
 
                 // No date found, use file date
-                return GetFileDate(fileName);
+                return fileDate;
             }
             catch (Exception ex)
             {
                 Log.WriteLine(LogLevel.Warning, "Could not parse date from FB2 element for {0}: {1}",
                     fileName, ex.Message);
-                return GetFileDate(fileName);
+                return fileDate;
             }
         }
 
@@ -291,27 +300,36 @@ namespace TinyOPDS.Parsers
         /// <summary>
         /// Validate date is within reasonable bounds
         /// </summary>
+        /// <param name="date">Date to validate</param>
+        /// <param name="fallback">Fallback date if validation fails</param>
+        /// <returns>Valid date - either the input date if valid, or fallback</returns>
         private static DateTime ValidateDate(DateTime date, DateTime? fallback)
         {
+            // Ensure fallback is valid
+            DateTime validFallback = (fallback.HasValue && fallback.Value.Year > 1)
+                ? fallback.Value
+                : DateTime.Now;
+
             // Check for reasonable date bounds
             if (date.Year < 1 || date.Year > 9999)
             {
                 Log.WriteLine(LogLevel.Warning, "Date year out of bounds: {0}, using fallback", date);
-                return fallback ?? DateTime.Now;
+                return validFallback;
             }
 
-            // Check for suspiciously old dates (before 1800)
+            // Check for very old dates (before 1800)
+            // For fiction books, dates before 1800 are suspicious
             if (date.Year < 1800)
             {
-                Log.WriteLine(LogLevel.Info, "Very old date detected: {0}, keeping as historical", date);
-                // Keep historical dates for old books
+                Log.WriteLine(LogLevel.Warning, "Suspicious old date detected: {0}, using fallback", date);
+                return validFallback;
             }
 
             // Check for future dates (more than 10 years ahead)
             if (date > DateTime.Now.AddYears(10))
             {
-                Log.WriteLine(LogLevel.Warning, "Future date detected: {0}, using current date", date);
-                return DateTime.Now;
+                Log.WriteLine(LogLevel.Warning, "Future date detected: {0}, using fallback", date);
+                return validFallback;  // FIXED: use fallback, not DateTime.Now
             }
 
             return date;
@@ -319,6 +337,7 @@ namespace TinyOPDS.Parsers
 
         /// <summary>
         /// Get file date from ZIP entry path as fallback
+        /// Always returns a valid date
         /// </summary>
         public static DateTime GetFileDate(string filePath)
         {
@@ -330,14 +349,20 @@ namespace TinyOPDS.Parsers
                     string zipPath = filePath.Substring(0, filePath.IndexOf('@'));
                     if (File.Exists(zipPath))
                     {
-                        return File.GetLastWriteTime(zipPath);
+                        DateTime zipDate = File.GetLastWriteTime(zipPath);
+                        // Validate that the file date is reasonable
+                        if (zipDate.Year > 1980 && zipDate <= DateTime.Now)
+                            return zipDate;
                     }
                 }
 
                 // Try to get regular file date
                 if (File.Exists(filePath))
                 {
-                    return File.GetLastWriteTime(filePath);
+                    DateTime fileDate = File.GetLastWriteTime(filePath);
+                    // Validate that the file date is reasonable
+                    if (fileDate.Year > 1980 && fileDate <= DateTime.Now)
+                        return fileDate;
                 }
             }
             catch (Exception ex)
@@ -345,6 +370,7 @@ namespace TinyOPDS.Parsers
                 Log.WriteLine(LogLevel.Warning, "Could not get file date for {0}: {1}", filePath, ex.Message);
             }
 
+            // Last resort - return current date
             return DateTime.Now;
         }
     }

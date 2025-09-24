@@ -66,6 +66,26 @@ namespace TinyOPDS.Parsers
                     // Parse metadata
                     ParseMetadata(opfDoc, book);
 
+                    // FINAL VALIDATION: Ensure we NEVER have invalid dates
+                    DateTime fileDate = DateParser.GetFileDate(fileName);
+
+                    // Validate BookDate
+                    if (book.BookDate == DateTime.MinValue || book.BookDate.Year <= 1 || book.BookDate.Year < 1800)
+                    {
+                        Log.WriteLine(LogLevel.Warning, "Invalid BookDate {0} for EPUB {1}, using file date", book.BookDate, fileName);
+                        book.BookDate = fileDate;
+                    }
+
+                    // Future date check
+                    if (book.BookDate > DateTime.Now.AddYears(10))
+                    {
+                        Log.WriteLine(LogLevel.Warning, "Future BookDate {0} for EPUB {1}, using file date", book.BookDate, fileName);
+                        book.BookDate = fileDate;
+                    }
+
+                    // Set DocumentDate to file date (EPUBs don't have separate document date)
+                    book.DocumentDate = fileDate;
+
                     // Always generate unique ID to avoid conflicts
                     book.ID = Guid.NewGuid().ToString();
                     book.DocumentIDTrusted = false;
@@ -74,6 +94,17 @@ namespace TinyOPDS.Parsers
             catch (Exception e)
             {
                 Log.WriteLine(LogLevel.Error, "Error parsing EPUB {0}: {1}", fileName, e.Message);
+
+                // Even on error, ensure valid dates
+                DateTime fallbackDate = DateParser.GetFileDate(fileName);
+                if (book.BookDate == DateTime.MinValue || book.BookDate.Year <= 1)
+                {
+                    book.BookDate = fallbackDate;
+                }
+                if (book.DocumentDate == DateTime.MinValue || book.DocumentDate.Year <= 1)
+                {
+                    book.DocumentDate = fallbackDate;
+                }
             }
 
             return book;
@@ -135,7 +166,7 @@ namespace TinyOPDS.Parsers
             if (!string.IsNullOrEmpty(language))
                 book.Language = language;
 
-            // Date
+            // Date - with proper fallback
             ParseDate(metadata, book);
 
             // Description/Annotation
@@ -152,19 +183,42 @@ namespace TinyOPDS.Parsers
         }
 
         /// <summary>
-        /// Parse date from metadata
+        /// Parse date from metadata with proper validation
         /// </summary>
         private void ParseDate(XElement metadata, Book book)
         {
+            // Get file date as fallback
+            DateTime fileDate = DateParser.GetFileDate(book.FileName);
+
             var dateElement = metadata.Element(dcNs + "date");
             if (dateElement == null)
             {
-                book.BookDate = DateParser.GetFileDate(book.FileName);
+                book.BookDate = fileDate;
+                Log.WriteLine(LogLevel.Info, "No date element in EPUB {0}, using file date", book.FileName);
                 return;
             }
 
             string dateText = dateElement.Value;
-            book.BookDate = DateParser.ParseDate(dateText, DateParser.GetFileDate(book.FileName));
+            if (string.IsNullOrEmpty(dateText))
+            {
+                book.BookDate = fileDate;
+                Log.WriteLine(LogLevel.Info, "Empty date element in EPUB {0}, using file date", book.FileName);
+                return;
+            }
+
+            // Parse with fallback
+            DateTime parsedDate = DateParser.ParseDate(dateText, fileDate);
+
+            // Additional validation for EPUB dates
+            if (parsedDate.Year < 1800 || parsedDate.Year > DateTime.Now.Year + 10)
+            {
+                Log.WriteLine(LogLevel.Warning, "Suspicious date {0} in EPUB {1}, using file date", parsedDate, book.FileName);
+                book.BookDate = fileDate;
+            }
+            else
+            {
+                book.BookDate = parsedDate;
+            }
         }
 
         /// <summary>

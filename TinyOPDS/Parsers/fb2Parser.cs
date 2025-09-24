@@ -7,6 +7,7 @@
  *
  * Native FB2 parser without external dependencies - optimized version
  * FIXED: Now properly extracts document ID from FB2 instead of generating random GUIDs
+ * FIXED: Proper date handling - never allows invalid dates in database
  *
  */
 
@@ -221,21 +222,44 @@ namespace TinyOPDS.Parsers
 
         private void ParseDescriptionContent(XElement description, Book book, string fileName)
         {
-            // Parse title-info
+            // Parse title-info FIRST (contains book date)
             var titleInfo = description.Element(fb2Ns + "title-info");
             if (titleInfo != null)
             {
                 ParseTitleInfo(titleInfo, book, fileName);
             }
 
-            // Parse document-info - MUST be after title-info to extract ID
+            // Parse document-info SECOND (contains document date, NOT book date)
             var documentInfo = description.Element(fb2Ns + "document-info");
             if (documentInfo != null)
             {
                 ParseDocumentInfo(documentInfo, book, fileName);
             }
 
-            // FIXED: If no ID was extracted from document-info, generate one based on book data
+            // Parse publish-info THIRD (can override book date if more accurate)
+            var publishInfo = description.Element(fb2Ns + "publish-info");
+            if (publishInfo != null)
+            {
+                ParsePublishInfo(publishInfo, book, fileName);
+            }
+
+            // FINAL VALIDATION: Ensure we NEVER have invalid dates
+            DateTime fileDate = DateParser.GetFileDate(fileName);
+
+            // Validate BookDate
+            if (book.BookDate == DateTime.MinValue || book.BookDate.Year <= 1 || book.BookDate.Year < 1800)
+            {
+                Log.WriteLine(LogLevel.Warning, "Invalid BookDate {0} for {1}, using file date", book.BookDate, fileName);
+                book.BookDate = fileDate;
+            }
+
+            // Validate DocumentDate
+            if (book.DocumentDate == DateTime.MinValue || book.DocumentDate.Year <= 1)
+            {
+                book.DocumentDate = fileDate;
+            }
+
+            // Generate ID if missing
             if (string.IsNullOrEmpty(book.ID))
             {
                 // Generate ID based on file name and content (deterministic)
@@ -244,13 +268,6 @@ namespace TinyOPDS.Parsers
 
                 Log.WriteLine(LogLevel.Info, "No document ID found in FB2, generated: {0} for file: {1}",
                     book.ID, fileName);
-            }
-
-            // Parse publish-info (optional)
-            var publishInfo = description.Element(fb2Ns + "publish-info");
-            if (publishInfo != null)
-            {
-                ParsePublishInfo(publishInfo, book);
             }
         }
 
@@ -292,7 +309,7 @@ namespace TinyOPDS.Parsers
                 book.Annotation = ExtractTextFromAnnotation(annotation);
             }
 
-            // Date
+            // Date - this is the BOOK creation date
             var date = titleInfo.Element(fb2Ns + "date");
             if (date != null)
             {
@@ -300,6 +317,7 @@ namespace TinyOPDS.Parsers
             }
             else
             {
+                // No date in title-info, use file date as fallback
                 book.BookDate = DateParser.GetFileDate(fileName);
             }
 
@@ -348,7 +366,7 @@ namespace TinyOPDS.Parsers
 
         private void ParseDocumentInfo(XElement documentInfo, Book book, string fileName)
         {
-            // CRITICAL FIX: Extract document ID from FB2
+            // Extract document ID from FB2
             var documentId = documentInfo.Element(fb2Ns + "id")?.Value;
             if (!string.IsNullOrEmpty(documentId))
             {
@@ -362,11 +380,11 @@ namespace TinyOPDS.Parsers
                     book.ID, book.DocumentIDTrusted, fileName);
             }
 
-            // Document date
+            // Document date - FIXED: use DocumentDate, NOT BookDate!
             var date = documentInfo.Element(fb2Ns + "date");
             if (date != null)
             {
-                book.BookDate = DateParser.ParseFB2Date(date, fileName);
+                book.DocumentDate = DateParser.ParseFB2Date(date, fileName);
             }
             else
             {
@@ -381,21 +399,27 @@ namespace TinyOPDS.Parsers
             }
         }
 
-        private void ParsePublishInfo(XElement publishInfo, Book book)
+        private void ParsePublishInfo(XElement publishInfo, Book book, string fileName)
         {
             // Year from publish-info can be more accurate than from title-info
             var year = publishInfo.Element(fb2Ns + "year")?.Value;
             if (!string.IsNullOrEmpty(year) && int.TryParse(year, out int yearNum))
             {
-                // Use publish year if book date is invalid or missing
-                if (book.BookDate.Year <= 1 || book.BookDate == DateTime.MinValue)
+                // Validate the year
+                if (yearNum > 1800 && yearNum <= DateTime.Now.Year)
                 {
-                    book.BookDate = new DateTime(yearNum, 1, 1);
-                }
-                // Or if publish year seems more reasonable than parsed date
-                else if (yearNum > 1800 && yearNum <= DateTime.Now.Year && book.BookDate.Year == 1)
-                {
-                    book.BookDate = new DateTime(yearNum, 1, 1);
+                    // Use publish year if book date is clearly invalid
+                    if (book.BookDate.Year <= 1 || book.BookDate == DateTime.MinValue)
+                    {
+                        book.BookDate = new DateTime(yearNum, 1, 1);
+                        Log.WriteLine(LogLevel.Info, "Using publish year {0} for book date in {1}", yearNum, fileName);
+                    }
+                    // Or if publish year seems more reasonable than parsed date
+                    else if (book.BookDate.Year < 1800 || book.BookDate.Year > DateTime.Now.Year + 10)
+                    {
+                        book.BookDate = new DateTime(yearNum, 1, 1);
+                        Log.WriteLine(LogLevel.Info, "Replacing suspicious book date with publish year {0} in {1}", yearNum, fileName);
+                    }
                 }
             }
 
@@ -437,17 +461,6 @@ namespace TinyOPDS.Parsers
             }
 
             return string.Join(" ", nameParts);
-        }
-
-        private DateTime ValidateDate(DateTime date)
-        {
-            if (date.Year < 1 || date.Year > 9999)
-                return DateTime.Now;
-
-            if (date > DateTime.Now.AddYears(10))
-                return DateTime.Now;
-
-            return date;
         }
 
         private string ExtractTextFromAnnotation(XElement annotation)

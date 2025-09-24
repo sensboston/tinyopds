@@ -6,6 +6,7 @@
  * SPDX-License-Identifier: MIT
  *
  * This module defines the OPDS BookCatalog class
+ * FIXED: Display correct sequence numbers when browsing by series
  *
  */
 
@@ -166,6 +167,7 @@ namespace TinyOPDS.OPDS
             if (searchFor == SearchFor.Sequence)
             {
                 // For sequences, sort by sequence number
+                // FIXED: Now uses correct sequence number from first element
                 books = books.OrderBy(b => b.NumberInSequence).ToList();
             }
             else if (searchFor == SearchFor.Title && isOpenSearch)
@@ -268,17 +270,38 @@ namespace TinyOPDS.OPDS
                 }
 
                 // Add year on new line
-                if (book.BookDate != DateTime.MinValue)
+                if (book.BookDate.Year > 1800 && book.BookDate.Year <= DateTime.Now.Year)
                 {
                     if (!string.IsNullOrEmpty(plainText)) plainText += "\n";
                     plainText += Localizer.Text("Year of publication:") + " " + book.BookDate.Year;
                 }
 
                 // Add series on new line
-                if (!string.IsNullOrEmpty(book.Sequence))
+                // FIXED: Display correct sequence number based on search context
+                if (book.Sequences != null && book.Sequences.Count > 0)
                 {
                     if (!string.IsNullOrEmpty(plainText)) plainText += "\n";
-                    plainText += Localizer.Text("Series:") + " " + book.Sequence + " #" + book.NumberInSequence;
+
+                    // If searching by sequence, show that specific sequence with correct number
+                    if (searchFor == SearchFor.Sequence)
+                    {
+                        // Find the requested sequence in the book's sequence list
+                        var requestedSequence = book.Sequences.FirstOrDefault(s => s.Name == searchPattern);
+                        if (requestedSequence != null)
+                        {
+                            plainText += Localizer.Text("Series:") + " " + requestedSequence.Name;
+                            if (requestedSequence.NumberInSequence > 0)
+                                plainText += " #" + requestedSequence.NumberInSequence;
+                        }
+                    }
+                    else
+                    {
+                        // For other searches, show the primary sequence (first in list)
+                        var primarySequence = book.Sequences.First();
+                        plainText += Localizer.Text("Series:") + " " + primarySequence.Name;
+                        if (primarySequence.NumberInSequence > 0)
+                            plainText += " #" + primarySequence.NumberInSequence;
+                    }
                 }
 
                 entry.Add(
@@ -325,13 +348,15 @@ namespace TinyOPDS.OPDS
                                     new XAttribute("title", string.Format(Localizer.Text("All books by author {0}"), author))));
                 }
 
-                if (searchFor != SearchFor.Sequence && !string.IsNullOrEmpty(book.Sequence))
+                // FIXED: Use the new Sequences list for navigation link
+                if (searchFor != SearchFor.Sequence && book.Sequences != null && book.Sequences.Count > 0)
                 {
+                    var primarySequence = book.Sequences.First();
                     entry.Add(new XElement("link",
-                                 new XAttribute("href", "/sequence/" + Uri.EscapeDataString(book.Sequence)),
+                                 new XAttribute("href", "/sequence/" + Uri.EscapeDataString(primarySequence.Name)),
                                  new XAttribute("rel", "related"),
                                  new XAttribute("type", "application/atom+xml;profile=opds-catalog"),
-                                 new XAttribute("title", string.Format(Localizer.Text("All books by series {0}"), book.Sequence))));
+                                 new XAttribute("title", string.Format(Localizer.Text("All books by series {0}"), primarySequence.Name))));
                 }
 
                 doc.Root.Add(entry);

@@ -912,19 +912,21 @@ namespace TinyOPDS.Data
             return books;
         }
 
-        // MODIFIED: Now uses optimized query with JOIN and language filter
+        // Uses optimized query with JOIN and language filter
         public List<Book> GetBooksBySequence(string sequence)
         {
             string query = ApplyLanguageFilter(DatabaseSchema.SelectBooksBySequence);
             var books = db.ExecuteQuery<Book>(query,
                 reader => {
                     var book = MapBook(reader);
-                    // Get NumberInSequence from the joined query
+                    // Get NumberInSequence from the joined query for this specific sequence
                     try
                     {
                         var number = DatabaseManager.GetUInt32(reader, "NumberInSequence");
                         if (book.Sequences == null)
                             book.Sequences = new List<BookSequenceInfo>();
+
+                        // Temporarily store the correct number for the requested sequence
                         book.Sequences.Add(new BookSequenceInfo(sequence, number));
                     }
                     catch { }
@@ -934,8 +936,29 @@ namespace TinyOPDS.Data
 
             foreach (var book in books)
             {
+                // Store the correct sequence number before loading all relations
+                uint correctNumber = 0;
+                var requestedSequence = book.Sequences?.FirstOrDefault(s => s.Name == sequence);
+                if (requestedSequence != null)
+                {
+                    correctNumber = requestedSequence.NumberInSequence;
+                }
+
+                // Load all book relations (this will overwrite Sequences)
                 LoadBookRelations(book);
+
+                // Restore the correct sequence number for the requested sequence
+                // by ensuring it's the first in the list (for compatibility properties)
+                if (book.Sequences != null && correctNumber > 0)
+                {
+                    // Remove the requested sequence if it exists
+                    book.Sequences.RemoveAll(s => s.Name == sequence);
+
+                    // Insert it at the beginning with the correct number
+                    book.Sequences.Insert(0, new BookSequenceInfo(sequence, correctNumber));
+                }
             }
+
             return books;
         }
 
@@ -1598,7 +1621,7 @@ namespace TinyOPDS.Data
             }
             else
             {
-                sql += @"WHERE AuthorsFTS MATCH @SearchPattern ORDER BY a.Name";
+                sql += @" WHERE AuthorsFTS MATCH @SearchPattern ORDER BY a.Name";
 
                 return db.ExecuteQuery<string>(sql,
                     reader => reader.GetString(0),
@@ -2154,7 +2177,7 @@ namespace TinyOPDS.Data
             return book;
         }
 
-        // MODIFIED: LoadBookRelations now loads sequences from BookSequences table
+        // LoadBookRelations now loads sequences from BookSequences table
         private void LoadBookRelations(Book book)
         {
             // Load authors

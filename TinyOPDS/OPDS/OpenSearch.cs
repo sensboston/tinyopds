@@ -83,8 +83,11 @@ namespace TinyOPDS.OPDS
                     );
 
                 // Create informative descriptions
-                string authorDescription = string.Format(Localizer.Text("Found {0} author(s)"), authors.Count);
-                string bookDescription = string.Format(Localizer.Text("Found {0} book(s)"), titles.Count);
+                string authorDescription = StringUtils.ApplyPluralForm(authors.Count, Localizer.Language,
+                    string.Format(Localizer.Text("Found {0} author(s)"), authors.Count));
+
+                string bookDescription = StringUtils.ApplyPluralForm(titles.Count, Localizer.Language,
+                    string.Format(Localizer.Text("Found {0} book(s)"), titles.Count));
 
                 // Add indication of search method used for authors
                 switch (authorMethod)

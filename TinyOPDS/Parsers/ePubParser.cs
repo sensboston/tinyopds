@@ -159,48 +159,12 @@ namespace TinyOPDS.Parsers
             var dateElement = metadata.Element(dcNs + "date");
             if (dateElement == null)
             {
-                book.BookDate = DateTime.Now;
+                book.BookDate = DateParser.GetFileDate(book.FileName);
                 return;
             }
 
             string dateText = dateElement.Value;
-            if (string.IsNullOrEmpty(dateText))
-            {
-                book.BookDate = DateTime.Now;
-                return;
-            }
-
-            try
-            {
-                // Try full date parse
-                book.BookDate = DateTime.Parse(dateText);
-
-                // Validate date range
-                if (book.BookDate < new DateTime(1, 1, 1) ||
-                    book.BookDate > new DateTime(9999, 12, 31))
-                {
-                    book.BookDate = DateTime.Now;
-                }
-            }
-            catch
-            {
-                // Try year-only parse
-                if (int.TryParse(dateText.Substring(0, Math.Min(4, dateText.Length)), out int year))
-                {
-                    if (year >= 1 && year <= 9999)
-                    {
-                        book.BookDate = new DateTime(year, 1, 1);
-                    }
-                    else
-                    {
-                        book.BookDate = DateTime.Now;
-                    }
-                }
-                else
-                {
-                    book.BookDate = DateTime.Now;
-                }
-            }
+            book.BookDate = DateParser.ParseDate(dateText, DateParser.GetFileDate(book.FileName));
         }
 
         /// <summary>

@@ -27,7 +27,7 @@ namespace TinyOPDS.Parsers
 {
     public class FB2Parser : BookParser
     {
-        private XNamespace fb2Ns = "http://www.gribuser.ru/xml/fictionbook/2.0";
+        private readonly XNamespace fb2Ns = "http://www.gribuser.ru/xml/fictionbook/2.0";
 
         public override Book Parse(Stream stream, string fileName)
         {
@@ -296,7 +296,7 @@ namespace TinyOPDS.Parsers
             var date = titleInfo.Element(fb2Ns + "date");
             if (date != null)
             {
-                book.BookDate = ParseDate(date, fileName);
+                book.BookDate = DateParser.ParseFB2Date(date, fileName);
             }
             else
             {
@@ -366,7 +366,7 @@ namespace TinyOPDS.Parsers
             var date = documentInfo.Element(fb2Ns + "date");
             if (date != null)
             {
-                book.DocumentDate = ParseDate(date, fileName);
+                book.BookDate = DateParser.ParseFB2Date(date, fileName);
             }
             else
             {
@@ -383,19 +383,26 @@ namespace TinyOPDS.Parsers
 
         private void ParsePublishInfo(XElement publishInfo, Book book)
         {
-            // Publisher
-            var publisher = publishInfo.Element(fb2Ns + "publisher")?.Value;
-
-            // Year
+            // Year from publish-info can be more accurate than from title-info
             var year = publishInfo.Element(fb2Ns + "year")?.Value;
             if (!string.IsNullOrEmpty(year) && int.TryParse(year, out int yearNum))
             {
-                // Can override book date if needed
-                // book.BookDate = new DateTime(yearNum, 1, 1);
+                // Use publish year if book date is invalid or missing
+                if (book.BookDate.Year <= 1 || book.BookDate == DateTime.MinValue)
+                {
+                    book.BookDate = new DateTime(yearNum, 1, 1);
+                }
+                // Or if publish year seems more reasonable than parsed date
+                else if (yearNum > 1800 && yearNum <= DateTime.Now.Year && book.BookDate.Year == 1)
+                {
+                    book.BookDate = new DateTime(yearNum, 1, 1);
+                }
             }
 
-            // ISBN
-            var isbn = publishInfo.Element(fb2Ns + "isbn")?.Value;
+            // Publisher and ISBN could be stored if Book class had these fields
+            // For now, we just parse them for validation
+            _ = publishInfo.Element(fb2Ns + "publisher")?.Value;
+            _ = publishInfo.Element(fb2Ns + "isbn")?.Value;
         }
 
         private string ParsePersonName(XElement person)
@@ -430,41 +437,6 @@ namespace TinyOPDS.Parsers
             }
 
             return string.Join(" ", nameParts);
-        }
-
-        private DateTime ParseDate(XElement dateElement, string fileName)
-        {
-            // Try value attribute first
-            var dateValue = dateElement.Attribute("value")?.Value;
-            if (!string.IsNullOrEmpty(dateValue))
-            {
-                if (DateTime.TryParse(dateValue, out DateTime parsedDate))
-                {
-                    return ValidateDate(parsedDate);
-                }
-            }
-
-            // Try element text
-            var dateText = dateElement.Value;
-            if (!string.IsNullOrEmpty(dateText))
-            {
-                // Try full date
-                if (DateTime.TryParse(dateText, out DateTime parsedDate))
-                {
-                    return ValidateDate(parsedDate);
-                }
-
-                // Try year only
-                if (int.TryParse(dateText.Substring(0, Math.Min(4, dateText.Length)), out int year))
-                {
-                    if (year >= 1 && year <= 9999)
-                    {
-                        return new DateTime(year, 1, 1);
-                    }
-                }
-            }
-
-            return DateParser.GetFileDate(fileName);
         }
 
         private DateTime ValidateDate(DateTime date)

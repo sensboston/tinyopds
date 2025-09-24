@@ -784,7 +784,7 @@
             this.filterByLanguage.TabIndex = 12;
             this.filterByLanguage.Text = "Books in interface language only";
             this.filterByLanguage.UseVisualStyleBackColor = true;
-            this.filterByLanguage.CheckedChanged += new System.EventHandler(this.filterByLanguage_CheckedChanged);
+            this.filterByLanguage.CheckedChanged += new System.EventHandler(this.FilterByLanguage_CheckedChanged);
             // 
             // clearDownloadsButton
             // 

@@ -19,6 +19,7 @@ using System.Net;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 using UPnP;
 
@@ -1135,7 +1136,8 @@ namespace TinyOPDS
 
         private void ViewLogFile_Click(object sender, EventArgs e)
         {
-            System.Diagnostics.Process.Start(Log.LogFileName);
+            if (File.Exists(Log.LogFileName))
+                Process.Start(Log.LogFileName);
         }
 
         private void SortOrderCombo_SelectedIndexChanged(object sender, EventArgs e)
@@ -1509,7 +1511,7 @@ namespace TinyOPDS
             Settings.Default.Save();
         }
 
-        private void filterByLanguage_CheckedChanged(object sender, EventArgs e)
+        private void FilterByLanguage_CheckedChanged(object sender, EventArgs e)
         {
             Settings.Default.FilterBooksByInterfaceLanguage = filterByLanguage.Checked;
             Settings.Default.Save();

@@ -219,7 +219,7 @@
             this.tabPage1.Controls.Add(this.libraryPath);
             this.tabPage1.Location = new System.Drawing.Point(4, 34);
             this.tabPage1.Name = "tabPage1";
-            this.tabPage1.Padding = new System.Windows.Forms.Padding(3, 3, 3, 3);
+            this.tabPage1.Padding = new System.Windows.Forms.Padding(3);
             this.tabPage1.Size = new System.Drawing.Size(513, 317);
             this.tabPage1.TabIndex = 0;
             this.tabPage1.Text = "Scanner";
@@ -455,9 +455,9 @@
             // scannerButton
             // 
             this.scannerButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.scannerButton.Location = new System.Drawing.Point(291, 260);
+            this.scannerButton.Location = new System.Drawing.Point(281, 260);
             this.scannerButton.Name = "scannerButton";
-            this.scannerButton.Size = new System.Drawing.Size(201, 40);
+            this.scannerButton.Size = new System.Drawing.Size(204, 40);
             this.scannerButton.TabIndex = 7;
             this.scannerButton.Text = "Start scanning";
             this.scannerButton.UseVisualStyleBackColor = true;
@@ -503,8 +503,8 @@
             this.tabPage2.Controls.Add(this.serverName);
             this.tabPage2.Location = new System.Drawing.Point(4, 34);
             this.tabPage2.Name = "tabPage2";
-            this.tabPage2.Padding = new System.Windows.Forms.Padding(3, 3, 3, 3);
-            this.tabPage2.Size = new System.Drawing.Size(503, 317);
+            this.tabPage2.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage2.Size = new System.Drawing.Size(513, 317);
             this.tabPage2.TabIndex = 1;
             this.tabPage2.Text = "Server";
             // 
@@ -703,7 +703,7 @@
             this.serverButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.serverButton.Location = new System.Drawing.Point(281, 260);
             this.serverButton.Name = "serverButton";
-            this.serverButton.Size = new System.Drawing.Size(201, 40);
+            this.serverButton.Size = new System.Drawing.Size(204, 40);
             this.serverButton.TabIndex = 8;
             this.serverButton.Text = "Start server";
             this.serverButton.Click += new System.EventHandler(this.ServerButton_Click);
@@ -770,7 +770,7 @@
             this.tabPage6.Controls.Add(this.itemsPerOPDS);
             this.tabPage6.Location = new System.Drawing.Point(4, 34);
             this.tabPage6.Name = "tabPage6";
-            this.tabPage6.Size = new System.Drawing.Size(503, 317);
+            this.tabPage6.Size = new System.Drawing.Size(513, 317);
             this.tabPage6.TabIndex = 5;
             this.tabPage6.Text = "OPDS catalog";
             // 
@@ -778,7 +778,7 @@
             // 
             this.filterByLanguage.AutoSize = true;
             this.filterByLanguage.Location = new System.Drawing.Point(292, 244);
-            this.filterByLanguage.Margin = new System.Windows.Forms.Padding(1, 1, 1, 1);
+            this.filterByLanguage.Margin = new System.Windows.Forms.Padding(1);
             this.filterByLanguage.Name = "filterByLanguage";
             this.filterByLanguage.Size = new System.Drawing.Size(180, 17);
             this.filterByLanguage.TabIndex = 12;
@@ -789,7 +789,7 @@
             // clearDownloadsButton
             // 
             this.clearDownloadsButton.Location = new System.Drawing.Point(25, 237);
-            this.clearDownloadsButton.Margin = new System.Windows.Forms.Padding(1, 1, 1, 1);
+            this.clearDownloadsButton.Margin = new System.Windows.Forms.Padding(1);
             this.clearDownloadsButton.Name = "clearDownloadsButton";
             this.clearDownloadsButton.Size = new System.Drawing.Size(174, 29);
             this.clearDownloadsButton.TabIndex = 11;
@@ -820,7 +820,7 @@
             "768 MB",
             "1024 MB"});
             this.comboBox1.Location = new System.Drawing.Point(292, 185);
-            this.comboBox1.Margin = new System.Windows.Forms.Padding(1, 1, 1, 1);
+            this.comboBox1.Margin = new System.Windows.Forms.Padding(1);
             this.comboBox1.Name = "comboBox1";
             this.comboBox1.Size = new System.Drawing.Size(136, 21);
             this.comboBox1.TabIndex = 9;
@@ -831,9 +831,9 @@
             this.groupBox1.Controls.Add(this.radioButton2);
             this.groupBox1.Controls.Add(this.radioButton1);
             this.groupBox1.Location = new System.Drawing.Point(25, 160);
-            this.groupBox1.Margin = new System.Windows.Forms.Padding(1, 1, 1, 1);
+            this.groupBox1.Margin = new System.Windows.Forms.Padding(1);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Padding = new System.Windows.Forms.Padding(1, 1, 1, 1);
+            this.groupBox1.Padding = new System.Windows.Forms.Padding(1);
             this.groupBox1.Size = new System.Drawing.Size(174, 52);
             this.groupBox1.TabIndex = 8;
             this.groupBox1.TabStop = false;
@@ -843,7 +843,7 @@
             // 
             this.radioButton2.AutoSize = true;
             this.radioButton2.Location = new System.Drawing.Point(109, 24);
-            this.radioButton2.Margin = new System.Windows.Forms.Padding(1, 1, 1, 1);
+            this.radioButton2.Margin = new System.Windows.Forms.Padding(1);
             this.radioButton2.Name = "radioButton2";
             this.radioButton2.Size = new System.Drawing.Size(59, 17);
             this.radioButton2.TabIndex = 1;
@@ -856,7 +856,7 @@
             this.radioButton1.AutoSize = true;
             this.radioButton1.Checked = true;
             this.radioButton1.Location = new System.Drawing.Point(15, 24);
-            this.radioButton1.Margin = new System.Windows.Forms.Padding(1, 1, 1, 1);
+            this.radioButton1.Margin = new System.Windows.Forms.Padding(1);
             this.radioButton1.Name = "radioButton1";
             this.radioButton1.Size = new System.Drawing.Size(72, 17);
             this.radioButton1.TabIndex = 0;
@@ -976,10 +976,10 @@
             // 
             this.tabPage7.Controls.Add(this.treeViewOPDS);
             this.tabPage7.Location = new System.Drawing.Point(4, 34);
-            this.tabPage7.Margin = new System.Windows.Forms.Padding(1, 1, 1, 1);
+            this.tabPage7.Margin = new System.Windows.Forms.Padding(1);
             this.tabPage7.Name = "tabPage7";
-            this.tabPage7.Padding = new System.Windows.Forms.Padding(1, 1, 1, 1);
-            this.tabPage7.Size = new System.Drawing.Size(503, 317);
+            this.tabPage7.Padding = new System.Windows.Forms.Padding(1);
+            this.tabPage7.Size = new System.Drawing.Size(513, 317);
             this.tabPage7.TabIndex = 6;
             this.tabPage7.Text = "OPDS routes";
             this.tabPage7.UseVisualStyleBackColor = true;
@@ -992,7 +992,7 @@
             this.treeViewOPDS.CheckBoxes = true;
             this.treeViewOPDS.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(254)));
             this.treeViewOPDS.Location = new System.Drawing.Point(2, 2);
-            this.treeViewOPDS.Margin = new System.Windows.Forms.Padding(1, 1, 1, 1);
+            this.treeViewOPDS.Margin = new System.Windows.Forms.Padding(1);
             this.treeViewOPDS.Name = "treeViewOPDS";
             this.treeViewOPDS.Size = new System.Drawing.Size(503, 333);
             this.treeViewOPDS.TabIndex = 2;
@@ -1015,8 +1015,8 @@
             this.tabPage5.Controls.Add(this.useHTTPAuth);
             this.tabPage5.Location = new System.Drawing.Point(4, 34);
             this.tabPage5.Name = "tabPage5";
-            this.tabPage5.Padding = new System.Windows.Forms.Padding(3, 3, 3, 3);
-            this.tabPage5.Size = new System.Drawing.Size(503, 317);
+            this.tabPage5.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage5.Size = new System.Drawing.Size(513, 317);
             this.tabPage5.TabIndex = 4;
             this.tabPage5.Text = "Auth";
             // 
@@ -1160,8 +1160,8 @@
             this.tabPage3.Controls.Add(this.startWithWindows);
             this.tabPage3.Location = new System.Drawing.Point(4, 34);
             this.tabPage3.Name = "tabPage3";
-            this.tabPage3.Padding = new System.Windows.Forms.Padding(3, 3, 3, 3);
-            this.tabPage3.Size = new System.Drawing.Size(503, 317);
+            this.tabPage3.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage3.Size = new System.Drawing.Size(513, 317);
             this.tabPage3.TabIndex = 2;
             this.tabPage3.Text = "Misc";
             // 
@@ -1169,7 +1169,7 @@
             // 
             this.oneInstance.AutoSize = true;
             this.oneInstance.Location = new System.Drawing.Point(288, 67);
-            this.oneInstance.Margin = new System.Windows.Forms.Padding(1, 1, 1, 1);
+            this.oneInstance.Margin = new System.Windows.Forms.Padding(1);
             this.oneInstance.Name = "oneInstance";
             this.oneInstance.Size = new System.Drawing.Size(111, 17);
             this.oneInstance.TabIndex = 40;
@@ -1324,8 +1324,8 @@
             this.tabPage4.Controls.Add(this.pictureBox1);
             this.tabPage4.Location = new System.Drawing.Point(4, 34);
             this.tabPage4.Name = "tabPage4";
-            this.tabPage4.Padding = new System.Windows.Forms.Padding(3, 3, 3, 3);
-            this.tabPage4.Size = new System.Drawing.Size(503, 317);
+            this.tabPage4.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage4.Size = new System.Drawing.Size(513, 317);
             this.tabPage4.TabIndex = 3;
             this.tabPage4.Text = "About";
             // 
@@ -1333,7 +1333,7 @@
             // 
             this.pictureBox2.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox2.Image")));
             this.pictureBox2.Location = new System.Drawing.Point(13, 248);
-            this.pictureBox2.Margin = new System.Windows.Forms.Padding(1, 1, 1, 1);
+            this.pictureBox2.Margin = new System.Windows.Forms.Padding(1);
             this.pictureBox2.Name = "pictureBox2";
             this.pictureBox2.Size = new System.Drawing.Size(98, 55);
             this.pictureBox2.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;

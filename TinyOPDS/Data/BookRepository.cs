@@ -182,8 +182,13 @@ namespace TinyOPDS.Data
 
         #region Book CRUD Operations
 
-        // Replace the AddBook method in BookRepository.cs with this version:
 
+        /// <summary>
+        /// Add a single book to the database with duplicate detection and validation
+        /// Thread-safe version using IDbTransaction
+        /// </summary>
+        /// <param name="book">Book object to add to database</param>
+        /// <returns>true if book was successfully added, false if it was a duplicate or error occurred</returns>
         public bool AddBook(Book book)
         {
             IDbTransaction transaction = null;
@@ -235,21 +240,21 @@ namespace TinyOPDS.Data
                 // Insert book WITHOUT Sequence/NumberInSequence fields
                 var bookParams = new[]
                 {
-            DatabaseManager.CreateParameter("@ID", book.ID),
-            DatabaseManager.CreateParameter("@Version", book.Version),
-            DatabaseManager.CreateParameter("@FileName", book.FileName),
-            DatabaseManager.CreateParameter("@Title", book.Title),
-            DatabaseManager.CreateParameter("@Language", book.Language),
-            DatabaseManager.CreateParameter("@BookDate", book.BookDate),
-            DatabaseManager.CreateParameter("@DocumentDate", book.DocumentDate),
-            DatabaseManager.CreateParameter("@Annotation", book.Annotation),
-            DatabaseManager.CreateParameter("@DocumentSize", (long)book.DocumentSize),
-            DatabaseManager.CreateParameter("@AddedDate", book.AddedDate),
-            DatabaseManager.CreateParameter("@DocumentIDTrusted", book.DocumentIDTrusted),
-            DatabaseManager.CreateParameter("@DuplicateKey", book.DuplicateKey),
-            DatabaseManager.CreateParameter("@ReplacedByID", book.ReplacedByID),
-            DatabaseManager.CreateParameter("@ContentHash", book.ContentHash)
-        };
+                    DatabaseManager.CreateParameter("@ID", book.ID),
+                    DatabaseManager.CreateParameter("@Version", book.Version),
+                    DatabaseManager.CreateParameter("@FileName", book.FileName),
+                    DatabaseManager.CreateParameter("@Title", book.Title),
+                    DatabaseManager.CreateParameter("@Language", book.Language),
+                    DatabaseManager.CreateParameter("@BookDate", book.BookDate),
+                    DatabaseManager.CreateParameter("@DocumentDate", book.DocumentDate),
+                    DatabaseManager.CreateParameter("@Annotation", book.Annotation),
+                    DatabaseManager.CreateParameter("@DocumentSize", (long)book.DocumentSize),
+                    DatabaseManager.CreateParameter("@AddedDate", book.AddedDate),
+                    DatabaseManager.CreateParameter("@DocumentIDTrusted", book.DocumentIDTrusted),
+                    DatabaseManager.CreateParameter("@DuplicateKey", book.DuplicateKey),
+                    DatabaseManager.CreateParameter("@ReplacedByID", book.ReplacedByID),
+                    DatabaseManager.CreateParameter("@ContentHash", book.ContentHash)
+                };
 
                 db.ExecuteNonQueryInTransaction(DatabaseSchema.InsertBook, transaction, bookParams);
 

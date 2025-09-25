@@ -47,6 +47,32 @@ jobs:
         run: |
           nuget restore TinyOPDS.sln -PackagesDirectory packages
 
+      # Debug: Check if packages were restored correctly
+      - name: Check packages structure
+        run: |
+          Write-Host "=== Checking if packages folder exists ==="
+          if (Test-Path "packages") {
+            Write-Host "packages folder exists"
+            Get-ChildItem -Path "packages" -Recurse | Select-Object FullName
+          } else {
+            Write-Host "packages folder does NOT exist!"
+          }
+          
+          Write-Host "`n=== Checking specific targets file ==="
+          $targetFile = "packages\System.Data.SQLite.Core.FTS5.1.0.114.1\build\net45\System.Data.SQLite.Core.FTS5.targets"
+          if (Test-Path $targetFile) {
+            Write-Host "Target file EXISTS: $targetFile"
+          } else {
+            Write-Host "Target file MISSING: $targetFile"
+            
+            # Check what actually exists in the SQLite package
+            Write-Host "`n=== Contents of SQLite package (if exists) ==="
+            $sqlitePath = "packages\System.Data.SQLite.Core.FTS5.1.0.114.1"
+            if (Test-Path $sqlitePath) {
+              Get-ChildItem -Path $sqlitePath -Recurse | Select-Object FullName
+            }
+          }
+
       - name: Build solution
         run: msbuild TinyOPDS.sln /p:Configuration=Release /p:Platform="Any CPU" /m
 

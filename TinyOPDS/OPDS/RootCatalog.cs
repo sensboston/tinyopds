@@ -58,7 +58,10 @@ namespace TinyOPDS.OPDS
                           new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                           new XElement("id", "tag:root:new"),
                           new XElement("title", Localizer.Text("New books (by date added)"), new XAttribute("type", "text")),
-                          new XElement("content", string.Format(Localizer.Text("{0} new books ordered by date"), newBooksCount), new XAttribute("type", "text")),
+                          new XElement("content",
+                              StringUtils.ApplyPluralForm(newBooksCount, Localizer.Language,
+                                  string.Format(Localizer.Text("{0} new books ordered by date"), newBooksCount)),
+                              new XAttribute("type", "text")),
                           new XElement("link", new XAttribute("href", "/newdate"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                           ),
 
@@ -67,7 +70,10 @@ namespace TinyOPDS.OPDS
                           new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                           new XElement("id", "tag:root:new"),
                           new XElement("title", Localizer.Text("New books (alphabetically)"), new XAttribute("type", "text")),
-                          new XElement("content", string.Format(Localizer.Text("{0} new books ordered alphabetically"), newBooksCount), new XAttribute("type", "text")),
+                          new XElement("content",
+                              StringUtils.ApplyPluralForm(newBooksCount, Localizer.Language,
+                                  string.Format(Localizer.Text("{0} new books ordered alphabetically"), newBooksCount)),
+                              new XAttribute("type", "text")),
                           new XElement("link", new XAttribute("href", "/newtitle"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                           ),
 
@@ -76,7 +82,9 @@ namespace TinyOPDS.OPDS
                           new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                           new XElement("id", "tag:root:authors"),
                           new XElement("title", Localizer.Text("By authors"), new XAttribute("type", "text")),
-                          new XElement("content", string.Format(Localizer.Text("{0} books by {1} authors"), totalBooksCount, authorsCount), new XAttribute("type", "text")),
+                          new XElement("content", StringUtils.ApplyPluralForm(0, Localizer.Language,
+                                string.Format(Localizer.Text("{0} books by {1} authors"), totalBooksCount, authorsCount)),
+                              new XAttribute("type", "text")),
                           new XElement("link", new XAttribute("href", "/authorsindex"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                           ),
 
@@ -86,7 +94,10 @@ namespace TinyOPDS.OPDS
                           new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                           new XElement("id", "tag:root:sequences"),
                           new XElement("title", Localizer.Text("By series"), new XAttribute("type", "text")),
-                          new XElement("content", string.Format(Localizer.Text("{0} series"), sequencesCount), new XAttribute("type", "text")),
+                          new XElement("content",
+                              StringUtils.ApplyPluralForm(sequencesCount, Localizer.Language,
+                                  string.Format(Localizer.Text("{0} series"), sequencesCount)),
+                              new XAttribute("type", "text")),
                           new XElement("link", new XAttribute("href", "/sequencesindex"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                           ),
 
@@ -105,7 +116,8 @@ namespace TinyOPDS.OPDS
                           new XElement("title", Localizer.Text("Downloaded books"), new XAttribute("type", "text")),
                           new XElement("content",
                               downloadsCount > 0
-                                ? string.Format(Localizer.Text("{0} downloaded books"), downloadsCount)
+                                ? StringUtils.ApplyPluralForm(downloadsCount, Localizer.Language,
+                                      string.Format(Localizer.Text("{0} downloaded books"), downloadsCount))
                                 : Localizer.Text("Your download history"),
                               new XAttribute("type", "text")),
                           new XElement("link", new XAttribute("href", "/downstat"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))

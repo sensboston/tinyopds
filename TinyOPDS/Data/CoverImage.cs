@@ -37,9 +37,9 @@ namespace TinyOPDS.Data
         private const long CoverJpegQuality = 60L;
         private const long ThumbnailJpegQuality = 60L;
 
-        // Serialize System.Drawing on Linux/Mono
+        // Serialize System.Drawing on Linux/macOS/Mono
         private static readonly object GdiLock = new object();
-        private static bool NeedGdiLock => Utils.IsLinux;
+        private static bool NeedGdiLock => Utils.IsLinux || Utils.IsMacOS;  // Added macOS support
 
         private readonly Image cover;
         private Image Thumbnail => cover?.Resize(ThumbnailSize);
@@ -156,7 +156,7 @@ namespace TinyOPDS.Data
         {
             void tuneGraphics(Image _) { }
 
-            // Serialize all GDI+ usage on Linux
+            // Serialize all GDI+ usage on Linux/macOS
             if (NeedGdiLock)
             {
                 lock (GdiLock)
@@ -172,6 +172,9 @@ namespace TinyOPDS.Data
 
         private Image GenerateDefaultCoverCore(string author, string title, Action<Image> _)
         {
+            Font authorFont = null;
+            Font titleFont = null;
+
             try
             {
                 Image backgroundImage = LoadBackgroundImage();
@@ -198,15 +201,16 @@ namespace TinyOPDS.Data
                     Color shadow = Color.FromArgb(100, 80, 60, 40);
 
                     var fontSize = Utils.IsLinux ? 26f : 20f;
-                    using (Font authorFont = CreateFallbackFont("Times New Roman", fontSize-4f, FontStyle.Bold | FontStyle.Italic))
-                    using (Font titleFont = CreateFallbackFont("Times New Roman", fontSize, FontStyle.Bold))
-                    {
-                        Rectangle authorArea = new Rectangle(40, 120, DefaultDesignSize.Width - 80, 200);
-                        Rectangle titleArea = new Rectangle(30, DefaultDesignSize.Height - 360, DefaultDesignSize.Width - 60, 300);
 
-                        DrawTextWithShadow(g, author, authorFont, gold, shadow, authorArea, true);
-                        DrawTextWithShadow(g, title, titleFont, gold, shadow, titleArea, false);
-                    }
+                    // Create fonts without using block - will dispose them in finally
+                    authorFont = CreateFallbackFont("Times New Roman", fontSize - 4f, FontStyle.Bold | FontStyle.Italic);
+                    titleFont = CreateFallbackFont("Times New Roman", fontSize, FontStyle.Bold);
+
+                    Rectangle authorArea = new Rectangle(40, 120, DefaultDesignSize.Width - 80, 200);
+                    Rectangle titleArea = new Rectangle(30, DefaultDesignSize.Height - 360, DefaultDesignSize.Width - 60, 300);
+
+                    DrawTextWithShadow(g, author, authorFont, gold, shadow, authorArea, true);
+                    DrawTextWithShadow(g, title, titleFont, gold, shadow, titleArea, false);
                 }
 
                 Image finalFitted = design.Resize(CoverSize, preserveAspectRatio: true);
@@ -215,8 +219,37 @@ namespace TinyOPDS.Data
             }
             catch (Exception ex)
             {
-                Log.WriteLine(LogLevel.Error, "Error in GenerateDefaultCover: {0}", ex.Message);
+                Log.WriteLine(LogLevel.Error, "Error in GenerateDefaultCoverCore: {0}", ex.Message);
                 return null;
+            }
+            finally
+            {
+                // Safe font disposal
+                SafeDisposeFont(authorFont);
+                SafeDisposeFont(titleFont);
+            }
+        }
+
+        /// <summary>
+        /// Safe font disposal method that avoids crashes on macOS
+        /// </summary>
+        private static void SafeDisposeFont(Font font)
+        {
+            if (font == null) return;
+
+            try
+            {
+                // Skip Dispose() on macOS due to libgdiplus bug
+                // Let GC handle it instead
+                if (!Utils.IsMacOS)
+                {
+                    font.Dispose();
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log but don't crash on disposal errors
+                Log.WriteLine(LogLevel.Warning, "Error disposing font: {0}", ex.Message);
             }
         }
 
@@ -251,9 +284,9 @@ namespace TinyOPDS.Data
         private Font CreateFallbackFont(string primaryName, float size, FontStyle style)
         {
             // Prefer Linux-safe families when running under Mono
-            if (Utils.IsLinux)
+            if (Utils.IsLinux || Utils.IsMacOS)
             {
-                // DejaVu families are present on most ARM distros
+                // DejaVu families are present on most ARM distros and macOS with Homebrew
                 try { return new Font("DejaVu Sans", size, style); } catch { }
                 try { return new Font("DejaVu Serif", size, style); } catch { }
                 try { return new Font(FontFamily.GenericSansSerif, size, style); } catch { }
@@ -282,23 +315,33 @@ namespace TinyOPDS.Data
 
             // Normalize area to avoid zero/negative sizes
             var safeArea = new Rectangle(area.X, area.Y, Math.Max(1, area.Width), Math.Max(1, area.Height));
+            Font scaledFont = null;
 
-            using (Brush textBrush = new SolidBrush(textColor))
-            using (Brush shadowBrush = new SolidBrush(shadowColor))
-            using (var format = new StringFormat
+            try
             {
-                Alignment = StringAlignment.Center,
-                LineAlignment = isAuthor ? StringAlignment.Near : StringAlignment.Center,
-                Trimming = StringTrimming.Word
-            })
+                using (Brush textBrush = new SolidBrush(textColor))
+                using (Brush shadowBrush = new SolidBrush(shadowColor))
+                using (var format = new StringFormat
+                {
+                    Alignment = StringAlignment.Center,
+                    LineAlignment = isAuthor ? StringAlignment.Near : StringAlignment.Center,
+                    Trimming = StringTrimming.Word
+                })
+                {
+                    scaledFont = GetOptimalFontSize(g, text.Trim(), font, safeArea, !isAuthor);
+
+                    var shadowArea = new Rectangle(safeArea.X + 2, safeArea.Y + 2, safeArea.Width, safeArea.Height);
+                    g.DrawString(text, scaledFont, shadowBrush, shadowArea, format);
+                    g.DrawString(text, scaledFont, textBrush, safeArea, format);
+                }
+            }
+            finally
             {
-                Font scaledFont = GetOptimalFontSize(g, text.Trim(), font, safeArea, !isAuthor);
-
-                var shadowArea = new Rectangle(safeArea.X + 2, safeArea.Y + 2, safeArea.Width, safeArea.Height);
-                g.DrawString(text, scaledFont, shadowBrush, shadowArea, format);
-                g.DrawString(text, scaledFont, textBrush, safeArea, format);
-
-                if (!ReferenceEquals(scaledFont, font)) scaledFont.Dispose();
+                // Safe disposal for scaled font if it's different from original
+                if (scaledFont != null && !ReferenceEquals(scaledFont, font))
+                {
+                    SafeDisposeFont(scaledFont);
+                }
             }
         }
 
@@ -311,10 +354,13 @@ namespace TinyOPDS.Data
             Func<Graphics, string, Font, int, StringFormat, SizeF> safeMeasure = SafeMeasureString;
 
             float fontSize = Math.Max(MinFontSize, Math.Min(MaxFontSize, baseFont.Size));
-            Font testFont = new Font(baseFont.FontFamily, fontSize, baseFont.Style);
+            Font testFont = null;
+            Font previousFont = null;
 
             try
             {
+                testFont = new Font(baseFont.FontFamily, fontSize, baseFont.Style);
+
                 using (var fmt = new StringFormat(StringFormat.GenericDefault)
                 {
                     FormatFlags = StringFormatFlags.LineLimit
@@ -325,24 +371,29 @@ namespace TinyOPDS.Data
                     while ((textSize.Width > area.Width || textSize.Height > area.Height) && fontSize > MinFontSize)
                     {
                         fontSize = Math.Max(MinFontSize, fontSize - 1f);
-                        testFont.Dispose();
+
+                        previousFont = testFont;
                         testFont = new Font(baseFont.FontFamily, fontSize, baseFont.Style);
+                        SafeDisposeFont(previousFont);  // Safe disposal
+
                         textSize = safeMeasure(g, text, testFont, Math.Max(1, area.Width), fmt);
                     }
 
                     if (isTitle && fontSize > MinFontSize + 2f)
                     {
                         fontSize = Math.Max(MinFontSize, fontSize - 2f);
-                        testFont.Dispose();
+                        previousFont = testFont;
                         testFont = new Font(baseFont.FontFamily, fontSize, baseFont.Style);
+                        SafeDisposeFont(previousFont);  // Safe disposal
                     }
                 }
 
                 return testFont;
             }
-            catch
+            catch (Exception ex)
             {
-                testFont?.Dispose();
+                Log.WriteLine(LogLevel.Warning, "Error in GetOptimalFontSize: {0}", ex.Message);
+                SafeDisposeFont(testFont);
                 return new Font(baseFont.FontFamily, Math.Max(MinFontSize, Math.Min(MaxFontSize, fontSize)), baseFont.Style);
             }
         }
@@ -352,7 +403,7 @@ namespace TinyOPDS.Data
             if (string.IsNullOrEmpty(text)) return SizeF.Empty;
             width = Math.Max(1, width);
 
-            if (Utils.IsLinux)
+            if (NeedGdiLock)
             {
                 lock (GdiLock)
                 {
@@ -368,13 +419,20 @@ namespace TinyOPDS.Data
 
     public static class ImageExtensions
     {
+        // Helper to access private GdiLock from CoverImage
+        private static object GdiLock => typeof(CoverImage)
+            .GetField("GdiLock", BindingFlags.NonPublic | BindingFlags.Static)
+            .GetValue(null);
+
+        private static bool NeedGdiLock => Utils.IsLinux || Utils.IsMacOS;
+
         public static Stream ToJpegStream(this Image image, long quality)
         {
             if (image == null) return null;
 
-            if (Utils.IsLinux)
+            if (NeedGdiLock)
             {
-                lock (CoverImage_GdiLockAccessor.Lock) // small helper to reuse same lock
+                lock (GdiLock)
                 {
                     return ToJpegStreamCore(image, quality);
                 }
@@ -421,9 +479,9 @@ namespace TinyOPDS.Data
         {
             if (image == null) return null;
 
-            if (Utils.IsLinux)
+            if (NeedGdiLock)
             {
-                lock (CoverImage_GdiLockAccessor.Lock)
+                lock (GdiLock)
                 {
                     return ToStreamCore(image, format);
                 }
@@ -493,9 +551,9 @@ namespace TinyOPDS.Data
 
             Image newImage = null;
 
-            if (Utils.IsLinux)
+            if (NeedGdiLock)
             {
-                lock (CoverImage_GdiLockAccessor.Lock)
+                lock (GdiLock)
                 {
                     newImage = ResizeCore(image, newWidth, newHeight);
                 }
@@ -528,14 +586,6 @@ namespace TinyOPDS.Data
                 Log.WriteLine(LogLevel.Error, "Error resizing image: {0}", ex.Message);
                 return null;
             }
-        }
-
-        // Small accessor to reuse the same lock without making it public
-        private static class CoverImage_GdiLockAccessor
-        {
-            public static object Lock => typeof(TinyOPDS.Data.CoverImage)
-                .GetField("GdiLock", BindingFlags.NonPublic | BindingFlags.Static)
-                .GetValue(null);
         }
     }
 }

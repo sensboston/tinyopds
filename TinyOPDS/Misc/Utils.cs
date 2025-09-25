@@ -63,6 +63,9 @@ namespace TinyOPDS
 
     public class Utils
     {
+        private static bool? isMacOS;
+        private static bool? isLinux;
+        private static bool? isWindows;
 
         /// <summary>
         /// Check current account privileges
@@ -95,8 +98,8 @@ namespace TinyOPDS
             return false;
         }
 
-        private static readonly string[] browsers = new string[] 
-        { "opera", "aol", "msie", "firefox", "chrome", "mozilla", "safari", "netscape", "navigator", "mosaic", "lynx", 
+        private static readonly string[] browsers = new string[]
+        { "opera", "aol", "msie", "firefox", "chrome", "mozilla", "safari", "netscape", "navigator", "mosaic", "lynx",
         "amaya", "omniweb", "avant", "camino", "flock", "seamonkey", "konqueror", "gecko", "yandex.browser" };
         /// <summary>
         /// Detect browsers by User-Agent
@@ -115,11 +118,135 @@ namespace TinyOPDS
             return false;
         }
 
-        public static bool IsMacOS=> RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
+        /// <summary>
+        /// Detect macOS platform (.NET 4.8 compatible)
+        /// </summary>
+        /// <summary>
+        /// Detect macOS platform (.NET 4.8 compatible)
+        /// </summary>
+        public static bool IsMacOS
+        {
+            get
+            {
+                if (!isMacOS.HasValue)
+                {
+                    var platform = Environment.OSVersion.Platform;
 
-        public static bool IsLinux => RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
+                    // First check for explicit MacOSX platform (rare but possible)
+                    if (platform == PlatformID.MacOSX)
+                    {
+                        isMacOS = true;
+                    }
+                    // Check for Unix platform (Mono returns this on macOS)
+                    else if (platform == PlatformID.Unix || (int)platform == 128)
+                    {
+                        // Use uname to distinguish between Linux and macOS
+                        try
+                        {
+                            var startInfo = new System.Diagnostics.ProcessStartInfo
+                            {
+                                FileName = "uname",
+                                Arguments = "-s",
+                                RedirectStandardOutput = true,
+                                UseShellExecute = false,
+                                CreateNoWindow = true
+                            };
 
-        public static bool IsWindows => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+                            using (var process = System.Diagnostics.Process.Start(startInfo))
+                            {
+                                string output = process.StandardOutput.ReadToEnd();
+                                process.WaitForExit();
+                                isMacOS = output.Contains("Darwin");
+                            }
+                        }
+                        catch
+                        {
+                            // If uname fails, check for macOS specific directory
+                            isMacOS = Directory.Exists("/System/Library/CoreServices");
+                        }
+                    }
+                    else
+                    {
+                        isMacOS = false;
+                    }
+                }
+                return isMacOS.Value;
+            }
+        }
+        /// <summary>
+        /// Detect Linux platform (.NET 4.8 compatible)
+        /// </summary>
+        public static bool IsLinux
+        {
+            get
+            {
+                if (!isLinux.HasValue)
+                {
+                    // Check if running on Mono
+                    if (Type.GetType("Mono.Runtime") != null)
+                    {
+                        var platform = Environment.OSVersion.Platform;
+                        if (platform == PlatformID.Unix || (int)platform == 128)
+                        {
+                            // Use uname to distinguish between Linux and macOS
+                            try
+                            {
+                                var startInfo = new System.Diagnostics.ProcessStartInfo
+                                {
+                                    FileName = "uname",
+                                    Arguments = "-s",
+                                    RedirectStandardOutput = true,
+                                    UseShellExecute = false,
+                                    CreateNoWindow = true
+                                };
+
+                                using (var process = System.Diagnostics.Process.Start(startInfo))
+                                {
+                                    string output = process.StandardOutput.ReadToEnd();
+                                    process.WaitForExit();
+                                    isLinux = output.Contains("Linux");
+                                }
+                            }
+                            catch
+                            {
+                                // If uname fails, check if it's not macOS
+                                isLinux = !Directory.Exists("/System/Library/CoreServices") &&
+                                          Directory.Exists("/proc");
+                            }
+                        }
+                        else
+                        {
+                            isLinux = false;
+                        }
+                    }
+                    else
+                    {
+                        // Not on Mono, check native platform
+                        isLinux = Environment.OSVersion.Platform == PlatformID.Unix;
+                    }
+                }
+                return isLinux.Value;
+            }
+        }
+
+        /// <summary>
+        /// Detect Windows platform (.NET 4.8 compatible)
+        /// </summary>
+        public static bool IsWindows
+        {
+            get
+            {
+                if (!isWindows.HasValue)
+                {
+                    var platform = Environment.OSVersion.Platform;
+                    isWindows = platform == PlatformID.Win32NT ||
+                                platform == PlatformID.Win32S ||
+                                platform == PlatformID.Win32Windows ||
+                                platform == PlatformID.WinCE;
+                }
+                return isWindows.Value;
+            }
+        }
 
         // Default path to service files: databases, log, setting
         public static string ServiceFilesLocation
@@ -144,78 +271,78 @@ namespace TinyOPDS
         {
             get
             {
-                return string.Format("running on TinyOPDS server version {0}.{1}", Version.Major, Version.Minor); 
+                return string.Format("running on TinyOPDS server version {0}.{1}", Version.Major, Version.Minor);
             }
         }
 
-		/// <summary>
-		/// Creates a name-based UUID using the algorithm from RFC 4122 §4.3.
-		/// </summary>
-		/// <param name="namespaceId">The ID of the namespace.</param>
-		/// <param name="name">The name (within that namespace).</param>
-		/// <param name="version">The version number of the UUID to create; this value must be either
-		/// <returns>A UUID derived from the namespace and name.</returns>
-		public static Guid CreateGuid(Guid namespaceId, string name)
-		{
-			if (name == null) throw new ArgumentNullException("name");
-			// convert the name to a sequence of octets (as defined by the standard or conventions of its namespace) (step 3)
-			// ASSUME: UTF-8 encoding is always appropriate
-			byte[] nameBytes = Encoding.UTF8.GetBytes(name);
+        /// <summary>
+        /// Creates a name-based UUID using the algorithm from RFC 4122 §4.3.
+        /// </summary>
+        /// <param name="namespaceId">The ID of the namespace.</param>
+        /// <param name="name">The name (within that namespace).</param>
+        /// <param name="version">The version number of the UUID to create; this value must be either
+        /// <returns>A UUID derived from the namespace and name.</returns>
+        public static Guid CreateGuid(Guid namespaceId, string name)
+        {
+            if (name == null) throw new ArgumentNullException("name");
+            // convert the name to a sequence of octets (as defined by the standard or conventions of its namespace) (step 3)
+            // ASSUME: UTF-8 encoding is always appropriate
+            byte[] nameBytes = Encoding.UTF8.GetBytes(name);
 
-			// convert the namespace UUID to network order (step 3)
-			byte[] namespaceBytes = namespaceId.ToByteArray();
-			SwapByteOrder(namespaceBytes);
+            // convert the namespace UUID to network order (step 3)
+            byte[] namespaceBytes = namespaceId.ToByteArray();
+            SwapByteOrder(namespaceBytes);
 
-			// compute the hash of the name space ID concatenated with the name (step 4)
+            // compute the hash of the name space ID concatenated with the name (step 4)
             byte[] hash = namespaceId.ToByteArray();
-			using (SHA256 algorithm = new SHA256Managed())
-			{
-				algorithm.TransformBlock(namespaceBytes, 0, namespaceBytes.Length, hash, 0);
-				algorithm.TransformFinalBlock(nameBytes, 0, nameBytes.Length);
-				hash = algorithm.Hash;
-			}
+            using (SHA256 algorithm = new SHA256Managed())
+            {
+                algorithm.TransformBlock(namespaceBytes, 0, namespaceBytes.Length, hash, 0);
+                algorithm.TransformFinalBlock(nameBytes, 0, nameBytes.Length);
+                hash = algorithm.Hash;
+            }
 
-			// most bytes from the hash are copied straight to the bytes of the new GUID (steps 5-7, 9, 11-12)
-			byte[] newGuid = new byte[16];
-			Array.Copy(hash, 0, newGuid, 0, 16);
+            // most bytes from the hash are copied straight to the bytes of the new GUID (steps 5-7, 9, 11-12)
+            byte[] newGuid = new byte[16];
+            Array.Copy(hash, 0, newGuid, 0, 16);
 
-			// set the four most significant bits (bits 12 through 15) of the time_hi_and_version field to the appropriate 4-bit version number from Section 4.1.3 (step 8)
-			newGuid[6] = (byte) ((newGuid[6] & 0x0F) | (5 << 4));
+            // set the four most significant bits (bits 12 through 15) of the time_hi_and_version field to the appropriate 4-bit version number from Section 4.1.3 (step 8)
+            newGuid[6] = (byte)((newGuid[6] & 0x0F) | (5 << 4));
 
-			// set the two most significant bits (bits 6 and 7) of the clock_seq_hi_and_reserved to zero and one, respectively (step 10)
-			newGuid[8] = (byte) ((newGuid[8] & 0x3F) | 0x80);
+            // set the two most significant bits (bits 6 and 7) of the clock_seq_hi_and_reserved to zero and one, respectively (step 10)
+            newGuid[8] = (byte)((newGuid[8] & 0x3F) | 0x80);
 
-			// convert the resulting UUID to local byte order (step 13)
-			SwapByteOrder(newGuid);
-			return new Guid(newGuid);
-		}
+            // convert the resulting UUID to local byte order (step 13)
+            SwapByteOrder(newGuid);
+            return new Guid(newGuid);
+        }
 
-		/// <summary>
-		/// The namespace for fully-qualified domain names (from RFC 4122, Appendix C).
-		/// </summary>
-		public static readonly Guid DnsNamespace = new Guid("6ba7b810-9dad-11d1-80b4-00c04fd430c8");
+        /// <summary>
+        /// The namespace for fully-qualified domain names (from RFC 4122, Appendix C).
+        /// </summary>
+        public static readonly Guid DnsNamespace = new Guid("6ba7b810-9dad-11d1-80b4-00c04fd430c8");
 
-		/// <summary>
-		/// The namespace for URLs (from RFC 4122, Appendix C).
-		/// </summary>
-		public static readonly Guid UrlNamespace = new Guid("6ba7b811-9dad-11d1-80b4-00c04fd430c8");
+        /// <summary>
+        /// The namespace for URLs (from RFC 4122, Appendix C).
+        /// </summary>
+        public static readonly Guid UrlNamespace = new Guid("6ba7b811-9dad-11d1-80b4-00c04fd430c8");
 
-		/// <summary>
-		/// The namespace for ISO OIDs (from RFC 4122, Appendix C).
-		/// </summary>
-		public static readonly Guid IsoOidNamespace = new Guid("6ba7b812-9dad-11d1-80b4-00c04fd430c8");
+        /// <summary>
+        /// The namespace for ISO OIDs (from RFC 4122, Appendix C).
+        /// </summary>
+        public static readonly Guid IsoOidNamespace = new Guid("6ba7b812-9dad-11d1-80b4-00c04fd430c8");
 
-		// Converts a GUID (expressed as a byte array) to/from network order (MSB-first).
-		internal static void SwapByteOrder(byte[] guid)
-		{
-			SwapBytes(guid, 0, 3);
-			SwapBytes(guid, 1, 2);
-			SwapBytes(guid, 4, 5);
-			SwapBytes(guid, 6, 7);
-		}
+        // Converts a GUID (expressed as a byte array) to/from network order (MSB-first).
+        internal static void SwapByteOrder(byte[] guid)
+        {
+            SwapBytes(guid, 0, 3);
+            SwapBytes(guid, 1, 2);
+            SwapBytes(guid, 4, 5);
+            SwapBytes(guid, 6, 7);
+        }
 
-		private static void SwapBytes(byte[] guid, int left, int right)
-		{
+        private static void SwapBytes(byte[] guid, int left, int right)
+        {
             (guid[right], guid[left]) = (guid[left], guid[right]);
         }
     }

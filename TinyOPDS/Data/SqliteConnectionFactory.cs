@@ -6,21 +6,19 @@
  * SPDX-License-Identifier: MIT
  *
  * SQLite connection factory for cross-platform compatibility
- * Uses System.Data.SQLite on Windows and Mono.Data.Sqlite on Linux
+ * Uses reflection to avoid direct dependencies
  *
  */
 
 using System;
 using System.Data;
-using System.IO;
 using System.Reflection;
-using System.Data.SQLite;
 
 namespace TinyOPDS.Data
 {
     /// <summary>
     /// Factory class for creating SQLite connections and commands
-    /// that work on both Windows and Linux platforms
+    /// that work on both Windows and Unix platforms
     /// </summary>
     public static class SqliteConnectionFactory
     {
@@ -28,20 +26,79 @@ namespace TinyOPDS.Data
         private static Type commandType;
         private static bool typesInitialized = false;
 
+        // For Windows - loaded via reflection
+        private static Assembly windowsSqliteAssembly;
+        private static Type windowsConnectionType;
+        private static Type windowsCommandType;
+
         /// <summary>
-        /// Initialize types for Linux platform
+        /// Initialize types for current platform
         /// </summary>
         private static void InitializeTypes()
         {
             if (typesInitialized) return;
 
-            if (Utils.IsLinux)
+            // Unix platforms (Linux and macOS) use Mono.Data.Sqlite
+            if (Utils.IsLinux || Utils.IsMacOS)
             {
-                var linuxSqliteAssembly = EmbeddedDllLoader.GetLinuxSqliteAssembly();
-                if (linuxSqliteAssembly != null)
+                Log.WriteLine(LogLevel.Info, "SqliteConnectionFactory: Initializing for Unix platform ({0})",
+                    Utils.IsLinux ? "Linux" : "macOS");
+
+                var unixSqliteAssembly = EmbeddedDllLoader.GetLinuxSqliteAssembly();
+                if (unixSqliteAssembly != null)
                 {
-                    connectionType = linuxSqliteAssembly.GetType("Mono.Data.Sqlite.SqliteConnection");
-                    commandType = linuxSqliteAssembly.GetType("Mono.Data.Sqlite.SqliteCommand");
+                    connectionType = unixSqliteAssembly.GetType("Mono.Data.Sqlite.SqliteConnection");
+                    commandType = unixSqliteAssembly.GetType("Mono.Data.Sqlite.SqliteCommand");
+
+                    if (connectionType != null && commandType != null)
+                    {
+                        Log.WriteLine(LogLevel.Info, "SqliteConnectionFactory: Successfully loaded Mono.Data.Sqlite types");
+                    }
+                    else
+                    {
+                        Log.WriteLine(LogLevel.Error, "SqliteConnectionFactory: Could not find required types in Mono.Data.Sqlite");
+                        throw new InvalidOperationException("Mono.Data.Sqlite assembly is loaded but required types are not found");
+                    }
+                }
+                else
+                {
+                    Log.WriteLine(LogLevel.Error, "SqliteConnectionFactory: Could not load Mono.Data.Sqlite assembly");
+                    throw new InvalidOperationException("Mono.Data.Sqlite is required on Unix systems but could not be loaded");
+                }
+            }
+            else
+            {
+                // Windows uses System.Data.SQLite loaded dynamically
+                Log.WriteLine(LogLevel.Info, "SqliteConnectionFactory: Initializing for Windows platform");
+
+                try
+                {
+                    // Try to load from embedded resources via reflection
+                    windowsSqliteAssembly = Assembly.Load("System.Data.SQLite");
+
+                    if (windowsSqliteAssembly == null)
+                    {
+                        throw new InvalidOperationException("System.Data.SQLite assembly not found");
+                    }
+
+                    windowsConnectionType = windowsSqliteAssembly.GetType("System.Data.SQLite.SQLiteConnection");
+                    windowsCommandType = windowsSqliteAssembly.GetType("System.Data.SQLite.SQLiteCommand");
+
+                    if (windowsConnectionType != null && windowsCommandType != null)
+                    {
+                        connectionType = windowsConnectionType;
+                        commandType = windowsCommandType;
+                        Log.WriteLine(LogLevel.Info, "SqliteConnectionFactory: Successfully loaded System.Data.SQLite types");
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException("Required types not found in System.Data.SQLite");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.WriteLine(LogLevel.Error, "SqliteConnectionFactory: Failed to load System.Data.SQLite: {0}", ex.Message);
+                    throw new InvalidOperationException("System.Data.SQLite is required on Windows but could not be loaded", ex);
                 }
             }
 
@@ -55,31 +112,24 @@ namespace TinyOPDS.Data
         /// <returns>IDbConnection instance</returns>
         public static IDbConnection CreateConnection(string connectionString)
         {
-            if (Utils.IsLinux)
-            {
-                InitializeTypes();
+            InitializeTypes();
 
-                if (connectionType != null)
-                {
-                    return (IDbConnection)Activator.CreateInstance(connectionType, connectionString);
-                }
-                else
-                {
-                    try
-                    {
-                        return new SQLiteConnection(connectionString);
-                    }
-                    catch (Exception ex)
-                    {
-                        throw new InvalidOperationException(
-                            "Neither Mono.Data.Sqlite nor System.Data.SQLite is available on this Linux system. " +
-                            "Please install mono-data-sqlite package or ensure Mono.Data.Sqlite.dll is available.", ex);
-                    }
-                }
-            }
-            else
+            if (connectionType == null)
             {
-                return new SQLiteConnection(connectionString);
+                throw new InvalidOperationException("SQLite connection type not initialized");
+            }
+
+            try
+            {
+                Log.WriteLine(LogLevel.Info, "SqliteConnectionFactory: Creating {0} connection",
+                    (Utils.IsLinux || Utils.IsMacOS) ? "Mono.Data.Sqlite" : "System.Data.SQLite");
+
+                return (IDbConnection)Activator.CreateInstance(connectionType, connectionString);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "SqliteConnectionFactory: Failed to create connection: {0}", ex.Message);
+                throw new InvalidOperationException("Failed to create SQLite connection", ex);
             }
         }
 
@@ -91,30 +141,21 @@ namespace TinyOPDS.Data
         /// <returns>IDbCommand instance</returns>
         public static IDbCommand CreateCommand(string sql, IDbConnection connection)
         {
-            if (Utils.IsLinux)
-            {
-                InitializeTypes();
+            InitializeTypes();
 
-                if (commandType != null)
-                {
-                    return (IDbCommand)Activator.CreateInstance(commandType, sql, connection);
-                }
-                else
-                {
-                    try
-                    {
-                        return new SQLiteCommand(sql, (SQLiteConnection)connection);
-                    }
-                    catch (Exception ex)
-                    {
-                        throw new InvalidOperationException(
-                            "Neither Mono.Data.Sqlite nor System.Data.SQLite is available on this Linux system.", ex);
-                    }
-                }
-            }
-            else
+            if (commandType == null)
             {
-                return new SQLiteCommand(sql, (SQLiteConnection)connection);
+                throw new InvalidOperationException("SQLite command type not initialized");
+            }
+
+            try
+            {
+                return (IDbCommand)Activator.CreateInstance(commandType, sql, connection);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "SqliteConnectionFactory: Failed to create command: {0}", ex.Message);
+                throw new InvalidOperationException("Failed to create SQLite command", ex);
             }
         }
 
@@ -125,30 +166,21 @@ namespace TinyOPDS.Data
         /// <returns>IDbCommand instance</returns>
         public static IDbCommand CreateCommand(string sql)
         {
-            if (Utils.IsLinux)
-            {
-                InitializeTypes();
+            InitializeTypes();
 
-                if (commandType != null)
-                {
-                    return (IDbCommand)Activator.CreateInstance(commandType, sql);
-                }
-                else
-                {
-                    try
-                    {
-                        return new SQLiteCommand(sql);
-                    }
-                    catch (Exception ex)
-                    {
-                        throw new InvalidOperationException(
-                            "Neither Mono.Data.Sqlite nor System.Data.SQLite is available on this Linux system.", ex);
-                    }
-                }
-            }
-            else
+            if (commandType == null)
             {
-                return new SQLiteCommand(sql);
+                throw new InvalidOperationException("SQLite command type not initialized");
+            }
+
+            try
+            {
+                return (IDbCommand)Activator.CreateInstance(commandType, sql);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "SqliteConnectionFactory: Failed to create command: {0}", ex.Message);
+                throw new InvalidOperationException("Failed to create SQLite command", ex);
             }
         }
     }

@@ -39,7 +39,9 @@ namespace TinyOPDS.OPDS
                     new XAttribute(XNamespace.Xmlns + "opds", Namespaces.opds),
                     new XElement("id", "tag:downstat"),
                     new XElement("title", Localizer.Text("Downloaded books")),
-                    new XElement("subtitle", string.Format(Localizer.Text("{0} downloaded books"), downloadsCount)),
+                    new XElement("subtitle",
+                        StringUtils.ApplyPluralForm(downloadsCount, Localizer.Language,
+                            string.Format(Localizer.Text("{0} downloaded books"), downloadsCount))),
                     new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                     new XElement("icon", "/library.ico"),
                     Links.opensearch, Links.search, Links.start)
@@ -53,7 +55,9 @@ namespace TinyOPDS.OPDS
                     new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                     new XElement("id", "tag:downstat:bydate"),
                     new XElement("title", Localizer.Text("By download date"), new XAttribute("type", "text")),
-                    new XElement("content", string.Format(Localizer.Text("{0} books sorted by download date"), downloadsCount),
+                    new XElement("content",
+                        StringUtils.ApplyPluralForm(downloadsCount, Localizer.Language,
+                            string.Format(Localizer.Text("{0} books sorted by download date"), downloadsCount)),
                         new XAttribute("type", "text")),
                     new XElement("link",
                         new XAttribute("href", "/downstat/date"),
@@ -65,7 +69,9 @@ namespace TinyOPDS.OPDS
                     new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                     new XElement("id", "tag:downstat:alphabetic"),
                     new XElement("title", Localizer.Text("Alphabetically"), new XAttribute("type", "text")),
-                    new XElement("content", string.Format(Localizer.Text("{0} books sorted alphabetically"), downloadsCount),
+                    new XElement("content",
+                        StringUtils.ApplyPluralForm(downloadsCount, Localizer.Language,
+                            string.Format(Localizer.Text("{0} books sorted alphabetically"), downloadsCount)),
                         new XAttribute("type", "text")),
                     new XElement("link",
                         new XAttribute("href", "/downstat/alpha"),
@@ -159,7 +165,7 @@ namespace TinyOPDS.OPDS
             bool useCyrillic = Properties.Settings.Default.SortOrder > 0;
             var genres = Library.Genres;
 
-            // Add book entries - EXACT COPY FROM BooksCatalog
+            // Add book entries
             foreach (var book in books)
             {
                 // Load full book data including authors, genres, sequences
@@ -226,7 +232,7 @@ namespace TinyOPDS.OPDS
                     plainText += Localizer.Text("Series:") + " " + fullBook.Sequence + " #" + fullBook.NumberInSequence;
                 }
 
-                // Add all metadata elements - CHANGED FORMAT FROM text/html to text
+                // Add all metadata elements
                 entry.Add(
                     new XElement(Namespaces.dc + "language", fullBook.Language),
                     new XElement(Namespaces.dc + "format", fullBook.BookType == BookType.FB2 ? "fb2+zip" : "epub+zip"),
@@ -262,7 +268,7 @@ namespace TinyOPDS.OPDS
                         new XAttribute("type", "image/jpeg"))
                 );
 
-                // Add download links - EXACT FORMAT FROM BooksCatalog
+                // Add download links
                 if (fullBook.BookType == BookType.EPUB || (fullBook.BookType == BookType.FB2 && !acceptFB2))
                 {
                     entry.Add(new XElement("link",

@@ -7,6 +7,7 @@
 		<language id="de">Deutsch</language>
 		<language id="es">Español</language>
 		<language id="fr">Français</language>
+		<language id="pl">Polski</language>
 	</languages>
 	<properties>
 		<property form="MainForm" ctrl="groupBox1">
@@ -16,6 +17,7 @@
 			<text lang="de">Bilder zwischenspeichern</text>
 			<text lang="es">Caché de imágenes</text>
 			<text lang="fr">Cache des images</text>
+			<text lang="pl">Buforowanie obrazów</text>
 		</property>
 		<property form="MainForm" ctrl="radioButton1">
 			<text lang="en">in memory</text>
@@ -24,6 +26,7 @@
 			<text lang="de">im Arbeitsspeicher</text>
 			<text lang="es">en memoria</text>
 			<text lang="fr">en mémoire</text>
+			<text lang="pl">w pamięci</text>
 		</property>
 		<property form="MainForm" ctrl="oneInstance">
 			<text lang="en">Only one instance</text>
@@ -32,6 +35,7 @@
 			<text lang="de">Nur eine Instanz</text>
 			<text lang="es">Solo una instancia</text>
 			<text lang="fr">Une seule instance</text>
+			<text lang="pl">Tylko jedna instancja</text>
 		</property>
 		<property form="MainForm" ctrl="radioButton2">
 			<text lang="en">on disk</text>
@@ -40,6 +44,7 @@
 			<text lang="de">auf Festplatte</text>
 			<text lang="es">en disco</text>
 			<text lang="fr">sur disque</text>
+			<text lang="pl">na dysku</text>
 		</property>
 		<property form="MainForm" ctrl="label40">
 			<text lang="en">Memory cache size:</text>
@@ -48,6 +53,7 @@
 			<text lang="de">Größe des Arbeitsspeicher-Cache:</text>
 			<text lang="es">Tamaño de caché en memoria:</text>
 			<text lang="fr">Taille du cache mémoire:</text>
+			<text lang="pl">Rozmiar pamięci podręcznej:</text>
 		</property>
 		<property form="MainForm" ctrl="label15">
 			<text lang="en">Path to books folder:</text>
@@ -56,6 +62,7 @@
 			<text lang="de">Pfad zum Bücher-Ordner:</text>
 			<text lang="es">Ruta a la carpeta de libros:</text>
 			<text lang="fr">Chemin vers le dossier de livres:</text>
+			<text lang="pl">Ścieżka do folderu z książkami:</text>
 		</property>
 		<property form="MainForm" ctrl="useWatcher">
 			<text lang="en">Monitor changes</text>
@@ -64,6 +71,7 @@
 			<text lang="de">Änderungen überwachen</text>
 			<text lang="es">Monitorear cambios</text>
 			<text lang="fr">Surveiller</text>
+			<text lang="pl">Monitoruj zmiany</text>
 		</property>
 		<property form="MainForm" ctrl="label16">
 			<text lang="en">Duplicates:</text>
@@ -72,6 +80,7 @@
 			<text lang="de">Duplikate:</text>
 			<text lang="es">Duplicados:</text>
 			<text lang="fr">Doublons:</text>
+			<text lang="pl">Duplikaty:</text>
 		</property>
 		<property form="MainForm" ctrl="status">
 			<text lang="en">STOPPED</text>
@@ -80,6 +89,7 @@
 			<text lang="de">GESTOPPT</text>
 			<text lang="es">DETENIDO</text>
 			<text lang="fr">ARRÊTÉ</text>
+			<text lang="pl">ZATRZYMANY</text>
 		</property>
 		<property form="MainForm" ctrl="label14">
 			<text lang="en">Status:</text>
@@ -88,6 +98,7 @@
 			<text lang="de">Status:</text>
 			<text lang="es">Estado:</text>
 			<text lang="fr">Statut:</text>
+			<text lang="pl">Status:</text>
 		</property>
 		<property form="MainForm" ctrl="rate">
 			<text lang="en">0 books/min</text>
@@ -96,6 +107,7 @@
 			<text lang="de">0 Bücher/Min</text>
 			<text lang="es">0 libros/min</text>
 			<text lang="fr">0 livres/min</text>
+			<text lang="pl">0 książek/min</text>
 		</property>
 		<property>
 			<text lang="en">{0} books/min</text>
@@ -104,6 +116,7 @@
 			<text lang="de">{0} Bücher/Min</text>
 			<text lang="es">{0} libros/min</text>
 			<text lang="fr">{0} livres/min</text>
+			<text lang="pl">{0} książek/min</text>
 		</property>
 		<property form="MainForm" ctrl="label12">
 			<text lang="en">Scan rate:</text>
@@ -112,6 +125,7 @@
 			<text lang="de">Scanrate:</text>
 			<text lang="es">Velocidad de escaneo:</text>
 			<text lang="fr">Vitesse de balayage:</text>
+			<text lang="pl">Szybkość skanowania:</text>
 		</property>
 		<property form="MainForm" ctrl="label10">
 			<text lang="en">Elapsed time:</text>
@@ -120,6 +134,7 @@
 			<text lang="de">Verstrichene Zeit:</text>
 			<text lang="es">Tiempo transcurrido:</text>
 			<text lang="fr">Temps écoulé:</text>
+			<text lang="pl">Upłynęło czasu:</text>
 		</property>
 		<property form="MainForm" ctrl="label6">
 			<text lang="en">Start time:</text>
@@ -128,6 +143,7 @@
 			<text lang="de">Startzeit:</text>
 			<text lang="es">Hora de inicio:</text>
 			<text lang="fr">Heure de début:</text>
+			<text lang="pl">Czas rozpoczęcia:</text>
 		</property>
 		<property form="MainForm" ctrl="label2">
 			<text lang="en">Books in database:</text>
@@ -136,6 +152,7 @@
 			<text lang="de">Bücher in Datenbank:</text>
 			<text lang="es">Libros en base de datos:</text>
 			<text lang="fr">Livres en base de données:</text>
+			<text lang="pl">Książek w bazie danych:</text>
 		</property>
 		<property form="MainForm" ctrl="label1">
 			<text lang="en">Books found:</text>
@@ -144,6 +161,7 @@
 			<text lang="de">Bücher gefunden:</text>
 			<text lang="es">Libros encontrados:</text>
 			<text lang="fr">Livres trouvés:</text>
+			<text lang="pl">Znaleziono książek:</text>
 		</property>
 		<property form="MainForm" ctrl="label5">
 			<text lang="en">Books processed:</text>
@@ -152,6 +170,7 @@
 			<text lang="de">Bücher verarbeitet:</text>
 			<text lang="es">Libros procesados:</text>
 			<text lang="fr">Livres traités:</text>
+			<text lang="pl">Przetworzono książek:</text>
 		</property>
 		<property form="MainForm" ctrl="label9">
 			<text lang="en">Invalid books:</text>
@@ -160,6 +179,7 @@
 			<text lang="de">Ungültige Bücher:</text>
 			<text lang="es">Libros inválidos:</text>
 			<text lang="fr">Livres invalides:</text>
+			<text lang="pl">Nieprawidłowe książki:</text>
 		</property>
 		<property form="MainForm" ctrl="label7">
 			<text lang="en">Skipped books:</text>
@@ -168,6 +188,7 @@
 			<text lang="de">Übersprungene Bücher:</text>
 			<text lang="es">Libros omitidos:</text>
 			<text lang="fr">Livres ignorés:</text>
+			<text lang="pl">Pominięto książek:</text>
 		</property>
 		<property form="MainForm" ctrl="scannerButton">
 			<text lang="en">Start scanning</text>
@@ -176,6 +197,7 @@
 			<text lang="de">Scannen starten</text>
 			<text lang="es">Iniciar escaneo</text>
 			<text lang="fr">Commencer l'analyse</text>
+			<text lang="pl">Rozpocznij skanowanie</text>
 		</property>
 		<property form="MainForm" ctrl="label4">
 			<text lang="en">Server name:</text>
@@ -184,6 +206,7 @@
 			<text lang="de">Servername:</text>
 			<text lang="es">Nombre del servidor:</text>
 			<text lang="fr">Nom du serveur:</text>
+			<text lang="pl">Nazwa serwera:</text>
 		</property>
 		<property form="MainForm" ctrl="label3">
 			<text lang="en">Port:</text>
@@ -192,6 +215,7 @@
 			<text lang="de">Port:</text>
 			<text lang="es">Puerto:</text>
 			<text lang="fr">Port:</text>
+			<text lang="pl">Port:</text>
 		</property>
 		<property form="MainForm" ctrl="serverButton">
 			<text lang="en">Start server</text>
@@ -200,6 +224,7 @@
 			<text lang="de">Server starten</text>
 			<text lang="es">Iniciar servidor</text>
 			<text lang="fr">Démarrer le serveur</text>
+			<text lang="pl">Uruchom serwer</text>
 		</property>
 		<property>
 			<text lang="en">SCANNING</text>
@@ -208,6 +233,7 @@
 			<text lang="de">SCANNEN</text>
 			<text lang="es">ESCANEANDO</text>
 			<text lang="fr">ANALYSE</text>
+			<text lang="pl">SKANOWANIE</text>
 		</property>
 		<property>
 			<text lang="en">FINISHED</text>
@@ -216,6 +242,7 @@
 			<text lang="de">BEENDET</text>
 			<text lang="es">FINALIZADO</text>
 			<text lang="fr">TERMINÉ</text>
+			<text lang="pl">ZAKOŃCZONO</text>
 		</property>
 		<property>
 			<text lang="en">Stop scanning</text>
@@ -224,6 +251,7 @@
 			<text lang="de">Scannen stoppen</text>
 			<text lang="es">Detener escaneo</text>
 			<text lang="fr">Arrêter l'analyse</text>
+			<text lang="pl">Zatrzymaj skanowanie</text>
 		</property>
 		<property>
 			<text lang="en">Stop server</text>
@@ -232,6 +260,7 @@
 			<text lang="de">Server stoppen</text>
 			<text lang="es">Detener servidor</text>
 			<text lang="fr">Arrêter le serveur</text>
+			<text lang="pl">Zatrzymaj serwer</text>
 		</property>
 		<property form="MainForm" ctrl="label11">
 			<text lang="en">GUI and OPDS language:</text>
@@ -240,6 +269,7 @@
 			<text lang="de">GUI- und OPDS-Sprache:</text>
 			<text lang="es">Idioma de GUI y OPDS:</text>
 			<text lang="fr">Langue de l'interface et OPDS:</text>
+			<text lang="pl">Język interfejsu i OPDS:</text>
 		</property>
 		<property form="MainForm" ctrl="closeToTray">
 			<text lang="en">Close or minimize to tray</text>
@@ -248,6 +278,7 @@
 			<text lang="de">In Systemleiste minimieren</text>
 			<text lang="es">Cerrar o minimizar a la bandeja</text>
 			<text lang="fr">Fermer ou réduire dans la barre</text>
+			<text lang="pl">Zamknij lub minimalizuj do zasobnika</text>
 		</property>
 		<property form="MainForm" ctrl="startMinimized">
 			<text lang="en">Start minimized</text>
@@ -256,6 +287,7 @@
 			<text lang="de">Minimiert starten</text>
 			<text lang="es">Iniciar minimizado</text>
 			<text lang="fr">Démarrer réduit</text>
+			<text lang="pl">Uruchom zminimalizowany</text>
 		</property>
 		<property form="MainForm" ctrl="startWithWindows">
 			<text lang="en">Start with Windows</text>
@@ -264,6 +296,7 @@
 			<text lang="de">Mit Windows starten</text>
 			<text lang="es">Iniciar con Windows</text>
 			<text lang="fr">Démarrer avec Windows</text>
+			<text lang="pl">Uruchom razem z systemem Windows</text>
 		</property>
 		<property form="MainForm" ctrl="saveLog">
 			<text lang="en">Save log to file</text>
@@ -272,6 +305,7 @@
 			<text lang="de">Log in Datei speichern</text>
 			<text lang="es">Guardar log en archivo</text>
 			<text lang="fr">Sauvegarder le log dans un fichier</text>
+			<text lang="pl">Zapisz dziennik do pliku</text>
 		</property>
 		<property form="MainForm" ctrl="tabPage1">
 			<text lang="en">Scanner</text>
@@ -280,6 +314,7 @@
 			<text lang="de">Scanner</text>
 			<text lang="es">Escáner</text>
 			<text lang="fr">Scanner</text>
+			<text lang="pl">Skaner</text>
 		</property>
 		<property form="MainForm" ctrl="tabPage2">
 			<text lang="en">Server</text>
@@ -288,6 +323,7 @@
 			<text lang="de">Server</text>
 			<text lang="es">Servidor</text>
 			<text lang="fr">Serveur</text>
+			<text lang="pl">Serwer</text>
 		</property>
 		<property form="MainForm" ctrl="tabPage3">
 			<text lang="en">Misc</text>
@@ -296,6 +332,7 @@
 			<text lang="de">Verschiedenes</text>
 			<text lang="es">Varios</text>
 			<text lang="fr">Divers</text>
+			<text lang="pl">Różne</text>
 		</property>
 		<property form="MainForm" ctrl="tabPage4">
 			<text lang="en">About</text>
@@ -304,6 +341,7 @@
 			<text lang="de">Info</text>
 			<text lang="es">Acerca</text>
 			<text lang="fr">À propos</text>
+			<text lang="pl">O programie</text>
 		</property>
 		<property form="MainForm" ctrl="tabPage5">
 			<text lang="en">Auth</text>
@@ -312,6 +350,7 @@
 			<text lang="de">Zugang</text>
 			<text lang="es">Acceso</text>
 			<text lang="fr">Accès</text>
+			<text lang="pl">Uwierzytelnianie</text>
 		</property>
 		<property form="MainForm" ctrl="tabPage6">
 			<text lang="en">OPDS catalog</text>
@@ -320,6 +359,7 @@
 			<text lang="de">OPDS-Katalog</text>
 			<text lang="es">Catálogo OPDS</text>
 			<text lang="fr">Catalogue OPDS</text>
+			<text lang="pl">Katalog OPDS</text>
 		</property>
 		<property form="MainForm" ctrl="tabPage7">
 			<text lang="en">OPDS Routes</text>
@@ -328,6 +368,7 @@
 			<text lang="de">OPDS-Routen</text>
 			<text lang="es">Rutas OPDS</text>
 			<text lang="fr">Routes OPDS</text>
+			<text lang="pl">Ścieżki OPDS</text>
 		</property>
 		<property form="MainForm" ctrl="exitMenuItem">
 			<text lang="en">Exit</text>
@@ -336,6 +377,7 @@
 			<text lang="de">Beenden</text>
 			<text lang="es">Salir</text>
 			<text lang="fr">Quitter</text>
+			<text lang="pl">Wyjście</text>
 		</property>
 		<property form="MainForm" ctrl="filterByLanguage">
 			<text lang="en">Books in interface language only</text>
@@ -344,6 +386,7 @@
 			<text lang="de">Nur Bücher in Oberflächensprache</text>
 			<text lang="es">Solo libros en idioma de interfaz</text>
 			<text lang="fr">Livres dans la langue de l'interface uniquement</text>
+			<text lang="pl">Tylko książki w języku interfejsu</text>
 		</property>
 		<property form="MainForm" ctrl="openPort">
 			<text lang="en">Forward port on router</text>
@@ -352,6 +395,7 @@
 			<text lang="de">Port am Router weiterleiten</text>
 			<text lang="es">Reenviar puerto en router</text>
 			<text lang="fr">Rediriger le port sur le routeur</text>
+			<text lang="pl">Przekieruj port na routerze</text>
 		</property>
 		<property form="MainForm" ctrl="label13">
 			<text lang="en">OPDS root:</text>
@@ -360,6 +404,7 @@
 			<text lang="de">OPDS-Root:</text>
 			<text lang="es">Raíz OPDS:</text>
 			<text lang="fr">Racine OPDS:</text>
+			<text lang="pl">Katalog główny OPDS:</text>
 		</property>
 		<property form="MainForm" ctrl="intIPlabel">
 			<text lang="en">Local OPDS URL:</text>
@@ -368,6 +413,7 @@
 			<text lang="de">Lokale OPDS-URL:</text>
 			<text lang="es">URL OPDS local:</text>
 			<text lang="fr">URL OPDS locale:</text>
+			<text lang="pl">Lokalny adres URL OPDS:</text>
 		</property>
 		<property form="MainForm" ctrl="extIPlabel">
 			<text lang="en">External OPDS URL:</text>
@@ -376,6 +422,7 @@
 			<text lang="de">Externe OPDS-URL:</text>
 			<text lang="es">URL OPDS externa:</text>
 			<text lang="fr">URL OPDS externe:</text>
+			<text lang="pl">Zewnętrzny adres URL OPDS:</text>
 		</property>
 		<property form="MainForm" ctrl="label35">
 			<text lang="en">Local web URL:</text>
@@ -384,6 +431,7 @@
 			<text lang="de">Lokale Web-URL:</text>
 			<text lang="es">URL web local:</text>
 			<text lang="fr">URL web locale:</text>
+			<text lang="pl">Lokalny adres URL strony www:</text>
 		</property>
 		<property form="MainForm" ctrl="label34">
 			<text lang="en">External web URL:</text>
@@ -392,6 +440,7 @@
 			<text lang="de">Externe Web-URL:</text>
 			<text lang="es">URL web externa:</text>
 			<text lang="fr">URL web externe:</text>
+			<text lang="pl">Zewnętrzny adres URL strony www:</text>
 		</property>
 		<property form="MainForm" ctrl="converterLinkLabel">
 			<text lang="en">Click here to download latest version of ePub converter</text>
@@ -400,6 +449,7 @@
 			<text lang="de">Hier klicken, um die neueste Version des ePub-Konverters herunterzuladen</text>
 			<text lang="es">Haga clic aquí para descargar la última versión del convertidor ePub</text>
 			<text lang="fr">Cliquez ici pour télécharger la dernière version du convertisseur ePub</text>
+			<text lang="pl">Kliknij tutaj, aby pobrać najnowszą wersję konwertera ePub</text>
 		</property>
 		<property form="MainForm" ctrl="appName">
 			<text lang="en">TinyOPDS server</text>
@@ -408,6 +458,7 @@
 			<text lang="de">TinyOPDS-Server</text>
 			<text lang="es">Servidor TinyOPDS</text>
 			<text lang="fr">Serveur TinyOPDS</text>
+			<text lang="pl">Serwer TinyOPDS</text>
 		</property>
 		<property form="MainForm" ctrl="label17">
 			<text lang="en">Project home page:</text>
@@ -416,6 +467,7 @@
 			<text lang="de">Projekt-Homepage:</text>
 			<text lang="es">Página principal del proyecto:</text>
 			<text lang="fr">Page d'accueil du projet:</text>
+			<text lang="pl">Strona główna projektu:</text>
 		</property>
 		<property form="MainForm" ctrl="label18">
 			<text lang="en">Project license:</text>
@@ -424,6 +476,7 @@
 			<text lang="de">Projekt-Lizenz:</text>
 			<text lang="es">Licencia del proyecto:</text>
 			<text lang="fr">Licence du projet:</text>
+			<text lang="pl">Licencja projektu:</text>
 		</property>
 		<property form="MainForm" ctrl="label20">
 			<text lang="en">Special thanks:</text>
@@ -432,6 +485,7 @@
 			<text lang="de">Besonderen Dank an:</text>
 			<text lang="es">Agradecimientos especiales:</text>
 			<text lang="fr">Remerciements spéciaux:</text>
+			<text lang="pl">Specjalne podziękowania:</text>
 		</property>
 		<property form="MainForm" ctrl="label21">
 			<text lang="en">Database file name:</text>
@@ -440,6 +494,7 @@
 			<text lang="de">Datenbank-Dateiname:</text>
 			<text lang="es">Nombre del archivo de base de datos:</text>
 			<text lang="fr">Nom du fichier de base de données:</text>
+			<text lang="pl">Nazwa pliku bazy danych:</text>
 		</property>
 		<property form="MainForm" ctrl="useHTTPAuth">
 			<text lang="en">Use HTTP basic authentication</text>
@@ -448,6 +503,7 @@
 			<text lang="de">HTTP-Basisauthentifizierung verwenden</text>
 			<text lang="es">Usar autenticación básica HTTP</text>
 			<text lang="fr">Utiliser l'authentification HTTP de base</text>
+			<text lang="pl">Używaj podstawowego uwierzytelniania HTTP</text>
 		</property>
 		<property form="MainForm" ctrl="rememberClients">
 			<text lang="en">Remember authorized clients</text>
@@ -456,6 +512,7 @@
 			<text lang="de">Autorisierte Clients merken</text>
 			<text lang="es">Recordar clientes autorizados</text>
 			<text lang="fr">Se souvenir des clients autorisés</text>
+			<text lang="pl">Pamiętaj autoryzowanych klientów</text>
 		</property>
 		<property form="MainForm" ctrl="label22">
 			<text lang="en">Log verbosity level:</text>
@@ -464,6 +521,7 @@
 			<text lang="de">Log-Detailgrad:</text>
 			<text lang="es">Nivel de detalle del log:</text>
 			<text lang="fr">Niveau de détail du log:</text>
+			<text lang="pl">Poziom szczegółowości dziennika:</text>
 		</property>
 		<property form="MainForm" ctrl="label23">
 			<text lang="en">Total requests:</text>
@@ -472,6 +530,7 @@
 			<text lang="de">Anfragen gesamt:</text>
 			<text lang="es">Total de solicitudes:</text>
 			<text lang="fr">Total des requêtes:</text>
+			<text lang="pl">Liczba żądań:</text>
 		</property>
 		<property form="MainForm" ctrl="label25">
 			<text lang="en">Books sent:</text>
@@ -480,6 +539,7 @@
 			<text lang="de">Bücher gesendet:</text>
 			<text lang="es">Libros enviados:</text>
 			<text lang="fr">Livres envoyés:</text>
+			<text lang="pl">Wysłano książek:</text>
 		</property>
 		<property form="MainForm" ctrl="label27">
 			<text lang="en">Images sent:</text>
@@ -488,6 +548,7 @@
 			<text lang="de">Bilder gesendet:</text>
 			<text lang="es">Imágenes enviadas:</text>
 			<text lang="fr">Images envoyées:</text>
+			<text lang="pl">Wysłano obrazów:</text>
 		</property>
 		<property form="MainForm" ctrl="label26">
 			<text lang="en">Unique clients:</text>
@@ -496,6 +557,7 @@
 			<text lang="de">Eindeutige Clients:</text>
 			<text lang="es">Clientes únicos:</text>
 			<text lang="fr">Clients uniques:</text>
+			<text lang="pl">Unikalni klienci:</text>
 		</property>
 		<property form="MainForm" ctrl="label28">
 			<text lang="en">Successful logins:</text>
@@ -504,6 +566,7 @@
 			<text lang="de">Erfolgreiche Anmeldungen:</text>
 			<text lang="es">Inicios de sesión exitosos:</text>
 			<text lang="fr">Connexions réussies:</text>
+			<text lang="pl">Pomyślne logowania:</text>
 		</property>
 		<property form="MainForm" ctrl="label30">
 			<text lang="en">Failed logins:</text>
@@ -512,6 +575,7 @@
 			<text lang="de">Fehlgeschlagene Anmeldungen:</text>
 			<text lang="es">Inicios de sesión fallidos:</text>
 			<text lang="fr">Connexions échouées:</text>
+			<text lang="pl">Nieudane logowania:</text>
 		</property>
 		<property form="MainForm" ctrl="label31">
 			<text lang="en">Banned clients:</text>
@@ -520,6 +584,7 @@
 			<text lang="de">Gesperrte Clients:</text>
 			<text lang="es">Clientes bloqueados:</text>
 			<text lang="fr">Clients bloqués:</text>
+			<text lang="pl">Zbanowani klienci:</text>
 		</property>
 		<property form="MainForm" ctrl="banClients">
 			<text lang="en">Ban clients after</text>
@@ -528,6 +593,7 @@
 			<text lang="de">Clients sperren nach</text>
 			<text lang="es">Bloquear clientes después de</text>
 			<text lang="fr">Bloquer les clients après</text>
+			<text lang="pl">Banuj klientów po</text>
 		</property>
 		<property form="MainForm" ctrl="label24">
 			<text lang="en">failed attempts</text>
@@ -536,6 +602,7 @@
 			<text lang="de">fehlgeschlagenen Versuchen</text>
 			<text lang="es">intentos fallidos</text>
 			<text lang="fr">tentatives échouées</text>
+			<text lang="pl">nieudanych próbach</text>
 		</property>
 		<property form="MainForm" ctrl="label32">
 			<text lang="en">Check for update:</text>
@@ -544,6 +611,7 @@
 			<text lang="de">Nach Updates suchen:</text>
 			<text lang="es">Buscar actualizaciones:</text>
 			<text lang="fr">Vérifier les mises à jour:</text>
+			<text lang="pl">Sprawdź aktualizacje:</text>
 		</property>
 		<property form="MainForm" ctrl="viewLogFile">
 			<text lang="en">View log file</text>
@@ -552,6 +620,7 @@
 			<text lang="de">Log-Datei anzeigen</text>
 			<text lang="es">Ver archivo de log</text>
 			<text lang="fr">Voir le fichier de log</text>
+			<text lang="pl">Zobacz plik dziennika</text>
 		</property>
 		<property form="MainForm" ctrl="label36">
 			<text lang="en">Items per OPDS page:</text>
@@ -560,6 +629,7 @@
 			<text lang="de">Elemente pro OPDS-Seite:</text>
 			<text lang="es">Elementos por página OPDS:</text>
 			<text lang="fr">Éléments par page OPDS:</text>
+			<text lang="pl">Pozycji na stronie OPDS:</text>
 		</property>
 		<property form="MainForm" ctrl="label37">
 			<text lang="en">Items per web page:</text>
@@ -568,6 +638,7 @@
 			<text lang="de">Elemente pro Web-Seite:</text>
 			<text lang="es">Elementos por página web:</text>
 			<text lang="fr">Éléments par page web:</text>
+			<text lang="pl">Pozycji na stronie www:</text>
 		</property>
 		<property form="MainForm" ctrl="label38">
 			<text lang="en">Items sort order:</text>
@@ -576,6 +647,7 @@
 			<text lang="de">Sortierreihenfolge:</text>
 			<text lang="es">Orden de clasificación:</text>
 			<text lang="fr">Ordre de tri:</text>
+			<text lang="pl">Kolejność sortowania:</text>
 		</property>
 		<property form="MainForm" ctrl="label39">
 			<text lang="en">"New books" check time:</text>
@@ -584,6 +656,7 @@
 			<text lang="de">Zeitraum für "neue Bücher":</text>
 			<text lang="es">Período de verificación de "libros nuevos":</text>
 			<text lang="fr">Période de vérification des "nouveaux livres":</text>
+			<text lang="pl">Okres sprawdzania „nowych książek”:</text>
 		</property>
 		<property form="MainForm" ctrl="checkBox2">
 			<text lang="en">Use authors aliases</text>
@@ -592,6 +665,7 @@
 			<text lang="de">Autoren-Aliasse verwenden</text>
 			<text lang="es">Usar alias de autores</text>
 			<text lang="fr">Utiliser les alias d'auteurs</text>
+			<text lang="pl">Używaj aliasów autorów</text>
 		</property>
 
 		<property form="MainForm" ctrl="clearDownloadsButton">
@@ -601,6 +675,7 @@
 			<text lang="de">Download-Verlauf löschen</text>
 			<text lang="es">Borrar historial de descargas</text>
 			<text lang="fr">Effacer l’historique des téléchargements</text>
+			<text lang="pl">Wyczyść historię pobierania</text>
 		</property>
 
 		<property>
@@ -610,6 +685,7 @@
 			<text lang="de">Möchten Sie den Download-Verlauf wirklich löschen?</text>
 			<text lang="es">¿Está seguro de que desea borrar el historial de descargas?</text>
 			<text lang="fr">Êtes-vous sûr de vouloir effacer l’historique des téléchargements?</text>
+			<text lang="pl">Czy na pewno chcesz wyczyścić historię pobierania?</text>
 		</property>
 
 		<property>
@@ -619,6 +695,7 @@
 			<text lang="de">Bestätigung</text>
 			<text lang="es">Confirmación</text>
 			<text lang="fr">Confirmation</text>
+			<text lang="pl">Potwierdzenie</text>
 		</property>
 
 		<property>
@@ -628,6 +705,7 @@
 			<text lang="de">Heruntergeladene Bücher</text>
 			<text lang="es">Libros descargados</text>
 			<text lang="fr">Livres téléchargés</text>
+			<text lang="pl">Pobrane książki</text>
 		</property>
 
 		<property>
@@ -637,6 +715,7 @@
 			<text lang="de">Nach Download-Datum</text>
 			<text lang="es">Por fecha de descarga</text>
 			<text lang="fr">Par date de téléchargement</text>
+			<text lang="pl">Według daty pobrania</text>
 		</property>
 
 		<property>
@@ -646,6 +725,7 @@
 			<text lang="de">Alphabetisch</text>
 			<text lang="es">Alfabéticamente</text>
 			<text lang="fr">Alphabétiquement</text>
+			<text lang="pl">Alfabetycznie</text>
 		</property>
 
 		<property>
@@ -655,6 +735,7 @@
 			<text lang="de">Lesen</text>
 			<text lang="es">Leer</text>
 			<text lang="fr">Lire</text>
+			<text lang="pl">Czytaj</text>
 		</property>
 
 		<property>
@@ -664,6 +745,7 @@
 			<text lang="de">Ihr Download-Verlauf</text>
 			<text lang="es">Su historial de descargas</text>
 			<text lang="fr">Votre historique de téléchargements</text>
+			<text lang="pl">Twoja historia pobierania</text>
 		</property>
 
 		<property>
@@ -673,6 +755,7 @@
 			<text lang="de">Ihr Download-Verlauf ist leer</text>
 			<text lang="es">Su historial de descargas está vacío</text>
 			<text lang="fr">Votre historique de téléchargements est vide</text>
+			<text lang="pl">Twoja historia pobierania jest pusta</text>
 		</property>
 
 		<property>
@@ -682,6 +765,7 @@
 			<text lang="de">Keine heruntergeladenen Bücher</text>
 			<text lang="es">No hay libros descargados</text>
 			<text lang="fr">Aucun livre téléchargé</text>
+			<text lang="pl">Brak pobranych książek</text>
 		</property>
 
 		<property>
@@ -691,6 +775,7 @@
 			<text lang="de">Heruntergeladene Bücher alphabetisch</text>
 			<text lang="es">Libros descargados alfabéticamente</text>
 			<text lang="fr">Livres téléchargés par ordre alphabétique</text>
+			<text lang="pl">Pobrane książki alfabetycznie</text>
 		</property>
 		<property>
 			<text lang="en">Downloaded books by date</text>
@@ -699,6 +784,7 @@
 			<text lang="de">Heruntergeladene Bücher nach Datum</text>
 			<text lang="es">Libros descargados por fecha</text>
 			<text lang="fr">Livres téléchargés par date</text>
+			<text lang="pl">Pobrane książki według daty</text>
 		</property>
 		<property>
 			<text lang="en">{0} downloaded books</text>
@@ -707,6 +793,7 @@
 			<text lang="de">{0} heruntergeladene Bücher</text>
 			<text lang="es">{0} libros descargados</text>
 			<text lang="fr">{0} livres téléchargés</text>
+			<text lang="pl">{0} pobranych książek</text>
 		</property>
 
 		<property>
@@ -716,6 +803,7 @@
 			<text lang="de">{0} Bücher, sortiert nach Download-Datum</text>
 			<text lang="es">{0} libros ordenados por fecha de descarga</text>
 			<text lang="fr">{0} livres triés par date de téléchargement</text>
+			<text lang="pl">{0} książek posortowanych według daty pobrania</text>
 		</property>
 		
 		<property>
@@ -725,6 +813,7 @@
 			<text lang="de">Bücher nach Autoren</text>
 			<text lang="es">Libros por autores</text>
 			<text lang="fr">Livres par auteurs</text>
+			<text lang="pl">Książki według autorów</text>
 		</property>
 
 		<property>
@@ -734,6 +823,7 @@
 			<text lang="de">Autoren gesamt auf {0}: {1}</text>
 			<text lang="es">Total de autores en {0}: {1}</text>
 			<text lang="fr">Total d'auteurs sur {0}: {1}</text>
+			<text lang="pl">Liczba autorów na {0}: {1}</text>
 		</property>
 		<property>
 			<text lang="en">Books: {0}</text>
@@ -742,6 +832,7 @@
 			<text lang="de">Bücher: {0}</text>
 			<text lang="es">Libros: {0}</text>
 			<text lang="fr">Livres: {0}</text>
+			<text lang="pl">Książki: {0}</text>
 		</property>
 		<property>
 			<text lang="en">Books by author </text>
@@ -750,6 +841,7 @@
 			<text lang="de">Bücher von Autor </text>
 			<text lang="es">Libros del autor </text>
 			<text lang="fr">Livres de l'auteur </text>
+			<text lang="pl">Książki autora </text>
 		</property>
 		<property>
 			<text lang="en">By authors</text>
@@ -758,6 +850,7 @@
 			<text lang="de">Nach Autoren</text>
 			<text lang="es">Por autores</text>
 			<text lang="fr">Par auteurs</text>
+			<text lang="pl">Według autorów</text>
 		</property>
 		<property>
 			<text lang="en">{0} books by {1} authors</text>
@@ -766,6 +859,7 @@
 			<text lang="de">{0} Bücher von {1} Autoren</text>
 			<text lang="es">{0} libros de {1} autores</text>
 			<text lang="fr">{0} livres de {1} auteurs</text>
+			<text lang="pl">{0} książek {1} autorów</text>
 		</property>
 		<property>
 			<text lang="en">Authors starting with «{0}»</text>
@@ -774,6 +868,16 @@
 			<text lang="de">Autoren beginnend mit «{0}»</text>
 			<text lang="es">Autores que comienzan con «{0}»</text>
 			<text lang="fr">Auteurs commençant par «{0}»</text>
+			<text lang="pl">Autorzy zaczynający się na «{0}»</text>
+		</property>
+		<property>
+			<text lang="en">Search results for books: «{0}»</text>
+			<text lang="ru">Результаты поиска книг: «{0}»</text>
+			<text lang="uk">Результати пошуку книг: «{0}»</text>
+			<text lang="de">Suchergebnisse für Bücher: «{0}»</text>
+			<text lang="es">Resultados de búsqueda de libros: «{0}»</text>
+			<text lang="fr">Résultats de recherche pour les livres : «{0}»</text>
+			<text lang="pl">Wyniki wyszukiwania książek: «{0}»</text>
 		</property>
 		<property>
 			<text lang="en">Search results for authors: «{0}»</text>
@@ -782,6 +886,16 @@
 			<text lang="de">Suchergebnisse für Autoren: «{0}»</text>
 			<text lang="es">Resultados de búsqueda de autores: «{0}»</text>
 			<text lang="fr">Résultats de recherche pour les auteurs : «{0}»</text>
+			<text lang="pl">Wyniki wyszukiwania autorów: «{0}»</text>
+		</property>
+		<property>
+			<text lang="en">Books starting with «{0}»</text>
+			<text lang="ru">Книги, начинающиеся с «{0}»</text>
+			<text lang="uk">Книги, що починаються з «{0}»</text>
+			<text lang="de">Bücher beginnend mit «{0}»</text>
+			<text lang="es">Libros que comienzan con «{0}»</text>
+			<text lang="fr">Livres commençant par «{0}»</text>
+			<text lang="pl">Książki zaczynające się od «{0}»</text>
 		</property>
 		<property>
 			<text lang="en">By series</text>
@@ -790,6 +904,7 @@
 			<text lang="de">Nach Serien</text>
 			<text lang="es">Por series</text>
 			<text lang="fr">Par séries</text>
+			<text lang="pl">Według cykli</text>
 		</property>
 		<property>
 			<text lang="en">{0} books by {1} series</text>
@@ -798,6 +913,7 @@
 			<text lang="de">{0} Bücher in {1} Serien</text>
 			<text lang="es">{0} libros en {1} series</text>
 			<text lang="fr">{0} livres en {1} séries</text>
+			<text lang="pl">{0} książek w {1} cyklach</text>
 		</property>
 		<property>
 			<text lang="en">By genres</text>
@@ -806,6 +922,7 @@
 			<text lang="de">Nach Genres</text>
 			<text lang="es">Por géneros</text>
 			<text lang="fr">Par genres</text>
+			<text lang="pl">Według gatunków</text>
 		</property>
 		<property>
 			<text lang="en">Books grouped by genres</text>
@@ -814,6 +931,7 @@
 			<text lang="de">Nach Genres gruppierte Bücher</text>
 			<text lang="es">Libros agrupados por géneros</text>
 			<text lang="fr">Livres groupés par genres</text>
+			<text lang="pl">Książki pogrupowane według gatunków</text>
 		</property>
 		<property>
 			<text lang="en">Books by genres</text>
@@ -822,6 +940,7 @@
 			<text lang="de">Bücher nach Genres</text>
 			<text lang="es">Libros por géneros</text>
 			<text lang="fr">Livres par genres</text>
+			<text lang="pl">Książki według gatunków</text>
 		</property>
 		<property>
 			<text lang="en">Books by genre: </text>
@@ -830,6 +949,7 @@
 			<text lang="de">Bücher nach Genre: </text>
 			<text lang="es">Libros por género: </text>
 			<text lang="fr">Livres par genre : </text>
+			<text lang="pl">Książki z gatunku: </text>
 		</property>
 		<property>
 			<text lang="en">Genre: {0}</text>
@@ -838,6 +958,7 @@
 			<text lang="de">Genre: {0}</text>
 			<text lang="es">Género: {0}</text>
 			<text lang="fr">Genre : {0}</text>
+			<text lang="pl">Gatunek: {0}</text>
 		</property>
 		<property>
 			<text lang="en">Book series</text>
@@ -846,6 +967,7 @@
 			<text lang="de">Buchserien</text>
 			<text lang="es">Series de libros</text>
 			<text lang="fr">Séries de livres</text>
+			<text lang="pl">Cykle książek</text>
 		</property>
 		<property>
 			<text lang="en">Total series on {0}: {1}</text>
@@ -854,6 +976,7 @@
 			<text lang="de">Serien gesamt auf {0}: {1}</text>
 			<text lang="es">Total de series en {0}: {1}</text>
 			<text lang="fr">Total de séries sur {0}: {1}</text>
+			<text lang="pl">Liczba cykli na {0}: {1}</text>
 		</property>
 		<property>
 			<text lang="en">{0} books in {1}</text>
@@ -862,6 +985,7 @@
 			<text lang="de">{0} Bücher in {1}</text>
 			<text lang="es">{0} libros en {1}</text>
 			<text lang="fr">{0} livres dans {1}</text>
+			<text lang="pl">{0} książek w {1}</text>
 		</property>
 		<property>
 			<text lang="en">Books in genre «{0}»: {1}</text>
@@ -870,6 +994,7 @@
 			<text lang="de">Bücher im Genre «{0}»: {1}</text>
 			<text lang="es">Libros del género «{0}»: {1}</text>
 			<text lang="fr">Livres du genre «{0}»: {1}</text>
+			<text lang="pl">Książki z gatunku «{0}»: {1}</text>
 		</property>
 		<property>
 			<text lang="en">Hide window</text>
@@ -878,6 +1003,7 @@
 			<text lang="de">Fenster ausblenden</text>
 			<text lang="es">Ocultar ventana</text>
 			<text lang="fr">Masquer la fenêtre</text>
+			<text lang="pl">Ukryj okno</text>
 		</property>
 		<property>
 			<text lang="en">Show window</text>
@@ -886,6 +1012,7 @@
 			<text lang="de">Fenster anzeigen</text>
 			<text lang="es">Mostrar ventana</text>
 			<text lang="fr">Afficher la fenêtre</text>
+			<text lang="pl">Pokaż okno</text>
 		</property>
 		<property>
 			<text lang="en">Minimize window</text>
@@ -894,6 +1021,7 @@
 			<text lang="de">Fenster minimieren</text>
 			<text lang="es">Minimizar ventana</text>
 			<text lang="fr">Réduire la fenêtre</text>
+			<text lang="pl">Minimalizuj okno</text>
 		</property>
 		<property>
 			<text lang="en">Restore window</text>
@@ -902,6 +1030,7 @@
 			<text lang="de">Fenster wiederherstellen</text>
 			<text lang="es">Restaurar ventana</text>
 			<text lang="fr">Restaurer la fenêtre</text>
+			<text lang="pl">Przywróć okno</text>
 		</property>
 		<property>
 			<text lang="en">Can't find UPnP router, forwarding is not available</text>
@@ -910,6 +1039,7 @@
 			<text lang="de">UPnP-Router nicht gefunden, Weiterleitung nicht verfügbar</text>
 			<text lang="es">No se puede encontrar el router UPnP, reenvío no disponible</text>
 			<text lang="fr">Impossible de trouver le routeur UPnP, redirection non disponible</text>
+			<text lang="pl">Nie można znaleźć routera UPnP, przekierowanie portów jest niedostępne</text>
 		</property>
 		<property>
 			<text lang="en">Invalid port value: value must be numeric and in range from 1 to 65535</text>
@@ -918,6 +1048,7 @@
 			<text lang="de">Ungültiger Port-Wert: Wert muss numerisch und im Bereich von 1 bis 65535 sein</text>
 			<text lang="es">Valor de puerto inválido: el valor debe ser numérico y estar entre 1 y 65535</text>
 			<text lang="fr">Valeur de port invalide: la valeur doit être numérique et comprise entre 1 et 65535</text>
+			<text lang="pl">Nieprawidłowa wartość portu: wartość musi być liczbą z zakresu od 1 do 65535</text>
 		</property>
 		<property>
 			<text lang="en">Invalid port value. Default value 8080 will be used</text>
@@ -926,6 +1057,7 @@
 			<text lang="de">Ungültiger Port-Wert. Standardwert 8080 wird verwendet</text>
 			<text lang="es">Valor de puerto inválido. Se usará el valor predeterminado 8080</text>
 			<text lang="fr">Valeur de port invalide. La valeur par défaut 8080 sera utilisée</text>
+			<text lang="pl">Nieprawidłowa wartość portu. Zostanie użyta wartość domyślna 8080</text>
 		</property>
 		<property>
 			<text lang="en">version {0}.{1} {2}</text>
@@ -934,6 +1066,7 @@
 			<text lang="de">Version {0}.{1} {2}</text>
 			<text lang="es">versión {0}.{1} {2}</text>
 			<text lang="fr">version {0}.{1} {2}</text>
+			<text lang="pl">wersja {0}.{1} {2}</text>
 		</property>
 		<property>
 			<text lang="en">Search authors</text>
@@ -942,6 +1075,7 @@
 			<text lang="de">Autoren suchen</text>
 			<text lang="es">Buscar autores</text>
 			<text lang="fr">Rechercher des auteurs</text>
+			<text lang="pl">Szukaj autorów</text>
 		</property>
 		<property>
 			<text lang="en">Search authors by name</text>
@@ -950,6 +1084,7 @@
 			<text lang="de">Autoren nach Namen suchen</text>
 			<text lang="es">Buscar autores por nombre</text>
 			<text lang="fr">Rechercher des auteurs par nom</text>
+			<text lang="pl">Szukaj autorów według nazwiska</text>
 		</property>
 		<property>
 			<text lang="en">Search books</text>
@@ -958,6 +1093,7 @@
 			<text lang="de">Bücher suchen</text>
 			<text lang="es">Buscar libros</text>
 			<text lang="fr">Rechercher des livres</text>
+			<text lang="pl">Szukaj książek</text>
 		</property>
 		<property>
 			<text lang="en">Search books by title</text>
@@ -966,6 +1102,7 @@
 			<text lang="de">Bücher nach Titel suchen</text>
 			<text lang="es">Buscar libros por título</text>
 			<text lang="fr">Rechercher des livres par titre</text>
+			<text lang="pl">Szukaj książek według tytułu</text>
 		</property>
 		<property>
 			<text lang="en">Translation:</text>
@@ -974,6 +1111,7 @@
 			<text lang="de">Übersetzung:</text>
 			<text lang="es">Traducción:</text>
 			<text lang="fr">Traduction:</text>
+			<text lang="pl">Tłumaczenie:</text>
 		</property>
 		<property>
 			<text lang="en">Year of publication:</text>
@@ -982,6 +1120,7 @@
 			<text lang="de">Erscheinungsjahr:</text>
 			<text lang="es">Año de publicación:</text>
 			<text lang="fr">Année de publication:</text>
+			<text lang="pl">Rok publikacji:</text>
 		</property>
 		<property>
 			<text lang="en">Format:</text>
@@ -990,6 +1129,7 @@
 			<text lang="de">Format:</text>
 			<text lang="es">Formato:</text>
 			<text lang="fr">Format:</text>
+			<text lang="pl">Format:</text>
 		</property>
 		<property>
 			<text lang="en">Size:</text>
@@ -998,6 +1138,7 @@
 			<text lang="de">Größe:</text>
 			<text lang="es">Tamaño:</text>
 			<text lang="fr">Taille:</text>
+			<text lang="pl">Rozmiar:</text>
 		</property>
 		<property>
 			<text lang="en">Series:</text>
@@ -1006,6 +1147,7 @@
 			<text lang="de">Serie:</text>
 			<text lang="es">Serie:</text>
 			<text lang="fr">Série:</text>
+			<text lang="pl">Cykl:</text>
 		</property>
 		<property>
 			<text lang="en">All books by author {0}</text>
@@ -1014,6 +1156,7 @@
 			<text lang="de">Alle Bücher von Autor {0}</text>
 			<text lang="es">Todos los libros del autor {0}</text>
 			<text lang="fr">Tous les livres de l'auteur {0}</text>
+			<text lang="pl">Wszystkie książki autora {0}</text>
 		</property>
 		<property>
 			<text lang="en">All books by series {0}</text>
@@ -1022,6 +1165,7 @@
 			<text lang="de">Alle Bücher der Serie {0}</text>
 			<text lang="es">Todos los libros de la serie {0}</text>
 			<text lang="fr">Tous les livres de la série {0}</text>
+			<text lang="pl">Wszystkie książki z cyklu {0}</text>
 		</property>
 		<property>
 			<text lang="en">Probably, port {0} is already in use. Please try different port value.</text>
@@ -1030,6 +1174,7 @@
 			<text lang="de">Port {0} wird wahrscheinlich bereits verwendet. Bitte versuchen Sie einen anderen Port-Wert.</text>
 			<text lang="es">Probablemente el puerto {0} ya esté en uso. Intente con un valor de puerto diferente.</text>
 			<text lang="fr">Le port {0} est probablement déjà utilisé. Veuillez essayer une valeur de port différente.</text>
+			<text lang="pl">Prawdopodobnie port {0} jest już w użyciu. Spróbuj użyć innej wartości portu.</text>
 		</property>
 		<property>
 			<text lang="en">Info, warnings and errors</text>
@@ -1038,6 +1183,7 @@
 			<text lang="de">Info, Warnungen und Fehler</text>
 			<text lang="es">Información, advertencias y errores</text>
 			<text lang="fr">Informations, avertissements et erreurs</text>
+			<text lang="pl">Informacje, ostrzeżenia i błędy</text>
 		</property>
 		<property>
 			<text lang="en">Warnings and errors</text>
@@ -1046,6 +1192,7 @@
 			<text lang="de">Warnungen und Fehler</text>
 			<text lang="es">Advertencias y errores</text>
 			<text lang="fr">Avertissements et erreurs</text>
+			<text lang="pl">Ostrzeżenia i błędy</text>
 		</property>
 		<property>
 			<text lang="en">Errors only</text>
@@ -1054,6 +1201,7 @@
 			<text lang="de">Nur Fehler</text>
 			<text lang="es">Solo errores</text>
 			<text lang="fr">Erreurs seulement</text>
+			<text lang="pl">Tylko błędy</text>
 		</property>
 		<property>
 			<text lang="en">Never</text>
@@ -1062,6 +1210,7 @@
 			<text lang="de">Niemals</text>
 			<text lang="es">Nunca</text>
 			<text lang="fr">Jamais</text>
+			<text lang="pl">Nigdy</text>
 		</property>
 		<property>
 			<text lang="en">Once a week</text>
@@ -1070,6 +1219,7 @@
 			<text lang="de">Einmal pro Woche</text>
 			<text lang="es">Una vez por semana</text>
 			<text lang="fr">Une fois par semaine</text>
+			<text lang="pl">Raz w tygodniu</text>
 		</property>
 		<property>
 			<text lang="en">Once a month</text>
@@ -1078,6 +1228,7 @@
 			<text lang="de">Einmal pro Monat</text>
 			<text lang="es">Una vez al mes</text>
 			<text lang="fr">Une fois par mois</text>
+			<text lang="pl">Raz w miesiącu</text>
 		</property>
 		<property>
 			<text lang="en">TinyOPDS: update found</text>
@@ -1086,6 +1237,7 @@
 			<text lang="de">TinyOPDS: Update gefunden</text>
 			<text lang="es">TinyOPDS: actualización encontrada</text>
 			<text lang="fr">TinyOPDS: mise à jour trouvée</text>
+			<text lang="pl">TinyOPDS: znaleziono aktualizację</text>
 		</property>
 		<property>
 			<text lang="en">Click here to download update v {0}</text>
@@ -1094,6 +1246,7 @@
 			<text lang="de">Hier klicken, um Update v {0} herunterzuladen</text>
 			<text lang="es">Haga clic aquí para descargar la actualización v {0}</text>
 			<text lang="fr">Cliquez ici pour télécharger la mise à jour v {0}</text>
+			<text lang="pl">Kliknij tutaj, aby pobrać aktualizację v {0}</text>
 		</property>
 		<property>
 			<text lang="en">New version {0} is available!\nWould you like to download now?</text>
@@ -1102,6 +1255,7 @@
 			<text lang="de">Neue Version {0} ist verfügbar!\nMöchten Sie sie jetzt herunterladen?</text>
 			<text lang="es">¡La nueva versión {0} está disponible!\n¿Le gustaría descargarla ahora?</text>
 			<text lang="fr">La nouvelle version {0} est disponible!\nSouhaitez-vous la télécharger maintenant?</text>
+			<text lang="pl">Nowa wersja {0} jest dostępna!\nCzy chcesz ją teraz pobrać?</text>
 		</property>
 		<property>
 			<text lang="en">OPDS and web root prefixes can not be the same.</text>
@@ -1110,6 +1264,7 @@
 			<text lang="de">OPDS- und Web-Root-Präfixe können nicht identisch sein.</text>
 			<text lang="es">Los prefijos raíz de OPDS y web no pueden ser iguales.</text>
 			<text lang="fr">Les préfixes racine OPDS et web ne peuvent pas être identiques.</text>
+			<text lang="pl">Prefiksy główne OPDS i www nie mogą być takie same.</text>
 		</property>
 		<property>
 			<text lang="en">Error</text>
@@ -1118,6 +1273,7 @@
 			<text lang="de">Fehler</text>
 			<text lang="es">Error</text>
 			<text lang="fr">Erreur</text>
+			<text lang="pl">Błąd</text>
 		</property>
 		<property>
 			<text lang="en">Warning</text>
@@ -1126,6 +1282,7 @@
 			<text lang="de">Warnung</text>
 			<text lang="es">Advertencia</text>
 			<text lang="fr">Avertissement</text>
+			<text lang="pl">Ostrzeżenie</text>
 		</property>
 		<property>
 			<text lang="en">Latin first</text>
@@ -1134,6 +1291,7 @@
 			<text lang="de">Lateinisch zuerst</text>
 			<text lang="es">Latino primero</text>
 			<text lang="fr">Latin en premier</text>
+			<text lang="pl">Najpierw łacińskie</text>
 		</property>
 		<property>
 			<text lang="en">Cyrillic first</text>
@@ -1142,6 +1300,7 @@
 			<text lang="de">Kyrillisch zuerst</text>
 			<text lang="es">Cirílico primero</text>
 			<text lang="fr">Cyrillique en premier</text>
+			<text lang="pl">Najpierw cyrylica</text>
 		</property>
 		<property>
 			<text lang="en">one week</text>
@@ -1150,6 +1309,7 @@
 			<text lang="de">eine Woche</text>
 			<text lang="es">una semana</text>
 			<text lang="fr">une semaine</text>
+			<text lang="pl">jeden tydzień</text>
 		</property>
 		<property>
 			<text lang="en">two weeks</text>
@@ -1158,6 +1318,7 @@
 			<text lang="de">zwei Wochen</text>
 			<text lang="es">dos semanas</text>
 			<text lang="fr">deux semaines</text>
+			<text lang="pl">dwa tygodnie</text>
 		</property>
 		<property>
 			<text lang="en">three weeks</text>
@@ -1166,6 +1327,7 @@
 			<text lang="de">drei Wochen</text>
 			<text lang="es">tres semanas</text>
 			<text lang="fr">trois semaines</text>
+			<text lang="pl">trzy tygodnie</text>
 		</property>
 		<property>
 			<text lang="en">month</text>
@@ -1174,6 +1336,7 @@
 			<text lang="de">Monat</text>
 			<text lang="es">mes</text>
 			<text lang="fr">mois</text>
+			<text lang="pl">miesiąc</text>
 		</property>
 		<property>
 			<text lang="en">month and half</text>
@@ -1182,6 +1345,7 @@
 			<text lang="de">anderthalb Monate</text>
 			<text lang="es">mes y medio</text>
 			<text lang="fr">un mois et demi</text>
+			<text lang="pl">półtora miesiąca</text>
 		</property>
 		<property>
 			<text lang="en">two month</text>
@@ -1190,6 +1354,7 @@
 			<text lang="de">zwei Monate</text>
 			<text lang="es">dos meses</text>
 			<text lang="fr">deux mois</text>
+			<text lang="pl">dwa miesiące</text>
 		</property>
 		<property>
 			<text lang="en">three month</text>
@@ -1198,6 +1363,7 @@
 			<text lang="de">drei Monate</text>
 			<text lang="es">tres meses</text>
 			<text lang="fr">trois mois</text>
+			<text lang="pl">trzy miesiące</text>
 		</property>
 		<property>
 			<text lang="en">New books (by date added)</text>
@@ -1206,6 +1372,7 @@
 			<text lang="de">Neue Bücher (nach Hinzufügungsdatum)</text>
 			<text lang="es">Libros nuevos (por fecha agregada)</text>
 			<text lang="fr">Nouveaux livres (par date d'ajout)</text>
+			<text lang="pl">Nowe książki (według daty dodania)</text>
 		</property>
 		<property>
 			<text lang="en">{0} new books ordered by date</text>
@@ -1214,6 +1381,7 @@
 			<text lang="de">{0} neue Bücher, nach Datum sortiert</text>
 			<text lang="es">{0} libros nuevos ordenados por fecha</text>
 			<text lang="fr">{0} nouveaux livres triés par date</text>
+			<text lang="pl">{0} nowych książek posortowanych według daty</text>
 		</property>
 		<property>
 			<text lang="en">New books (alphabetically)</text>
@@ -1222,6 +1390,7 @@
 			<text lang="de">Neue Bücher (alphabetisch)</text>
 			<text lang="es">Libros nuevos (alfabéticamente)</text>
 			<text lang="fr">Nouveaux livres (par ordre alphabétique)</text>
+			<text lang="pl">Nowe książki (alfabetycznie)</text>
 		</property>
 		<property>
 			<text lang="en">{0} new books ordered alphabetically</text>
@@ -1230,6 +1399,7 @@
 			<text lang="de">{0} neue Bücher, alphabetisch sortiert</text>
 			<text lang="es">{0} libros nuevos ordenados alfabéticamente</text>
 			<text lang="fr">{0} nouveaux livres triés par ordre alphabétique</text>
+			<text lang="pl">{0} nowych książek posortowanych alfabetycznie</text>
 		</property>
 
 		<!-- Intermediate author catalog translations -->
@@ -1240,6 +1410,7 @@
 			<text lang="de">Bücher von Autor {0}</text>
 			<text lang="es">Libros del autor {0}</text>
 			<text lang="fr">Livres de l'auteur {0}</text>
+			<text lang="pl">Książki autora {0}</text>
 		</property>
 		<property>
 			<text lang="en">Books by series</text>
@@ -1248,6 +1419,7 @@
 			<text lang="de">Bücher nach Serien</text>
 			<text lang="es">Libros por series</text>
 			<text lang="fr">Livres par séries</text>
+			<text lang="pl">Książki według cyklu</text>
 		</property>
 		<property>
 			<text lang="en">{0} series</text>
@@ -1256,6 +1428,7 @@
 			<text lang="de">{0} Serien</text>
 			<text lang="es">{0} series</text>
 			<text lang="fr">{0} séries</text>
+			<text lang="pl">{0} cykli</text>
 		</property>
 		<property>
 			<text lang="en">Books without series</text>
@@ -1264,6 +1437,7 @@
 			<text lang="de">Bücher ohne Serien</text>
 			<text lang="es">Libros sin series</text>
 			<text lang="fr">Livres sans séries</text>
+			<text lang="pl">Książki bez cyklu</text>
 		</property>
 		<property>
 			<text lang="en">Books alphabetically</text>
@@ -1272,6 +1446,7 @@
 			<text lang="de">Bücher alphabetisch</text>
 			<text lang="es">Libros alfabéticamente</text>
 			<text lang="fr">Livres par ordre alphabétique</text>
+			<text lang="pl">Książki alfabetycznie</text>
 		</property>
 		<property>
 			<text lang="en">Books by creation date</text>
@@ -1280,6 +1455,7 @@
 			<text lang="de">Bücher nach Erstellungsdatum</text>
 			<text lang="es">Libros por fecha de creación</text>
 			<text lang="fr">Livres par date de création</text>
+			<text lang="pl">Książki według daty utworzenia</text>
 		</property>
 		<property>
 			<text lang="en">{0} books in {1} series</text>
@@ -1288,6 +1464,7 @@
 			<text lang="de">{0} Bücher in {1} Serien</text>
 			<text lang="es">{0} libros en {1} series</text>
 			<text lang="fr">{0} livres en {1} séries</text>
+			<text lang="pl">{0} książek w {1} seriach</text>
 		</property>
 		<property>
 			<text lang="en">{0} books without series</text>
@@ -1296,6 +1473,7 @@
 			<text lang="de">{0} Bücher ohne Serien</text>
 			<text lang="es">{0} libros sin series</text>
 			<text lang="fr">{0} livres sans séries</text>
+			<text lang="pl">{0} książek bez cyklu</text>
 		</property>
 		<property>
 			<text lang="en">{0} books sorted alphabetically</text>
@@ -1304,6 +1482,7 @@
 			<text lang="de">{0} Bücher alphabetisch sortiert</text>
 			<text lang="es">{0} libros ordenados alfabéticamente</text>
 			<text lang="fr">{0} livres triés par ordre alphabétique</text>
+			<text lang="pl">{0} książek posortowanych alfabetycznie</text>
 		</property>
 		<property>
 			<text lang="en">{0} books sorted by creation date</text>
@@ -1312,6 +1491,7 @@
 			<text lang="de">{0} Bücher nach Erstellungsdatum sortiert</text>
 			<text lang="es">{0} libros ordenados por fecha de creación</text>
 			<text lang="fr">{0} livres triés par date de création</text>
+			<text lang="pl">{0} książek posortowanych według daty utworzenia</text>
 		</property>
 		<property>
 			<text lang="en">{0} books in series</text>
@@ -1320,6 +1500,7 @@
 			<text lang="de">{0} Bücher in Serie</text>
 			<text lang="es">{0} libros en serie</text>
 			<text lang="fr">{0} livres en série</text>
+			<text lang="pl">{0} książek w cyklu</text>
 		</property>
 		<property>
 			<text lang="en">Books by series - {0}</text>
@@ -1328,6 +1509,7 @@
 			<text lang="de">Bücher nach Serien - {0}</text>
 			<text lang="es">Libros por series - {0}</text>
 			<text lang="fr">Livres par séries - {0}</text>
+			<text lang="pl">Książki według cyklu - {0}</text>
 		</property>
 		<property>
 			<text lang="en">Books in series: </text>
@@ -1336,6 +1518,7 @@
 			<text lang="de">Bücher aus der Reihe: </text>
 			<text lang="es">Libros de la serie: </text>
 			<text lang="fr">Livres de la série : </text>
+			<text lang="pl">Książki w cyklu: </text>
 		</property>
 		<property>
 			<text lang="en">date</text>
@@ -1344,6 +1527,7 @@
 			<text lang="de">Datum</text>
 			<text lang="es">fecha</text>
 			<text lang="fr">date</text>
+			<text lang="pl">daty</text>
 		</property>
 		<property>
 			<text lang="en">titles</text>
@@ -1352,6 +1536,7 @@
 			<text lang="de">Titeln</text>
 			<text lang="es">títulos</text>
 			<text lang="fr">titres</text>
+			<text lang="pl">tytułów</text>
 		</property>
 		<property>
 			<text lang="en">New books sorted by {0}</text>
@@ -1360,6 +1545,7 @@
 			<text lang="de">Neue Bücher sortiert nach {0}</text>
 			<text lang="es">Libros nuevos ordenados por {0}</text>
 			<text lang="fr">Nouveaux livres triés par {0}</text>
+			<text lang="pl">Nowe książki posortowane według {0}</text>
 		</property>
 		<property>
 			<text lang="en">Search results</text>
@@ -1368,6 +1554,7 @@
 			<text lang="de">Suchergebnisse</text>
 			<text lang="es">Resultados de búsqueda</text>
 			<text lang="fr">Résultats de recherche</text>
+			<text lang="pl">Wyniki wyszukiwania</text>
 		</property>
 		<property>
 			<text lang="en">Download</text>
@@ -1376,6 +1563,7 @@
 			<text lang="de">Herunterladen</text>
 			<text lang="es">Descargar</text>
 			<text lang="fr">Télécharger</text>
+			<text lang="pl">Pobierz</text>
 		</property>
 		<property>
 			<text lang="en">Download EPUB</text>
@@ -1384,6 +1572,7 @@
 			<text lang="de">EPUB herunterladen</text>
 			<text lang="es">Descargar EPUB</text>
 			<text lang="fr">Télécharger EPUB</text>
+			<text lang="pl">Pobierz EPUB</text>
 		</property>
 		<property>
 			<text lang="en">Search authors or books...</text>
@@ -1392,6 +1581,7 @@
 			<text lang="de">Autoren oder Bücher suchen...</text>
 			<text lang="es">Buscar autores o libros...</text>
 			<text lang="fr">Rechercher des auteurs ou des livres...</text>
+			<text lang="pl">Szukaj autorów lub książek...</text>
 		</property>
 		<property>
 			<text lang="en">Search</text>
@@ -1400,6 +1590,7 @@
 			<text lang="de">Suchen</text>
 			<text lang="es">Buscar</text>
 			<text lang="fr">Rechercher</text>
+			<text lang="pl">Szukaj</text>
 		</property>
 
 		<property>
@@ -1409,6 +1600,7 @@
 			<text lang="de">Inhaltsverzeichnis</text>
 			<text lang="es">Tabla de contenidos</text>
 			<text lang="fr">Table des matières</text>
+			<text lang="pl">Spis treści</text>
 		</property>
 		<property>
 			<text lang="en">Decrease Font</text>
@@ -1417,6 +1609,7 @@
 			<text lang="de">Schrift verkleinern</text>
 			<text lang="es">Reducir fuente</text>
 			<text lang="fr">Réduire la police</text>
+			<text lang="pl">Zmniejsz font</text>
 		</property>
 		<property>
 			<text lang="en">Increase Font</text>
@@ -1425,6 +1618,7 @@
 			<text lang="de">Schrift vergrößern</text>
 			<text lang="es">Aumentar fuente</text>
 			<text lang="fr">Augmenter la police</text>
+			<text lang="pl">Powiększ font</text>
 		</property>
 		<property>
 			<text lang="en">Change Font</text>
@@ -1433,6 +1627,7 @@
 			<text lang="de">Schriftart ändern</text>
 			<text lang="es">Cambiar fuente</text>
 			<text lang="fr">Changer la police</text>
+			<text lang="pl">Zmień font</text>
 		</property>
 		<property>
 			<text lang="en">Change Theme</text>
@@ -1441,6 +1636,7 @@
 			<text lang="de">Thema ändern</text>
 			<text lang="es">Cambiar tema</text>
 			<text lang="fr">Changer le thème</text>
+			<text lang="pl">Zmień motyw</text>
 		</property>
 		<property>
 			<text lang="en">Decrease Margins</text>
@@ -1449,6 +1645,7 @@
 			<text lang="de">Ränder verkleinern</text>
 			<text lang="es">Reducir márgenes</text>
 			<text lang="fr">Réduire les marges</text>
+			<text lang="pl">Zmniejsz marginesy</text>
 		</property>
 		<property>
 			<text lang="en">Increase Margins</text>
@@ -1457,6 +1654,7 @@
 			<text lang="de">Ränder vergrößern</text>
 			<text lang="es">Aumentar márgenes</text>
 			<text lang="fr">Augmenter les marges</text>
+			<text lang="pl">Zwiększ marginesy</text>
 		</property>
 		<property>
 			<text lang="en">Standard Width</text>
@@ -1465,6 +1663,7 @@
 			<text lang="de">Standardbreite</text>
 			<text lang="es">Ancho estándar</text>
 			<text lang="fr">Largeur standard</text>
+			<text lang="pl">Standardowa szerokość</text>
 		</property>
 		<property>
 			<text lang="en">Full Width</text>
@@ -1473,6 +1672,7 @@
 			<text lang="de">Volle Breite</text>
 			<text lang="es">Ancho completo</text>
 			<text lang="fr">Pleine largeur</text>
+			<text lang="pl">Pełna szerokość</text>
 		</property>
 		<property>
 			<text lang="en">Fullscreen</text>
@@ -1481,6 +1681,7 @@
 			<text lang="de">Vollbild</text>
 			<text lang="es">Pantalla completa</text>
 			<text lang="fr">Plein écran</text>
+			<text lang="pl">Pełny ekran</text>
 		</property>
 		<property>
 			<text lang="en">Loading...</text>
@@ -1489,6 +1690,7 @@
 			<text lang="de">Laden...</text>
 			<text lang="es">Cargando...</text>
 			<text lang="fr">Chargement...</text>
+			<text lang="pl">Wczytywanie...</text>
 		</property>
 		<property>
 			<text lang="en">Error loading file</text>
@@ -1497,6 +1699,7 @@
 			<text lang="de">Fehler beim Laden der Datei</text>
 			<text lang="es">Error al cargar el archivo</text>
 			<text lang="fr">Erreur de chargement du fichier</text>
+			<text lang="pl">Błąd wczytywania pliku</text>
 		</property>
 		<property>
 			<text lang="en">Untitled</text>
@@ -1505,6 +1708,7 @@
 			<text lang="de">Ohne Titel</text>
 			<text lang="es">Sin título</text>
 			<text lang="fr">Sans titre</text>
+			<text lang="pl">Bez tytułu</text>
 		</property>
 		<property>
 			<text lang="en">Unknown Author</text>
@@ -1513,6 +1717,7 @@
 			<text lang="de">Unbekannter Autor</text>
 			<text lang="es">Autor desconocido</text>
 			<text lang="fr">Auteur inconnu</text>
+			<text lang="pl">Nieznany autor</text>
 		</property>
 		<property>
 			<text lang="en">No chapters available</text>
@@ -1521,7 +1726,8 @@
 			<text lang="de">Keine Kapitel verfügbar</text>
 			<text lang="es">No hay capítulos disponibles</text>
 			<text lang="fr">Aucun chapitre disponible</text>
-		</property>		
+			<text lang="pl">Brak rozdziałów</text>
+		</property>
 		
 	</properties>
 </root>

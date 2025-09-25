@@ -188,7 +188,8 @@ namespace TinyOPDS.OPDS
                             new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                             new XElement("id", "tag:authors:" + group.Key),
                             new XElement("title", group.Key),
-                            new XElement("content", string.Format(Localizer.Text("Total authors on {0}: {1}"), group.Key, group.Value),
+                            new XElement("content", StringUtils.ApplyPluralForm(group.Value, Localizer.Language,
+                                                    string.Format(Localizer.Text("Total authors on {0}: {1}"), group.Key, group.Value)),
                                          new XAttribute("type", "text")),
                             new XElement("link", new XAttribute("href", "/authorsindex/" + Uri.EscapeDataString(group.Key)),
                                          new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
@@ -229,10 +230,12 @@ namespace TinyOPDS.OPDS
                     new XElement("entry",
                         new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                         new XElement("id", "tag:authors:" + author),
-                        new XElement("title", author), // Already canonical name
-                        new XElement("content", string.Format(Localizer.Text("Books: {0}"), booksCount), new XAttribute("type", "text")),
+                        new XElement("title", author),
+                        new XElement("content", StringUtils.ApplyPluralForm(booksCount, Localizer.Language, string.Format(Localizer.Text("Books: {0}"), booksCount)),
+                            new XAttribute("type", "text")),
                         // Smart routing based on OPDS settings and author's book structure
-                        new XElement("link", new XAttribute("href", authorRoute), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
+                        new XElement("link", new XAttribute("href", authorRoute), 
+                            new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                     )
                 );
             }

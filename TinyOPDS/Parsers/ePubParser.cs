@@ -6,6 +6,7 @@
  * SPDX-License-Identifier: MIT
  *
  * Native EPUB parser without external dependencies
+ * FIXED: Always validates dates before returning Book object
  *
  */
 
@@ -47,28 +48,35 @@ namespace TinyOPDS.Parsers
                     if (string.IsNullOrEmpty(opfPath))
                     {
                         Log.WriteLine(LogLevel.Error, "Could not find package.opf in {0}", fileName);
-                        return book;
+                        // Don't return here - continue to date validation!
                     }
-
-                    var opfEntry = archive.GetEntry(opfPath);
-                    if (opfEntry == null)
+                    else
                     {
-                        Log.WriteLine(LogLevel.Error, "Could not read package.opf from {0}", fileName);
-                        return book;
-                    }
+                        var opfEntry = archive.GetEntry(opfPath);
+                        if (opfEntry == null)
+                        {
+                            Log.WriteLine(LogLevel.Error, "Could not read package.opf from {0}", fileName);
+                            // Don't return here - continue to date validation!
+                        }
+                        else
+                        {
+                            XDocument opfDoc;
+                            using (var opfStream = opfEntry.Open())
+                            {
+                                opfDoc = XDocument.Load(opfStream);
+                            }
 
-                    XDocument opfDoc;
-                    using (var opfStream = opfEntry.Open())
-                    {
-                        opfDoc = XDocument.Load(opfStream);
+                            // Parse metadata
+                            ParseMetadata(opfDoc, book);
+                        }
                     }
-
-                    // Parse metadata
-                    ParseMetadata(opfDoc, book);
 
                     // Always generate unique ID to avoid conflicts
-                    book.ID = Guid.NewGuid().ToString();
-                    book.DocumentIDTrusted = false;
+                    if (string.IsNullOrEmpty(book.ID))
+                    {
+                        book.ID = Guid.NewGuid().ToString();
+                        book.DocumentIDTrusted = false;
+                    }
                 }
             }
             catch (Exception e)
@@ -76,7 +84,45 @@ namespace TinyOPDS.Parsers
                 Log.WriteLine(LogLevel.Error, "Error parsing EPUB {0}: {1}", fileName, e.Message);
             }
 
+            // CRITICAL FIX: Always validate dates before returning, regardless of parsing success
+            EnsureValidDates(book, fileName);
+
             return book;
+        }
+
+        /// <summary>
+        /// CRITICAL: Ensures book has valid dates - NEVER allows DateTime.MinValue
+        /// This method MUST be called before returning any Book object
+        /// </summary>
+        private void EnsureValidDates(Book book, string fileName)
+        {
+            DateTime fileDate = DateParser.GetFileDate(fileName);
+
+            // Validate BookDate
+            if (book.BookDate == DateTime.MinValue ||
+                book.BookDate == default ||
+                book.BookDate.Year <= 1 ||
+                book.BookDate.Year < 1800 ||
+                book.BookDate.Year > DateTime.Now.Year + 10)
+            {
+                Log.WriteLine(LogLevel.Warning,
+                    "Invalid or missing BookDate {0} for EPUB {1}, using file date {2}",
+                    book.BookDate, fileName, fileDate);
+                book.BookDate = fileDate;
+            }
+
+            // Set DocumentDate to file date (EPUBs don't have separate document date)
+            // Always use file date for DocumentDate in EPUB
+            book.DocumentDate = fileDate;
+
+            // Final safety check - should never happen after above validations
+            if (book.BookDate.Year <= 1 || book.DocumentDate.Year <= 1)
+            {
+                Log.WriteLine(LogLevel.Error,
+                    "CRITICAL: Date validation failed for {0}, forcing current date", fileName);
+                book.BookDate = DateTime.Now;
+                book.DocumentDate = DateTime.Now;
+            }
         }
 
         /// <summary>
@@ -135,7 +181,7 @@ namespace TinyOPDS.Parsers
             if (!string.IsNullOrEmpty(language))
                 book.Language = language;
 
-            // Date
+            // Date - parse but don't rely on it being valid
             ParseDate(metadata, book);
 
             // Description/Annotation
@@ -156,50 +202,39 @@ namespace TinyOPDS.Parsers
         /// </summary>
         private void ParseDate(XElement metadata, Book book)
         {
+            // Get file date as fallback
+            DateTime fileDate = DateParser.GetFileDate(book.FileName);
+
             var dateElement = metadata.Element(dcNs + "date");
             if (dateElement == null)
             {
-                book.BookDate = DateTime.Now;
+                // No date element - will be handled by EnsureValidDates()
+                Log.WriteLine(LogLevel.Info, "No date element in EPUB {0}", book.FileName);
                 return;
             }
 
             string dateText = dateElement.Value;
             if (string.IsNullOrEmpty(dateText))
             {
-                book.BookDate = DateTime.Now;
+                // Empty date element - will be handled by EnsureValidDates()
+                Log.WriteLine(LogLevel.Info, "Empty date element in EPUB {0}", book.FileName);
                 return;
             }
 
-            try
-            {
-                // Try full date parse
-                book.BookDate = DateTime.Parse(dateText);
+            // Parse with fallback
+            DateTime parsedDate = DateParser.ParseDate(dateText, fileDate);
 
-                // Validate date range
-                if (book.BookDate < new DateTime(1, 1, 1) ||
-                    book.BookDate > new DateTime(9999, 12, 31))
-                {
-                    book.BookDate = DateTime.Now;
-                }
-            }
-            catch
+            // Additional validation for EPUB dates
+            if (parsedDate.Year < 1800 || parsedDate.Year > DateTime.Now.Year + 10)
             {
-                // Try year-only parse
-                if (int.TryParse(dateText.Substring(0, Math.Min(4, dateText.Length)), out int year))
-                {
-                    if (year >= 1 && year <= 9999)
-                    {
-                        book.BookDate = new DateTime(year, 1, 1);
-                    }
-                    else
-                    {
-                        book.BookDate = DateTime.Now;
-                    }
-                }
-                else
-                {
-                    book.BookDate = DateTime.Now;
-                }
+                Log.WriteLine(LogLevel.Warning,
+                    "Suspicious date {0} in EPUB {1}, will use file date in validation",
+                    parsedDate, book.FileName);
+                // Don't set the date - let EnsureValidDates() handle it
+            }
+            else
+            {
+                book.BookDate = parsedDate;
             }
         }
 

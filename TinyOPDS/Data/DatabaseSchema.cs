@@ -6,10 +6,6 @@
  * SPDX-License-Identifier: MIT
  *
  * Database schema and SQL queries for SQLite with FTS5 support
- * OPTIMIZED: Added performance-critical indexes for large databases
- * ENHANCED: Added library statistics persistence table
- * ENHANCED: Normalized sequences into separate table for better performance
- * ENHANCED: Added Downloads table for tracking downloaded/read books
  *
  */
 
@@ -137,7 +133,6 @@ namespace TinyOPDS.Data
             USING fts5(
                 BookID UNINDEXED,
                 Title,
-                Annotation,
                 tokenize='unicode61 remove_diacritics 1'
             )";
 
@@ -274,17 +269,17 @@ namespace TinyOPDS.Data
 
         #region Triggers for FTS Synchronization
 
-        // Books triggers
+        // Books triggers - FIXED: Removed Annotation from FTS operations
         public const string CreateBookInsertTrigger = @"
             CREATE TRIGGER IF NOT EXISTS books_ai AFTER INSERT ON Books BEGIN
-                INSERT INTO BooksFTS(BookID, Title, Annotation) 
-                VALUES (new.ID, new.Title, new.Annotation);
+                INSERT INTO BooksFTS(BookID, Title) 
+                VALUES (new.ID, new.Title);
             END";
 
         public const string CreateBookUpdateTrigger = @"
             CREATE TRIGGER IF NOT EXISTS books_au AFTER UPDATE ON Books BEGIN
                 UPDATE BooksFTS 
-                SET Title = new.Title, Annotation = new.Annotation 
+                SET Title = new.Title
                 WHERE BookID = new.ID;
             END";
 
@@ -497,6 +492,7 @@ namespace TinyOPDS.Data
             WHERE bg.GenreTag = @GenreTag AND b.ReplacedByID IS NULL";
 
         // FTS5 search for books with wildcard support
+        // FIXED: Now searches only in Title field
         public const string SelectBooksByTitleFTS = @"
             SELECT DISTINCT b.ID, b.Version, b.FileName, b.Title, b.Language, b.BookDate, b.DocumentDate,
                    b.Annotation, b.DocumentSize, b.AddedDate

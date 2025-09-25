@@ -154,7 +154,10 @@ namespace TinyOPDS.OPDS
                                 new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                                 new XElement("id", "tag:root:genre:" + genreName),
                                 new XElement("title", genreName),
-                                new XElement("content", string.Format(Localizer.Text("Books in genre «{0}»: {1}"), genreName, booksCount), new XAttribute("type", "text")),
+                                new XElement("content",
+                                    StringUtils.ApplyPluralForm(booksCount, Localizer.Language,
+                                        string.Format(Localizer.Text("Books in genre «{0}»: {1}"), genreName, booksCount)),
+                                    new XAttribute("type", "text")),
                                 new XElement("link",
                                     new XAttribute("href", "/" + (topLevel ? "genres/" : "genre/") + Uri.EscapeDataString(genreId)),
                                     new XAttribute("type", "application/atom+xml;profile=opds-catalog"))

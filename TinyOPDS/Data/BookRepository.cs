@@ -6,8 +6,6 @@
  * SPDX-License-Identifier: MIT
  *
  * Repository for Book operations with SQLite database with FTS5 support
- * MODIFIED: Support for normalized sequences in separate tables
- * MODIFIED: Added language filtering support
  *
  */
 
@@ -24,6 +22,10 @@ namespace TinyOPDS.Data
         private readonly DatabaseManager db;
         private readonly HashSet<string> validGenreTags;
         private readonly DuplicateDetector duplicateDetector;
+
+        // Thread safety for batch operations
+        private static readonly object batchLock = new object();
+        private static bool pragmasOptimized = false;
 
         public BookRepository(DatabaseManager database)
         {
@@ -43,20 +45,8 @@ namespace TinyOPDS.Data
         /// </summary>
         private string GetLanguageFilter()
         {
-            if (!Properties.Settings.Default.FilterBooksByInterfaceLanguage)
-                return null;
-
-            // Map interface language to book language codes
-            switch (Properties.Settings.Default.Language)
-            {
-                case "ru": return "ru";
-                case "uk": return "uk";
-                case "en": return "en";
-                case "de": return "de";
-                case "es": return "es";
-                case "fr": return "fr";
-                default: return null;
-            }
+            if (!Properties.Settings.Default.FilterBooksByInterfaceLanguage) return null;
+            return Properties.Settings.Default.Language;
         }
 
         /// <summary>
@@ -110,8 +100,10 @@ namespace TinyOPDS.Data
             if (string.IsNullOrEmpty(languageFilter))
                 return existingParams;
 
-            var paramsList = new List<IDbDataParameter>(existingParams);
-            paramsList.Add(DatabaseManager.CreateParameter("@Language", languageFilter));
+            var paramsList = new List<IDbDataParameter>(existingParams)
+            {
+                DatabaseManager.CreateParameter("@Language", languageFilter)
+            };
             return paramsList.ToArray();
         }
 
@@ -190,8 +182,15 @@ namespace TinyOPDS.Data
 
         #region Book CRUD Operations
 
+        /// <summary>
+        /// Add a single book to the database with duplicate detection and validation
+        /// Thread-safe version using IDbTransaction
+        /// </summary>
+        /// <param name="book">Book object to add to database</param>
+        /// <returns>true if book was successfully added, false if it was a duplicate or error occurred</returns>
         public bool AddBook(Book book)
         {
+            IDbTransaction transaction = null;
             try
             {
                 // Generate duplicate keys
@@ -234,7 +233,8 @@ namespace TinyOPDS.Data
                     fileStream?.Dispose();
                 }
 
-                db.BeginTransaction();
+                // Use new transaction method
+                transaction = db.BeginTransactionWithObject();
 
                 // Insert book WITHOUT Sequence/NumberInSequence fields
                 var bookParams = new[]
@@ -244,29 +244,29 @@ namespace TinyOPDS.Data
                     DatabaseManager.CreateParameter("@FileName", book.FileName),
                     DatabaseManager.CreateParameter("@Title", book.Title),
                     DatabaseManager.CreateParameter("@Language", book.Language),
-                    DatabaseManager.CreateParameter("@BookDate", book.BookDate),
-                    DatabaseManager.CreateParameter("@DocumentDate", book.DocumentDate),
+                    DatabaseManager.CreateParameter("@BookDate", book.BookDate.ToBinary()),
+                    DatabaseManager.CreateParameter("@DocumentDate", book.DocumentDate.ToBinary()),
                     DatabaseManager.CreateParameter("@Annotation", book.Annotation),
                     DatabaseManager.CreateParameter("@DocumentSize", (long)book.DocumentSize),
-                    DatabaseManager.CreateParameter("@AddedDate", book.AddedDate),
+                    DatabaseManager.CreateParameter("@AddedDate", book.AddedDate.ToBinary()),
                     DatabaseManager.CreateParameter("@DocumentIDTrusted", book.DocumentIDTrusted),
                     DatabaseManager.CreateParameter("@DuplicateKey", book.DuplicateKey),
                     DatabaseManager.CreateParameter("@ReplacedByID", book.ReplacedByID),
                     DatabaseManager.CreateParameter("@ContentHash", book.ContentHash)
                 };
 
-                db.ExecuteNonQuery(DatabaseSchema.InsertBook, bookParams);
+                db.ExecuteNonQueryInTransaction(DatabaseSchema.InsertBook, transaction, bookParams);
 
                 // Clear existing relationships
-                db.ExecuteNonQuery("DELETE FROM BookAuthors WHERE BookID = @BookID",
+                db.ExecuteNonQueryInTransaction("DELETE FROM BookAuthors WHERE BookID = @BookID", transaction,
                     DatabaseManager.CreateParameter("@BookID", book.ID));
-                db.ExecuteNonQuery("DELETE FROM BookGenres WHERE BookID = @BookID",
+                db.ExecuteNonQueryInTransaction("DELETE FROM BookGenres WHERE BookID = @BookID", transaction,
                     DatabaseManager.CreateParameter("@BookID", book.ID));
-                db.ExecuteNonQuery("DELETE FROM BookTranslators WHERE BookID = @BookID",
+                db.ExecuteNonQueryInTransaction("DELETE FROM BookTranslators WHERE BookID = @BookID", transaction,
                     DatabaseManager.CreateParameter("@BookID", book.ID));
 
                 // Clear existing sequences
-                db.ExecuteNonQuery("DELETE FROM BookSequences WHERE BookID = @BookID",
+                db.ExecuteNonQueryInTransaction("DELETE FROM BookSequences WHERE BookID = @BookID", transaction,
                     DatabaseManager.CreateParameter("@BookID", book.ID));
 
                 // Add authors with enhanced fields
@@ -278,7 +278,7 @@ namespace TinyOPDS.Data
                     string nameTranslit = GenerateTransliteration(authorName);
 
                     // Insert author if not exists
-                    db.ExecuteNonQuery(DatabaseSchema.InsertAuthor,
+                    db.ExecuteNonQueryInTransaction(DatabaseSchema.InsertAuthor, transaction,
                         DatabaseManager.CreateParameter("@Name", authorName),
                         DatabaseManager.CreateParameter("@FirstName", firstName),
                         DatabaseManager.CreateParameter("@MiddleName", middleName),
@@ -288,7 +288,7 @@ namespace TinyOPDS.Data
                         DatabaseManager.CreateParameter("@NameTranslit", nameTranslit));
 
                     // Link book to author
-                    db.ExecuteNonQuery(DatabaseSchema.InsertBookAuthor,
+                    db.ExecuteNonQueryInTransaction(DatabaseSchema.InsertBookAuthor, transaction,
                         DatabaseManager.CreateParameter("@BookID", book.ID),
                         DatabaseManager.CreateParameter("@AuthorName", authorName));
                 }
@@ -299,7 +299,7 @@ namespace TinyOPDS.Data
                 {
                     if (IsValidGenreTag(genreTag))
                     {
-                        db.ExecuteNonQuery(DatabaseSchema.InsertBookGenre,
+                        db.ExecuteNonQueryInTransaction(DatabaseSchema.InsertBookGenre, transaction,
                             DatabaseManager.CreateParameter("@BookID", book.ID),
                             DatabaseManager.CreateParameter("@GenreTag", genreTag));
                         validGenreCount++;
@@ -321,10 +321,10 @@ namespace TinyOPDS.Data
                 // Add translators
                 foreach (var translatorName in book.Translators)
                 {
-                    db.ExecuteNonQuery(DatabaseSchema.InsertTranslator,
+                    db.ExecuteNonQueryInTransaction(DatabaseSchema.InsertTranslator, transaction,
                         DatabaseManager.CreateParameter("@Name", translatorName));
 
-                    db.ExecuteNonQuery(DatabaseSchema.InsertBookTranslator,
+                    db.ExecuteNonQueryInTransaction(DatabaseSchema.InsertBookTranslator, transaction,
                         DatabaseManager.CreateParameter("@BookID", book.ID),
                         DatabaseManager.CreateParameter("@TranslatorName", translatorName));
                 }
@@ -338,12 +338,12 @@ namespace TinyOPDS.Data
                         {
                             // Insert sequence if not exists
                             string searchName = NormalizeForSearch(sequenceInfo.Name);
-                            db.ExecuteNonQuery(DatabaseSchema.InsertSequence,
+                            db.ExecuteNonQueryInTransaction(DatabaseSchema.InsertSequence, transaction,
                                 DatabaseManager.CreateParameter("@Name", sequenceInfo.Name),
                                 DatabaseManager.CreateParameter("@SearchName", searchName));
 
                             // Link book to sequence
-                            db.ExecuteNonQuery(DatabaseSchema.InsertBookSequence,
+                            db.ExecuteNonQueryInTransaction(DatabaseSchema.InsertBookSequence, transaction,
                                 DatabaseManager.CreateParameter("@BookID", book.ID),
                                 DatabaseManager.CreateParameter("@SequenceName", sequenceInfo.Name),
                                 DatabaseManager.CreateParameter("@NumberInSequence", (long)sequenceInfo.NumberInSequence));
@@ -351,23 +351,24 @@ namespace TinyOPDS.Data
                     }
                 }
 
-                db.CommitTransaction();
+                transaction.Commit();
                 return true;
             }
             catch (Exception ex)
             {
-                db.RollbackTransaction();
+                transaction?.Rollback();
                 Log.WriteLine(LogLevel.Error, "Error adding book {0}: {1}", book.FileName, ex.Message);
                 return false;
+            }
+            finally
+            {
+                transaction?.Dispose();
             }
         }
 
         /// <summary>
         /// Add multiple books in batch with FTS5 synchronization and duplicate detection
-        /// </summary>
-        /// <summary>
-        /// Add multiple books in batch with FTS5 synchronization and duplicate detection
-        /// FIXED: Now checks for duplicates within the batch itself, not just in DB
+        /// Thread-safe version with proper transaction management
         /// </summary>
         public BatchResult AddBooksBatch(List<Book> books)
         {
@@ -382,360 +383,382 @@ namespace TinyOPDS.Data
 
             result.TotalProcessed = books.Count;
 
-            try
+            // Ensure thread safety for batch operations
+            lock (batchLock)
             {
-                // Optimize SQLite settings for bulk insert
-                db.ExecuteNonQuery("PRAGMA synchronous = OFF");
-                db.ExecuteNonQuery("PRAGMA journal_mode = MEMORY");
-                db.ExecuteNonQuery("PRAGMA temp_store = MEMORY");
-                db.ExecuteNonQuery("PRAGMA cache_size = 10000");
-
-                // CRITICAL FIX: Create in-memory indices for batch duplicate detection
-                // These will track books already processed in this batch
-                var batchByDocumentID = new Dictionary<string, Book>();
-                var batchByContentHash = new Dictionary<string, Book>();
-                var batchByDuplicateKey = new Dictionary<string, List<Book>>();
-
-                // Track which books to actually add (some may be skipped due to in-batch duplicates)
-                var booksToAdd = new List<Book>();
-                var inBatchReplacements = new Dictionary<string, string>(); // old_id -> new_id mappings
-
-                // FIRST PASS: Analyze batch for internal duplicates
-                Log.WriteLine(LogLevel.Info, "Analyzing batch of {0} books for duplicates...", books.Count);
-
-                foreach (var book in books)
+                try
                 {
-                    DuplicateCheckResult duplicateResult = null;
-                    bool skipBook = false;
-                    Book replacedBook = null;
-
-                    try
+                    // Optimize SQLite settings ONCE, outside of transaction
+                    if (!pragmasOptimized)
                     {
-                        // Generate duplicate key
-                        if (string.IsNullOrEmpty(book.DuplicateKey))
-                            book.DuplicateKey = book.GenerateDuplicateKey();
-
-                        // Generate content hash if file exists
-                        Stream fileStream = null;
                         try
                         {
-                            if (File.Exists(book.FilePath))
-                            {
-                                fileStream = new FileStream(book.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                                if (string.IsNullOrEmpty(book.ContentHash))
-                                    book.ContentHash = book.GenerateContentHash(fileStream);
-                            }
+                            db.ExecuteNonQuery("PRAGMA synchronous = OFF");
+                            db.ExecuteNonQuery("PRAGMA journal_mode = MEMORY");
+                            db.ExecuteNonQuery("PRAGMA temp_store = MEMORY");
+                            db.ExecuteNonQuery("PRAGMA cache_size = 10000");
+                            pragmasOptimized = true;
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.WriteLine(LogLevel.Warning, "Could not optimize SQLite settings: {0}", ex.Message);
+                        }
+                    }
 
-                            // STEP 1: Check for duplicates within the current batch
-                            bool foundInBatch = false;
+                    // Create in-memory indices for batch duplicate detection
+                    var batchByDocumentID = new Dictionary<string, Book>();
+                    var batchByContentHash = new Dictionary<string, Book>();
+                    var batchByDuplicateKey = new Dictionary<string, List<Book>>();
 
-                            // Check by trusted Document ID
-                            if (book.DocumentIDTrusted && !string.IsNullOrEmpty(book.ID))
+                    // Track which books to actually add (some may be skipped due to in-batch duplicates)
+                    var booksToAdd = new List<Book>();
+                    var inBatchReplacements = new Dictionary<string, string>(); // old_id -> new_id mappings
+
+                    // FIRST PASS: Analyze batch for internal duplicates
+                    Log.WriteLine(LogLevel.Info, "Analyzing batch of {0} books for duplicates...", books.Count);
+
+                    foreach (var book in books)
+                    {
+                        DuplicateCheckResult duplicateResult = null;
+                        bool skipBook = false;
+                        Book replacedBook = null;
+
+                        try
+                        {
+                            // Generate duplicate key
+                            if (string.IsNullOrEmpty(book.DuplicateKey))
+                                book.DuplicateKey = book.GenerateDuplicateKey();
+
+                            // Generate content hash if file exists
+                            Stream fileStream = null;
+                            try
                             {
-                                if (batchByDocumentID.ContainsKey(book.ID))
+                                if (File.Exists(book.FilePath))
                                 {
-                                    var existingInBatch = batchByDocumentID[book.ID];
-                                    int comparisonScore = book.CompareTo(existingInBatch);
+                                    fileStream = new FileStream(book.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                                    if (string.IsNullOrEmpty(book.ContentHash))
+                                        book.ContentHash = book.GenerateContentHash(fileStream);
+                                }
 
-                                    if (comparisonScore > 0)
+                                // STEP 1: Check for duplicates within the current batch
+                                bool foundInBatch = false;
+
+                                // Check by trusted Document ID
+                                if (book.DocumentIDTrusted && !string.IsNullOrEmpty(book.ID))
+                                {
+                                    if (batchByDocumentID.ContainsKey(book.ID))
                                     {
-                                        // New book is better - replace the old one
-                                        Log.WriteLine(LogLevel.Info,
-                                            "In-batch replacement: {0} v{1} replaces v{2}",
-                                            book.Title, book.Version, existingInBatch.Version);
+                                        var existingInBatch = batchByDocumentID[book.ID];
+                                        int comparisonScore = book.CompareTo(existingInBatch);
 
-                                        // Remove old book from all indices
-                                        RemoveFromBatchIndices(existingInBatch, batchByDocumentID, batchByContentHash, batchByDuplicateKey);
-                                        booksToAdd.Remove(existingInBatch);
+                                        if (comparisonScore > 0)
+                                        {
+                                            // New book is better - replace the old one
+                                            Log.WriteLine(LogLevel.Info,
+                                                "In-batch replacement: {0} v{1} replaces v{2}",
+                                                book.Title, book.Version, existingInBatch.Version);
 
-                                        // Track the replacement
-                                        inBatchReplacements[existingInBatch.ID] = book.ID;
-                                        replacedBook = existingInBatch;
-                                        foundInBatch = false; // Allow this book to be added
-                                        result.Replaced++;
+                                            // Remove old book from all indices
+                                            RemoveFromBatchIndices(existingInBatch, batchByDocumentID, batchByContentHash, batchByDuplicateKey);
+                                            booksToAdd.Remove(existingInBatch);
+
+                                            // Track the replacement
+                                            inBatchReplacements[existingInBatch.ID] = book.ID;
+                                            replacedBook = existingInBatch;
+                                            foundInBatch = false; // Allow this book to be added
+                                            result.Replaced++;
+                                        }
+                                        else
+                                        {
+                                            // Existing book is better or same - skip new one
+                                            Log.WriteLine(LogLevel.Info,
+                                                "In-batch duplicate skipped: {0} v{1} (keeping v{2})",
+                                                book.Title, book.Version, existingInBatch.Version);
+                                            skipBook = true;
+                                            foundInBatch = true;
+                                            result.Duplicates++;
+                                        }
                                     }
-                                    else
+                                }
+
+                                // Check by content hash
+                                if (!foundInBatch && !string.IsNullOrEmpty(book.ContentHash))
+                                {
+                                    if (batchByContentHash.ContainsKey(book.ContentHash))
                                     {
-                                        // Existing book is better or same - skip new one
+                                        // Exact duplicate in batch - skip
                                         Log.WriteLine(LogLevel.Info,
-                                            "In-batch duplicate skipped: {0} v{1} (keeping v{2})",
-                                            book.Title, book.Version, existingInBatch.Version);
+                                            "In-batch exact duplicate (same content): {0}", book.FileName);
                                         skipBook = true;
                                         foundInBatch = true;
                                         result.Duplicates++;
                                     }
                                 }
-                            }
 
-                            // Check by content hash
-                            if (!foundInBatch && !string.IsNullOrEmpty(book.ContentHash))
-                            {
-                                if (batchByContentHash.ContainsKey(book.ContentHash))
+                                // Check by duplicate key
+                                if (!foundInBatch && !string.IsNullOrEmpty(book.DuplicateKey))
                                 {
-                                    // Exact duplicate in batch - skip
-                                    Log.WriteLine(LogLevel.Info,
-                                        "In-batch exact duplicate (same content): {0}", book.FileName);
-                                    skipBook = true;
-                                    foundInBatch = true;
-                                    result.Duplicates++;
-                                }
-                            }
-
-                            // Check by duplicate key
-                            if (!foundInBatch && !string.IsNullOrEmpty(book.DuplicateKey))
-                            {
-                                if (batchByDuplicateKey.ContainsKey(book.DuplicateKey))
-                                {
-                                    // Check each potential duplicate more carefully
-                                    var potentialDuplicates = batchByDuplicateKey[book.DuplicateKey].ToList();
-                                    foreach (var existingInBatch in potentialDuplicates)
+                                    if (batchByDuplicateKey.ContainsKey(book.DuplicateKey))
                                     {
-                                        if (book.IsDuplicateOf(existingInBatch))
+                                        // Check each potential duplicate more carefully
+                                        var potentialDuplicates = batchByDuplicateKey[book.DuplicateKey].ToList();
+                                        foreach (var existingInBatch in potentialDuplicates)
                                         {
-                                            int comparisonScore = book.CompareTo(existingInBatch);
-
-                                            if (comparisonScore > 0)
+                                            if (book.IsDuplicateOf(existingInBatch))
                                             {
-                                                // New book is better
-                                                Log.WriteLine(LogLevel.Info,
-                                                    "In-batch replacement by key: {0} replaces {1}",
-                                                    book.FileName, existingInBatch.FileName);
+                                                int comparisonScore = book.CompareTo(existingInBatch);
 
-                                                // Remove old book
-                                                RemoveFromBatchIndices(existingInBatch, batchByDocumentID, batchByContentHash, batchByDuplicateKey);
-                                                booksToAdd.Remove(existingInBatch);
+                                                if (comparisonScore > 0)
+                                                {
+                                                    // New book is better
+                                                    Log.WriteLine(LogLevel.Info,
+                                                        "In-batch replacement by key: {0} replaces {1}",
+                                                        book.FileName, existingInBatch.FileName);
 
-                                                replacedBook = existingInBatch;
-                                                result.Replaced++;
-                                            }
-                                            else
-                                            {
-                                                // Existing is better - skip new
-                                                Log.WriteLine(LogLevel.Info,
-                                                    "In-batch duplicate by key skipped: {0}", book.FileName);
-                                                skipBook = true;
-                                                foundInBatch = true;
-                                                result.Duplicates++;
-                                                break;
+                                                    // Remove old book
+                                                    RemoveFromBatchIndices(existingInBatch, batchByDocumentID, batchByContentHash, batchByDuplicateKey);
+                                                    booksToAdd.Remove(existingInBatch);
+
+                                                    replacedBook = existingInBatch;
+                                                    result.Replaced++;
+                                                }
+                                                else
+                                                {
+                                                    // Existing is better - skip new
+                                                    Log.WriteLine(LogLevel.Info,
+                                                        "In-batch duplicate by key skipped: {0}", book.FileName);
+                                                    skipBook = true;
+                                                    foundInBatch = true;
+                                                    result.Duplicates++;
+                                                    break;
+                                                }
                                             }
                                         }
                                     }
                                 }
+
+                                // STEP 2: If not found in batch, check database
+                                if (!skipBook && !foundInBatch)
+                                {
+                                    duplicateResult = duplicateDetector.CheckDuplicate(book, fileStream);
+
+                                    if (duplicateResult.IsDuplicate)
+                                    {
+                                        bool shouldAdd = duplicateDetector.ProcessDuplicate(book, duplicateResult);
+
+                                        if (!shouldAdd)
+                                        {
+                                            skipBook = true;
+                                            result.Duplicates++;
+                                        }
+                                        else if (duplicateResult.ShouldReplace)
+                                        {
+                                            result.Replaced++;
+                                            result.Duplicates++;
+                                            result.ReplacedBooks.Add($"{duplicateResult.ExistingBook.FileName} -> {book.FileName}");
+                                        }
+                                        else
+                                        {
+                                            result.UncertainDuplicatesAdded++;
+                                        }
+                                    }
+                                }
+                            }
+                            finally
+                            {
+                                fileStream?.Dispose();
                             }
 
-                            // STEP 2: If not found in batch, check database
-                            if (!skipBook && !foundInBatch)
+                            // If book should be added, add it to batch indices and list
+                            if (!skipBook)
                             {
-                                duplicateResult = duplicateDetector.CheckDuplicate(book, fileStream);
+                                // Add to batch indices for future duplicate checking
+                                AddToBatchIndices(book, batchByDocumentID, batchByContentHash, batchByDuplicateKey);
+                                booksToAdd.Add(book);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            result.Errors++;
+                            result.ErrorMessages.Add($"Book {book.FileName}: {ex.Message}");
+                            Log.WriteLine(LogLevel.Error, "Error processing book {0}: {1}", book.FileName, ex.Message);
+                        }
+                    }
 
-                                if (duplicateResult.IsDuplicate)
+                    Log.WriteLine(LogLevel.Info,
+                        "Batch analysis complete. Adding {0} books out of {1} total",
+                        booksToAdd.Count, books.Count);
+
+                    // SECOND PASS: Actually add the filtered books to database
+                    // Use proper transaction management
+                    IDbTransaction transaction = null;
+                    try
+                    {
+                        transaction = db.BeginTransactionWithObject();
+
+                        foreach (var book in booksToAdd)
+                        {
+                            try
+                            {
+                                // Insert book WITHOUT Sequence/NumberInSequence fields
+                                var bookParams = new[]
                                 {
-                                    bool shouldAdd = duplicateDetector.ProcessDuplicate(book, duplicateResult);
+                                    DatabaseManager.CreateParameter("@ID", book.ID),
+                                    DatabaseManager.CreateParameter("@Version", book.Version),
+                                    DatabaseManager.CreateParameter("@FileName", book.FileName),
+                                    DatabaseManager.CreateParameter("@Title", book.Title),
+                                    DatabaseManager.CreateParameter("@Language", book.Language),
+                                    DatabaseManager.CreateParameter("@BookDate", book.BookDate.ToBinary()),
+                                    DatabaseManager.CreateParameter("@DocumentDate", book.DocumentDate.ToBinary()),
+                                    DatabaseManager.CreateParameter("@Annotation", book.Annotation),
+                                    DatabaseManager.CreateParameter("@DocumentSize", (long)book.DocumentSize),
+                                    DatabaseManager.CreateParameter("@AddedDate", book.AddedDate.ToBinary()),
+                                    DatabaseManager.CreateParameter("@DocumentIDTrusted", book.DocumentIDTrusted),
+                                    DatabaseManager.CreateParameter("@DuplicateKey", book.DuplicateKey),
+                                    DatabaseManager.CreateParameter("@ReplacedByID", book.ReplacedByID),
+                                    DatabaseManager.CreateParameter("@ContentHash", book.ContentHash)
+                                };
+                                db.ExecuteNonQueryInTransaction(DatabaseSchema.InsertBook, transaction, bookParams);
 
-                                    if (!shouldAdd)
+                                // Insert authors and relationships
+                                foreach (var authorName in book.Authors)
+                                {
+                                    var (firstName, middleName, lastName) = ParseAuthorName(authorName);
+                                    string searchName = NormalizeForSearch(authorName);
+                                    string lastNameSoundex = !string.IsNullOrEmpty(lastName) ? StringUtils.Soundex(lastName) : "";
+                                    string nameTranslit = GenerateTransliteration(authorName);
+
+                                    db.ExecuteNonQueryInTransaction(DatabaseSchema.InsertAuthor, transaction,
+                                        DatabaseManager.CreateParameter("@Name", authorName),
+                                        DatabaseManager.CreateParameter("@FirstName", firstName),
+                                        DatabaseManager.CreateParameter("@MiddleName", middleName),
+                                        DatabaseManager.CreateParameter("@LastName", lastName),
+                                        DatabaseManager.CreateParameter("@SearchName", searchName),
+                                        DatabaseManager.CreateParameter("@LastNameSoundex", lastNameSoundex),
+                                        DatabaseManager.CreateParameter("@NameTranslit", nameTranslit));
+
+                                    db.ExecuteNonQueryInTransaction(DatabaseSchema.InsertBookAuthor, transaction,
+                                        DatabaseManager.CreateParameter("@BookID", book.ID),
+                                        DatabaseManager.CreateParameter("@AuthorName", authorName));
+                                }
+
+                                // Insert genres with validation
+                                foreach (var genreTag in book.Genres)
+                                {
+                                    if (IsValidGenreTag(genreTag))
                                     {
-                                        skipBook = true;
-                                        result.Duplicates++;
-                                    }
-                                    else if (duplicateResult.ShouldReplace)
-                                    {
-                                        result.Replaced++;
-                                        result.Duplicates++;
-                                        result.ReplacedBooks.Add($"{duplicateResult.ExistingBook.FileName} -> {book.FileName}");
+                                        db.ExecuteNonQueryInTransaction(DatabaseSchema.InsertBookGenre, transaction,
+                                            DatabaseManager.CreateParameter("@BookID", book.ID),
+                                            DatabaseManager.CreateParameter("@GenreTag", genreTag));
                                     }
                                     else
                                     {
-                                        result.UncertainDuplicatesAdded++;
+                                        result.InvalidGenresSkipped++;
+                                        if (!result.InvalidGenreTags.Contains(genreTag))
+                                        {
+                                            result.InvalidGenreTags.Add(genreTag);
+                                        }
                                     }
                                 }
-                            }
-                        }
-                        finally
-                        {
-                            fileStream?.Dispose();
-                        }
 
-                        // If book should be added, add it to batch indices and list
-                        if (!skipBook)
-                        {
-                            // Add to batch indices for future duplicate checking
-                            AddToBatchIndices(book, batchByDocumentID, batchByContentHash, batchByDuplicateKey);
-                            booksToAdd.Add(book);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        result.Errors++;
-                        result.ErrorMessages.Add($"Book {book.FileName}: {ex.Message}");
-                        Log.WriteLine(LogLevel.Error, "Error processing book {0}: {1}", book.FileName, ex.Message);
-                    }
-                }
-
-                Log.WriteLine(LogLevel.Info,
-                    "Batch analysis complete. Adding {0} books out of {1} total",
-                    booksToAdd.Count, books.Count);
-
-                // SECOND PASS: Actually add the filtered books to database
-                db.BeginTransaction();
-
-                foreach (var book in booksToAdd)
-                {
-                    try
-                    {
-                        // Insert book WITHOUT Sequence/NumberInSequence fields
-                        var bookParams = new[]
-                        {
-                    DatabaseManager.CreateParameter("@ID", book.ID),
-                    DatabaseManager.CreateParameter("@Version", book.Version),
-                    DatabaseManager.CreateParameter("@FileName", book.FileName),
-                    DatabaseManager.CreateParameter("@Title", book.Title),
-                    DatabaseManager.CreateParameter("@Language", book.Language),
-                    DatabaseManager.CreateParameter("@BookDate", book.BookDate),
-                    DatabaseManager.CreateParameter("@DocumentDate", book.DocumentDate),
-                    DatabaseManager.CreateParameter("@Annotation", book.Annotation),
-                    DatabaseManager.CreateParameter("@DocumentSize", (long)book.DocumentSize),
-                    DatabaseManager.CreateParameter("@AddedDate", book.AddedDate),
-                    DatabaseManager.CreateParameter("@DocumentIDTrusted", book.DocumentIDTrusted),
-                    DatabaseManager.CreateParameter("@DuplicateKey", book.DuplicateKey),
-                    DatabaseManager.CreateParameter("@ReplacedByID", book.ReplacedByID),
-                    DatabaseManager.CreateParameter("@ContentHash", book.ContentHash)
-                };
-                        db.ExecuteNonQuery(DatabaseSchema.InsertBook, bookParams);
-
-                        // Insert authors and relationships
-                        foreach (var authorName in book.Authors)
-                        {
-                            var (firstName, middleName, lastName) = ParseAuthorName(authorName);
-                            string searchName = NormalizeForSearch(authorName);
-                            string lastNameSoundex = !string.IsNullOrEmpty(lastName) ? StringUtils.Soundex(lastName) : "";
-                            string nameTranslit = GenerateTransliteration(authorName);
-
-                            db.ExecuteNonQuery(DatabaseSchema.InsertAuthor,
-                                DatabaseManager.CreateParameter("@Name", authorName),
-                                DatabaseManager.CreateParameter("@FirstName", firstName),
-                                DatabaseManager.CreateParameter("@MiddleName", middleName),
-                                DatabaseManager.CreateParameter("@LastName", lastName),
-                                DatabaseManager.CreateParameter("@SearchName", searchName),
-                                DatabaseManager.CreateParameter("@LastNameSoundex", lastNameSoundex),
-                                DatabaseManager.CreateParameter("@NameTranslit", nameTranslit));
-
-                            db.ExecuteNonQuery(DatabaseSchema.InsertBookAuthor,
-                                DatabaseManager.CreateParameter("@BookID", book.ID),
-                                DatabaseManager.CreateParameter("@AuthorName", authorName));
-                        }
-
-                        // Insert genres with validation
-                        foreach (var genreTag in book.Genres)
-                        {
-                            if (IsValidGenreTag(genreTag))
-                            {
-                                db.ExecuteNonQuery(DatabaseSchema.InsertBookGenre,
-                                    DatabaseManager.CreateParameter("@BookID", book.ID),
-                                    DatabaseManager.CreateParameter("@GenreTag", genreTag));
-                            }
-                            else
-                            {
-                                result.InvalidGenresSkipped++;
-                                if (!result.InvalidGenreTags.Contains(genreTag))
+                                // Insert translators and relationships
+                                foreach (var translatorName in book.Translators)
                                 {
-                                    result.InvalidGenreTags.Add(genreTag);
-                                }
-                            }
-                        }
+                                    db.ExecuteNonQueryInTransaction(DatabaseSchema.InsertTranslator, transaction,
+                                        DatabaseManager.CreateParameter("@Name", translatorName));
 
-                        // Insert translators and relationships
-                        foreach (var translatorName in book.Translators)
-                        {
-                            db.ExecuteNonQuery(DatabaseSchema.InsertTranslator,
-                                DatabaseManager.CreateParameter("@Name", translatorName));
-
-                            db.ExecuteNonQuery(DatabaseSchema.InsertBookTranslator,
-                                DatabaseManager.CreateParameter("@BookID", book.ID),
-                                DatabaseManager.CreateParameter("@TranslatorName", translatorName));
-                        }
-
-                        // Insert sequences
-                        if (book.Sequences != null)
-                        {
-                            foreach (var sequenceInfo in book.Sequences)
-                            {
-                                if (!string.IsNullOrEmpty(sequenceInfo.Name))
-                                {
-                                    string searchName = NormalizeForSearch(sequenceInfo.Name);
-                                    db.ExecuteNonQuery(DatabaseSchema.InsertSequence,
-                                        DatabaseManager.CreateParameter("@Name", sequenceInfo.Name),
-                                        DatabaseManager.CreateParameter("@SearchName", searchName));
-
-                                    db.ExecuteNonQuery(DatabaseSchema.InsertBookSequence,
+                                    db.ExecuteNonQueryInTransaction(DatabaseSchema.InsertBookTranslator, transaction,
                                         DatabaseManager.CreateParameter("@BookID", book.ID),
-                                        DatabaseManager.CreateParameter("@SequenceName", sequenceInfo.Name),
-                                        DatabaseManager.CreateParameter("@NumberInSequence", (long)sequenceInfo.NumberInSequence));
+                                        DatabaseManager.CreateParameter("@TranslatorName", translatorName));
                                 }
+
+                                // Insert sequences
+                                if (book.Sequences != null)
+                                {
+                                    foreach (var sequenceInfo in book.Sequences)
+                                    {
+                                        if (!string.IsNullOrEmpty(sequenceInfo.Name))
+                                        {
+                                            string searchName = NormalizeForSearch(sequenceInfo.Name);
+                                            db.ExecuteNonQueryInTransaction(DatabaseSchema.InsertSequence, transaction,
+                                                DatabaseManager.CreateParameter("@Name", sequenceInfo.Name),
+                                                DatabaseManager.CreateParameter("@SearchName", searchName));
+
+                                            db.ExecuteNonQueryInTransaction(DatabaseSchema.InsertBookSequence, transaction,
+                                                DatabaseManager.CreateParameter("@BookID", book.ID),
+                                                DatabaseManager.CreateParameter("@SequenceName", sequenceInfo.Name),
+                                                DatabaseManager.CreateParameter("@NumberInSequence", (long)sequenceInfo.NumberInSequence));
+                                        }
+                                    }
+                                }
+
+                                result.Added++;
+
+                                // Count by type for statistics
+                                if (book.BookType == BookType.FB2)
+                                    result.FB2Count++;
+                                else
+                                    result.EPUBCount++;
+                            }
+                            catch (Exception ex)
+                            {
+                                result.Errors++;
+                                result.Added--; // Compensate for the increment above
+                                result.ErrorMessages.Add($"Book {book.FileName}: {ex.Message}");
+                                Log.WriteLine(LogLevel.Error, "BookRepository.AddBooksBatch - Book {0}: {1}", book.FileName, ex.Message);
                             }
                         }
 
-                        result.Added++;
+                        transaction.Commit();
+                        result.ProcessingTime = DateTime.Now - startTime;
 
-                        // Count by type for statistics
-                        if (book.BookType == BookType.FB2)
-                            result.FB2Count++;
-                        else
-                            result.EPUBCount++;
+                        // Log statistics
+                        if (result.InvalidGenresSkipped > 0)
+                        {
+                            Log.WriteLine(LogLevel.Warning, "Batch insert: {0} invalid genre tags skipped. Tags: {1}",
+                                result.InvalidGenresSkipped, string.Join(", ", result.InvalidGenreTags));
+                        }
+
+                        if (result.Replaced > 0)
+                        {
+                            Log.WriteLine(LogLevel.Info, "Batch insert: {0} books replaced with newer versions", result.Replaced);
+                        }
+
+                        if (result.UncertainDuplicatesAdded > 0)
+                        {
+                            Log.WriteLine(LogLevel.Info, "Batch insert: {0} uncertain duplicates added as new books",
+                                result.UncertainDuplicatesAdded);
+                        }
+
+                        Log.WriteLine(LogLevel.Info,
+                            "Batch processing complete: Added {0}, Duplicates {1}, Replaced {2}, Errors {3}",
+                            result.Added, result.Duplicates, result.Replaced, result.Errors);
+
+                        return result;
                     }
                     catch (Exception ex)
                     {
-                        result.Errors++;
-                        result.Added--; // Compensate for the increment above
-                        result.ErrorMessages.Add($"Book {book.FileName}: {ex.Message}");
-                        Log.WriteLine(LogLevel.Error, "BookRepository.AddBooksBatch - Book {0}: {1}", book.FileName, ex.Message);
+                        transaction?.Rollback();
+                        result.Errors = result.TotalProcessed;
+                        result.ErrorMessages.Add($"Batch transaction failed: {ex.Message}");
+                        result.ProcessingTime = DateTime.Now - startTime;
+                        Log.WriteLine(LogLevel.Error, "BookRepository.AddBooksBatch: {0}", ex.Message);
+                        return result;
+                    }
+                    finally
+                    {
+                        transaction?.Dispose();
                     }
                 }
-
-                db.CommitTransaction();
-
-                result.ProcessingTime = DateTime.Now - startTime;
-
-                // Log statistics
-                if (result.InvalidGenresSkipped > 0)
+                catch (Exception ex)
                 {
-                    Log.WriteLine(LogLevel.Warning, "Batch insert: {0} invalid genre tags skipped. Tags: {1}",
-                        result.InvalidGenresSkipped, string.Join(", ", result.InvalidGenreTags));
+                    result.Errors = result.TotalProcessed;
+                    result.ErrorMessages.Add($"Batch processing failed: {ex.Message}");
+                    result.ProcessingTime = DateTime.Now - startTime;
+                    Log.WriteLine(LogLevel.Error, "BookRepository.AddBooksBatch outer exception: {0}", ex.Message);
+                    return result;
                 }
-
-                if (result.Replaced > 0)
-                {
-                    Log.WriteLine(LogLevel.Info, "Batch insert: {0} books replaced with newer versions", result.Replaced);
-                }
-
-                if (result.UncertainDuplicatesAdded > 0)
-                {
-                    Log.WriteLine(LogLevel.Info, "Batch insert: {0} uncertain duplicates added as new books",
-                        result.UncertainDuplicatesAdded);
-                }
-
-                Log.WriteLine(LogLevel.Info,
-                    "Batch processing complete: Added {0}, Duplicates {1}, Replaced {2}, Errors {3}",
-                    result.Added, result.Duplicates, result.Replaced, result.Errors);
-
-                return result;
-            }
-            catch (Exception ex)
-            {
-                db.RollbackTransaction();
-                result.Errors = result.TotalProcessed;
-                result.ErrorMessages.Add($"Batch transaction failed: {ex.Message}");
-                result.ProcessingTime = DateTime.Now - startTime;
-                Log.WriteLine(LogLevel.Error, "BookRepository.AddBooksBatch: {0}", ex.Message);
-                return result;
-            }
-            finally
-            {
-                // Restore normal SQLite settings
-                db.ExecuteNonQuery("PRAGMA synchronous = NORMAL");
-                db.ExecuteNonQuery("PRAGMA journal_mode = DELETE");
-                db.ExecuteNonQuery("PRAGMA temp_store = DEFAULT");
-                db.ExecuteNonQuery("PRAGMA cache_size = 2000");
-            }
+            } // end of lock
         }
 
         #region Helper Methods for Batch Duplicate Detection
@@ -864,6 +887,9 @@ namespace TinyOPDS.Data
             }
         }
 
+        /// <summary>
+        /// Cross-platform compatible BookExists method
+        /// </summary>
         public bool BookExists(string fileName)
         {
             string languageFilter = GetLanguageFilter();
@@ -872,14 +898,16 @@ namespace TinyOPDS.Data
             {
                 var count = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE FileName = @FileName AND ReplacedByID IS NULL",
                     DatabaseManager.CreateParameter("@FileName", fileName));
-                return Convert.ToInt32(count) > 0;
+                // Use Convert.ToInt32 for cross-platform compatibility
+                return Convert.ToInt32(count ?? 0) > 0;
             }
             else
             {
                 var count = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE FileName = @FileName AND ReplacedByID IS NULL AND Language = @Language",
                     DatabaseManager.CreateParameter("@FileName", fileName),
                     DatabaseManager.CreateParameter("@Language", languageFilter));
-                return Convert.ToInt32(count) > 0;
+                // Use Convert.ToInt32 for cross-platform compatibility
+                return Convert.ToInt32(count ?? 0) > 0;
             }
         }
 
@@ -912,19 +940,21 @@ namespace TinyOPDS.Data
             return books;
         }
 
-        // MODIFIED: Now uses optimized query with JOIN and language filter
+        // Uses optimized query with JOIN and language filter
         public List<Book> GetBooksBySequence(string sequence)
         {
             string query = ApplyLanguageFilter(DatabaseSchema.SelectBooksBySequence);
             var books = db.ExecuteQuery<Book>(query,
                 reader => {
                     var book = MapBook(reader);
-                    // Get NumberInSequence from the joined query
+                    // Get NumberInSequence from the joined query for this specific sequence
                     try
                     {
                         var number = DatabaseManager.GetUInt32(reader, "NumberInSequence");
                         if (book.Sequences == null)
                             book.Sequences = new List<BookSequenceInfo>();
+
+                        // Temporarily store the correct number for the requested sequence
                         book.Sequences.Add(new BookSequenceInfo(sequence, number));
                     }
                     catch { }
@@ -934,8 +964,29 @@ namespace TinyOPDS.Data
 
             foreach (var book in books)
             {
+                // Store the correct sequence number before loading all relations
+                uint correctNumber = 0;
+                var requestedSequence = book.Sequences?.FirstOrDefault(s => s.Name == sequence);
+                if (requestedSequence != null)
+                {
+                    correctNumber = requestedSequence.NumberInSequence;
+                }
+
+                // Load all book relations (this will overwrite Sequences)
                 LoadBookRelations(book);
+
+                // Restore the correct sequence number for the requested sequence
+                // by ensuring it's the first in the list (for compatibility properties)
+                if (book.Sequences != null && correctNumber > 0)
+                {
+                    // Remove the requested sequence if it exists
+                    book.Sequences.RemoveAll(s => s.Name == sequence);
+
+                    // Insert it at the beginning with the correct number
+                    book.Sequences.Insert(0, new BookSequenceInfo(sequence, correctNumber));
+                }
             }
+
             return books;
         }
 
@@ -1102,7 +1153,7 @@ namespace TinyOPDS.Data
             }
 
             var books = db.ExecuteQuery<Book>(query, MapBook,
-                AddLanguageParameter(DatabaseManager.CreateParameter("@FromDate", fromDate)));
+                AddLanguageParameter(DatabaseManager.CreateParameter("@FromDate", fromDate.ToBinary())));
 
             foreach (var book in books)
             {
@@ -1115,7 +1166,6 @@ namespace TinyOPDS.Data
         {
             string languageFilter = GetLanguageFilter();
 
-            // MODIFIED: Query without Sequence/NumberInSequence fields and with language filter
             string query = @"
                 SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
                        Annotation, DocumentSize, AddedDate
@@ -1223,7 +1273,7 @@ namespace TinyOPDS.Data
                     if (string.IsNullOrEmpty(languageFilter))
                     {
                         result = db.ExecuteQuery<(string, int)>(DatabaseSchema.SelectSequencesWithCount,
-                            reader => (reader.GetString(0), reader.GetInt32(1)));
+                            reader => (reader.GetString(0), Convert.ToInt32(reader.GetValue(1))));
                     }
                     else
                     {
@@ -1237,7 +1287,7 @@ namespace TinyOPDS.Data
                             ORDER BY s.Name";
 
                         result = db.ExecuteQuery<(string, int)>(query,
-                            reader => (reader.GetString(0), reader.GetInt32(1)),
+                            reader => (reader.GetString(0), Convert.ToInt32(reader.GetValue(1))),
                             DatabaseManager.CreateParameter("@Language", languageFilter));
                     }
                 }
@@ -1246,7 +1296,7 @@ namespace TinyOPDS.Data
                     if (string.IsNullOrEmpty(languageFilter))
                     {
                         result = db.ExecuteQuery<(string, int)>(DatabaseSchema.SelectSequencesWithCountByPrefix,
-                            reader => (reader.GetString(0), reader.GetInt32(1)),
+                            reader => (reader.GetString(0), Convert.ToInt32(reader.GetValue(1))),
                             DatabaseManager.CreateParameter("@Pattern", searchPattern));
                     }
                     else
@@ -1263,7 +1313,7 @@ namespace TinyOPDS.Data
                             ORDER BY s.Name";
 
                         result = db.ExecuteQuery<(string, int)>(query,
-                            reader => (reader.GetString(0), reader.GetInt32(1)),
+                            reader => (reader.GetString(0), Convert.ToInt32(reader.GetValue(1))),
                             DatabaseManager.CreateParameter("@Pattern", searchPattern),
                             DatabaseManager.CreateParameter("@Language", languageFilter));
                     }
@@ -1380,76 +1430,94 @@ namespace TinyOPDS.Data
                     return (new List<string>(), AuthorSearchMethod.NotFound);
                 }
 
+                // Determine if input is Latin or Cyrillic
+                bool isLatinInput = ContainsLatinLetters(searchPattern) && !ContainsCyrillicLetters(searchPattern);
+                bool isCyrillicInput = ContainsCyrillicLetters(searchPattern);
+
+                Log.WriteLine(LogLevel.Info, "Input detected as: Latin={0}, Cyrillic={1}", isLatinInput, isCyrillicInput);
+
+                // Prepare transliterated versions if Latin input
+                string transliteratedGOST = null;
+                string transliteratedISO = null;
+                if (isLatinInput)
+                {
+                    transliteratedGOST = Transliteration.Back(searchPattern, TransliterationType.GOST);
+                    transliteratedISO = Transliteration.Back(searchPattern, TransliterationType.ISO);
+                    Log.WriteLine(LogLevel.Info, "Transliterations prepared: GOST='{0}', ISO='{1}'", transliteratedGOST, transliteratedISO);
+                }
+
                 // STEP 1: For two-word input, try EXACT match using FTS
                 if (words.Length == 2)
                 {
                     Log.WriteLine(LogLevel.Info, "Step 1: Trying exact match for two-word query '{0}' using FTS", searchPattern);
 
-                    // Escape the search pattern for FTS
-                    string escapedPattern = EscapeForFTS(searchPattern);
-                    // Use FTS to find exact match - it handles case-insensitive Unicode properly
-                    string ftsQuery = $"\"{escapedPattern}\""; // Exact phrase in FTS
-
-                    string sql = @"
-                        SELECT DISTINCT a.Name
-                        FROM Authors a
-                        INNER JOIN AuthorsFTS fts ON a.ID = fts.AuthorID
-                        INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID";
-
-                    if (!string.IsNullOrEmpty(languageFilter))
-                    {
-                        sql += @"
-                        INNER JOIN Books b ON ba.BookID = b.ID
-                        WHERE AuthorsFTS MATCH @SearchPattern
-                          AND b.Language = @Language
-                          AND b.ReplacedByID IS NULL
-                        ORDER BY a.Name";
-
-                        authors = db.ExecuteQuery<string>(sql,
-                            reader => reader.GetString(0),
-                            DatabaseManager.CreateParameter("@SearchPattern", ftsQuery),
-                            DatabaseManager.CreateParameter("@Language", languageFilter));
-                    }
-                    else
-                    {
-                        sql += @"
-                        WHERE AuthorsFTS MATCH @SearchPattern
-                        ORDER BY a.Name";
-
-                        authors = db.ExecuteQuery<string>(sql,
-                            reader => reader.GetString(0),
-                            DatabaseManager.CreateParameter("@SearchPattern", ftsQuery));
-                    }
-
+                    // Search with original pattern
+                    authors = SearchAuthorsFTS(searchPattern, languageFilter, exactMatch: true);
                     if (authors.Count > 0)
                     {
                         Log.WriteLine(LogLevel.Info, "Found exact match using FTS: {0} authors", authors.Count);
                         return (authors, AuthorSearchMethod.ExactMatch);
                     }
 
-                    // Try reversed order in FTS
+                    // Try reversed order
                     string reversedPattern = $"{words[1]} {words[0]}";
-                    string escapedReversedPattern = EscapeForFTS(reversedPattern);
-                    string reversedFtsQuery = $"\"{escapedReversedPattern}\"";
-
-                    if (!string.IsNullOrEmpty(languageFilter))
-                    {
-                        authors = db.ExecuteQuery<string>(sql,
-                            reader => reader.GetString(0),
-                            DatabaseManager.CreateParameter("@SearchPattern", reversedFtsQuery),
-                            DatabaseManager.CreateParameter("@Language", languageFilter));
-                    }
-                    else
-                    {
-                        authors = db.ExecuteQuery<string>(sql,
-                            reader => reader.GetString(0),
-                            DatabaseManager.CreateParameter("@SearchPattern", reversedFtsQuery));
-                    }
-
+                    authors = SearchAuthorsFTS(reversedPattern, languageFilter, exactMatch: true);
                     if (authors.Count > 0)
                     {
                         Log.WriteLine(LogLevel.Info, "Found exact match with reversed order using FTS: {0} authors", authors.Count);
                         return (authors, AuthorSearchMethod.ExactMatch);
+                    }
+
+                    // For Latin input, ALSO try transliterated versions
+                    if (isLatinInput)
+                    {
+                        // Try GOST transliteration
+                        if (!string.IsNullOrEmpty(transliteratedGOST) && transliteratedGOST != searchPattern)
+                        {
+                            authors = SearchAuthorsFTS(transliteratedGOST, languageFilter, exactMatch: true);
+                            if (authors.Count > 0)
+                            {
+                                Log.WriteLine(LogLevel.Info, "Found exact match via GOST transliteration: {0} authors", authors.Count);
+                                return (authors, AuthorSearchMethod.Transliteration);
+                            }
+
+                            // Try reversed transliterated
+                            string[] translitWords = transliteratedGOST.Split(new char[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
+                            if (translitWords.Length == 2)
+                            {
+                                string reversedTranslit = $"{translitWords[1]} {translitWords[0]}";
+                                authors = SearchAuthorsFTS(reversedTranslit, languageFilter, exactMatch: true);
+                                if (authors.Count > 0)
+                                {
+                                    Log.WriteLine(LogLevel.Info, "Found exact match via reversed GOST transliteration: {0} authors", authors.Count);
+                                    return (authors, AuthorSearchMethod.Transliteration);
+                                }
+                            }
+                        }
+
+                        // Try ISO transliteration
+                        if (!string.IsNullOrEmpty(transliteratedISO) && transliteratedISO != searchPattern && transliteratedISO != transliteratedGOST)
+                        {
+                            authors = SearchAuthorsFTS(transliteratedISO, languageFilter, exactMatch: true);
+                            if (authors.Count > 0)
+                            {
+                                Log.WriteLine(LogLevel.Info, "Found exact match via ISO transliteration: {0} authors", authors.Count);
+                                return (authors, AuthorSearchMethod.Transliteration);
+                            }
+
+                            // Try reversed transliterated
+                            string[] translitWords = transliteratedISO.Split(new char[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
+                            if (translitWords.Length == 2)
+                            {
+                                string reversedTranslit = $"{translitWords[1]} {translitWords[0]}";
+                                authors = SearchAuthorsFTS(reversedTranslit, languageFilter, exactMatch: true);
+                                if (authors.Count > 0)
+                                {
+                                    Log.WriteLine(LogLevel.Info, "Found exact match via reversed ISO transliteration: {0} authors", authors.Count);
+                                    return (authors, AuthorSearchMethod.Transliteration);
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -1459,89 +1527,49 @@ namespace TinyOPDS.Data
                     string pattern = words[0];
                     Log.WriteLine(LogLevel.Info, "Step 2: Trying partial match for single word '{0}' using FTS", pattern);
 
-                    // Escape and prepare for wildcard search
-                    string escapedWord = EscapeForFTS(pattern);
-                    // Use FTS with wildcard for prefix search
-                    string ftsPattern = $"{escapedWord}*";
-
-                    string sql = @"
-                        SELECT DISTINCT a.Name
-                        FROM Authors a
-                        INNER JOIN AuthorsFTS fts ON a.ID = fts.AuthorID
-                        INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID";
-
-                    if (!string.IsNullOrEmpty(languageFilter))
-                    {
-                        sql += @"
-                        INNER JOIN Books b ON ba.BookID = b.ID
-                        WHERE AuthorsFTS MATCH @SearchPattern
-                          AND b.Language = @Language
-                          AND b.ReplacedByID IS NULL
-                        ORDER BY a.Name";
-
-                        authors = db.ExecuteQuery<string>(sql,
-                            reader => reader.GetString(0),
-                            DatabaseManager.CreateParameter("@SearchPattern", ftsPattern),
-                            DatabaseManager.CreateParameter("@Language", languageFilter));
-                    }
-                    else
-                    {
-                        sql += @"
-                        WHERE AuthorsFTS MATCH @SearchPattern
-                        ORDER BY a.Name";
-
-                        authors = db.ExecuteQuery<string>(sql,
-                            reader => reader.GetString(0),
-                            DatabaseManager.CreateParameter("@SearchPattern", ftsPattern));
-                    }
-
+                    // Search with original pattern
+                    authors = SearchAuthorsFTS(pattern, languageFilter, exactMatch: false);
                     if (authors.Count > 0)
                     {
                         Log.WriteLine(LogLevel.Info, "Found partial match using FTS: {0} authors", authors.Count);
                         return (authors, AuthorSearchMethod.PartialMatch);
                     }
-                }
-                // For multi-word queries - NO partial search after exact match fails
 
-                // STEP 3: Transliteration search (if input contains Latin letters)
-                if (ContainsLatinLetters(searchPattern))
-                {
-                    Log.WriteLine(LogLevel.Info, "Step 3: Trying transliteration search");
-
-                    // Try GOST transliteration
-                    string transliteratedGOST = Transliteration.Back(searchPattern, TransliterationType.GOST);
-                    if (!string.IsNullOrEmpty(transliteratedGOST) && transliteratedGOST != searchPattern)
+                    // For Latin input, ALSO try transliterated versions
+                    if (isLatinInput)
                     {
-                        // Recursive call with transliterated text - use the original method to avoid infinite recursion
-                        var (translitAuthors, _) = GetAuthorsForOpenSearchWithMethod(transliteratedGOST);
-                        if (translitAuthors.Count > 0)
+                        // Try GOST transliteration
+                        if (!string.IsNullOrEmpty(transliteratedGOST) && transliteratedGOST != searchPattern)
                         {
-                            Log.WriteLine(LogLevel.Info, "Found via GOST transliteration: {0} authors", translitAuthors.Count);
-                            return (translitAuthors, AuthorSearchMethod.Transliteration);
+                            authors = SearchAuthorsFTS(transliteratedGOST, languageFilter, exactMatch: false);
+                            if (authors.Count > 0)
+                            {
+                                Log.WriteLine(LogLevel.Info, "Found partial match via GOST transliteration: {0} authors", authors.Count);
+                                return (authors, AuthorSearchMethod.Transliteration);
+                            }
                         }
-                    }
 
-                    // Try ISO transliteration
-                    string transliteratedISO = Transliteration.Back(searchPattern, TransliterationType.ISO);
-                    if (!string.IsNullOrEmpty(transliteratedISO) && transliteratedISO != searchPattern && transliteratedISO != transliteratedGOST)
-                    {
-                        // Recursive call with transliterated text
-                        var (translitAuthors, _) = GetAuthorsForOpenSearchWithMethod(transliteratedISO);
-                        if (translitAuthors.Count > 0)
+                        // Try ISO transliteration
+                        if (!string.IsNullOrEmpty(transliteratedISO) && transliteratedISO != searchPattern && transliteratedISO != transliteratedGOST)
                         {
-                            Log.WriteLine(LogLevel.Info, "Found via ISO transliteration: {0} authors", translitAuthors.Count);
-                            return (translitAuthors, AuthorSearchMethod.Transliteration);
+                            authors = SearchAuthorsFTS(transliteratedISO, languageFilter, exactMatch: false);
+                            if (authors.Count > 0)
+                            {
+                                Log.WriteLine(LogLevel.Info, "Found partial match via ISO transliteration: {0} authors", authors.Count);
+                                return (authors, AuthorSearchMethod.Transliteration);
+                            }
                         }
                     }
                 }
 
-                // STEP 4: Soundex search (last resort) - still using regular table as Soundex is pre-calculated
+                // STEP 3: Soundex search (last resort)
+                // Use appropriate Soundex based on input language
                 string soundexPattern = words.Length == 1 ? words[0] : words[words.Length - 1];
                 string soundex = StringUtils.Soundex(soundexPattern);
 
                 if (!string.IsNullOrEmpty(soundex))
                 {
-                    Log.WriteLine(LogLevel.Info, "Step 4: Trying Soundex search for '{0}' -> '{1}'", soundexPattern, soundex);
+                    Log.WriteLine(LogLevel.Info, "Step 3: Trying Soundex search for '{0}' -> '{1}'", soundexPattern, soundex);
 
                     if (!string.IsNullOrEmpty(languageFilter))
                     {
@@ -1585,6 +1613,49 @@ namespace TinyOPDS.Data
             }
         }
 
+        /// <summary>
+        /// Helper method to search authors using FTS
+        /// </summary>
+        private List<string> SearchAuthorsFTS(string searchPattern, string languageFilter, bool exactMatch)
+        {
+            // Escape the search pattern for FTS
+            string escapedPattern = EscapeForFTS(searchPattern);
+
+            // Prepare FTS query
+            string ftsQuery = exactMatch
+                ? $"\"{escapedPattern}\""  // Exact phrase in FTS
+                : $"{escapedPattern}*";     // Wildcard for prefix search
+
+            string sql = @"
+                SELECT DISTINCT a.Name
+                FROM Authors a
+                INNER JOIN AuthorsFTS fts ON a.ID = fts.AuthorID
+                INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID";
+
+            if (!string.IsNullOrEmpty(languageFilter))
+            {
+                sql += @"
+                INNER JOIN Books b ON ba.BookID = b.ID
+                WHERE AuthorsFTS MATCH @SearchPattern
+                  AND b.Language = @Language
+                  AND b.ReplacedByID IS NULL
+                ORDER BY a.Name";
+
+                return db.ExecuteQuery<string>(sql,
+                    reader => reader.GetString(0),
+                    DatabaseManager.CreateParameter("@SearchPattern", ftsQuery),
+                    DatabaseManager.CreateParameter("@Language", languageFilter));
+            }
+            else
+            {
+                sql += @" WHERE AuthorsFTS MATCH @SearchPattern ORDER BY a.Name";
+
+                return db.ExecuteQuery<string>(sql,
+                    reader => reader.GetString(0),
+                    DatabaseManager.CreateParameter("@SearchPattern", ftsQuery));
+            }
+        }
+
         #endregion
 
         #region Genre Methods
@@ -1598,7 +1669,7 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Get genres with book count > 0 (considers language filter)
+        /// Get genres with book count > 0 (considers language filter) - cross-platform
         /// </summary>
         public List<(Genre genre, int bookCount)> GetGenresWithBooks()
         {
@@ -1632,20 +1703,20 @@ namespace TinyOPDS.Data
                         DatabaseManager.GetString(reader, "ParentName"),
                         reader.GetString(2),  // Name
                         DatabaseManager.GetString(reader, "Translation"),
-                        reader.GetInt32(4)   // BookCount
+                        Convert.ToInt32(reader.GetValue(4))   // BookCount - Use Convert.ToInt32
                     ),
                     string.IsNullOrEmpty(languageFilter) ? null :
                         new[] { DatabaseManager.CreateParameter("@Language", languageFilter) });
 
-                foreach (var item in data)
+                foreach (var (Tag, ParentName, Name, Translation, BookCount) in data)
                 {
                     var genre = new Genre
                     {
-                        Tag = item.Tag,
-                        Name = item.Name,
-                        Translation = item.Translation
+                        Tag = Tag,
+                        Name = Name,
+                        Translation = Translation
                     };
-                    result.Add((genre, item.BookCount));
+                    result.Add((genre, BookCount));
                 }
 
                 return result;
@@ -1697,7 +1768,7 @@ namespace TinyOPDS.Data
 
         #endregion
 
-        #region Statistics
+        #region Statistics - ALL cross-platform compatible
 
         public int GetTotalBooksCount()
         {
@@ -1706,13 +1777,13 @@ namespace TinyOPDS.Data
             if (string.IsNullOrEmpty(languageFilter))
             {
                 var result = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE ReplacedByID IS NULL");
-                return Convert.ToInt32(result);
+                return Convert.ToInt32(result ?? 0);
             }
             else
             {
                 var result = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE ReplacedByID IS NULL AND Language = @Language",
                     DatabaseManager.CreateParameter("@Language", languageFilter));
-                return Convert.ToInt32(result);
+                return Convert.ToInt32(result ?? 0);
             }
         }
 
@@ -1723,13 +1794,13 @@ namespace TinyOPDS.Data
             if (string.IsNullOrEmpty(languageFilter))
             {
                 var result = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE FileName LIKE '%.fb2%' AND ReplacedByID IS NULL");
-                return Convert.ToInt32(result);
+                return Convert.ToInt32(result ?? 0);
             }
             else
             {
                 var result = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE FileName LIKE '%.fb2%' AND ReplacedByID IS NULL AND Language = @Language",
                     DatabaseManager.CreateParameter("@Language", languageFilter));
-                return Convert.ToInt32(result);
+                return Convert.ToInt32(result ?? 0);
             }
         }
 
@@ -1740,13 +1811,13 @@ namespace TinyOPDS.Data
             if (string.IsNullOrEmpty(languageFilter))
             {
                 var result = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE FileName LIKE '%.epub%' AND ReplacedByID IS NULL");
-                return Convert.ToInt32(result);
+                return Convert.ToInt32(result ?? 0);
             }
             else
             {
                 var result = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE FileName LIKE '%.epub%' AND ReplacedByID IS NULL AND Language = @Language",
                     DatabaseManager.CreateParameter("@Language", languageFilter));
-                return Convert.ToInt32(result);
+                return Convert.ToInt32(result ?? 0);
             }
         }
 
@@ -1757,15 +1828,15 @@ namespace TinyOPDS.Data
             if (string.IsNullOrEmpty(languageFilter))
             {
                 var result = db.ExecuteScalar(DatabaseSchema.CountNewBooks,
-                    DatabaseManager.CreateParameter("@FromDate", fromDate));
-                return Convert.ToInt32(result);
+                    DatabaseManager.CreateParameter("@FromDate", fromDate.ToBinary()));
+                return Convert.ToInt32(result ?? 0);
             }
             else
             {
                 var result = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE AddedDate >= @FromDate AND ReplacedByID IS NULL AND Language = @Language",
-                    DatabaseManager.CreateParameter("@FromDate", fromDate),
+                    DatabaseManager.CreateParameter("@FromDate", fromDate.ToBinary()),
                     DatabaseManager.CreateParameter("@Language", languageFilter));
-                return Convert.ToInt32(result);
+                return Convert.ToInt32(result ?? 0);
             }
         }
 
@@ -1788,7 +1859,7 @@ namespace TinyOPDS.Data
 
                 var books = db.ExecuteQuery<Book>(query, MapBook,
                     AddLanguageParameter(
-                        DatabaseManager.CreateParameter("@FromDate", fromDate),
+                        DatabaseManager.CreateParameter("@FromDate", fromDate.ToBinary()),
                         DatabaseManager.CreateParameter("@Offset", offset),
                         DatabaseManager.CreateParameter("@Limit", limit)));
 
@@ -1830,7 +1901,7 @@ namespace TinyOPDS.Data
             }
         }
 
-        // MODIFIED: Now gets sequences from Sequences table (considers language filter)
+        // Now gets sequences from Sequences table (considers language filter)
         public List<string> GetAllSequences()
         {
             string languageFilter = GetLanguageFilter();
@@ -1867,7 +1938,7 @@ namespace TinyOPDS.Data
             if (string.IsNullOrEmpty(languageFilter))
             {
                 var result = db.ExecuteScalar(DatabaseSchema.SelectAuthorsCount);
-                return Convert.ToInt32(result);
+                return Convert.ToInt32(result ?? 0);
             }
             else
             {
@@ -1880,7 +1951,7 @@ namespace TinyOPDS.Data
 
                 var result = db.ExecuteScalar(query,
                     DatabaseManager.CreateParameter("@Language", languageFilter));
-                return Convert.ToInt32(result);
+                return Convert.ToInt32(result ?? 0);
             }
         }
 
@@ -1891,7 +1962,7 @@ namespace TinyOPDS.Data
             if (string.IsNullOrEmpty(languageFilter))
             {
                 var result = db.ExecuteScalar(DatabaseSchema.SelectSequencesCount);
-                return Convert.ToInt32(result);
+                return Convert.ToInt32(result ?? 0);
             }
             else
             {
@@ -1904,7 +1975,7 @@ namespace TinyOPDS.Data
 
                 var result = db.ExecuteScalar(query,
                     DatabaseManager.CreateParameter("@Language", languageFilter));
-                return Convert.ToInt32(result);
+                return Convert.ToInt32(result ?? 0);
             }
         }
 
@@ -1921,7 +1992,7 @@ namespace TinyOPDS.Data
                 {
                     var result = db.ExecuteScalar(DatabaseSchema.CountBooksByGenre,
                         DatabaseManager.CreateParameter("@GenreTag", genreTag));
-                    return Convert.ToInt32(result);
+                    return Convert.ToInt32(result ?? 0);
                 }
                 else
                 {
@@ -1935,7 +2006,7 @@ namespace TinyOPDS.Data
                     var result = db.ExecuteScalar(query,
                         DatabaseManager.CreateParameter("@GenreTag", genreTag),
                         DatabaseManager.CreateParameter("@Language", languageFilter));
-                    return Convert.ToInt32(result);
+                    return Convert.ToInt32(result ?? 0);
                 }
             }
             catch (Exception ex)
@@ -1958,7 +2029,7 @@ namespace TinyOPDS.Data
                 {
                     var result = db.ExecuteScalar(DatabaseSchema.CountBooksBySequence,
                         DatabaseManager.CreateParameter("@SequenceName", sequenceName));
-                    return Convert.ToInt32(result);
+                    return Convert.ToInt32(result ?? 0);
                 }
                 else
                 {
@@ -1973,7 +2044,7 @@ namespace TinyOPDS.Data
                     var result = db.ExecuteScalar(query,
                         DatabaseManager.CreateParameter("@SequenceName", sequenceName),
                         DatabaseManager.CreateParameter("@Language", languageFilter));
-                    return Convert.ToInt32(result);
+                    return Convert.ToInt32(result ?? 0);
                 }
             }
             catch (Exception ex)
@@ -2011,7 +2082,7 @@ namespace TinyOPDS.Data
 
                 var statistics = db.ExecuteQuery<(string GenreTag, int BookCount)>(
                     query,
-                    reader => (reader.GetString(0), reader.GetInt32(1)),
+                    reader => (reader.GetString(0), Convert.ToInt32(reader.GetValue(1))),
                     string.IsNullOrEmpty(languageFilter) ? null :
                         new[] { DatabaseManager.CreateParameter("@Language", languageFilter) });
 
@@ -2064,20 +2135,20 @@ namespace TinyOPDS.Data
                         DatabaseManager.GetString(reader, "ParentName"),
                         reader.GetString(2),
                         DatabaseManager.GetString(reader, "Translation"),
-                        reader.GetInt32(4)
+                        Convert.ToInt32(reader.GetValue(4))  // Use Convert.ToInt32
                     ),
                     string.IsNullOrEmpty(languageFilter) ? null :
                         new[] { DatabaseManager.CreateParameter("@Language", languageFilter) });
 
-                foreach (var stat in statistics)
+                foreach (var (Tag, ParentName, Name, Translation, BookCount) in statistics)
                 {
                     var genre = new Genre
                     {
-                        Tag = stat.Tag,
-                        Name = stat.Name,
-                        Translation = stat.Translation
+                        Tag = Tag,
+                        Name = Name,
+                        Translation = Translation
                     };
-                    result.Add((genre, stat.BookCount));
+                    result.Add((genre, BookCount));
                 }
 
                 Log.WriteLine(LogLevel.Info, "Loaded full statistics for {0} genres", result.Count);
@@ -2094,7 +2165,7 @@ namespace TinyOPDS.Data
 
         #region Helper Methods
 
-        // MODIFIED: MapBook no longer tries to read Sequence/NumberInSequence from database
+        // MapBook no longer tries to read Sequence/NumberInSequence from database
         private Book MapBook(IDataReader reader)
         {
             var fileName = DatabaseManager.GetString(reader, "FileName");
@@ -2133,7 +2204,7 @@ namespace TinyOPDS.Data
             return book;
         }
 
-        // MODIFIED: LoadBookRelations now loads sequences from BookSequences table
+        // LoadBookRelations now loads sequences from BookSequences table
         private void LoadBookRelations(Book book)
         {
             // Load authors
@@ -2275,7 +2346,7 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Check if string contains Latin letters
+        /// Check if string contains Latin letters (including diacritics)
         /// </summary>
         private bool ContainsLatinLetters(string text)
         {
@@ -2283,7 +2354,16 @@ namespace TinyOPDS.Data
 
             foreach (char c in text)
             {
+                // Basic Latin
                 if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))
+                    return true;
+
+                // Extended Latin (Latin-1 Supplement)
+                if ((c >= '\u00C0' && c <= '\u00FF'))  // À-ÿ
+                    return true;
+
+                // Latin Extended-A
+                if ((c >= '\u0100' && c <= '\u017F'))
                     return true;
             }
             return false;
@@ -2298,7 +2378,8 @@ namespace TinyOPDS.Data
 
             foreach (char c in text)
             {
-                if ((c >= 'А' && c <= 'я') || c == 'Ё' || c == 'ё')
+                // Full Cyrillic Unicode block (0400-04FF)
+                if (c >= '\u0400' && c <= '\u04FF')
                     return true;
             }
             return false;

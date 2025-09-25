@@ -47,9 +47,6 @@
     <Reference Include="System.Configuration.Install" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
-    <Reference Include="System.Data.SQLite, Version=1.0.114.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Data.SQLite.Core.FTS5.1.0.114.1\lib\net45\System.Data.SQLite.dll</HintPath>
-    </Reference>
     <Reference Include="System.Drawing" />
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.IO.Compression.FileSystem" />
@@ -251,7 +248,6 @@
       <Link>Properties\Settings.settings</Link>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
-    <None Include="packages.config" />
   </ItemGroup>
   <!-- ============== EMBEDDED RESOURCES ============== -->
   <ItemGroup>
@@ -333,11 +329,4 @@
     <PostBuildEvent>if exist $(SolutionDir)\Sign\\ copy $(TargetPath) $(SolutionDir)\Sign</PostBuildEvent>
   </PropertyGroup>
   <!-- NuGet Package Imports and Validation -->
-  <Import Project="..\packages\System.Data.SQLite.Core.FTS5.1.0.114.1\build\net45\System.Data.SQLite.Core.FTS5.targets" Condition="Exists('..\packages\System.Data.SQLite.Core.FTS5.1.0.114.1\build\net45\System.Data.SQLite.Core.FTS5.targets')" />
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them. For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('..\packages\System.Data.SQLite.Core.FTS5.1.0.114.1\build\net45\System.Data.SQLite.Core.FTS5.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\System.Data.SQLite.Core.FTS5.1.0.114.1\build\net45\System.Data.SQLite.Core.FTS5.targets'))" />
-  </Target>
 </Project>

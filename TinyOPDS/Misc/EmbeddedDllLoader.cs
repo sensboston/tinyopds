@@ -19,7 +19,6 @@ namespace TinyOPDS
 {
     /// <summary>
     /// Loads managed and native DLLs from embedded resources for portable applications
-    /// Works on Windows and Linux Mono without Costura.Fody
     /// </summary>
     public static class EmbeddedDllLoader
     {
@@ -30,7 +29,7 @@ namespace TinyOPDS
 
         private static Assembly linuxSqliteAssembly;
 
-        // P/Invoke declarations for LoadLibrary
+        // P/Invoke declarations for LoadLibrary (Windows)
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern IntPtr LoadLibrary(string dllToLoad);
 
@@ -42,15 +41,26 @@ namespace TinyOPDS
 
         // Linux equivalent
         [DllImport("libdl.so.2", SetLastError = true)]
-        private static extern IntPtr dlopen(string filename, int flags);
+        private static extern IntPtr dlopen_linux(string filename, int flags);
 
         [DllImport("libdl.so.2", SetLastError = true)]
-        private static extern IntPtr dlsym(IntPtr handle, string symbol);
+        private static extern IntPtr dlsym_linux(IntPtr handle, string symbol);
 
         [DllImport("libdl.so.2", SetLastError = true)]
-        private static extern int dlclose(IntPtr handle);
+        private static extern int dlclose_linux(IntPtr handle);
+
+        // macOS equivalent
+        [DllImport("libdl.dylib", EntryPoint = "dlopen", SetLastError = true)]
+        private static extern IntPtr dlopen_macos(string filename, int flags);
+
+        [DllImport("libdl.dylib", EntryPoint = "dlsym", SetLastError = true)]
+        private static extern IntPtr dlsym_macos(IntPtr handle, string symbol);
+
+        [DllImport("libdl.dylib", EntryPoint = "dlclose", SetLastError = true)]
+        private static extern int dlclose_macos(IntPtr handle);
 
         private const int RTLD_NOW = 2;
+        private const int RTLD_GLOBAL = 8;  // Make symbols available globally
 
         /// <summary>
         /// Initialize the embedded DLL loader. Call this once at application startup.
@@ -65,11 +75,24 @@ namespace TinyOPDS
 
                 try
                 {
-                    AppDomain.CurrentDomain.AssemblyResolve += OnAssemblyResolve;
-
-                    if (Utils.IsLinux)
+                    // Preload Homebrew SQLite on macOS before loading Mono.Data.Sqlite
+                    // This prevents crashes with system SQLite
+                    if (Utils.IsMacOS)
                     {
-                        LoadLinuxSqlite();
+                        PreloadHomebrewSqlite();
+                    }
+
+                    // Set up assembly resolver for Windows only
+                    // Unix systems will use Mono.Data.Sqlite directly
+                    if (!Utils.IsLinux && !Utils.IsMacOS)
+                    {
+                        AppDomain.CurrentDomain.AssemblyResolve += OnAssemblyResolve;
+                    }
+
+                    // Load Mono.Data.Sqlite on Unix systems (Linux and macOS)
+                    if (Utils.IsLinux || Utils.IsMacOS)
+                    {
+                        LoadUnixSqlite();
                     }
 
                     Log.WriteLine("EmbeddedDllLoader initialized");
@@ -83,24 +106,80 @@ namespace TinyOPDS
         }
 
         /// <summary>
-        /// Load Mono.Data.Sqlite assembly on Linux
+        /// Preload Homebrew SQLite on macOS to avoid crashes with system SQLite
         /// </summary>
-        private static void LoadLinuxSqlite()
+        private static void PreloadHomebrewSqlite()
+        {
+            string[] possiblePaths = new string[] {
+                "/usr/local/opt/sqlite/lib/libsqlite3.dylib",      // Intel Homebrew
+                "/opt/homebrew/opt/sqlite/lib/libsqlite3.dylib",   // ARM Homebrew (M1/M2)
+                "/usr/local/lib/libsqlite3.dylib"                  // Alternative location
+            };
+
+            foreach (string path in possiblePaths)
+            {
+                if (File.Exists(path))
+                {
+                    try
+                    {
+                        // Use RTLD_GLOBAL to make symbols available to subsequently loaded libraries
+                        IntPtr handle = dlopen_macos(path, RTLD_NOW | RTLD_GLOBAL);
+                        if (handle != IntPtr.Zero)
+                        {
+                            Log.WriteLine("Preloaded Homebrew SQLite from: {0}", path);
+                            return;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.WriteLine(LogLevel.Warning, "Failed to preload SQLite from {0}: {1}", path, ex.Message);
+                    }
+                }
+            }
+
+            Log.WriteLine(LogLevel.Warning, "Homebrew SQLite not found, using system SQLite (may cause crashes)");
+        }
+
+        /// <summary>
+        /// Load Mono.Data.Sqlite assembly on Unix systems (Linux/macOS)
+        /// </summary>
+        private static void LoadUnixSqlite()
         {
             try
             {
+                // First try to load from GAC
                 try
                 {
                     linuxSqliteAssembly = Assembly.Load("Mono.Data.Sqlite");
                     Log.WriteLine("Loaded Mono.Data.Sqlite from GAC");
                     return;
                 }
-                catch { }
+                catch
+                {
+                    // GAC load failed, try file paths
+                }
 
-                string[] possiblePaths = {
-                    "/usr/lib/mono/4.5/Mono.Data.Sqlite.dll",
-                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Mono.Data.Sqlite.dll")
-                };
+                // Platform-specific paths
+                string[] possiblePaths;
+
+                if (Utils.IsMacOS)
+                {
+                    possiblePaths = new string[] {
+                        "/Library/Frameworks/Mono.framework/Versions/Current/lib/mono/4.5/Mono.Data.Sqlite.dll",
+                        "/usr/local/lib/mono/4.5/Mono.Data.Sqlite.dll",
+                        "/Library/Frameworks/Mono.framework/Versions/Current/lib/mono/gac/Mono.Data.Sqlite/4.0.0.0__0738eb9f132ed756/Mono.Data.Sqlite.dll",
+                        Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Mono.Data.Sqlite.dll")
+                    };
+                }
+                else // Linux
+                {
+                    possiblePaths = new string[] {
+                        "/usr/lib/mono/4.5/Mono.Data.Sqlite.dll",
+                        "/usr/lib/mono/gac/Mono.Data.Sqlite/4.0.0.0__0738eb9f132ed756/Mono.Data.Sqlite.dll",
+                        "/usr/share/dotnet/shared/Mono.Data.Sqlite/*/Mono.Data.Sqlite.dll",
+                        Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Mono.Data.Sqlite.dll")
+                    };
+                }
 
                 foreach (string path in possiblePaths)
                 {
@@ -112,7 +191,29 @@ namespace TinyOPDS
                     }
                 }
 
-                Log.WriteLine(LogLevel.Warning, "Mono.Data.Sqlite not found, will fall back to System.Data.SQLite");
+                Log.WriteLine(LogLevel.Warning, "Mono.Data.Sqlite not found in standard locations");
+
+                // Try to find it using wildcard for Linux dotnet paths
+                if (!Utils.IsMacOS)
+                {
+                    string dotnetPath = "/usr/share/dotnet/shared/Mono.Data.Sqlite";
+                    if (Directory.Exists(dotnetPath))
+                    {
+                        var dirs = Directory.GetDirectories(dotnetPath);
+                        foreach (var dir in dirs)
+                        {
+                            string dllPath = Path.Combine(dir, "Mono.Data.Sqlite.dll");
+                            if (File.Exists(dllPath))
+                            {
+                                linuxSqliteAssembly = Assembly.LoadFrom(dllPath);
+                                Log.WriteLine("Loaded Mono.Data.Sqlite from: {0}", dllPath);
+                                return;
+                            }
+                        }
+                    }
+                }
+
+                Log.WriteLine(LogLevel.Warning, "Mono.Data.Sqlite not found, SQLite operations may fail");
             }
             catch (Exception ex)
             {
@@ -121,7 +222,7 @@ namespace TinyOPDS
         }
 
         /// <summary>
-        /// Get Linux SQLite assembly for factory
+        /// Get Unix SQLite assembly for factory
         /// </summary>
         public static Assembly GetLinuxSqliteAssembly()
         {
@@ -130,6 +231,7 @@ namespace TinyOPDS
 
         /// <summary>
         /// Event handler for resolving managed assemblies from embedded resources
+        /// Windows only - Unix systems use Mono.Data.Sqlite
         /// </summary>
         private static Assembly OnAssemblyResolve(object sender, ResolveEventArgs args)
         {
@@ -143,7 +245,7 @@ namespace TinyOPDS
                     return null;
                 }
 
-                // Skip system assemblies but allow System.Data.SQLite
+                // Skip system assemblies but allow System.Data.SQLite on Windows only
                 if ((assemblyName.StartsWith("System.", StringComparison.OrdinalIgnoreCase) &&
                      !assemblyName.Equals("System.Data.SQLite", StringComparison.OrdinalIgnoreCase)) ||
                     assemblyName.StartsWith("Microsoft.", StringComparison.OrdinalIgnoreCase) ||
@@ -186,9 +288,9 @@ namespace TinyOPDS
             try
             {
                 string[] resourcePatterns = {
-                    $"TinyOPDS.Libs.{assemblyName}.dll",
-                    $"TinyOPDSConsole.Libs.{assemblyName}.dll",
-                    $"{Assembly.GetExecutingAssembly().GetName().Name}.Libs.{assemblyName}.dll"
+                    "TinyOPDS.Libs." + assemblyName + ".dll",
+                    "TinyOPDSCLI.Libs." + assemblyName + ".dll",
+                    Assembly.GetExecutingAssembly().GetName().Name + ".Libs." + assemblyName + ".dll"
                 };
 
                 Assembly executingAssembly = Assembly.GetExecutingAssembly();
@@ -228,6 +330,14 @@ namespace TinyOPDS
         {
             try
             {
+                // Skip native DLL loading on Unix systems completely
+                // Unix systems (Linux/macOS) use system SQLite through Mono.Data.Sqlite
+                if (Utils.IsLinux || Utils.IsMacOS)
+                {
+                    Log.WriteLine("Skipping native DLL loading on Unix system");
+                    return true;
+                }
+
                 if (extractedNativeDlls.ContainsKey(dllName))
                 {
                     Log.WriteLine("Native DLL {0} already loaded", dllName);
@@ -261,13 +371,14 @@ namespace TinyOPDS
 
         /// <summary>
         /// Extract native DLL from embedded resources to temporary location
+        /// Windows only
         /// </summary>
         private static string ExtractNativeDll(string dllName)
         {
             try
             {
                 string architecture = Environment.Is64BitProcess ? "x64" : "x86";
-                string resourceName = $"{Assembly.GetExecutingAssembly().GetName().Name}.Libs.{architecture}.{dllName}";
+                string resourceName = Assembly.GetExecutingAssembly().GetName().Name + ".Libs." + architecture + "." + dllName;
 
                 Assembly executingAssembly = Assembly.GetExecutingAssembly();
 
@@ -318,27 +429,43 @@ namespace TinyOPDS
 
         /// <summary>
         /// Load native library using platform-specific API
+        /// Windows only - Unix systems use system libraries
         /// </summary>
         private static IntPtr LoadNativeLibrary(string libraryPath)
         {
-            if (Utils.IsLinux)
+            if (Utils.IsMacOS)
             {
-                return dlopen(libraryPath, RTLD_NOW);
+                // Should not reach here, but handle gracefully
+                return IntPtr.Zero;
+            }
+            else if (Utils.IsLinux)
+            {
+                // Should not reach here, but handle gracefully
+                return IntPtr.Zero;
             }
             else
             {
+                // Windows
                 return LoadLibrary(libraryPath);
             }
         }
 
         /// <summary>
         /// Preload all embedded managed DLLs (optional - use if you want to load all at startup)
+        /// Windows only - Unix systems use Mono.Data.Sqlite
         /// </summary>
         public static void PreloadManagedAssemblies()
         {
             try
             {
-                string[] managedDlls = {"System.Data.SQLite"};
+                // Don't preload System.Data.SQLite on Unix systems - they use Mono.Data.Sqlite
+                if (Utils.IsLinux || Utils.IsMacOS)
+                {
+                    Log.WriteLine("Skipping managed assembly preload on Unix system");
+                    return;
+                }
+
+                string[] managedDlls = { "System.Data.SQLite" };
 
                 foreach (string dllName in managedDlls)
                 {
@@ -358,13 +485,19 @@ namespace TinyOPDS
 
         /// <summary>
         /// Preload native DLLs (call this before using SQLite)
+        /// Windows only - Unix systems use system SQLite
         /// </summary>
         public static void PreloadNativeDlls()
         {
-            if (!Utils.IsLinux)
+            // Only load native DLLs on Windows
+            // Unix systems (Linux/macOS) use system SQLite through Mono.Data.Sqlite
+            if (Utils.IsLinux || Utils.IsMacOS)
             {
-                LoadNativeDll("SQLite.Interop.dll");
+                Log.WriteLine("Skipping native DLL preload on Unix system");
+                return;
             }
+
+            LoadNativeDll("SQLite.Interop.dll");
         }
 
         /// <summary>
@@ -376,13 +509,19 @@ namespace TinyOPDS
             info.AppendLine("Loaded managed assemblies:");
             foreach (var kvp in loadedAssemblies)
             {
-                info.AppendLine($"  {kvp.Key} -> {kvp.Value.FullName}");
+                info.AppendLine("  " + kvp.Key + " -> " + kvp.Value.FullName);
             }
 
             info.AppendLine("Extracted native DLLs:");
             foreach (var kvp in extractedNativeDlls)
             {
-                info.AppendLine($"  {kvp.Key} -> {kvp.Value}");
+                info.AppendLine("  " + kvp.Key + " -> " + kvp.Value);
+            }
+
+            if (linuxSqliteAssembly != null)
+            {
+                info.AppendLine("Unix SQLite assembly:");
+                info.AppendLine("  " + linuxSqliteAssembly.FullName);
             }
 
             return info.ToString();

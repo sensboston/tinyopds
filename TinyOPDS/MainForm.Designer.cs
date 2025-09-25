@@ -245,9 +245,9 @@
             // 
             this.useWatcher.Checked = global::TinyOPDS.Properties.Settings.Default.WatchLibrary;
             this.useWatcher.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "WatchLibrary", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.useWatcher.Location = new System.Drawing.Point(328, 37);
+            this.useWatcher.Location = new System.Drawing.Point(335, 37);
             this.useWatcher.Name = "useWatcher";
-            this.useWatcher.Size = new System.Drawing.Size(154, 15);
+            this.useWatcher.Size = new System.Drawing.Size(147, 15);
             this.useWatcher.TabIndex = 30;
             this.useWatcher.Text = "Monitor changes";
             this.useWatcher.UseVisualStyleBackColor = true;
@@ -427,7 +427,7 @@
             // folderButton
             // 
             this.folderButton.Image = ((System.Drawing.Image)(resources.GetObject("folderButton.Image")));
-            this.folderButton.Location = new System.Drawing.Point(288, 31);
+            this.folderButton.Location = new System.Drawing.Point(294, 31);
             this.folderButton.Name = "folderButton";
             this.folderButton.Size = new System.Drawing.Size(29, 26);
             this.folderButton.TabIndex = 10;
@@ -455,9 +455,9 @@
             // scannerButton
             // 
             this.scannerButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.scannerButton.Location = new System.Drawing.Point(291, 260);
+            this.scannerButton.Location = new System.Drawing.Point(281, 260);
             this.scannerButton.Name = "scannerButton";
-            this.scannerButton.Size = new System.Drawing.Size(201, 40);
+            this.scannerButton.Size = new System.Drawing.Size(204, 40);
             this.scannerButton.TabIndex = 7;
             this.scannerButton.Text = "Start scanning";
             this.scannerButton.UseVisualStyleBackColor = true;
@@ -465,9 +465,9 @@
             // 
             // libraryPath
             // 
-            this.libraryPath.Location = new System.Drawing.Point(17, 35);
+            this.libraryPath.Location = new System.Drawing.Point(19, 35);
             this.libraryPath.Name = "libraryPath";
-            this.libraryPath.Size = new System.Drawing.Size(269, 20);
+            this.libraryPath.Size = new System.Drawing.Size(272, 20);
             this.libraryPath.TabIndex = 6;
             this.libraryPath.TextChanged += new System.EventHandler(this.LibraryPath_TextChanged);
             this.libraryPath.Validated += new System.EventHandler(this.LibraryPath_Validated);
@@ -504,7 +504,7 @@
             this.tabPage2.Location = new System.Drawing.Point(4, 34);
             this.tabPage2.Name = "tabPage2";
             this.tabPage2.Padding = new System.Windows.Forms.Padding(3, 3, 3, 3);
-            this.tabPage2.Size = new System.Drawing.Size(503, 317);
+            this.tabPage2.Size = new System.Drawing.Size(513, 317);
             this.tabPage2.TabIndex = 1;
             this.tabPage2.Text = "Server";
             // 
@@ -703,7 +703,7 @@
             this.serverButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.serverButton.Location = new System.Drawing.Point(281, 260);
             this.serverButton.Name = "serverButton";
-            this.serverButton.Size = new System.Drawing.Size(201, 40);
+            this.serverButton.Size = new System.Drawing.Size(204, 40);
             this.serverButton.TabIndex = 8;
             this.serverButton.Text = "Start server";
             this.serverButton.Click += new System.EventHandler(this.ServerButton_Click);
@@ -750,7 +750,7 @@
             this.serverName.Size = new System.Drawing.Size(199, 20);
             this.serverName.TabIndex = 12;
             this.serverName.Text = global::TinyOPDS.Properties.Settings.Default.ServerName;
-            this.serverName.TextChanged += new System.EventHandler(this.ServerName_TextChanged);
+            this.serverName.Validated += new System.EventHandler(this.ServerName_Validated);
             // 
             // tabPage6
             // 
@@ -770,7 +770,7 @@
             this.tabPage6.Controls.Add(this.itemsPerOPDS);
             this.tabPage6.Location = new System.Drawing.Point(4, 34);
             this.tabPage6.Name = "tabPage6";
-            this.tabPage6.Size = new System.Drawing.Size(503, 317);
+            this.tabPage6.Size = new System.Drawing.Size(513, 317);
             this.tabPage6.TabIndex = 5;
             this.tabPage6.Text = "OPDS catalog";
             // 
@@ -784,7 +784,7 @@
             this.filterByLanguage.TabIndex = 12;
             this.filterByLanguage.Text = "Books in interface language only";
             this.filterByLanguage.UseVisualStyleBackColor = true;
-            this.filterByLanguage.CheckedChanged += new System.EventHandler(this.filterByLanguage_CheckedChanged);
+            this.filterByLanguage.CheckedChanged += new System.EventHandler(this.FilterByLanguage_CheckedChanged);
             // 
             // clearDownloadsButton
             // 
@@ -979,7 +979,7 @@
             this.tabPage7.Margin = new System.Windows.Forms.Padding(1, 1, 1, 1);
             this.tabPage7.Name = "tabPage7";
             this.tabPage7.Padding = new System.Windows.Forms.Padding(1, 1, 1, 1);
-            this.tabPage7.Size = new System.Drawing.Size(503, 317);
+            this.tabPage7.Size = new System.Drawing.Size(513, 317);
             this.tabPage7.TabIndex = 6;
             this.tabPage7.Text = "OPDS routes";
             this.tabPage7.UseVisualStyleBackColor = true;
@@ -1016,7 +1016,7 @@
             this.tabPage5.Location = new System.Drawing.Point(4, 34);
             this.tabPage5.Name = "tabPage5";
             this.tabPage5.Padding = new System.Windows.Forms.Padding(3, 3, 3, 3);
-            this.tabPage5.Size = new System.Drawing.Size(503, 317);
+            this.tabPage5.Size = new System.Drawing.Size(513, 317);
             this.tabPage5.TabIndex = 4;
             this.tabPage5.Text = "Auth";
             // 
@@ -1161,7 +1161,7 @@
             this.tabPage3.Location = new System.Drawing.Point(4, 34);
             this.tabPage3.Name = "tabPage3";
             this.tabPage3.Padding = new System.Windows.Forms.Padding(3, 3, 3, 3);
-            this.tabPage3.Size = new System.Drawing.Size(503, 317);
+            this.tabPage3.Size = new System.Drawing.Size(513, 317);
             this.tabPage3.TabIndex = 2;
             this.tabPage3.Text = "Misc";
             // 
@@ -1325,7 +1325,7 @@
             this.tabPage4.Location = new System.Drawing.Point(4, 34);
             this.tabPage4.Name = "tabPage4";
             this.tabPage4.Padding = new System.Windows.Forms.Padding(3, 3, 3, 3);
-            this.tabPage4.Size = new System.Drawing.Size(503, 317);
+            this.tabPage4.Size = new System.Drawing.Size(513, 317);
             this.tabPage4.TabIndex = 3;
             this.tabPage4.Text = "About";
             // 

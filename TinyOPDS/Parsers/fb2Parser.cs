@@ -7,6 +7,7 @@
  *
  * Native FB2 parser without external dependencies - optimized version
  * FIXED: Now properly extracts document ID from FB2 instead of generating random GUIDs
+ * FIXED: Proper date handling - ALWAYS validates dates before returning Book object
  *
  */
 
@@ -15,7 +16,6 @@ using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Xml;
 using System.Xml.Linq;
 using System.Drawing;
 using System.Globalization;
@@ -27,7 +27,7 @@ namespace TinyOPDS.Parsers
 {
     public class FB2Parser : BookParser
     {
-        private XNamespace fb2Ns = "http://www.gribuser.ru/xml/fictionbook/2.0";
+        private readonly XNamespace fb2Ns = "http://www.gribuser.ru/xml/fictionbook/2.0";
 
         public override Book Parse(Stream stream, string fileName)
         {
@@ -55,11 +55,12 @@ namespace TinyOPDS.Parsers
                 var description = ReadDescriptionBlock(stream, fileName);
                 if (description != null)
                 {
-                    // FIXED: Removed automatic GUID generation - will be extracted from document-info
-                    // or generated only if missing
-
                     // Parse description content
                     ParseDescriptionContent(description, book, fileName);
+                }
+                else
+                {
+                    Log.WriteLine(LogLevel.Warning, "No description block found in {0}", fileName);
                 }
             }
             catch (Exception e)
@@ -67,7 +68,60 @@ namespace TinyOPDS.Parsers
                 Log.WriteLine(LogLevel.Error, "Book.Parse() exception {0} on file: {1}", e.Message, fileName);
             }
 
+            // CRITICAL FIX: Always validate dates before returning, regardless of parsing success
+            EnsureValidDates(book, fileName);
+
             return book;
+        }
+
+        /// <summary>
+        /// CRITICAL: Ensures book has valid dates - NEVER allows DateTime.MinValue
+        /// This method MUST be called before returning any Book object
+        /// </summary>
+        private void EnsureValidDates(Book book, string fileName)
+        {
+            DateTime fileDate = DateParser.GetFileDate(fileName);
+
+            // Validate BookDate
+            if (book.BookDate == DateTime.MinValue ||
+                book.BookDate == default ||
+                book.BookDate.Year <= 1 ||
+                book.BookDate.Year < 1800 ||
+                book.BookDate.Year > DateTime.Now.Year + 10)
+            {
+                Log.WriteLine(LogLevel.Warning,
+                    "Invalid or missing BookDate {0} for {1}, using file date {2}",
+                    book.BookDate, fileName, fileDate);
+                book.BookDate = fileDate;
+            }
+
+            // Validate DocumentDate
+            if (book.DocumentDate == DateTime.MinValue ||
+                book.DocumentDate == default ||
+                book.DocumentDate.Year <= 1)
+            {
+                Log.WriteLine(LogLevel.Info,
+                    "Invalid or missing DocumentDate for {0}, using file date", fileName);
+                book.DocumentDate = fileDate;
+            }
+
+            // Generate ID if missing
+            if (string.IsNullOrEmpty(book.ID))
+            {
+                book.ID = Utils.CreateGuid(Utils.IsoOidNamespace, fileName).ToString();
+                book.DocumentIDTrusted = false;
+                Log.WriteLine(LogLevel.Info, "No document ID found in FB2, generated: {0} for file: {1}",
+                    book.ID, fileName);
+            }
+
+            // Final safety check - should never happen after above validations
+            if (book.BookDate.Year <= 1 || book.DocumentDate.Year <= 1)
+            {
+                Log.WriteLine(LogLevel.Error,
+                    "CRITICAL: Date validation failed for {0}, forcing current date", fileName);
+                book.BookDate = DateTime.Now;
+                book.DocumentDate = DateTime.Now;
+            }
         }
 
         private XElement ReadDescriptionBlock(Stream stream, string fileName)
@@ -221,37 +275,28 @@ namespace TinyOPDS.Parsers
 
         private void ParseDescriptionContent(XElement description, Book book, string fileName)
         {
-            // Parse title-info
+            // Parse title-info FIRST (contains book date)
             var titleInfo = description.Element(fb2Ns + "title-info");
             if (titleInfo != null)
             {
                 ParseTitleInfo(titleInfo, book, fileName);
             }
 
-            // Parse document-info - MUST be after title-info to extract ID
+            // Parse document-info SECOND (contains document date, NOT book date)
             var documentInfo = description.Element(fb2Ns + "document-info");
             if (documentInfo != null)
             {
                 ParseDocumentInfo(documentInfo, book, fileName);
             }
 
-            // FIXED: If no ID was extracted from document-info, generate one based on book data
-            if (string.IsNullOrEmpty(book.ID))
-            {
-                // Generate ID based on file name and content (deterministic)
-                book.ID = Utils.CreateGuid(Utils.IsoOidNamespace, fileName).ToString();
-                book.DocumentIDTrusted = false;
-
-                Log.WriteLine(LogLevel.Info, "No document ID found in FB2, generated: {0} for file: {1}",
-                    book.ID, fileName);
-            }
-
-            // Parse publish-info (optional)
+            // Parse publish-info THIRD (can override book date if more accurate)
             var publishInfo = description.Element(fb2Ns + "publish-info");
             if (publishInfo != null)
             {
-                ParsePublishInfo(publishInfo, book);
+                ParsePublishInfo(publishInfo, book, fileName);
             }
+
+            // NOTE: Date validation moved to EnsureValidDates() which is ALWAYS called
         }
 
         private void ParseTitleInfo(XElement titleInfo, Book book, string fileName)
@@ -292,16 +337,13 @@ namespace TinyOPDS.Parsers
                 book.Annotation = ExtractTextFromAnnotation(annotation);
             }
 
-            // Date
+            // Date - this is the BOOK creation date
             var date = titleInfo.Element(fb2Ns + "date");
             if (date != null)
             {
-                book.BookDate = ParseDate(date, fileName);
+                book.BookDate = DateParser.ParseFB2Date(date, fileName);
             }
-            else
-            {
-                book.BookDate = DateParser.GetFileDate(fileName);
-            }
+            // If no date, EnsureValidDates() will handle it
 
             // Language
             var lang = titleInfo.Element(fb2Ns + "lang")?.Value;
@@ -348,7 +390,7 @@ namespace TinyOPDS.Parsers
 
         private void ParseDocumentInfo(XElement documentInfo, Book book, string fileName)
         {
-            // CRITICAL FIX: Extract document ID from FB2
+            // Extract document ID from FB2
             var documentId = documentInfo.Element(fb2Ns + "id")?.Value;
             if (!string.IsNullOrEmpty(documentId))
             {
@@ -357,21 +399,15 @@ namespace TinyOPDS.Parsers
 
                 // Set the ID - the setter in Book.cs will validate if it's a trusted GUID
                 book.ID = documentId;
-
-                Log.WriteLine(LogLevel.Info, "Extracted document ID: {0} (trusted: {1}) from file: {2}",
-                    book.ID, book.DocumentIDTrusted, fileName);
             }
 
-            // Document date
+            // Document date - FIXED: use DocumentDate, NOT BookDate!
             var date = documentInfo.Element(fb2Ns + "date");
             if (date != null)
             {
-                book.DocumentDate = ParseDate(date, fileName);
+                book.DocumentDate = DateParser.ParseFB2Date(date, fileName);
             }
-            else
-            {
-                book.DocumentDate = DateParser.GetFileDate(fileName);
-            }
+            // If no date, EnsureValidDates() will handle it
 
             // Version
             var version = documentInfo.Element(fb2Ns + "version")?.Value;
@@ -381,21 +417,36 @@ namespace TinyOPDS.Parsers
             }
         }
 
-        private void ParsePublishInfo(XElement publishInfo, Book book)
+        private void ParsePublishInfo(XElement publishInfo, Book book, string fileName)
         {
-            // Publisher
-            var publisher = publishInfo.Element(fb2Ns + "publisher")?.Value;
-
-            // Year
+            // Year from publish-info can be more accurate than from title-info
             var year = publishInfo.Element(fb2Ns + "year")?.Value;
             if (!string.IsNullOrEmpty(year) && int.TryParse(year, out int yearNum))
             {
-                // Can override book date if needed
-                // book.BookDate = new DateTime(yearNum, 1, 1);
+                // Validate the year
+                if (yearNum > 1800 && yearNum <= DateTime.Now.Year)
+                {
+                    // Use publish year if book date is clearly invalid
+                    if (book.BookDate == DateTime.MinValue ||
+                        book.BookDate == default ||
+                        book.BookDate.Year <= 1)
+                    {
+                        book.BookDate = new DateTime(yearNum, 1, 1);
+                        Log.WriteLine(LogLevel.Info, "Using publish year {0} for book date in {1}", yearNum, fileName);
+                    }
+                    // Or if publish year seems more reasonable than parsed date
+                    else if (book.BookDate.Year < 1800 || book.BookDate.Year > DateTime.Now.Year + 10)
+                    {
+                        book.BookDate = new DateTime(yearNum, 1, 1);
+                        Log.WriteLine(LogLevel.Info, "Replacing suspicious book date with publish year {0} in {1}", yearNum, fileName);
+                    }
+                }
             }
 
-            // ISBN
-            var isbn = publishInfo.Element(fb2Ns + "isbn")?.Value;
+            // Publisher and ISBN could be stored if Book class had these fields
+            // For now, we just parse them for validation
+            _ = publishInfo.Element(fb2Ns + "publisher")?.Value;
+            _ = publishInfo.Element(fb2Ns + "isbn")?.Value;
         }
 
         private string ParsePersonName(XElement person)
@@ -430,52 +481,6 @@ namespace TinyOPDS.Parsers
             }
 
             return string.Join(" ", nameParts);
-        }
-
-        private DateTime ParseDate(XElement dateElement, string fileName)
-        {
-            // Try value attribute first
-            var dateValue = dateElement.Attribute("value")?.Value;
-            if (!string.IsNullOrEmpty(dateValue))
-            {
-                if (DateTime.TryParse(dateValue, out DateTime parsedDate))
-                {
-                    return ValidateDate(parsedDate);
-                }
-            }
-
-            // Try element text
-            var dateText = dateElement.Value;
-            if (!string.IsNullOrEmpty(dateText))
-            {
-                // Try full date
-                if (DateTime.TryParse(dateText, out DateTime parsedDate))
-                {
-                    return ValidateDate(parsedDate);
-                }
-
-                // Try year only
-                if (int.TryParse(dateText.Substring(0, Math.Min(4, dateText.Length)), out int year))
-                {
-                    if (year >= 1 && year <= 9999)
-                    {
-                        return new DateTime(year, 1, 1);
-                    }
-                }
-            }
-
-            return DateParser.GetFileDate(fileName);
-        }
-
-        private DateTime ValidateDate(DateTime date)
-        {
-            if (date.Year < 1 || date.Year > 9999)
-                return DateTime.Now;
-
-            if (date > DateTime.Now.AddYears(10))
-                return DateTime.Now;
-
-            return date;
         }
 
         private string ExtractTextFromAnnotation(XElement annotation)

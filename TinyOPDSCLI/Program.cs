@@ -122,6 +122,38 @@ namespace TinyOPDSCLI
 
         static int Main(string[] args)
         {
+            // Transparent restart with Homebrew SQLite on macOS
+            if (Utils.IsMacOS && Environment.GetEnvironmentVariable("TINYOPDS_SQLITE_FIXED") == null)
+            {
+                string homebrewSqlitePath = null;
+
+                // Check for Homebrew SQLite
+                if (Directory.Exists("/usr/local/opt/sqlite/lib")) homebrewSqlitePath = "/usr/local/opt/sqlite/lib";  // Intel Mac
+                else if (Directory.Exists("/opt/homebrew/opt/sqlite/lib")) homebrewSqlitePath = "/opt/homebrew/opt/sqlite/lib";  // ARM Mac
+
+                if (homebrewSqlitePath != null)
+                {
+                    // Restart silently with correct SQLite
+                    var startInfo = new ProcessStartInfo
+                    {
+                        FileName = "mono",
+                        Arguments = "\"" + Assembly.GetExecutingAssembly().Location + "\" " + string.Join(" ", args),
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                        RedirectStandardOutput = false,
+                        RedirectStandardError = false
+                    };
+
+                    // Set environment variables
+                    startInfo.EnvironmentVariables["DYLD_LIBRARY_PATH"] = homebrewSqlitePath;
+                    startInfo.EnvironmentVariables["TINYOPDS_SQLITE_FIXED"] = "1";  // Prevent infinite loop
+
+                    var process = Process.Start(startInfo);
+                    process.WaitForExit();
+                    return process.ExitCode;
+                }
+            }
+
             // Use portable settings provider
             PortableSettingsProvider.SettingsFileName = "TinyOPDS.config";
             PortableSettingsProvider.ApplyProvider(Settings.Default);
@@ -140,7 +172,7 @@ namespace TinyOPDSCLI
             // Check for single instance only if enabled in settings
             if (Settings.Default.OnlyOneInstance)
             {
-                if (Utils.IsLinux)
+                if (Utils.IsLinux || Utils.IsMacOS)
                 {
                     if (IsApplicationRunningOnMono("TinyOPDSCLI.exe"))
                     {
@@ -160,7 +192,7 @@ namespace TinyOPDSCLI
 
             try
             {
-                if (Utils.IsLinux || Environment.UserInteractive)
+                if (Utils.IsLinux || Utils.IsMacOS || Environment.UserInteractive)
                 {
                     // Add Ctrl+c handler with proper cleanup
                     Console.CancelKeyPress += async (sender, eventArgs) =>
@@ -180,7 +212,7 @@ namespace TinyOPDSCLI
                     };
 
                     // On Linux, we need clear console (terminal) window first
-                    if (Utils.IsLinux) Console.Write("\u001b[1J\u001b[0;0H");
+                    if (!Utils.IsWindows) Console.Write("\u001b[1J\u001b[0;0H");
                     Console.WriteLine("TinyOPDS Command Line Interface, {0}, copyright (c) 2013-2025 SeNSSoFT",
                         string.Format(Localizer.Text("version {0}.{1} {2}"), Utils.Version.Major, Utils.Version.Minor,
                         Utils.Version.Major == 0 ? " (beta)" : ""));
@@ -244,7 +276,7 @@ namespace TinyOPDSCLI
                                         Console.WriteLine("{0} uninstalled", SERVICE_DISPLAY_NAME);
 
                                         // On Windows, kill other service processes
-                                        if (!Utils.IsLinux && !Utils.IsMacOS)
+                                        if (Utils.IsWindows)
                                         {
                                             Process[] localByName = Process.GetProcessesByName("TinyOPDSCLI");
                                             foreach (Process p in localByName)
@@ -256,7 +288,7 @@ namespace TinyOPDSCLI
                                     }
                                     catch (UnauthorizedAccessException)
                                     {
-                                        if (Utils.IsLinux || Utils.IsMacOS)
+                                        if (!Utils.IsWindows)
                                         {
                                             Console.WriteLine("Please run with sudo: sudo mono TinyOPDSCLI.exe uninstall");
                                         }
@@ -284,48 +316,48 @@ namespace TinyOPDSCLI
                                 {
                                     try
                                     {
-                                        var installer = ServiceInstallerBase.CreateInstaller(
-                                            SERVICE_NAME, SERVICE_DISPLAY_NAME, exePath, SERVICE_DESCRIPTION);
+                                        var installer = ServiceInstallerBase.CreateInstaller(SERVICE_NAME, SERVICE_DISPLAY_NAME, exePath, SERVICE_DESCRIPTION);
 
                                         if (installer.IsInstalled())
                                         {
-                                            installer.Start();
-                                            Console.WriteLine("{0} started", SERVICE_DISPLAY_NAME);
-                                        }
-                                        else
-                                        {
-                                            // If service is not installed, run in console mode
-                                            StartServer();
-                                        }
-                                    }
-                                    catch (UnauthorizedAccessException)
-                                    {
-                                        if (Utils.IsLinux || Utils.IsMacOS)
-                                        {
-                                            Console.WriteLine("Please run with sudo: sudo mono TinyOPDSCLI.exe start");
-                                        }
-                                        else
-                                        {
-                                            // Windows - try to elevate
-                                            if (RunElevated("start"))
+                                            // Service is installed - start it through system service manager
+                                            try
+                                            {
+                                                installer.Start();
                                                 Console.WriteLine("{0} started", SERVICE_DISPLAY_NAME);
-                                            else
-                                                Console.WriteLine("{0} failed to start", SERVICE_DISPLAY_NAME);
+                                                CleanupAndExit(0);
+                                            }
+                                            catch (UnauthorizedAccessException)
+                                            {
+                                                if (!Utils.IsWindows)
+                                                {
+                                                    Console.WriteLine("Please run with sudo: sudo mono TinyOPDSCLI.exe start");
+                                                }
+                                                else
+                                                {
+                                                    // Windows - try to elevate
+                                                    if (RunElevated("start"))
+                                                        Console.WriteLine("{0} started", SERVICE_DISPLAY_NAME);
+                                                    else
+                                                        Console.WriteLine("{0} failed to start", SERVICE_DISPLAY_NAME);
+                                                }
+                                                CleanupAndExit(-1);
+                                            }
                                         }
-                                        CleanupAndExit(-1);
-                                    }
-                                    catch (InvalidOperationException)
-                                    {
-                                        // Service not installed, run in console mode
-                                        Console.WriteLine("Service not installed, starting in console mode...");
-                                        StartServer();
+                                        else
+                                        {
+                                            // Service not installed - run in console mode
+                                            Console.WriteLine("Service not installed, starting in console mode...");
+                                            StartServer();
+                                            // StartServer() has its own wait loop, will exit when done
+                                        }
                                     }
                                     catch (Exception e)
                                     {
-                                        Console.WriteLine("{0} failed to start: {1}", SERVICE_DISPLAY_NAME, e.Message);
-                                        CleanupAndExit(-1);
+                                        // If we can't create installer or check status, run in console mode
+                                        Console.WriteLine("Cannot check service status ({0}), starting in console mode...", e.Message);
+                                        StartServer();
                                     }
-                                    CleanupAndExit(0);
                                 }
                                 break;
 
@@ -348,7 +380,7 @@ namespace TinyOPDSCLI
                                     }
                                     catch (UnauthorizedAccessException)
                                     {
-                                        if (Utils.IsLinux || Utils.IsMacOS)
+                                        if (!Utils.IsWindows)
                                         {
                                             Console.WriteLine("Please run with sudo: sudo mono TinyOPDSCLI.exe stop");
                                         }
@@ -412,11 +444,11 @@ namespace TinyOPDSCLI
                 else
                 {
                     // Running as Windows service (non-interactive)
-                    if (!Utils.IsLinux)
+                    if (Utils.IsWindows)
                     {
                         ServiceBase[] ServicesToRun;
                         ServicesToRun = new ServiceBase[] { new Program() };
-                        ServiceBase.Run(ServicesToRun);
+                        Run(ServicesToRun);
                     }
                 }
 
@@ -438,8 +470,7 @@ namespace TinyOPDSCLI
         /// </summary>
         private static void ShowHelp()
         {
-            bool needsSudo = Utils.IsLinux || Utils.IsMacOS;
-            string prefix = needsSudo ? "sudo mono TinyOPDSCLI.exe" : "TinyOPDSCLI.exe";
+            string prefix = !Utils.IsWindows ? "sudo mono TinyOPDSCLI.exe" : "TinyOPDSCLI.exe";
 
             Console.WriteLine("\nUsage: {0} [command]", prefix);
             Console.WriteLine("\nAvailable commands:");
@@ -801,7 +832,7 @@ namespace TinyOPDSCLI
             else
             {
                 Log.WriteLine("HTTP server started");
-                if (Utils.IsLinux || Environment.UserInteractive)
+                if (Utils.IsLinux || Utils.IsMacOS || Environment.UserInteractive)
                 {
                     Console.WriteLine("Server is running... Press <Ctrl+c> to shutdown server.");
                     while (server != null && server.IsActive) Thread.Sleep(500);
@@ -971,15 +1002,20 @@ namespace TinyOPDSCLI
                 string info = string.Format("Elapsed: {0}, rate: {1}, found fb2: {2}, epub: {3}, skipped: {4}, dups: {5}, invalid: {6}, total: {7}, in DB: {8}     ",
                     dt.ToString(@"hh\:mm\:ss"), rate, FB2, EPUB, skippedFiles, dups, invalidFiles, totalProcessed, TotalBooks);
 
-                if (!Utils.IsLinux)
+                if (Utils.IsWindows)
                 {
                     Console.Write(info + "\r");
                     Console.SetCursorPosition(0, Console.CursorTop - info.Length / Console.WindowWidth);
                 }
-                else
+                else if (Utils.IsLinux)
                 {
-                    // For Linux we use ANSI escape sequences to control cursor
+                    // For Linux keep the working version with CSI sequences
                     Console.Write("\u001b[s" + info + "\u001b[u");
+                }
+                else if (Utils.IsMacOS)
+                {
+                    // For macOS - use DEC private sequences ESC 7/8 instead of CSI s/u
+                    Console.Write("\u001b7" + info + "\u001b8");
                 }
             }
             catch (Exception ex)

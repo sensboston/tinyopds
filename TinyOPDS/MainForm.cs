@@ -19,6 +19,7 @@ using System.Net;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 using UPnP;
 
@@ -455,9 +456,9 @@ namespace TinyOPDS
                 databaseFileName.Text = "books.sqlite";
             }
 
-            serverName.TextChanged -= ServerName_TextChanged;
+            serverName.Validated -= ServerName_Validated;
             serverName.Text = Settings.Default.ServerName ?? "Home library";
-            serverName.TextChanged += ServerName_TextChanged;
+            serverName.Validated += ServerName_Validated;
 
             appVersion.Text = string.Format(Localizer.Text("version {0}.{1} {2}"), Utils.Version.Major, Utils.Version.Minor, Utils.Version.Major == 0 ? " (beta)" : "");
             filterByLanguage.Checked = Settings.Default.FilterBooksByInterfaceLanguage;
@@ -1135,7 +1136,8 @@ namespace TinyOPDS
 
         private void ViewLogFile_Click(object sender, EventArgs e)
         {
-            System.Diagnostics.Process.Start(Log.LogFileName);
+            if (File.Exists(Log.LogFileName))
+                Process.Start(Log.LogFileName);
         }
 
         private void SortOrderCombo_SelectedIndexChanged(object sender, EventArgs e)
@@ -1473,12 +1475,6 @@ namespace TinyOPDS
             }
         }
 
-        private void ServerName_TextChanged(object sender, EventArgs e)
-        {
-            Settings.Default.ServerName = serverName.Text;
-            Settings.Default.Save();
-        }
-
         private void ItemsPerOPDS_ValueChanged(object sender, EventArgs e)
         {
             Settings.Default.ItemsPerOPDSPage = (int)itemsPerOPDS.Value;
@@ -1509,10 +1505,19 @@ namespace TinyOPDS
             Settings.Default.Save();
         }
 
-        private void filterByLanguage_CheckedChanged(object sender, EventArgs e)
+        private void FilterByLanguage_CheckedChanged(object sender, EventArgs e)
         {
             Settings.Default.FilterBooksByInterfaceLanguage = filterByLanguage.Checked;
             Settings.Default.Save();
+        }
+
+        private void ServerName_Validated(object sender, EventArgs e)
+        {
+            if (!string.IsNullOrWhiteSpace(serverName.Text))
+            {
+                Settings.Default.ServerName = serverName.Text;
+                Settings.Default.Save();
+            }
         }
 
         private void HandleNodeDependencies(string tag, bool isChecked)

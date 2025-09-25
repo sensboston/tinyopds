@@ -215,34 +215,24 @@ namespace TinyOPDS
         /// <summary>
         /// Factory method to create appropriate installer for current platform
         /// </summary>
-        public static ServiceInstallerBase CreateInstaller(string serviceName, string displayName,
-            string executablePath, string description)
+        public static ServiceInstallerBase CreateInstaller(string serviceName, string displayName, string exePath, string description)
         {
-            PlatformID platform = Environment.OSVersion.Platform;
-
-            switch (platform)
+            // Use Utils for reliable platform detection
+            if (Utils.IsWindows)
             {
-                case PlatformID.Win32NT:
-                    return new WindowsServiceInstaller(serviceName, displayName, executablePath, description);
-
-                case PlatformID.Unix:
-                case (PlatformID)128: // Old Mono detection for Unix
-                    return new LinuxServiceInstaller(serviceName, displayName, executablePath, description);
-
-                case PlatformID.MacOSX:
-                    // Check if really macOS
-                    if (Directory.Exists("/System/Library/CoreServices"))
-                    {
-                        return new MacServiceInstaller(serviceName, displayName, executablePath, description);
-                    }
-                    else
-                    {
-                        // Probably Linux with incorrect platform ID
-                        return new LinuxServiceInstaller(serviceName, displayName, executablePath, description);
-                    }
-
-                default:
-                    throw new PlatformNotSupportedException($"Platform {platform} is not supported");
+                return new WindowsServiceInstaller(serviceName, displayName, exePath, description);
+            }
+            else if (Utils.IsMacOS)
+            {
+                return new MacServiceInstaller(serviceName, displayName, exePath, description);
+            }
+            else if (Utils.IsLinux)
+            {
+                return new LinuxServiceInstaller(serviceName, displayName, exePath, description);
+            }
+            else
+            {
+                throw new PlatformNotSupportedException("Platform is not supported");
             }
         }
     }

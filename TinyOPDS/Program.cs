@@ -30,6 +30,19 @@ namespace TinyOPDS
         [STAThread]
         static void Main()
         {
+            // Check for macOS WinForms compatibility
+            if (Utils.IsMacOS)
+            {
+                string message = "GUI version is not supported on macOS due to WinForms incompatibility with 64-bit Mono.\n" +
+                                "CLI version provides full functionality including library scanning and OPDS/WEB server.";
+
+                Console.WriteLine(message);
+                Environment.Exit(0);
+            }
+
+            // Initialize embedded DLL loader first (before any other operations)
+            EmbeddedDllLoader.Initialize();
+
             // Initialize embedded DLL loader first (before any other operations)
             EmbeddedDllLoader.Initialize();
             EmbeddedDllLoader.PreloadNativeDlls();

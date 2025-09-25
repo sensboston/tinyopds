@@ -456,9 +456,9 @@ namespace TinyOPDS
                 databaseFileName.Text = "books.sqlite";
             }
 
-            serverName.TextChanged -= ServerName_TextChanged;
+            serverName.Validated -= ServerName_Validated;
             serverName.Text = Settings.Default.ServerName ?? "Home library";
-            serverName.TextChanged += ServerName_TextChanged;
+            serverName.Validated += ServerName_Validated;
 
             appVersion.Text = string.Format(Localizer.Text("version {0}.{1} {2}"), Utils.Version.Major, Utils.Version.Minor, Utils.Version.Major == 0 ? " (beta)" : "");
             filterByLanguage.Checked = Settings.Default.FilterBooksByInterfaceLanguage;
@@ -1475,12 +1475,6 @@ namespace TinyOPDS
             }
         }
 
-        private void ServerName_TextChanged(object sender, EventArgs e)
-        {
-            Settings.Default.ServerName = serverName.Text;
-            Settings.Default.Save();
-        }
-
         private void ItemsPerOPDS_ValueChanged(object sender, EventArgs e)
         {
             Settings.Default.ItemsPerOPDSPage = (int)itemsPerOPDS.Value;
@@ -1515,6 +1509,15 @@ namespace TinyOPDS
         {
             Settings.Default.FilterBooksByInterfaceLanguage = filterByLanguage.Checked;
             Settings.Default.Save();
+        }
+
+        private void ServerName_Validated(object sender, EventArgs e)
+        {
+            if (!string.IsNullOrWhiteSpace(serverName.Text))
+            {
+                Settings.Default.ServerName = serverName.Text;
+                Settings.Default.Save();
+            }
         }
 
         private void HandleNodeDependencies(string tag, bool isChecked)

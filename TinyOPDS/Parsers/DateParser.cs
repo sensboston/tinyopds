@@ -6,7 +6,8 @@
  * SPDX-License-Identifier: MIT
  *
  * Intelligent date parser with Russian language support
- * FIXED: Proper fallback handling in ValidateDate
+ * FIXED: Proper validation - NEVER allows Year <= 1
+ * FIXED: Always returns valid date, never DateTime.MinValue
  * 
  */
 
@@ -37,43 +38,40 @@ namespace TinyOPDS.Parsers
 
         /// <summary>
         /// Parse date from various formats including Russian
-        /// ENSURES that a valid date is always returned - never DateTime.MinValue
+        /// ENSURES that a valid date is always returned - NEVER DateTime.MinValue or Year <= 1
         /// </summary>
         /// <param name="dateString">Date string to parse</param>
         /// <param name="fallbackDate">Fallback date to use if parsing fails</param>
-        /// <returns>Parsed date or fallback - NEVER DateTime.MinValue</returns>
+        /// <returns>Parsed date or fallback - NEVER DateTime.MinValue or Year <= 1</returns>
         public static DateTime ParseDate(string dateString, DateTime? fallbackDate = null)
         {
-            // Ensure we have a valid fallback
-            if (!fallbackDate.HasValue || fallbackDate.Value == DateTime.MinValue || fallbackDate.Value.Year <= 1)
-            {
-                fallbackDate = DateTime.Now;
-            }
+            // CRITICAL: Ensure we ALWAYS have a valid fallback
+            DateTime validFallback = GetValidFallback(fallbackDate);
 
             if (string.IsNullOrWhiteSpace(dateString))
-                return fallbackDate.Value;
+                return validFallback;
 
             dateString = dateString.Trim();
 
             // Try standard parsing first (for ISO dates, etc.)
             if (TryStandardParse(dateString, out DateTime standardDate))
-                return ValidateDate(standardDate, fallbackDate);
+                return ValidateDate(standardDate, validFallback);
 
             // Try parsing Russian date format "Июль 2002 г."
             if (TryParseRussianDate(dateString, out DateTime russianDate))
-                return ValidateDate(russianDate, fallbackDate);
+                return ValidateDate(russianDate, validFallback);
 
             // Try parsing just a year
             if (TryParseYearOnly(dateString, out DateTime yearDate))
-                return ValidateDate(yearDate, fallbackDate);
+                return ValidateDate(yearDate, validFallback);
 
             // Try parsing various other formats
             if (TryParseFlexibleFormat(dateString, out DateTime flexDate))
-                return ValidateDate(flexDate, fallbackDate);
+                return ValidateDate(flexDate, validFallback);
 
             // Return fallback if all parsing attempts failed
             Log.WriteLine(LogLevel.Warning, "Could not parse date: '{0}', using fallback", dateString);
-            return fallbackDate.Value;
+            return validFallback;
         }
 
         /// <summary>
@@ -118,6 +116,29 @@ namespace TinyOPDS.Parsers
                     fileName, ex.Message);
                 return fileDate;
             }
+        }
+
+        /// <summary>
+        /// Get valid fallback date - NEVER returns invalid date
+        /// </summary>
+        private static DateTime GetValidFallback(DateTime? fallbackDate)
+        {
+            // Check if provided fallback is valid
+            if (fallbackDate.HasValue)
+            {
+                var fb = fallbackDate.Value;
+                // Check for all invalid conditions
+                if (fb != DateTime.MinValue &&
+                    fb != default(DateTime) &&
+                    fb.Year > 1800 &&
+                    fb.Year <= DateTime.Now.Year + 10)
+                {
+                    return fb;
+                }
+            }
+
+            // If no valid fallback provided, use current date
+            return DateTime.Now;
         }
 
         /// <summary>
@@ -259,6 +280,18 @@ namespace TinyOPDS.Parsers
                 }
             }
 
+            // Also try to parse single digit or 2-3 digit years (common in broken files)
+            var shortYearMatch = Regex.Match(dateString, @"^\d{1,3}$");
+            if (shortYearMatch.Success)
+            {
+                if (int.TryParse(shortYearMatch.Value, out int year))
+                {
+                    // These are almost certainly invalid years
+                    // Return false to trigger fallback
+                    return false;
+                }
+            }
+
             return false;
         }
 
@@ -299,22 +332,25 @@ namespace TinyOPDS.Parsers
 
         /// <summary>
         /// Validate date is within reasonable bounds
+        /// CRITICAL FIX: Now properly rejects Year <= 1
         /// </summary>
         /// <param name="date">Date to validate</param>
         /// <param name="fallback">Fallback date if validation fails</param>
         /// <returns>Valid date - either the input date if valid, or fallback</returns>
-        private static DateTime ValidateDate(DateTime date, DateTime? fallback)
+        private static DateTime ValidateDate(DateTime date, DateTime fallback)
         {
-            // Ensure fallback is valid
-            DateTime validFallback = (fallback.HasValue && fallback.Value.Year > 1)
-                ? fallback.Value
-                : DateTime.Now;
-
-            // Check for reasonable date bounds
-            if (date.Year < 1 || date.Year > 9999)
+            // CRITICAL FIX: Check for Year <= 1, not just < 1
+            if (date.Year <= 1 || date.Year > 9999)
             {
-                Log.WriteLine(LogLevel.Warning, "Date year out of bounds: {0}, using fallback", date);
-                return validFallback;
+                Log.WriteLine(LogLevel.Warning, "Date year invalid: {0}, using fallback {1}", date, fallback);
+                return fallback;
+            }
+
+            // Check for DateTime.MinValue and default
+            if (date == DateTime.MinValue || date == default(DateTime))
+            {
+                Log.WriteLine(LogLevel.Warning, "Date is MinValue/default, using fallback");
+                return fallback;
             }
 
             // Check for very old dates (before 1800)
@@ -322,14 +358,14 @@ namespace TinyOPDS.Parsers
             if (date.Year < 1800)
             {
                 Log.WriteLine(LogLevel.Warning, "Suspicious old date detected: {0}, using fallback", date);
-                return validFallback;
+                return fallback;
             }
 
             // Check for future dates (more than 10 years ahead)
             if (date > DateTime.Now.AddYears(10))
             {
                 Log.WriteLine(LogLevel.Warning, "Future date detected: {0}, using fallback", date);
-                return validFallback;  // FIXED: use fallback, not DateTime.Now
+                return fallback;
             }
 
             return date;

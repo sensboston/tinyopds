@@ -182,7 +182,6 @@ namespace TinyOPDS.Data
 
         #region Book CRUD Operations
 
-
         /// <summary>
         /// Add a single book to the database with duplicate detection and validation
         /// Thread-safe version using IDbTransaction
@@ -245,11 +244,11 @@ namespace TinyOPDS.Data
                     DatabaseManager.CreateParameter("@FileName", book.FileName),
                     DatabaseManager.CreateParameter("@Title", book.Title),
                     DatabaseManager.CreateParameter("@Language", book.Language),
-                    DatabaseManager.CreateParameter("@BookDate", book.BookDate),
-                    DatabaseManager.CreateParameter("@DocumentDate", book.DocumentDate),
+                    DatabaseManager.CreateParameter("@BookDate", book.BookDate.ToBinary()),
+                    DatabaseManager.CreateParameter("@DocumentDate", book.DocumentDate.ToBinary()),
                     DatabaseManager.CreateParameter("@Annotation", book.Annotation),
                     DatabaseManager.CreateParameter("@DocumentSize", (long)book.DocumentSize),
-                    DatabaseManager.CreateParameter("@AddedDate", book.AddedDate),
+                    DatabaseManager.CreateParameter("@AddedDate", book.AddedDate.ToBinary()),
                     DatabaseManager.CreateParameter("@DocumentIDTrusted", book.DocumentIDTrusted),
                     DatabaseManager.CreateParameter("@DuplicateKey", book.DuplicateKey),
                     DatabaseManager.CreateParameter("@ReplacedByID", book.ReplacedByID),
@@ -609,11 +608,11 @@ namespace TinyOPDS.Data
                                     DatabaseManager.CreateParameter("@FileName", book.FileName),
                                     DatabaseManager.CreateParameter("@Title", book.Title),
                                     DatabaseManager.CreateParameter("@Language", book.Language),
-                                    DatabaseManager.CreateParameter("@BookDate", book.BookDate),
-                                    DatabaseManager.CreateParameter("@DocumentDate", book.DocumentDate),
+                                    DatabaseManager.CreateParameter("@BookDate", book.BookDate.ToBinary()),
+                                    DatabaseManager.CreateParameter("@DocumentDate", book.DocumentDate.ToBinary()),
                                     DatabaseManager.CreateParameter("@Annotation", book.Annotation),
                                     DatabaseManager.CreateParameter("@DocumentSize", (long)book.DocumentSize),
-                                    DatabaseManager.CreateParameter("@AddedDate", book.AddedDate),
+                                    DatabaseManager.CreateParameter("@AddedDate", book.AddedDate.ToBinary()),
                                     DatabaseManager.CreateParameter("@DocumentIDTrusted", book.DocumentIDTrusted),
                                     DatabaseManager.CreateParameter("@DuplicateKey", book.DuplicateKey),
                                     DatabaseManager.CreateParameter("@ReplacedByID", book.ReplacedByID),
@@ -889,7 +888,7 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// FIXED: Cross-platform compatible BookExists method
+        /// Cross-platform compatible BookExists method
         /// </summary>
         public bool BookExists(string fileName)
         {
@@ -1154,7 +1153,7 @@ namespace TinyOPDS.Data
             }
 
             var books = db.ExecuteQuery<Book>(query, MapBook,
-                AddLanguageParameter(DatabaseManager.CreateParameter("@FromDate", fromDate)));
+                AddLanguageParameter(DatabaseManager.CreateParameter("@FromDate", fromDate.ToBinary())));
 
             foreach (var book in books)
             {
@@ -1167,7 +1166,6 @@ namespace TinyOPDS.Data
         {
             string languageFilter = GetLanguageFilter();
 
-            // MODIFIED: Query without Sequence/NumberInSequence fields and with language filter
             string query = @"
                 SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
                        Annotation, DocumentSize, AddedDate
@@ -1671,7 +1669,7 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Get genres with book count > 0 (considers language filter) - FIXED for cross-platform
+        /// Get genres with book count > 0 (considers language filter) - cross-platform
         /// </summary>
         public List<(Genre genre, int bookCount)> GetGenresWithBooks()
         {
@@ -1705,7 +1703,7 @@ namespace TinyOPDS.Data
                         DatabaseManager.GetString(reader, "ParentName"),
                         reader.GetString(2),  // Name
                         DatabaseManager.GetString(reader, "Translation"),
-                        Convert.ToInt32(reader.GetValue(4))   // BookCount - FIXED: Use Convert.ToInt32
+                        Convert.ToInt32(reader.GetValue(4))   // BookCount - Use Convert.ToInt32
                     ),
                     string.IsNullOrEmpty(languageFilter) ? null :
                         new[] { DatabaseManager.CreateParameter("@Language", languageFilter) });
@@ -1770,7 +1768,7 @@ namespace TinyOPDS.Data
 
         #endregion
 
-        #region Statistics - ALL FIXED for cross-platform compatibility
+        #region Statistics - ALL cross-platform compatible
 
         public int GetTotalBooksCount()
         {
@@ -1830,13 +1828,13 @@ namespace TinyOPDS.Data
             if (string.IsNullOrEmpty(languageFilter))
             {
                 var result = db.ExecuteScalar(DatabaseSchema.CountNewBooks,
-                    DatabaseManager.CreateParameter("@FromDate", fromDate));
+                    DatabaseManager.CreateParameter("@FromDate", fromDate.ToBinary()));
                 return Convert.ToInt32(result ?? 0);
             }
             else
             {
                 var result = db.ExecuteScalar("SELECT COUNT(*) FROM Books WHERE AddedDate >= @FromDate AND ReplacedByID IS NULL AND Language = @Language",
-                    DatabaseManager.CreateParameter("@FromDate", fromDate),
+                    DatabaseManager.CreateParameter("@FromDate", fromDate.ToBinary()),
                     DatabaseManager.CreateParameter("@Language", languageFilter));
                 return Convert.ToInt32(result ?? 0);
             }
@@ -1861,7 +1859,7 @@ namespace TinyOPDS.Data
 
                 var books = db.ExecuteQuery<Book>(query, MapBook,
                     AddLanguageParameter(
-                        DatabaseManager.CreateParameter("@FromDate", fromDate),
+                        DatabaseManager.CreateParameter("@FromDate", fromDate.ToBinary()),
                         DatabaseManager.CreateParameter("@Offset", offset),
                         DatabaseManager.CreateParameter("@Limit", limit)));
 
@@ -1903,7 +1901,7 @@ namespace TinyOPDS.Data
             }
         }
 
-        // MODIFIED: Now gets sequences from Sequences table (considers language filter)
+        // Now gets sequences from Sequences table (considers language filter)
         public List<string> GetAllSequences()
         {
             string languageFilter = GetLanguageFilter();
@@ -1982,7 +1980,7 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Get count of books by genre (considers language filter) - FIXED
+        /// Get count of books by genre (considers language filter)
         /// </summary>
         public int GetBooksByGenreCount(string genreTag)
         {
@@ -2019,7 +2017,7 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Get count of books by sequence (considers language filter) - FIXED
+        /// Get count of books by sequence (considers language filter)
         /// </summary>
         public int GetBooksBySequenceCount(string sequenceName)
         {
@@ -2057,7 +2055,7 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Get statistics for all genres with book counts (considers language filter) - FIXED
+        /// Get statistics for all genres with book counts (considers language filter)
         /// </summary>
         public Dictionary<string, int> GetAllGenreStatistics()
         {
@@ -2104,7 +2102,7 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Get full genre statistics including parent and translation info (considers language filter) - FIXED
+        /// Get full genre statistics including parent and translation info (considers language filter)
         /// </summary>
         public List<(Genre genre, int bookCount)> GetFullGenreStatistics()
         {
@@ -2137,7 +2135,7 @@ namespace TinyOPDS.Data
                         DatabaseManager.GetString(reader, "ParentName"),
                         reader.GetString(2),
                         DatabaseManager.GetString(reader, "Translation"),
-                        Convert.ToInt32(reader.GetValue(4))  // FIXED: Use Convert.ToInt32
+                        Convert.ToInt32(reader.GetValue(4))  // Use Convert.ToInt32
                     ),
                     string.IsNullOrEmpty(languageFilter) ? null :
                         new[] { DatabaseManager.CreateParameter("@Language", languageFilter) });
@@ -2167,7 +2165,7 @@ namespace TinyOPDS.Data
 
         #region Helper Methods
 
-        // MODIFIED: MapBook no longer tries to read Sequence/NumberInSequence from database
+        // MapBook no longer tries to read Sequence/NumberInSequence from database
         private Book MapBook(IDataReader reader)
         {
             var fileName = DatabaseManager.GetString(reader, "FileName");

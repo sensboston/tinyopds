@@ -23,36 +23,44 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      # Install SQLite package directly
-      - name: Install SQLite NuGet package
+      # Remove SQLite NuGet references from project files
+      # Since SQLite DLLs are embedded as resources, we don't need the NuGet packages
+      - name: Remove SQLite NuGet references from project files
         run: |
-          # Create packages directory if it doesn't exist
-          New-Item -ItemType Directory -Force -Path "packages"
-          
-          # Install the specific SQLite package version directly into packages folder
-          nuget install System.Data.SQLite.Core.FTS5 -Version 1.0.114.1 -OutputDirectory packages
-          
-          # Verify the targets file exists
-          $targetsFile = "packages\System.Data.SQLite.Core.FTS5.1.0.114.1\build\net45\System.Data.SQLite.Core.FTS5.targets"
-          if (Test-Path $targetsFile) {
-            Write-Host "✓ SQLite targets file found at: $targetsFile"
-            Write-Host "File size: $((Get-Item $targetsFile).Length) bytes"
-          } else {
-            Write-Host "✗ SQLite targets file NOT found at expected location"
-            Write-Host "Checking what files exist in the SQLite package:"
-            Get-ChildItem -Path "packages\System.Data.SQLite.Core.FTS5.1.0.114.1" -Recurse | ForEach-Object {
-              Write-Host $_.FullName
-            }
-            exit 1
+          # Function to remove SQLite references from a project file
+          function Remove-SqliteReferences {
+              param([string]$ProjectFile)
+              
+              $content = Get-Content $ProjectFile -Raw
+              
+              # Remove the Import statement for SQLite targets
+              $content = $content -replace '(?s)\s*<Import Project="[^"]*System\.Data\.SQLite[^"]*"[^>]*/>',''
+              
+              # Remove the EnsureNuGetPackageBuildImports target
+              $content = $content -replace '(?s)\s*<Target Name="EnsureNuGetPackageBuildImports".*?</Target>',''
+              
+              # Remove NuGetPackageImportStamp
+              $content = $content -replace '(?s)\s*<NuGetPackageImportStamp>\s*</NuGetPackageImportStamp>',''
+              
+              # Save the modified file
+              Set-Content -Path $ProjectFile -Value $content -Encoding UTF8 -NoNewline
+              
+              Write-Host "Modified $ProjectFile - removed SQLite NuGet references"
           }
+          
+          # Process both project files
+          Remove-SqliteReferences "TinyOPDS\TinyOPDS.csproj"
+          Remove-SqliteReferences "TinyOPDSCLI\TinyOPDSCLI.csproj"
 
-      # Restore any other NuGet packages if needed
+      # Restore NuGet packages (in case there are other packages)
       - name: Restore NuGet packages
-        run: nuget restore TinyOPDS.sln -PackagesDirectory packages
+        run: nuget restore TinyOPDS.sln
 
+      # Build solution
       - name: Build solution
         run: msbuild TinyOPDS.sln /p:Configuration=Release /p:Platform="Any CPU" /m
 
+      # Upload release assets
       - name: Upload release assets
         uses: softprops/action-gh-release@v1
         with:

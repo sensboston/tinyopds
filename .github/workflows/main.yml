@@ -23,55 +23,32 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      # Create packages.config files to ensure NuGet knows what to restore
-      - name: Create packages.config files
+      # Install SQLite package directly
+      - name: Install SQLite NuGet package
         run: |
-          # Create packages.config for TinyOPDS
-          @'
-          <?xml version="1.0" encoding="utf-8"?>
-          <packages>
-            <package id="System.Data.SQLite.Core.FTS5" version="1.0.114.1" targetFramework="net48" />
-          </packages>
-          '@ | Out-File -FilePath "TinyOPDS\packages.config" -Encoding UTF8
+          # Create packages directory if it doesn't exist
+          New-Item -ItemType Directory -Force -Path "packages"
           
-          # Create packages.config for TinyOPDSCLI
-          @'
-          <?xml version="1.0" encoding="utf-8"?>
-          <packages>
-            <package id="System.Data.SQLite.Core.FTS5" version="1.0.114.1" targetFramework="net48" />
-          </packages>
-          '@ | Out-File -FilePath "TinyOPDSCLI\packages.config" -Encoding UTF8
-
-      # Restore NuGet packages to packages folder (old style)
-      - name: Restore NuGet packages
-        run: |
-          nuget restore TinyOPDS.sln -PackagesDirectory packages
-
-      # Debug: Check if packages were restored correctly
-      - name: Check packages structure
-        run: |
-          Write-Host "=== Checking if packages folder exists ==="
-          if (Test-Path "packages") {
-            Write-Host "packages folder exists"
-            Get-ChildItem -Path "packages" -Recurse | Select-Object FullName
-          } else {
-            Write-Host "packages folder does NOT exist!"
-          }
+          # Install the specific SQLite package version directly into packages folder
+          nuget install System.Data.SQLite.Core.FTS5 -Version 1.0.114.1 -OutputDirectory packages
           
-          Write-Host "`n=== Checking specific targets file ==="
-          $targetFile = "packages\System.Data.SQLite.Core.FTS5.1.0.114.1\build\net45\System.Data.SQLite.Core.FTS5.targets"
-          if (Test-Path $targetFile) {
-            Write-Host "Target file EXISTS: $targetFile"
+          # Verify the targets file exists
+          $targetsFile = "packages\System.Data.SQLite.Core.FTS5.1.0.114.1\build\net45\System.Data.SQLite.Core.FTS5.targets"
+          if (Test-Path $targetsFile) {
+            Write-Host "✓ SQLite targets file found at: $targetsFile"
+            Write-Host "File size: $((Get-Item $targetsFile).Length) bytes"
           } else {
-            Write-Host "Target file MISSING: $targetFile"
-            
-            # Check what actually exists in the SQLite package
-            Write-Host "`n=== Contents of SQLite package (if exists) ==="
-            $sqlitePath = "packages\System.Data.SQLite.Core.FTS5.1.0.114.1"
-            if (Test-Path $sqlitePath) {
-              Get-ChildItem -Path $sqlitePath -Recurse | Select-Object FullName
+            Write-Host "✗ SQLite targets file NOT found at expected location"
+            Write-Host "Checking what files exist in the SQLite package:"
+            Get-ChildItem -Path "packages\System.Data.SQLite.Core.FTS5.1.0.114.1" -Recurse | ForEach-Object {
+              Write-Host $_.FullName
             }
+            exit 1
           }
+
+      # Restore any other NuGet packages if needed
+      - name: Restore NuGet packages
+        run: nuget restore TinyOPDS.sln -PackagesDirectory packages
 
       - name: Build solution
         run: msbuild TinyOPDS.sln /p:Configuration=Release /p:Platform="Any CPU" /m

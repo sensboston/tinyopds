@@ -208,6 +208,15 @@
 			<text lang="fr">Nom du serveur:</text>
 			<text lang="pl">Nazwa serwera:</text>
 		</property>
+		<property form="MainForm" ctrl="label29">
+			<text lang="en">Network interface:</text>
+			<text lang="ru">Сетевой интерфейс:</text>
+			<text lang="uk">Мережевий інтерфейс:</text>
+			<text lang="de">Netzwerkschnittstelle:</text>
+			<text lang="es">Interfaz de red:</text>
+			<text lang="fr">Interface réseau:</text>
+			<text lang="pl">Interfejs sieciowy:</text>
+		</property>
 		<property form="MainForm" ctrl="label3">
 			<text lang="en">Port:</text>
 			<text lang="ru">Порт:</text>

@@ -427,14 +427,14 @@ namespace TinyOPDS
                     ["książek"] = new[] { "książka", "książki", "książek" },
 
                     // Series
-                    ["seria"] = new[] { "seria", "serie", "serii" },
-                    ["serie"] = new[] { "seria", "serie", "serii" },
-                    ["serii"] = new[] { "seria", "serie", "serii" },
+                    ["cykl"] = new[] { "cykl", "cykle", "cykli" },
+                    ["cykle"] = new[] { "cykl", "cykle", "cykli" },
+                    ["cykli"] = new[] { "cykl", "cykle", "cykli" },
 
                     // Authors
-                    ["autor"] = new[] { "autor", "autorzy", "autorów" },
-                    ["autorzy"] = new[] { "autor", "autorzy", "autorów" },
-                    ["autorów"] = new[] { "autor", "autorzy", "autorów" }
+                    ["autor"] = new[] { "autor", "autorów", "autorów" },
+                    ["autorzy"] = new[] { "autor", "autorów", "autorów" },
+                    ["autorów"] = new[] { "autor", "autorów", "autorów" }
                 }
             };
 

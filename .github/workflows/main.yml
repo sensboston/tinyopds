@@ -12,8 +12,11 @@ jobs:
     runs-on: windows-latest
 
     steps:
+      # IMPORTANT: Checkout the latest code from master branch, not the release tag
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: master  # Always use latest code from master branch
 
       - name: Setup NuGet
         uses: NuGet/setup-nuget@v2
@@ -23,44 +26,13 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      # Remove SQLite NuGet references from project files
-      # Since SQLite DLLs are embedded as resources, we don't need the NuGet packages
-      - name: Remove SQLite NuGet references from project files
-        run: |
-          # Function to remove SQLite references from a project file
-          function Remove-SqliteReferences {
-              param([string]$ProjectFile)
-              
-              $content = Get-Content $ProjectFile -Raw
-              
-              # Remove the Import statement for SQLite targets
-              $content = $content -replace '(?s)\s*<Import Project="[^"]*System\.Data\.SQLite[^"]*"[^>]*/>',''
-              
-              # Remove the EnsureNuGetPackageBuildImports target
-              $content = $content -replace '(?s)\s*<Target Name="EnsureNuGetPackageBuildImports".*?</Target>',''
-              
-              # Remove NuGetPackageImportStamp
-              $content = $content -replace '(?s)\s*<NuGetPackageImportStamp>\s*</NuGetPackageImportStamp>',''
-              
-              # Save the modified file
-              Set-Content -Path $ProjectFile -Value $content -Encoding UTF8 -NoNewline
-              
-              Write-Host "Modified $ProjectFile - removed SQLite NuGet references"
-          }
-          
-          # Process both project files
-          Remove-SqliteReferences "TinyOPDS\TinyOPDS.csproj"
-          Remove-SqliteReferences "TinyOPDSCLI\TinyOPDSCLI.csproj"
-
-      # Restore NuGet packages (in case there are other packages)
+      # Restore packages for entire solution
       - name: Restore NuGet packages
         run: nuget restore TinyOPDS.sln
 
-      # Build solution
       - name: Build solution
         run: msbuild TinyOPDS.sln /p:Configuration=Release /p:Platform="Any CPU" /m
 
-      # Upload release assets
       - name: Upload release assets
         uses: softprops/action-gh-release@v1
         with:

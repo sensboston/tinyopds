@@ -23,11 +23,9 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Restore NuGet packages for TinyOPDS
-        run: nuget restore TinyOPDS\TinyOPDS.csproj -PackagesDirectory TinyOPDS\packages
-
-      - name: Restore NuGet packages for TinyOPDSCLI
-        run: nuget restore TinyOPDSCLI\TinyOPDSCLI.csproj -PackagesDirectory TinyOPDS\packages
+      # Restore packages for entire solution
+      - name: Restore NuGet packages
+        run: nuget restore TinyOPDS.sln
 
       - name: Build solution
         run: msbuild TinyOPDS.sln /p:Configuration=Release /p:Platform="Any CPU" /m

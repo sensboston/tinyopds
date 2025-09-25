@@ -23,13 +23,35 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
+      # Create packages.config files for both projects
+      # This ensures NuGet knows which packages to restore
+      - name: Create packages.config for TinyOPDS
+        run: |
+          @'
+          <?xml version="1.0" encoding="utf-8"?>
+          <packages>
+            <package id="System.Data.SQLite.Core.FTS5" version="1.0.114.1" targetFramework="net48" />
+          </packages>
+          '@ | Out-File -FilePath "TinyOPDS\packages.config" -Encoding UTF8
+
+      - name: Create packages.config for TinyOPDSCLI
+        run: |
+          @'
+          <?xml version="1.0" encoding="utf-8"?>
+          <packages>
+            <package id="System.Data.SQLite.Core.FTS5" version="1.0.114.1" targetFramework="net48" />
+          </packages>
+          '@ | Out-File -FilePath "TinyOPDSCLI\packages.config" -Encoding UTF8
+
       # Restore packages for entire solution
       - name: Restore NuGet packages
         run: nuget restore TinyOPDS.sln
 
+      # Build solution with proper configuration
       - name: Build solution
         run: msbuild TinyOPDS.sln /p:Configuration=Release /p:Platform="Any CPU" /m
 
+      # Upload release assets
       - name: Upload release assets
         uses: softprops/action-gh-release@v1
         with:

@@ -1,0 +1,228 @@
+name: PR Build and Release
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ github.event.pull_request.head.repo.full_name }}
+        ref: ${{ github.event.pull_request.head.ref }}
+        fetch-depth: 0
+
+    - name: Setup NuGet
+      uses: NuGet/setup-nuget@v2
+      with:
+        nuget-version: 'latest'
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Clear NuGet cache
+      shell: powershell
+      run: nuget locals all -clear
+
+    - name: Get PR Number
+      id: get_pr_number
+      shell: powershell
+      run: |
+        $prNumber = "${{ github.event.pull_request.number }}"
+        if (-not $prNumber) {
+          Write-Error "Pull request number not found!"
+          exit 1
+        }
+        echo "pr_number=$prNumber" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+    - name: Update AssemblyInfo versions with PR number
+      shell: powershell
+      run: |
+        $prNumber = "${{ env.pr_number }}"
+        
+        # Update both AssemblyInfo.cs files
+        $assemblyInfoFiles = @(
+          "TinyOPDS/Properties/AssemblyInfo.cs",
+          "TinyOPDSCLI/Properties/AssemblyInfo.cs"
+        )
+        
+        foreach ($relativePath in $assemblyInfoFiles) {
+          if (Test-Path $relativePath) {
+            Write-Host "Processing: $relativePath"
+            
+            # Read current content
+            $assemblyInfoContent = Get-Content -Path $relativePath
+            $versionLine = $assemblyInfoContent | Where-Object { $_ -match 'AssemblyVersion\("[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+"\)' }
+            
+            if (-not $versionLine) {
+              Write-Error "AssemblyVersion not found in $relativePath!"
+              exit 1
+            }
+            
+            # Extract current version
+            $currentVersion = $versionLine -replace '.*AssemblyVersion\("([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)"\).*', '$1'
+            Write-Host "Current Version: $currentVersion"
+            
+            # Split version and replace last part with PR number
+            $versionParts = $currentVersion -split '\.'
+            if ($versionParts.Count -ne 4) {
+              Write-Error "Invalid version format in $relativePath!"
+              exit 1
+            }
+            
+            $newVersion = "$($versionParts[0]).$($versionParts[1]).$($versionParts[2]).$prNumber"
+            Write-Host "New Version: $newVersion"
+            
+            # Update AssemblyInfo.cs
+            $updatedContent = $assemblyInfoContent | ForEach-Object {
+              $_ -replace 'AssemblyVersion\("[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+"\)', "AssemblyVersion(`"$newVersion`")" `
+                 -replace 'AssemblyFileVersion\("[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+"\)', "AssemblyFileVersion(`"$newVersion`")"
+            }
+            
+            Set-Content -Path $relativePath -Value $updatedContent
+            Write-Host "Updated $relativePath with new version: $newVersion"
+          } else {
+            Write-Warning "$relativePath not found, skipping..."
+          }
+        }
+
+    - name: Restore NuGet packages
+      run: nuget restore TinyOPDS.sln
+
+    - name: Build Solution
+      id: build_app
+      shell: powershell
+      run: |
+        # Build in Release configuration
+        msbuild TinyOPDS.sln /p:Configuration=Release /p:Platform="Any CPU" /m
+        
+        # Check if executables exist
+        $tinyOPDSExe = "TinyOPDS\bin\Release\TinyOPDS.exe"
+        $tinyOPDSCLIExe = "TinyOPDSCLI\bin\Release\TinyOPDSCLI.exe"
+        
+        $buildSuccess = $true
+        
+        if (Test-Path $tinyOPDSExe) {
+          Write-Host "TinyOPDS.exe found at $tinyOPDSExe"
+        } else {
+          Write-Error "TinyOPDS.exe not found at $tinyOPDSExe"
+          $buildSuccess = $false
+        }
+        
+        if (Test-Path $tinyOPDSCLIExe) {
+          Write-Host "TinyOPDSCLI.exe found at $tinyOPDSCLIExe"
+        } else {
+          Write-Error "TinyOPDSCLI.exe not found at $tinyOPDSCLIExe"
+          $buildSuccess = $false
+        }
+        
+        if (-not $buildSuccess) {
+          exit 1
+        }
+
+    - name: Get sanitized tag name
+      id: get_tag_name
+      shell: powershell
+      run: |
+        $branchName = '${{ github.event.pull_request.head.ref }}'
+        Write-Host "Branch name is $branchName"
+        
+        # Sanitize branch name for tag
+        $tagName = $branchName -replace '[^a-zA-Z0-9._-]', '-'
+        $tagName = $tagName.Trim('-')
+        
+        if ([string]::IsNullOrEmpty($tagName)) {
+          Write-Error "Tag name is empty after sanitization"
+          exit 1
+        }
+        
+        $prBuildTagName = "${tagName}_prbuild"
+        Write-Host "Sanitized tag name for PR build is $prBuildTagName"
+        
+        echo "tag_name=$prBuildTagName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+        echo "branch_name=$branchName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+    - name: Check if tag exists
+      id: check_tag
+      shell: bash
+      run: |
+        tag_name=${{ steps.get_tag_name.outputs.tag_name }}
+        if git ls-remote --tags origin | grep -q "refs/tags/$tag_name$"; then
+          echo "Tag '$tag_name' already exists."
+          echo "tag_exists=true" >> $GITHUB_ENV
+        else
+          echo "Tag '$tag_name' does not exist."
+          echo "tag_exists=false" >> $GITHUB_ENV
+        fi
+
+    - name: Delete existing tag if exists
+      if: env.tag_exists == 'true'
+      shell: bash
+      run: |
+        tag_name=${{ steps.get_tag_name.outputs.tag_name }}
+        echo "Deleting existing tag '$tag_name'"
+        git push --delete origin "$tag_name" || true
+
+    - name: Create new tag
+      shell: bash
+      run: |
+        tag_name=${{ steps.get_tag_name.outputs.tag_name }}
+        git tag "$tag_name"
+        git push origin "$tag_name"
+
+    - name: Delete existing release if exists
+      if: env.tag_exists == 'true'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const tagName = '${{ steps.get_tag_name.outputs.tag_name }}';
+          try {
+            const { data: release } = await github.rest.repos.getReleaseByTag({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag: tagName
+            });
+            
+            await github.rest.repos.deleteRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: release.id
+            });
+            console.log(`Deleted existing release for tag ${tagName}`);
+          } catch (error) {
+            console.log(`No existing release found for tag ${tagName}`);
+          }
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.get_tag_name.outputs.tag_name }}
+        name: "PR Build - ${{ steps.get_tag_name.outputs.branch_name }}"
+        body: |
+          ## Automated PR Build
+          
+          **Pull Request:** #${{ env.pr_number }}
+          **Branch:** ${{ steps.get_tag_name.outputs.branch_name }}
+          **Build Configuration:** Release
+          
+          ### Artifacts
+          - TinyOPDS.exe
+          - TinyOPDSCLI.exe
+          
+          ---
+          *This is an automated build from pull request #${{ env.pr_number }}*
+        draft: false
+        prerelease: true
+        files: |
+          TinyOPDS/bin/Release/TinyOPDS.exe
+          TinyOPDSCLI/bin/Release/TinyOPDSCLI.exe
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

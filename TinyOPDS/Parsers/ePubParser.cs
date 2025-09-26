@@ -245,6 +245,10 @@ namespace TinyOPDS.Parsers
                 string seriesName = null;
                 uint seriesIndex = 0;
 
+                // Track if we found calibre series data
+                bool foundCalibreSeries = false;
+                bool foundCalibreIndex = false;
+
                 // Look for meta elements
                 var metas = metadata.Elements(opfNs + "meta");
 
@@ -258,33 +262,44 @@ namespace TinyOPDS.Parsers
                     {
                         if (nameAttr.Equals("calibre:series", StringComparison.OrdinalIgnoreCase))
                         {
+                            // Always update to the latest found value
                             seriesName = contentAttr;
+                            foundCalibreSeries = true;
                         }
                         else if (nameAttr.Equals("calibre:series_index", StringComparison.OrdinalIgnoreCase))
                         {
                             if (!string.IsNullOrEmpty(contentAttr))
                             {
-                                if (float.TryParse(contentAttr, out float index))
+                                // Support both integer and float formats
+                                if (float.TryParse(contentAttr,
+                                    System.Globalization.NumberStyles.Any,
+                                    System.Globalization.CultureInfo.InvariantCulture,
+                                    out float index))
                                 {
+                                    // Always update to the latest found value
                                     seriesIndex = (uint)index;
+                                    foundCalibreIndex = true;
                                 }
                             }
                         }
                     }
 
-                    // Check for EPUB 3 format
-                    var propertyAttr = meta.Attribute("property")?.Value;
-                    if (!string.IsNullOrEmpty(propertyAttr))
+                    // Check for EPUB 3 format only if calibre format not found
+                    if (!foundCalibreSeries && !foundCalibreIndex)
                     {
-                        if (propertyAttr.Equals("belongs-to-collection", StringComparison.OrdinalIgnoreCase))
+                        var propertyAttr = meta.Attribute("property")?.Value;
+                        if (!string.IsNullOrEmpty(propertyAttr))
                         {
-                            seriesName = meta.Value;
-                        }
-                        else if (propertyAttr.Equals("group-position", StringComparison.OrdinalIgnoreCase))
-                        {
-                            if (uint.TryParse(meta.Value, out uint pos))
+                            if (propertyAttr.Equals("belongs-to-collection", StringComparison.OrdinalIgnoreCase))
                             {
-                                seriesIndex = pos;
+                                seriesName = meta.Value;
+                            }
+                            else if (propertyAttr.Equals("group-position", StringComparison.OrdinalIgnoreCase))
+                            {
+                                if (uint.TryParse(meta.Value, out uint pos))
+                                {
+                                    seriesIndex = pos;
+                                }
                             }
                         }
                     }

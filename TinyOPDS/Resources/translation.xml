@@ -835,6 +835,15 @@
 			<text lang="pl">Książki: {0}</text>
 		</property>
 		<property>
+			<text lang="en">{0} books</text>
+			<text lang="ru">{0} книг</text>
+			<text lang="uk">{0} книг</text>
+			<text lang="de">{0} Bücher</text>
+			<text lang="es">{0} libros</text>
+			<text lang="fr">{0} livres</text>
+			<text lang="pl">{0} książek</text>
+		</property>
+		<property>
 			<text lang="en">Books by author </text>
 			<text lang="ru">Книги автора </text>
 			<text lang="uk">Книги автора </text>

@@ -129,11 +129,11 @@ namespace TinyOPDS.Server
             // Server and library information
             args.AddParam("serverVersion", "", Utils.ServerVersionName.Replace("running on ", ""));
 
-            var books = string.Format(Localizer.Text("Books: {0}"), Library.Count).ToLower().Split(':');
-            string libName = string.Format("{0}: {1} {2}",
-                Properties.Settings.Default.ServerName,
-                books[1],
-                books[0]);
+            // Library name with book count and proper plural form
+            var booksCount = Library.Count;
+            booksCount = 241;
+            var books = StringUtils.ApplyPluralForm(booksCount, Localizer.Language, string.Format(Localizer.Text("{0} books"), booksCount));
+            string libName = string.Format("{0}: {1}", Properties.Settings.Default.ServerName, books);
             args.AddParam("libName", "", libName);
 
             // Web interface localization

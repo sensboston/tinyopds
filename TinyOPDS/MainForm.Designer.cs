@@ -1083,7 +1083,7 @@
             // wrongAttemptsCount
             // 
             this.wrongAttemptsCount.DataBindings.Add(new System.Windows.Forms.Binding("Value", global::TinyOPDS.Properties.Settings.Default, "WrongAttemptsCount", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.wrongAttemptsCount.Location = new System.Drawing.Point(290, 48);
+            this.wrongAttemptsCount.Location = new System.Drawing.Point(290, 49);
             this.wrongAttemptsCount.Minimum = new decimal(new int[] {
             3,
             0,
@@ -1113,7 +1113,7 @@
             this.rememberClients.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "RememberClients", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
             this.rememberClients.Location = new System.Drawing.Point(26, 51);
             this.rememberClients.Name = "rememberClients";
-            this.rememberClients.Size = new System.Drawing.Size(198, 15);
+            this.rememberClients.Size = new System.Drawing.Size(258, 15);
             this.rememberClients.TabIndex = 2;
             this.rememberClients.Text = "Remember authorized clients";
             this.rememberClients.UseVisualStyleBackColor = true;
@@ -1125,7 +1125,7 @@
             this.useHTTPAuth.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "UseHTTPAuth", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
             this.useHTTPAuth.Location = new System.Drawing.Point(26, 23);
             this.useHTTPAuth.Name = "useHTTPAuth";
-            this.useHTTPAuth.Size = new System.Drawing.Size(198, 15);
+            this.useHTTPAuth.Size = new System.Drawing.Size(258, 15);
             this.useHTTPAuth.TabIndex = 0;
             this.useHTTPAuth.Text = "Use HTTP basic authentication";
             this.useHTTPAuth.UseVisualStyleBackColor = true;

@@ -131,7 +131,6 @@ namespace TinyOPDS.Server
 
             // Library name with book count and proper plural form
             var booksCount = Library.Count;
-            booksCount = 241;
             var books = StringUtils.ApplyPluralForm(booksCount, Localizer.Language, string.Format(Localizer.Text("{0} books"), booksCount));
             string libName = string.Format("{0}: {1}", Properties.Settings.Default.ServerName, books);
             args.AddParam("libName", "", libName);

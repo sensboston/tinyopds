@@ -163,21 +163,6 @@ jobs:
           echo "tag_exists=false" >> $GITHUB_ENV
         fi
 
-    - name: Delete existing tag if exists
-      if: env.tag_exists == 'true'
-      shell: bash
-      run: |
-        tag_name=${{ steps.get_tag_name.outputs.tag_name }}
-        echo "Deleting existing tag '$tag_name'"
-        git push --delete origin "$tag_name" || true
-
-    - name: Create new tag
-      shell: bash
-      run: |
-        tag_name=${{ steps.get_tag_name.outputs.tag_name }}
-        git tag "$tag_name"
-        git push origin "$tag_name"
-
     - name: Delete existing release if exists
       if: env.tag_exists == 'true'
       uses: actions/github-script@v7
@@ -200,6 +185,33 @@ jobs:
           } catch (error) {
             console.log(`No existing release found for tag ${tagName}`);
           }
+
+    - name: Delete existing tag if exists
+      if: env.tag_exists == 'true'
+      shell: bash
+      run: |
+        tag_name=${{ steps.get_tag_name.outputs.tag_name }}
+        
+        # Delete local tag if it exists
+        git tag -d "$tag_name" 2>/dev/null || true
+        
+        # Delete remote tag
+        echo "Deleting existing remote tag '$tag_name'"
+        git push --delete origin "$tag_name" 2>/dev/null || true
+        
+        # Wait a moment for GitHub to process the deletion
+        sleep 2
+
+    - name: Create new tag
+      shell: bash
+      run: |
+        tag_name=${{ steps.get_tag_name.outputs.tag_name }}
+        
+        # Create new tag
+        git tag "$tag_name"
+        
+        # Push new tag
+        git push origin "$tag_name"
 
     - name: Create Release
       uses: softprops/action-gh-release@v1

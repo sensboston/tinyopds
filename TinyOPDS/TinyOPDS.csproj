@@ -57,6 +57,7 @@
   <!-- ============== SOURCE CODE FILES ============== -->
   <ItemGroup>
     <!-- Main Application -->
+    <Compile Include="Misc\Pluralizer.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
@@ -192,6 +193,7 @@
   </ItemGroup>
   <!-- ============== CONTENT FILES ============== -->
   <ItemGroup>
+    <EmbeddedResource Include="Resources\pluralization.xml" />
     <Content Include="TinyOPDS.ico" />
     <Content Include="License.txt" />
     <None Include="TinyOPDS.png" />

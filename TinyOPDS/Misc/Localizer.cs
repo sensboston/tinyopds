@@ -32,16 +32,17 @@ namespace TinyOPDS
 #endif
 
         /// <summary>
-        /// Static classes don't have a constructors but we need to initialize translations
+        /// Static classes don't have constructors but we need to initialize our xml resources
         /// </summary>
-        /// <param name="xmlFile">Name of xml translations, added to project as an embedded resource</param>
-        public static void Init(string xmlFile = "translation.xml")
+        public static void Init()
         {
+            const string translationXml = "translation.xml";
+            const string pluralizationXml = "pluralization.xml";
+
             try
             {
                 var assembly = Assembly.GetExecutingAssembly();
-                var resourceName = assembly.GetName().Name + ".Resources." + xmlFile;
-
+                var resourceName = assembly.GetName().Name + ".Resources." + translationXml;
                 using (var stream = assembly.GetManifestResourceStream(resourceName))
                 {
                     if (stream != null)
@@ -50,13 +51,27 @@ namespace TinyOPDS
                     }
                     else
                     {
-                        Log.WriteLine("Localizer.Init({0}) error: resource not found", xmlFile);
+                        Log.WriteLine(LogLevel.Error, "Localizer.Init() error: {0} resource not found", translationXml);
                     }
                 }
+
+                resourceName = assembly.GetName().Name + ".Resources." + pluralizationXml;
+                using (var stream = assembly.GetManifestResourceStream(resourceName))
+                {
+                    if (stream != null)
+                    {
+                        Pluralizer.LoadPluralizationData(XDocument.Load(stream));
+                    }
+                    else
+                    {
+                        Log.WriteLine(LogLevel.Error, "Localizer.Init() error: {0} resource not found", translationXml);
+                    }
+                }
+
             }
             catch (Exception e)
             {
-                Log.WriteLine("Localizer.Init({0}) exception: {1}", xmlFile, e.Message);
+                Log.WriteLine(LogLevel.Error, "Localizer.Init() exception loading {0}: {1}", translationXml, e.Message);
             }
         }
 

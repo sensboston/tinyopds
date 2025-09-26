@@ -89,9 +89,6 @@ namespace TinyOPDS.Parsers
                 book.BookDate.Year < 1800 ||
                 book.BookDate.Year > DateTime.Now.Year + 10)
             {
-                Log.WriteLine(LogLevel.Warning,
-                    "Invalid or missing BookDate {0} for {1}, using file date {2}",
-                    book.BookDate, fileName, fileDate);
                 book.BookDate = fileDate;
             }
 

@@ -261,8 +261,6 @@ namespace TinyOPDS.Data
                 }
             }
 
-            // MODIFIED: Only add volume info if it was explicitly found in the title
-            // Don't add "vol0" to all books without volume info
             if (!string.IsNullOrEmpty(normalized))
             {
                 normalizedTitle += " " + normalized;

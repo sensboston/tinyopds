@@ -86,6 +86,10 @@ namespace TinyOPDS
                     // Unix systems will use Mono.Data.Sqlite directly
                     if (!Utils.IsLinux && !Utils.IsMacOS)
                     {
+                        // Load native DLLs first
+                        PreloadNativeDlls();
+
+                        // Then set up assembly resolver
                         AppDomain.CurrentDomain.AssemblyResolve += OnAssemblyResolve;
                     }
 
@@ -371,7 +375,7 @@ namespace TinyOPDS
 
         /// <summary>
         /// Extract native DLL from embedded resources to temporary location
-        /// Windows only
+        /// Windows only - FIXED to handle multi-instance scenarios
         /// </summary>
         private static string ExtractNativeDll(string dllName)
         {
@@ -398,19 +402,38 @@ namespace TinyOPDS
 
                     string extractedPath = Path.Combine(tempDir, dllName);
 
-                    // Always extract fresh copy to avoid version conflicts
+                    // Check if file already exists (from another instance)
                     if (File.Exists(extractedPath))
                     {
                         try
                         {
+                            // Try to load the existing file to check if it's valid
+                            IntPtr testHandle = LoadLibrary(extractedPath);
+                            if (testHandle != IntPtr.Zero)
+                            {
+                                FreeLibrary(testHandle);
+                                Log.WriteLine("Using existing native DLL: {0}", extractedPath);
+                                return extractedPath;
+                            }
+                        }
+                        catch
+                        {
+                            // If loading failed, try to delete and re-extract
+                        }
+
+                        // Try to delete the old file
+                        try
+                        {
                             File.Delete(extractedPath);
                         }
-                        catch (Exception deleteEx)
+                        catch
                         {
-                            Log.WriteLine(LogLevel.Warning, "Could not delete existing native DLL: {0}", deleteEx.Message);
+                            Log.WriteLine("Native DLL is locked by another process, using existing: {0}", extractedPath);
+                            return extractedPath;
                         }
                     }
 
+                    // Extract new file
                     using (FileStream fileStream = File.Create(extractedPath))
                     {
                         stream.CopyTo(fileStream);

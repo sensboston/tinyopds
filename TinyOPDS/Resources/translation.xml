@@ -451,15 +451,6 @@
 			<text lang="fr">URL web externe:</text>
 			<text lang="pl">Zewnętrzny adres URL strony www:</text>
 		</property>
-		<property form="MainForm" ctrl="converterLinkLabel">
-			<text lang="en">Click here to download latest version of ePub converter</text>
-			<text lang="ru">Кликните для закачки последней версии конвертера ePub</text>
-			<text lang="uk">Натисніть тут для завантаження останньої версії конвертера ePub</text>
-			<text lang="de">Hier klicken, um die neueste Version des ePub-Konverters herunterzuladen</text>
-			<text lang="es">Haga clic aquí para descargar la última versión del convertidor ePub</text>
-			<text lang="fr">Cliquez ici pour télécharger la dernière version du convertisseur ePub</text>
-			<text lang="pl">Kliknij tutaj, aby pobrać najnowszą wersję konwertera ePub</text>
-		</property>
 		<property form="MainForm" ctrl="appName">
 			<text lang="en">TinyOPDS server</text>
 			<text lang="ru">TinyOPDS сервер</text>
@@ -498,12 +489,12 @@
 		</property>
 		<property form="MainForm" ctrl="label21">
 			<text lang="en">Database file name:</text>
-			<text lang="ru">Файл базы данных:</text>
-			<text lang="uk">Файл бази даних:</text>
-			<text lang="de">Datenbank-Dateiname:</text>
-			<text lang="es">Nombre del archivo de base de datos:</text>
-			<text lang="fr">Nom du fichier de base de données:</text>
-			<text lang="pl">Nazwa pliku bazy danych:</text>
+			<text lang="ru">Имя файла базы данных:</text>
+			<text lang="uk">Ім'я файлу бази даних:</text>
+			<text lang="de">Name der Datenbankdatei:</text>
+			<text lang="es">Archivo de base de datos:</text>
+			<text lang="fr">Fichier base de données :</text>
+			<text lang="pl">Plik bazy danych:</text>
 		</property>
 		<property form="MainForm" ctrl="useHTTPAuth">
 			<text lang="en">Use HTTP basic authentication</text>
@@ -842,6 +833,15 @@
 			<text lang="es">Libros: {0}</text>
 			<text lang="fr">Livres: {0}</text>
 			<text lang="pl">Książki: {0}</text>
+		</property>
+		<property>
+			<text lang="en">{0} books</text>
+			<text lang="ru">{0} книг</text>
+			<text lang="uk">{0} книг</text>
+			<text lang="de">{0} Bücher</text>
+			<text lang="es">{0} libros</text>
+			<text lang="fr">{0} livres</text>
+			<text lang="pl">{0} książek</text>
 		</property>
 		<property>
 			<text lang="en">Books by author </text>

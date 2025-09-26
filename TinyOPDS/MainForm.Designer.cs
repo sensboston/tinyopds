@@ -236,7 +236,7 @@
             // 
             this.label21.Location = new System.Drawing.Point(15, 71);
             this.label21.Name = "label21";
-            this.label21.Size = new System.Drawing.Size(129, 13);
+            this.label21.Size = new System.Drawing.Size(129, 18);
             this.label21.TabIndex = 31;
             this.label21.Text = "Database file name: ";
             // 
@@ -246,7 +246,7 @@
             this.useWatcher.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "WatchLibrary", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
             this.useWatcher.Location = new System.Drawing.Point(335, 37);
             this.useWatcher.Name = "useWatcher";
-            this.useWatcher.Size = new System.Drawing.Size(147, 15);
+            this.useWatcher.Size = new System.Drawing.Size(147, 18);
             this.useWatcher.TabIndex = 30;
             this.useWatcher.Text = "Monitor changes";
             this.useWatcher.UseVisualStyleBackColor = true;
@@ -265,7 +265,7 @@
             // 
             this.label16.Location = new System.Drawing.Point(15, 229);
             this.label16.Name = "label16";
-            this.label16.Size = new System.Drawing.Size(126, 13);
+            this.label16.Size = new System.Drawing.Size(126, 18);
             this.label16.TabIndex = 28;
             this.label16.Text = "Duplicates:";
             // 
@@ -289,10 +289,9 @@
             // 
             // label14
             // 
-            this.label14.AutoSize = true;
             this.label14.Location = new System.Drawing.Point(278, 229);
             this.label14.Name = "label14";
-            this.label14.Size = new System.Drawing.Size(40, 13);
+            this.label14.Size = new System.Drawing.Size(90, 18);
             this.label14.TabIndex = 25;
             this.label14.Text = "Status:";
             // 
@@ -307,10 +306,9 @@
             // 
             // label12
             // 
-            this.label12.AutoSize = true;
             this.label12.Location = new System.Drawing.Point(278, 199);
             this.label12.Name = "label12";
-            this.label12.Size = new System.Drawing.Size(56, 13);
+            this.label12.Size = new System.Drawing.Size(90, 18);
             this.label12.TabIndex = 23;
             this.label12.Text = "Scan rate:";
             // 
@@ -325,10 +323,9 @@
             // 
             // label10
             // 
-            this.label10.AutoSize = true;
             this.label10.Location = new System.Drawing.Point(278, 169);
             this.label10.Name = "label10";
-            this.label10.Size = new System.Drawing.Size(70, 13);
+            this.label10.Size = new System.Drawing.Size(90, 18);
             this.label10.TabIndex = 21;
             this.label10.Text = "Elapsed time:";
             // 
@@ -343,10 +340,9 @@
             // 
             // label6
             // 
-            this.label6.AutoSize = true;
             this.label6.Location = new System.Drawing.Point(278, 139);
             this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(54, 13);
+            this.label6.Size = new System.Drawing.Size(90, 18);
             this.label6.TabIndex = 19;
             this.label6.Text = "Start time:";
             // 
@@ -363,7 +359,7 @@
             // 
             this.label5.Location = new System.Drawing.Point(15, 260);
             this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(126, 13);
+            this.label5.Size = new System.Drawing.Size(126, 18);
             this.label5.TabIndex = 17;
             this.label5.Text = "Books processed:";
             // 
@@ -380,7 +376,7 @@
             // 
             this.label9.Location = new System.Drawing.Point(15, 169);
             this.label9.Name = "label9";
-            this.label9.Size = new System.Drawing.Size(126, 13);
+            this.label9.Size = new System.Drawing.Size(126, 18);
             this.label9.TabIndex = 15;
             this.label9.Text = "Invalid books:";
             // 
@@ -397,7 +393,7 @@
             // 
             this.label7.Location = new System.Drawing.Point(15, 199);
             this.label7.Name = "label7";
-            this.label7.Size = new System.Drawing.Size(126, 13);
+            this.label7.Size = new System.Drawing.Size(126, 18);
             this.label7.TabIndex = 13;
             this.label7.Text = "Skipped books:";
             // 
@@ -433,7 +429,7 @@
             // 
             this.label2.Location = new System.Drawing.Point(15, 106);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(126, 13);
+            this.label2.Size = new System.Drawing.Size(126, 18);
             this.label2.TabIndex = 9;
             this.label2.Text = "Books in database: ";
             // 
@@ -441,7 +437,7 @@
             // 
             this.label1.Location = new System.Drawing.Point(15, 139);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(126, 13);
+            this.label1.Size = new System.Drawing.Size(126, 18);
             this.label1.TabIndex = 8;
             this.label1.Text = "Books found:";
             // 
@@ -1024,15 +1020,15 @@
             // 
             this.label31.Location = new System.Drawing.Point(343, 245);
             this.label31.Name = "label31";
-            this.label31.Size = new System.Drawing.Size(99, 13);
+            this.label31.Size = new System.Drawing.Size(99, 24);
             this.label31.TabIndex = 47;
             this.label31.Text = "Banned clients:";
             // 
             // label24
             // 
-            this.label24.Location = new System.Drawing.Point(336, 51);
+            this.label24.Location = new System.Drawing.Point(326, 47);
             this.label24.Name = "label24";
-            this.label24.Size = new System.Drawing.Size(142, 13);
+            this.label24.Size = new System.Drawing.Size(142, 24);
             this.label24.TabIndex = 46;
             this.label24.Text = "failed attempts";
             // 
@@ -1049,7 +1045,7 @@
             // 
             this.label30.Location = new System.Drawing.Point(184, 245);
             this.label30.Name = "label30";
-            this.label30.Size = new System.Drawing.Size(103, 13);
+            this.label30.Size = new System.Drawing.Size(103, 24);
             this.label30.TabIndex = 42;
             this.label30.Text = "Failed logins:";
             // 
@@ -1066,7 +1062,7 @@
             // 
             this.label28.Location = new System.Drawing.Point(23, 245);
             this.label28.Name = "label28";
-            this.label28.Size = new System.Drawing.Size(117, 13);
+            this.label28.Size = new System.Drawing.Size(117, 24);
             this.label28.TabIndex = 40;
             this.label28.Text = "Successful logins:";
             // 
@@ -1083,7 +1079,7 @@
             // wrongAttemptsCount
             // 
             this.wrongAttemptsCount.DataBindings.Add(new System.Windows.Forms.Binding("Value", global::TinyOPDS.Properties.Settings.Default, "WrongAttemptsCount", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.wrongAttemptsCount.Location = new System.Drawing.Point(290, 48);
+            this.wrongAttemptsCount.Location = new System.Drawing.Point(280, 47);
             this.wrongAttemptsCount.Minimum = new decimal(new int[] {
             3,
             0,
@@ -1099,9 +1095,9 @@
             // 
             this.banClients.Checked = global::TinyOPDS.Properties.Settings.Default.BanClients;
             this.banClients.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "BanClients", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.banClients.Location = new System.Drawing.Point(290, 23);
+            this.banClients.Location = new System.Drawing.Point(280, 14);
             this.banClients.Name = "banClients";
-            this.banClients.Size = new System.Drawing.Size(188, 15);
+            this.banClients.Size = new System.Drawing.Size(188, 24);
             this.banClients.TabIndex = 44;
             this.banClients.Text = "Ban clients after";
             this.banClients.UseVisualStyleBackColor = true;
@@ -1111,9 +1107,9 @@
             // 
             this.rememberClients.Checked = global::TinyOPDS.Properties.Settings.Default.RememberClients;
             this.rememberClients.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "RememberClients", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.rememberClients.Location = new System.Drawing.Point(26, 51);
+            this.rememberClients.Location = new System.Drawing.Point(26, 44);
             this.rememberClients.Name = "rememberClients";
-            this.rememberClients.Size = new System.Drawing.Size(198, 15);
+            this.rememberClients.Size = new System.Drawing.Size(258, 24);
             this.rememberClients.TabIndex = 2;
             this.rememberClients.Text = "Remember authorized clients";
             this.rememberClients.UseVisualStyleBackColor = true;
@@ -1123,9 +1119,9 @@
             // 
             this.useHTTPAuth.Checked = global::TinyOPDS.Properties.Settings.Default.UseHTTPAuth;
             this.useHTTPAuth.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "UseHTTPAuth", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.useHTTPAuth.Location = new System.Drawing.Point(26, 23);
+            this.useHTTPAuth.Location = new System.Drawing.Point(26, 14);
             this.useHTTPAuth.Name = "useHTTPAuth";
-            this.useHTTPAuth.Size = new System.Drawing.Size(198, 15);
+            this.useHTTPAuth.Size = new System.Drawing.Size(258, 24);
             this.useHTTPAuth.TabIndex = 0;
             this.useHTTPAuth.Text = "Use HTTP basic authentication";
             this.useHTTPAuth.UseVisualStyleBackColor = true;

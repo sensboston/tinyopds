@@ -1020,7 +1020,7 @@
             // 
             this.label31.Location = new System.Drawing.Point(343, 245);
             this.label31.Name = "label31";
-            this.label31.Size = new System.Drawing.Size(99, 24);
+            this.label31.Size = new System.Drawing.Size(99, 30);
             this.label31.TabIndex = 47;
             this.label31.Text = "Banned clients:";
             // 
@@ -1045,7 +1045,7 @@
             // 
             this.label30.Location = new System.Drawing.Point(184, 245);
             this.label30.Name = "label30";
-            this.label30.Size = new System.Drawing.Size(103, 24);
+            this.label30.Size = new System.Drawing.Size(103, 30);
             this.label30.TabIndex = 42;
             this.label30.Text = "Failed logins:";
             // 
@@ -1062,7 +1062,7 @@
             // 
             this.label28.Location = new System.Drawing.Point(23, 245);
             this.label28.Name = "label28";
-            this.label28.Size = new System.Drawing.Size(117, 24);
+            this.label28.Size = new System.Drawing.Size(117, 30);
             this.label28.TabIndex = 40;
             this.label28.Text = "Successful logins:";
             // 

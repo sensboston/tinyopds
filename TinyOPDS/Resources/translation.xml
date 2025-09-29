@@ -1547,7 +1547,7 @@
 			<text lang="de">Bücher nach Serien</text>
 			<text lang="es">Libros por series</text>
 			<text lang="fr">Livres par séries</text>
-			<text lang="pl">Książki według cyklu</text>
+			<text lang="pl">Książki według cykli</text>
 		</property>
 		<property>
 			<text lang="en">{0} series</text>
@@ -1649,7 +1649,7 @@
 			<text lang="de">Bücher nach Serien - {0}</text>
 			<text lang="es">Libros por series - {0}</text>
 			<text lang="fr">Livres par séries - {0}</text>
-			<text lang="pl">Książki według cyklu - {0}</text>
+			<text lang="pl">Książki według cykli - {0}</text>
 		</property>
 		<property>
 			<text lang="en">Books in series: </text>

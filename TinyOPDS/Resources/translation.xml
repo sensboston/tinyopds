@@ -788,14 +788,14 @@
 		</property>
 		<property>
 			<text lang="en">{0} downloaded books</text>
-			<text lang="ru">{0} загруженных книг</text>
-			<text lang="uk">{0} завантажених книг</text>
+			<text lang="ru">{0} загруженная книга</text>
+			<text lang="uk">{0} завантажена книга</text>
 			<text lang="de">{0} heruntergeladene Bücher</text>
 			<text lang="es">{0} libros descargados</text>
 			<text lang="fr">{0} livres téléchargés</text>
-			<text lang="pl">{0} pobranych książek</text>
+			<text lang="pl">{0} pobrana książka</text>
 		</property>
-
+		
 		<property>
 			<text lang="en">{0} books by download date</text>
 			<text lang="ru">{0} книг по дате загрузки</text>

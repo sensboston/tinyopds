@@ -1319,48 +1319,51 @@ namespace TinyOPDS
 
         private void BuildOPDSTree()
         {
-            isLoading = true;
-            treeViewOPDS.Nodes.Clear();
-
-            // Root node
-            TreeNode rootNode = new TreeNode(Localizer.Text("Root"))
+            if (opdsStructure != null)
             {
-                Tag = "root",
-                Checked = true
-            };
+                isLoading = true;
+                treeViewOPDS.Nodes.Clear();
 
-            // New Books section
-            TreeNode newBooksNode = CreateTreeNode(Localizer.Text("New Books"), "newbooks-section", opdsStructure["newdate"] || opdsStructure["newtitle"]);
-            newBooksNode.Nodes.Add(CreateTreeNode(Localizer.Text("New Books (by date)"), "newdate", opdsStructure["newdate"]));
-            newBooksNode.Nodes.Add(CreateTreeNode(Localizer.Text("New Books (alphabetically)"), "newtitle", opdsStructure["newtitle"]));
-            rootNode.Nodes.Add(newBooksNode);
+                // Root node
+                TreeNode rootNode = new TreeNode(Localizer.Text("Root"))
+                {
+                    Tag = "root",
+                    Checked = true
+                };
 
-            // Authors section
-            TreeNode authorsNode = CreateTreeNode(Localizer.Text("By Authors"), "authorsindex", opdsStructure["authorsindex"]);
+                // New Books section
+                TreeNode newBooksNode = CreateTreeNode(Localizer.Text("New Books"), "newbooks-section", opdsStructure["newdate"] || opdsStructure["newtitle"]);
+                newBooksNode.Nodes.Add(CreateTreeNode(Localizer.Text("New Books (by date)"), "newdate", opdsStructure["newdate"]));
+                newBooksNode.Nodes.Add(CreateTreeNode(Localizer.Text("New Books (alphabetically)"), "newtitle", opdsStructure["newtitle"]));
+                rootNode.Nodes.Add(newBooksNode);
 
-            TreeNode authorDetailsNode = CreateTreeNode(Localizer.Text("Author's books"), "author-details", opdsStructure["author-details"]);
-            authorDetailsNode.Nodes.Add(CreateTreeNode(Localizer.Text("Books by Series"), "author-series", opdsStructure["author-series"]));
-            authorDetailsNode.Nodes.Add(CreateTreeNode(Localizer.Text("Books without Series"), "author-no-series", opdsStructure["author-no-series"]));
-            authorDetailsNode.Nodes.Add(CreateTreeNode(Localizer.Text("Books Alphabetically"), "author-alphabetic", opdsStructure["author-alphabetic"]));
-            authorDetailsNode.Nodes.Add(CreateTreeNode(Localizer.Text("Books by Date"), "author-by-date", opdsStructure["author-by-date"]));
+                // Authors section
+                TreeNode authorsNode = CreateTreeNode(Localizer.Text("By Authors"), "authorsindex", opdsStructure["authorsindex"]);
 
-            authorsNode.Nodes.Add(authorDetailsNode);
-            rootNode.Nodes.Add(authorsNode);
+                TreeNode authorDetailsNode = CreateTreeNode(Localizer.Text("Author's books"), "author-details", opdsStructure["author-details"]);
+                authorDetailsNode.Nodes.Add(CreateTreeNode(Localizer.Text("Books by Series"), "author-series", opdsStructure["author-series"]));
+                authorDetailsNode.Nodes.Add(CreateTreeNode(Localizer.Text("Books without Series"), "author-no-series", opdsStructure["author-no-series"]));
+                authorDetailsNode.Nodes.Add(CreateTreeNode(Localizer.Text("Books Alphabetically"), "author-alphabetic", opdsStructure["author-alphabetic"]));
+                authorDetailsNode.Nodes.Add(CreateTreeNode(Localizer.Text("Books by Date"), "author-by-date", opdsStructure["author-by-date"]));
 
-            // Series section
-            rootNode.Nodes.Add(CreateTreeNode(Localizer.Text("By Series"), "sequencesindex", opdsStructure["sequencesindex"]));
+                authorsNode.Nodes.Add(authorDetailsNode);
+                rootNode.Nodes.Add(authorsNode);
 
-            // Genres section
-            rootNode.Nodes.Add(CreateTreeNode(Localizer.Text("By Genres"), "genres", opdsStructure["genres"]));
+                // Series section
+                rootNode.Nodes.Add(CreateTreeNode(Localizer.Text("By Series"), "sequencesindex", opdsStructure["sequencesindex"]));
 
-            // Downloads section
-            rootNode.Nodes.Add(CreateTreeNode(Localizer.Text("Downloaded books"), "downloads", opdsStructure["downloads"]));
+                // Genres section
+                rootNode.Nodes.Add(CreateTreeNode(Localizer.Text("By Genres"), "genres", opdsStructure["genres"]));
 
-            treeViewOPDS.Nodes.Add(rootNode);
-            treeViewOPDS.ExpandAll();
+                // Downloads section
+                rootNode.Nodes.Add(CreateTreeNode(Localizer.Text("Downloaded books"), "downloads", opdsStructure["downloads"]));
 
-            UpdateTreeNodeStyles();
-            isLoading = false;
+                treeViewOPDS.Nodes.Add(rootNode);
+                treeViewOPDS.ExpandAll();
+
+                UpdateTreeNodeStyles();
+                isLoading = false;
+            }
         }
 
         private TreeNode CreateTreeNode(string text, string tag, bool isChecked)

@@ -16,7 +16,7 @@
 		</participles>
 		<phrases>
 			<phrase>новая книга|новая книга|новые книги|новых книг</phrase>
-			<phrase>от автора|от автора|от авторов|от авторов</phrase>
+			<phrase>загруженная книга|загруженная книга|загруженные книги|загруженных книг</phrase>
 		</phrases>
 	</language>
 
@@ -36,7 +36,7 @@
 		</participles>
 		<phrases>
 			<phrase>нова книга|нова книга|нові книги|нових книг</phrase>
-			<phrase>від автора|від автора|від авторів|від авторів</phrase>
+			<phrase>завантажена книга|завантажена книга|завантажені книги|завантажених книг</phrase>
 		</phrases>
 	</language>
 
@@ -56,7 +56,7 @@
 		</participles>
 		<phrases>
 			<phrase>nowa książka|nowa książka|nowe książki|nowych książek</phrase>
-			<phrase>od autora|od autora|od autorów|od autorów</phrase>
+			<phrase>pobrana książka|pobrana książka|pobrane książki|pobranych książek</phrase>
 		</phrases>
 	</language>
 </pluralization>

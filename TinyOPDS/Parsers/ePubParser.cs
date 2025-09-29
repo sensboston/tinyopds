@@ -270,15 +270,34 @@ namespace TinyOPDS.Parsers
                         {
                             if (!string.IsNullOrEmpty(contentAttr))
                             {
-                                // Support both integer and float formats
-                                if (float.TryParse(contentAttr,
-                                    System.Globalization.NumberStyles.Any,
-                                    System.Globalization.CultureInfo.InvariantCulture,
-                                    out float index))
+                                // If there's a dot, take only the integer part before it
+                                if (contentAttr.Contains("."))
                                 {
-                                    // Always update to the latest found value
-                                    seriesIndex = (uint)index;
-                                    foundCalibreIndex = true;
+                                    string beforeDot = contentAttr.Split('.')[0];
+
+                                    if (uint.TryParse(beforeDot,
+                                        System.Globalization.NumberStyles.Any,
+                                        System.Globalization.CultureInfo.InvariantCulture,
+                                        out uint intIndex))
+                                    {
+                                        seriesIndex = intIndex;
+                                        foundCalibreIndex = true;
+
+                                        Log.WriteLine(LogLevel.Warning,
+                                            "Series index \"{0}\" truncated to {1}",
+                                            contentAttr, seriesIndex);
+                                    }
+                                }
+                                else
+                                {
+                                    if (uint.TryParse(contentAttr,
+                                        System.Globalization.NumberStyles.Any,
+                                        System.Globalization.CultureInfo.InvariantCulture,
+                                        out uint intIndex))
+                                    {
+                                        seriesIndex = intIndex;
+                                        foundCalibreIndex = true;
+                                    }
                                 }
                             }
                         }

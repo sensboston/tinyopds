@@ -634,7 +634,7 @@ namespace TinyOPDS
                 };
                 fb2Count = epubCount = skippedFiles = invalidFiles = dups = 0;
                 scanStartTime = DateTime.Now;
-                startTime.Text = scanStartTime.ToString(@"hh\:mm\:ss");
+                startTime.Text = scanStartTime.ToString(@"HH\:mm\:ss");
                 scanner.Start(libraryPath.Text.SanitizePathName());
                 scannerButton.Text = Localizer.Text("Stop scanning");
 

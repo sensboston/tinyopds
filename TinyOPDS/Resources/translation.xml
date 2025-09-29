@@ -797,13 +797,13 @@
 		</property>
 
 		<property>
-			<text lang="en">{0} books sorted by download date</text>
-			<text lang="ru">{0} книг, отсортированных по дате загрузки</text>
-			<text lang="uk">{0} книг, відсортованих за датою завантаження</text>
-			<text lang="de">{0} Bücher, sortiert nach Download-Datum</text>
-			<text lang="es">{0} libros ordenados por fecha de descarga</text>
-			<text lang="fr">{0} livres triés par date de téléchargement</text>
-			<text lang="pl">{0} książek posortowanych według daty pobrania</text>
+			<text lang="en">{0} books by download date</text>
+			<text lang="ru">{0} книг по дате загрузки</text>
+			<text lang="uk">{0} книг за датою завантаження</text>
+			<text lang="de">{0} Bücher nach Download-Datum</text>
+			<text lang="es">{0} libros por fecha de descarga</text>
+			<text lang="fr">{0} livres par date de téléchargement</text>
+			<text lang="pl">{0} książek według daty pobrania</text>
 		</property>
 		
 		<property>
@@ -861,15 +861,26 @@
 			<text lang="fr">Par auteurs</text>
 			<text lang="pl">Według autorów</text>
 		</property>
+
+		<property>
+			<text lang="en">{0} books by 1 author</text>
+			<text lang="ru">{0} книга от 1 автор</text>
+			<text lang="uk">{0} книга від 1 автор</text>
+			<text lang="de">{0} Bücher von 1 Autor</text>
+			<text lang="es">{0} libros de 1 autor</text>
+			<text lang="fr">{0} livres de 1 auteur</text>
+			<text lang="pl">{0} książka od 1 autor</text>
+		</property>
 		<property>
 			<text lang="en">{0} books by {1} authors</text>
-			<text lang="ru">{0} книг от {1} авторов</text>
-			<text lang="uk">{0} книг від {1} авторів</text>
+			<text lang="ru">{0} книга от {1} автор</text>
+			<text lang="uk">{0} книга від {1} автор</text>
 			<text lang="de">{0} Bücher von {1} Autoren</text>
 			<text lang="es">{0} libros de {1} autores</text>
 			<text lang="fr">{0} livres de {1} auteurs</text>
-			<text lang="pl">{0} książek {1} autorów</text>
+			<text lang="pl">{0} książka od {1} autor</text>
 		</property>
+		
 		<property>
 			<text lang="en">Authors starting with «{0}»</text>
 			<text lang="ru">Авторы, начинающиеся с «{0}»</text>
@@ -1492,13 +1503,13 @@
 			<text lang="pl">Nowe książki (według daty dodania)</text>
 		</property>
 		<property>
-			<text lang="en">{0} new books ordered by date</text>
-			<text lang="ru">{0} новых книг, упорядоченных по дате</text>
-			<text lang="uk">{0} нових книг, упорядкованих за датою</text>
-			<text lang="de">{0} neue Bücher, nach Datum sortiert</text>
-			<text lang="es">{0} libros nuevos ordenados por fecha</text>
-			<text lang="fr">{0} nouveaux livres triés par date</text>
-			<text lang="pl">{0} nowych książek posortowanych według daty</text>
+			<text lang="en">{0} new books (by date)</text>
+			<text lang="ru">{0} новая книга (по дате)</text>
+			<text lang="uk">{0} нова книга (за датою)</text>
+			<text lang="de">{0} neue Bücher (nach Datum)</text>
+			<text lang="es">{0} libros nuevos (por fecha)</text>
+			<text lang="fr">{0} nouveaux livres (par date)</text>
+			<text lang="pl">{0} nowa książka (według daty)</text>
 		</property>
 		<property>
 			<text lang="en">New books (alphabetically)</text>
@@ -1510,15 +1521,15 @@
 			<text lang="pl">Nowe książki (alfabetycznie)</text>
 		</property>
 		<property>
-			<text lang="en">{0} new books ordered alphabetically</text>
-			<text lang="ru">{0} новых книг, упорядоченных по алфавиту</text>
-			<text lang="uk">{0} нових книг, упорядкованих за алфавітом</text>
-			<text lang="de">{0} neue Bücher, alphabetisch sortiert</text>
-			<text lang="es">{0} libros nuevos ordenados alfabéticamente</text>
-			<text lang="fr">{0} nouveaux livres triés par ordre alphabétique</text>
-			<text lang="pl">{0} nowych książek posortowanych alfabetycznie</text>
+			<text lang="en">{0} new books (alphabetically)</text>
+			<text lang="ru">{0} новая книга (по алфавиту)</text>
+			<text lang="uk">{0} нова книга (за алфавітом)</text>
+			<text lang="de">{0} neue Bücher (alphabetisch)</text>
+			<text lang="es">{0} libros nuevos (alfabéticamente)</text>
+			<text lang="fr">{0} nouveaux livres (alphabétique)</text>
+			<text lang="pl">{0} nowa książka (alfabetycznie)</text>
 		</property>
-
+		
 		<!-- Intermediate author catalog translations -->
 		<property>
 			<text lang="en">Books by author {0}</text>
@@ -1574,15 +1585,27 @@
 			<text lang="fr">Livres par date de création</text>
 			<text lang="pl">Książki według daty utworzenia</text>
 		</property>
+
 		<property>
 			<text lang="en">{0} books in {1} series</text>
-			<text lang="ru">{0} книг в {1} сериях</text>
-			<text lang="uk">{0} книг у {1} серіях</text>
+			<text lang="ru">{0} книга в {1} серия</text>
+			<text lang="uk">{0} книга в {1} серія</text>
 			<text lang="de">{0} Bücher in {1} Serien</text>
 			<text lang="es">{0} libros en {1} series</text>
-			<text lang="fr">{0} livres en {1} séries</text>
-			<text lang="pl">{0} książek w {1} cyklach</text>
+			<text lang="fr">{0} livres dans {1} séries</text>
+			<text lang="pl">{0} książka w {1} seria</text>
 		</property>
+
+		<property>
+			<text lang="en">{0} books in 1 series</text>
+			<text lang="ru">{0} книга в 1 серия</text>
+			<text lang="uk">{0} книга в 1 серія</text>
+			<text lang="de">{0} Bücher in 1 Serie</text>
+			<text lang="es">{0} libros en 1 serie</text>
+			<text lang="fr">{0} livres dans 1 série</text>
+			<text lang="pl">{0} książka w 1 seria</text>
+		</property>
+		
 		<property>
 			<text lang="en">{0} books without series</text>
 			<text lang="ru">{0} книг вне серий</text>

@@ -82,17 +82,29 @@ namespace TinyOPDS.OPDS
             // Add "Books by series" entry only if author has books with series
             if (booksWithSeries.Count > 0)
             {
+                // Build content text with proper pluralization for two numbers
+                string booksInSeriesContent;
+                if (Pluralizer.IsLanguageSupported(Localizer.Language))
+                {
+                    // For Slavic languages - use pluralizer with special preposition handling
+                    booksInSeriesContent = StringUtils.ApplyPluralForm(0, Localizer.Language,
+                        string.Format(Localizer.Text("{0} books in {1} series"),
+                            booksWithSeries.Count, seriesCount));
+                }
+                else
+                {
+                    // For non-Slavic languages - choose correct key based on series count
+                    string locKey = seriesCount == 1 ? "{0} books in 1 series" : "{0} books in {1} series";
+                    booksInSeriesContent = string.Format(Localizer.Text(locKey),
+                        booksWithSeries.Count, seriesCount);
+                }
+
                 doc.Root.Add(
                     new XElement("entry",
                         new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                         new XElement("id", "tag:author-details:series:" + author),
                         new XElement("title", Localizer.Text("Books by series")),
-                        new XElement("content",
-                            StringUtils.ApplyPluralForm(seriesCount, Localizer.Language,
-                                StringUtils.ApplyPluralForm(booksWithSeries.Count, Localizer.Language,
-                                    string.Format(Localizer.Text("{0} books in {1} series"),
-                                        booksWithSeries.Count, seriesCount))),
-                            new XAttribute("type", "text")),
+                        new XElement("content", booksInSeriesContent, new XAttribute("type", "text")),
                         new XElement("link",
                             new XAttribute("href", "/author-series/" + Uri.EscapeDataString(author)),
                             new XAttribute("type", "application/atom+xml;profile=opds-catalog"))

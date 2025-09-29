@@ -57,7 +57,7 @@ namespace TinyOPDS.OPDS
                     new XElement("title", Localizer.Text("By download date"), new XAttribute("type", "text")),
                     new XElement("content",
                         StringUtils.ApplyPluralForm(downloadsCount, Localizer.Language,
-                            string.Format(Localizer.Text("{0} books sorted by download date"), downloadsCount)),
+                            string.Format(Localizer.Text("{0} books by download date"), downloadsCount)),
                         new XAttribute("type", "text")),
                     new XElement("link",
                         new XAttribute("href", "/downstat/date"),

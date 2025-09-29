@@ -184,6 +184,16 @@ namespace TinyOPDS
         /// </summary>
         private static string ApplyPluralization(string text, PluralizationData data, string languageCode)
         {
+            // Special pattern for two numbers with preposition
+            var twoNumbersPattern = @"(\d+)\s+(\S+)\s+(от|від|od)\s+(\d+)\s+(\S+)";
+            var twoNumbersMatch = Regex.Match(text, twoNumbersPattern);
+
+            if (twoNumbersMatch.Success)
+            {
+                return ProcessTwoNumbersWithPreposition(twoNumbersMatch, data, languageCode);
+            }
+
+            // Original processing for other patterns
             var result = new StringBuilder();
             var processedPositions = new HashSet<int>();
 
@@ -300,6 +310,99 @@ namespace TinyOPDS
             }
 
             return result.ToString();
+        }
+
+        /// <summary>
+        /// Process two numbers with preposition between them
+        /// </summary>
+        private static string ProcessTwoNumbersWithPreposition(Match match, PluralizationData data, string languageCode)
+        {
+            int firstNumber = int.Parse(match.Groups[1].Value);
+            string firstWord = match.Groups[2].Value;
+            string preposition = match.Groups[3].Value;
+            int secondNumber = int.Parse(match.Groups[4].Value);
+            string secondWord = match.Groups[5].Value;
+
+            // Process first word normally
+            string processedFirst = ProcessWord(firstWord, firstNumber, data, languageCode);
+            if (processedFirst == null) processedFirst = firstWord;
+
+            // Process second word with special rule for prepositions
+            string processedSecond = ProcessWordAfterPreposition(secondWord, secondNumber, data, languageCode);
+            if (processedSecond == null) processedSecond = secondWord;
+
+            return string.Format("{0} {1} {2} {3} {4}",
+                firstNumber, processedFirst, preposition, secondNumber, processedSecond);
+        }
+
+        /// <summary>
+        /// Process word after preposition with special rules
+        /// </summary>
+        private static string ProcessWordAfterPreposition(string word, int number, PluralizationData data, string languageCode)
+        {
+            var wordLower = word.ToLower();
+
+            // Find base form
+            string baseForm = null;
+            if (data.WordReverseLookup.ContainsKey(wordLower))
+            {
+                baseForm = data.WordReverseLookup[wordLower];
+            }
+            else if (data.Words.ContainsKey(wordLower))
+            {
+                baseForm = wordLower;
+            }
+
+            if (baseForm != null && data.Words.ContainsKey(baseForm))
+            {
+                var forms = data.Words[baseForm];
+
+                // Special rule for numbers 2-4 after prepositions in Slavic languages
+                int formIndex = GetFormIndexAfterPreposition(number, languageCode);
+                var newForm = forms[formIndex];
+
+                // Preserve case pattern
+                return PreserveCase(word, newForm);
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Get form index for word after preposition
+        /// </summary>
+        private static int GetFormIndexAfterPreposition(int number, string languageCode)
+        {
+            number = Math.Abs(number);
+
+            if (languageCode == "ru" || languageCode == "uk" || languageCode == "pl")
+            {
+                // After prepositions like "от", "від", "od", use genitive plural for 2-4
+                int lastDigit = number % 10;
+                int lastTwoDigits = number % 100;
+
+                // 11-14 are exceptions - always genitive plural
+                if (lastTwoDigits >= 11 && lastTwoDigits <= 14)
+                    return 2; // genitive plural
+
+                // Numbers >= 1000 always use genitive plural
+                if (number >= 1000)
+                    return 2; // genitive plural
+
+                // 1 (except 11) - genitive singular
+                if (lastDigit == 1)
+                    return 1; // genitive singular (после предлога)
+
+                // 2-4 (except 12-14) - GENITIVE PLURAL after preposition!
+                if (lastDigit >= 2 && lastDigit <= 4)
+                    return 2; // genitive plural (после предлога!)
+
+                // 0, 5-9 and others - genitive plural
+                return 2; // genitive plural
+            }
+
+            // Default to first form
+            return 0;
         }
 
         /// <summary>

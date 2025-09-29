@@ -244,9 +244,9 @@
             // 
             this.useWatcher.Checked = global::TinyOPDS.Properties.Settings.Default.WatchLibrary;
             this.useWatcher.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "WatchLibrary", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.useWatcher.Location = new System.Drawing.Point(335, 37);
+            this.useWatcher.Location = new System.Drawing.Point(331, 38);
             this.useWatcher.Name = "useWatcher";
-            this.useWatcher.Size = new System.Drawing.Size(147, 18);
+            this.useWatcher.Size = new System.Drawing.Size(154, 18);
             this.useWatcher.TabIndex = 30;
             this.useWatcher.Text = "Monitor changes";
             this.useWatcher.UseVisualStyleBackColor = true;
@@ -272,7 +272,7 @@
             // label15
             // 
             this.label15.AutoSize = true;
-            this.label15.Location = new System.Drawing.Point(14, 16);
+            this.label15.Location = new System.Drawing.Point(15, 16);
             this.label15.Name = "label15";
             this.label15.Size = new System.Drawing.Size(105, 13);
             this.label15.TabIndex = 27;
@@ -291,7 +291,7 @@
             // 
             this.label14.Location = new System.Drawing.Point(278, 229);
             this.label14.Name = "label14";
-            this.label14.Size = new System.Drawing.Size(90, 18);
+            this.label14.Size = new System.Drawing.Size(111, 18);
             this.label14.TabIndex = 25;
             this.label14.Text = "Status:";
             // 
@@ -308,7 +308,7 @@
             // 
             this.label12.Location = new System.Drawing.Point(278, 199);
             this.label12.Name = "label12";
-            this.label12.Size = new System.Drawing.Size(90, 18);
+            this.label12.Size = new System.Drawing.Size(111, 18);
             this.label12.TabIndex = 23;
             this.label12.Text = "Scan rate:";
             // 
@@ -325,7 +325,7 @@
             // 
             this.label10.Location = new System.Drawing.Point(278, 169);
             this.label10.Name = "label10";
-            this.label10.Size = new System.Drawing.Size(90, 18);
+            this.label10.Size = new System.Drawing.Size(111, 18);
             this.label10.TabIndex = 21;
             this.label10.Text = "Elapsed time:";
             // 
@@ -342,7 +342,7 @@
             // 
             this.label6.Location = new System.Drawing.Point(278, 139);
             this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(90, 18);
+            this.label6.Size = new System.Drawing.Size(111, 18);
             this.label6.TabIndex = 19;
             this.label6.Text = "Start time:";
             // 
@@ -418,7 +418,7 @@
             // folderButton
             // 
             this.folderButton.Image = ((System.Drawing.Image)(resources.GetObject("folderButton.Image")));
-            this.folderButton.Location = new System.Drawing.Point(294, 31);
+            this.folderButton.Location = new System.Drawing.Point(296, 32);
             this.folderButton.Name = "folderButton";
             this.folderButton.Size = new System.Drawing.Size(29, 26);
             this.folderButton.TabIndex = 10;
@@ -454,7 +454,7 @@
             // 
             // libraryPath
             // 
-            this.libraryPath.Location = new System.Drawing.Point(19, 35);
+            this.libraryPath.Location = new System.Drawing.Point(18, 36);
             this.libraryPath.Name = "libraryPath";
             this.libraryPath.Size = new System.Drawing.Size(272, 20);
             this.libraryPath.TabIndex = 6;

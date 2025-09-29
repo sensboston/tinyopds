@@ -1931,7 +1931,7 @@
 			<text lang="de">Bücher nach Serien</text>
 			<text lang="es">Libros por series</text>
 			<text lang="fr">Livres par séries</text>
-			<text lang="pl">Książki według serii</text>
+			<text lang="pl">Książki według cykli</text>
 		</property>
 		<property name="Books without Series">
 			<text lang="en">Books without Series</text>
@@ -1940,7 +1940,7 @@
 			<text lang="de">Bücher ohne Serie</text>
 			<text lang="es">Libros sin serie</text>
 			<text lang="fr">Livres sans série</text>
-			<text lang="pl">Książki bez serii</text>
+			<text lang="pl">Książki bez cyklu</text>
 		</property>
 		<property name="Books Alphabetically">
 			<text lang="en">Books Alphabetically</text>
@@ -1967,7 +1967,7 @@
 			<text lang="de">Nach Serien</text>
 			<text lang="es">Por series</text>
 			<text lang="fr">Par séries</text>
-			<text lang="pl">Według serii</text>
+			<text lang="pl">Według cykli</text>
 		</property>
 		<property name="By Genres">
 			<text lang="en">By Genres</text>

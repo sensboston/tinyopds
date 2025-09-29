@@ -58,6 +58,9 @@
   </ItemGroup>
   <!-- ============== CLI SPECIFIC FILES ============== -->
   <ItemGroup>
+    <Compile Include="..\TinyOPDS\Misc\Pluralizer.cs">
+      <Link>Misc\Pluralizer.cs</Link>
+    </Compile>
     <Compile Include="Program.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -319,6 +322,9 @@
   <ItemGroup>
     <Content Include="..\TinyOPDS\Resources\library.ico">
       <Link>Resources\library.ico</Link>
+    </Content>
+    <Content Include="..\TinyOPDS\Resources\pluralization.xml">
+      <Link>Resources\pluralization.xml</Link>
     </Content>
     <Content Include="TinyOPDS.ico" />
   </ItemGroup>

@@ -34,6 +34,21 @@ namespace TinyOPDS.OPDS
             // Get downloads count from library
             int downloadsCount = Library.GetUniqueDownloadsCount();
 
+            // Build books by authors content based on language support
+            string booksByAuthorsContent;
+            if (Pluralizer.IsLanguageSupported(Localizer.Language))
+            {
+                // For Slavic languages - use pluralizer with special preposition handling
+                booksByAuthorsContent = StringUtils.ApplyPluralForm(0, Localizer.Language,
+                    string.Format(Localizer.Text("{0} books by {1} authors"), totalBooksCount, authorsCount));
+            }
+            else
+            {
+                // For non-Slavic languages - choose correct key based on author count
+                string locKey = authorsCount == 1 ? "{0} books by 1 author" : "{0} books by {1} authors";
+                booksByAuthorsContent = string.Format(Localizer.Text(locKey), totalBooksCount, authorsCount);
+            }
+
             return new XDocument(
                 // Add root element with namespaces
                 new XElement("feed", new XAttribute(XNamespace.Xmlns + "dc", Namespaces.dc),
@@ -60,7 +75,7 @@ namespace TinyOPDS.OPDS
                           new XElement("title", Localizer.Text("New books (by date added)"), new XAttribute("type", "text")),
                           new XElement("content",
                               StringUtils.ApplyPluralForm(newBooksCount, Localizer.Language,
-                                  string.Format(Localizer.Text("{0} new books ordered by date"), newBooksCount)),
+                                  string.Format(Localizer.Text("{0} new books (by date)"), newBooksCount)),
                               new XAttribute("type", "text")),
                           new XElement("link", new XAttribute("href", "/newdate"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                           ),
@@ -72,19 +87,17 @@ namespace TinyOPDS.OPDS
                           new XElement("title", Localizer.Text("New books (alphabetically)"), new XAttribute("type", "text")),
                           new XElement("content",
                               StringUtils.ApplyPluralForm(newBooksCount, Localizer.Language,
-                                  string.Format(Localizer.Text("{0} new books ordered alphabetically"), newBooksCount)),
+                                  string.Format(Localizer.Text("{0} new books (alphabetically)"), newBooksCount)),
                               new XAttribute("type", "text")),
                           new XElement("link", new XAttribute("href", "/newtitle"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                           ),
 
-                      // Add catalog entries
+                      // Add catalog entries with prepared content for books by authors
                       new XElement("entry",
                           new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                           new XElement("id", "tag:root:authors"),
                           new XElement("title", Localizer.Text("By authors"), new XAttribute("type", "text")),
-                          new XElement("content", StringUtils.ApplyPluralForm(0, Localizer.Language,
-                                string.Format(Localizer.Text("{0} books by {1} authors"), totalBooksCount, authorsCount)),
-                              new XAttribute("type", "text")),
+                          new XElement("content", booksByAuthorsContent, new XAttribute("type", "text")),
                           new XElement("link", new XAttribute("href", "/authorsindex"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                           ),
 

@@ -1,0 +1,62 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<pluralization>
+	<!-- Russian language -->
+	<language code="ru" name="Russian">
+		<words>
+			<word>книга|f|книга|книги|книг</word>
+			<word>автор|m|автор|автора|авторов</word>
+			<word>серия|f|серия|серии|серий</word>
+			<word>результат|m|результат|результата|результатов</word>
+		</words>
+		<participles>
+			<participle>отсортированный|отсортированный|отсортированная|отсортированное|отсортированные|отсортированных</participle>
+			<participle>упорядоченный|упорядоченный|упорядоченная|упорядоченное|упорядоченные|упорядоченных</participle>
+			<participle>найденный|найденный|найденная|найденное|найденные|найденных</participle>
+			<participle>загруженный|загруженный|загруженная|загруженное|загруженные|загруженных</participle>
+		</participles>
+		<phrases>
+			<phrase>новая книга|новая книга|новые книги|новых книг</phrase>
+			<phrase>от автора|от автора|от авторов|от авторов</phrase>
+		</phrases>
+	</language>
+
+	<!-- Ukrainian language -->
+	<language code="uk" name="Ukrainian">
+		<words>
+			<word>книга|f|книга|книги|книг</word>
+			<word>автор|m|автор|автора|авторів</word>
+			<word>серія|f|серія|серії|серій</word>
+			<word>результат|m|результат|результату|результатів</word>
+		</words>
+		<participles>
+			<participle>відсортований|відсортований|відсортована|відсортоване|відсортовані|відсортованих</participle>
+			<participle>упорядкований|упорядкований|упорядкована|упорядковане|упорядковані|упорядкованих</participle>
+			<participle>знайдений|знайдений|знайдена|знайдене|знайдені|знайдених</participle>
+			<participle>завантажений|завантажений|завантажена|завантажене|завантажені|завантажених</participle>
+		</participles>
+		<phrases>
+			<phrase>нова книга|нова книга|нові книги|нових книг</phrase>
+			<phrase>від автора|від автора|від авторів|від авторів</phrase>
+		</phrases>
+	</language>
+
+	<!-- Polish language -->
+	<language code="pl" name="Polish">
+		<words>
+			<word>książka|f|książka|książki|książek</word>
+			<word>autor|m|autor|autorów|autorów</word>
+			<word>cykl|m|cykl|cykle|cykli</word>
+			<word>wynik|m|wynik|wyniki|wyników</word>
+		</words>
+		<participles>
+			<participle>posortowany|posortowany|posortowana|posortowane|posortowane|posortowanych</participle>
+			<participle>uporządkowany|uporządkowany|uporządkowana|uporządkowane|uporządkowane|uporządkowanych</participle>
+			<participle>znaleziony|znaleziony|znaleziona|znalezione|znalezione|znalezionych</participle>
+			<participle>pobrany|pobrany|pobrana|pobrane|pobrane|pobranych</participle>
+		</participles>
+		<phrases>
+			<phrase>nowa książka|nowa książka|nowe książki|nowych książek</phrase>
+			<phrase>od autora|od autora|od autorów|od autorów</phrase>
+		</phrases>
+	</language>
+</pluralization>

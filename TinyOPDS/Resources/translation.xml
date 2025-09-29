@@ -116,7 +116,7 @@
 			<text lang="de">{0} Bücher/Min</text>
 			<text lang="es">{0} libros/min</text>
 			<text lang="fr">{0} livres/min</text>
-			<text lang="pl">{0} książek/min</text>
+			<text lang="pl">{0} ks./min</text>
 		</property>
 		<property form="MainForm" ctrl="label12">
 			<text lang="en">Scan rate:</text>
@@ -125,7 +125,7 @@
 			<text lang="de">Scanrate:</text>
 			<text lang="es">Velocidad de escaneo:</text>
 			<text lang="fr">Vitesse de balayage:</text>
-			<text lang="pl">Szybkość skanowania:</text>
+			<text lang="pl">Szybkość skan.:</text>
 		</property>
 		<property form="MainForm" ctrl="label10">
 			<text lang="en">Elapsed time:</text>
@@ -134,7 +134,7 @@
 			<text lang="de">Verstrichene Zeit:</text>
 			<text lang="es">Tiempo transcurrido:</text>
 			<text lang="fr">Temps écoulé:</text>
-			<text lang="pl">Upłynęło czasu:</text>
+			<text lang="pl">Upłynęło:</text>
 		</property>
 		<property form="MainForm" ctrl="label6">
 			<text lang="en">Start time:</text>
@@ -143,7 +143,7 @@
 			<text lang="de">Startzeit:</text>
 			<text lang="es">Hora de inicio:</text>
 			<text lang="fr">Heure de début:</text>
-			<text lang="pl">Czas rozpoczęcia:</text>
+			<text lang="pl">Rozpoczęto o:</text>
 		</property>
 		<property form="MainForm" ctrl="label2">
 			<text lang="en">Books in database:</text>
@@ -797,13 +797,13 @@
 		</property>
 
 		<property>
-			<text lang="en">{0} books by download date</text>
-			<text lang="ru">{0} книг по дате загрузки</text>
-			<text lang="uk">{0} книг за датою завантаження</text>
-			<text lang="de">{0} Bücher nach Download-Datum</text>
-			<text lang="es">{0} libros por fecha de descarga</text>
-			<text lang="fr">{0} livres par date de téléchargement</text>
-			<text lang="pl">{0} książek według daty pobrania</text>
+			<text lang="en">{0} books (by download date)</text>
+			<text lang="ru">{0} книг (по дате загрузки)</text>
+			<text lang="uk">{0} книг (за датою завантаження)</text>
+			<text lang="de">{0} Bücher (nach Download-Datum)</text>
+			<text lang="es">{0} libros (por fecha de descarga)</text>
+			<text lang="fr">{0} livres (par date de téléchargement)</text>
+			<text lang="pl">{0} książek (według daty pobrania)</text>
 		</property>
 		
 		<property>
@@ -869,7 +869,7 @@
 			<text lang="de">{0} Bücher von 1 Autor</text>
 			<text lang="es">{0} libros de 1 autor</text>
 			<text lang="fr">{0} livres de 1 auteur</text>
-			<text lang="pl">{0} książka od 1 autor</text>
+			<text lang="pl">{0} książka od 1 autora</text>
 		</property>
 		<property>
 			<text lang="en">{0} books by {1} authors</text>
@@ -951,7 +951,7 @@
 			<text lang="de">{0} Bücher in {1} Serien</text>
 			<text lang="es">{0} libros en {1} series</text>
 			<text lang="fr">{0} livres en {1} séries</text>
-			<text lang="pl">{0} książek w {1} cyklach</text>
+			<text lang="pl">{0} książek w {1} cyklu/ach</text>
 		</property>
 		<property>
 			<text lang="en">By genres</text>
@@ -1593,7 +1593,7 @@
 			<text lang="de">{0} Bücher in {1} Serien</text>
 			<text lang="es">{0} libros en {1} series</text>
 			<text lang="fr">{0} livres dans {1} séries</text>
-			<text lang="pl">{0} książka w {1} seria</text>
+			<text lang="pl">{0} książka w {1} cyklu/ach</text>
 		</property>
 
 		<property>
@@ -1603,7 +1603,7 @@
 			<text lang="de">{0} Bücher in 1 Serie</text>
 			<text lang="es">{0} libros en 1 serie</text>
 			<text lang="fr">{0} livres dans 1 série</text>
-			<text lang="pl">{0} książka w 1 seria</text>
+			<text lang="pl">{0} książka w 1 cyklu</text>
 		</property>
 		
 		<property>
@@ -1616,22 +1616,22 @@
 			<text lang="pl">{0} książek bez cyklu</text>
 		</property>
 		<property>
-			<text lang="en">{0} books sorted alphabetically</text>
-			<text lang="ru">{0} книг в алфавитном порядке</text>
-			<text lang="uk">{0} книг в алфавітному порядку</text>
-			<text lang="de">{0} Bücher alphabetisch sortiert</text>
-			<text lang="es">{0} libros ordenados alfabéticamente</text>
-			<text lang="fr">{0} livres triés par ordre alphabétique</text>
-			<text lang="pl">{0} książek posortowanych alfabetycznie</text>
+			<text lang="en">{0} books (alphabetically)</text>
+			<text lang="ru">{0} книг (в алфавитном порядке)</text>
+			<text lang="uk">{0} книг (в алфавітному порядку)</text>
+			<text lang="de">{0} Bücher (alphabetisch)</text>
+			<text lang="es">{0} libros (alfabéticamente)</text>
+			<text lang="fr">{0} livres (par ordre alphabétique)</text>
+			<text lang="pl">{0} książek (alfabetycznie)</text>
 		</property>
 		<property>
-			<text lang="en">{0} books sorted by creation date</text>
-			<text lang="ru">{0} книг по дате создания</text>
-			<text lang="uk">{0} книг за датою створення</text>
-			<text lang="de">{0} Bücher nach Erstellungsdatum sortiert</text>
-			<text lang="es">{0} libros ordenados por fecha de creación</text>
-			<text lang="fr">{0} livres triés par date de création</text>
-			<text lang="pl">{0} książek posortowanych według daty utworzenia</text>
+			<text lang="en">{0} books (by creation date)</text>
+			<text lang="ru">{0} книг (по дате создания)</text>
+			<text lang="uk">{0} книг (за датою створення)</text>
+			<text lang="de">{0} Bücher (nach Erstellungsdatum)</text>
+			<text lang="es">{0} libros (por fecha de creación)</text>
+			<text lang="fr">{0} livres (par date de création)</text>
+			<text lang="pl">{0} książek (według daty utworzenia)</text>
 		</property>
 		<property>
 			<text lang="en">{0} books in series</text>

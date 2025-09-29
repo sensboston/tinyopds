@@ -127,6 +127,8 @@ namespace TinyOPDS
             bs.AllowNew = true;
             bs.DataSource = HttpProcessor.Credentials;
             dataGridView1.DataSource = bs;
+            dataGridView1.Columns[0].HeaderText = Localizer.Text("User");
+            dataGridView1.Columns[1].HeaderText = Localizer.Text("Password");
             bs.CurrentItemChanged += Bs_CurrentItemChanged;
             dataGridView1.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
             foreach (DataGridViewColumn col in dataGridView1.Columns)
@@ -1076,6 +1078,15 @@ namespace TinyOPDS
             newBooksPeriodCombo.Items[4] = Localizer.Text("month and half");
             newBooksPeriodCombo.Items[5] = Localizer.Text("two month");
             newBooksPeriodCombo.Items[6] = Localizer.Text("three month");
+
+            // Update dataGridView1 columns
+            if (dataGridView1.Columns.Count >= 2)
+            {
+                dataGridView1.Columns[0].HeaderText = Localizer.Text("User");
+                dataGridView1.Columns[1].HeaderText = Localizer.Text("Password");
+            }
+            // Rebuild OPDS tree with new translations
+            BuildOPDSTree();
         }
 
         /// <summary>
@@ -1088,7 +1099,7 @@ namespace TinyOPDS
             const string business = "sens.boston@gmail.com", description = "Donation%20for%20the%20TinyOPDS", country = "US", currency = "USD";
             string url = string.Format("https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business={0}&lc={1}&item_name={2}&currency_code={3}&bn=PP%2dDonationsBF",
                 business, country, description, currency);
-            System.Diagnostics.Process.Start(url);
+            Process.Start(url);
         }
 
         private bool CheckUrl(string uriName)
@@ -1312,38 +1323,38 @@ namespace TinyOPDS
             treeViewOPDS.Nodes.Clear();
 
             // Root node
-            TreeNode rootNode = new TreeNode("Root")
+            TreeNode rootNode = new TreeNode(Localizer.Text("Root"))
             {
                 Tag = "root",
                 Checked = true
             };
 
             // New Books section
-            TreeNode newBooksNode = CreateTreeNode("New Books", "newbooks-section", opdsStructure["newdate"] || opdsStructure["newtitle"]);
-            newBooksNode.Nodes.Add(CreateTreeNode("New Books (by date)", "newdate", opdsStructure["newdate"]));
-            newBooksNode.Nodes.Add(CreateTreeNode("New Books (alphabetically)", "newtitle", opdsStructure["newtitle"]));
+            TreeNode newBooksNode = CreateTreeNode(Localizer.Text("New Books"), "newbooks-section", opdsStructure["newdate"] || opdsStructure["newtitle"]);
+            newBooksNode.Nodes.Add(CreateTreeNode(Localizer.Text("New Books (by date)"), "newdate", opdsStructure["newdate"]));
+            newBooksNode.Nodes.Add(CreateTreeNode(Localizer.Text("New Books (alphabetically)"), "newtitle", opdsStructure["newtitle"]));
             rootNode.Nodes.Add(newBooksNode);
 
             // Authors section
-            TreeNode authorsNode = CreateTreeNode("By Authors", "authorsindex", opdsStructure["authorsindex"]);
+            TreeNode authorsNode = CreateTreeNode(Localizer.Text("By Authors"), "authorsindex", opdsStructure["authorsindex"]);
 
-            TreeNode authorDetailsNode = CreateTreeNode("Author's books", "author-details", opdsStructure["author-details"]);
-            authorDetailsNode.Nodes.Add(CreateTreeNode("Books by Series", "author-series", opdsStructure["author-series"]));
-            authorDetailsNode.Nodes.Add(CreateTreeNode("Books without Series", "author-no-series", opdsStructure["author-no-series"]));
-            authorDetailsNode.Nodes.Add(CreateTreeNode("Books Alphabetically", "author-alphabetic", opdsStructure["author-alphabetic"]));
-            authorDetailsNode.Nodes.Add(CreateTreeNode("Books by Date", "author-by-date", opdsStructure["author-by-date"]));
+            TreeNode authorDetailsNode = CreateTreeNode(Localizer.Text("Author's books"), "author-details", opdsStructure["author-details"]);
+            authorDetailsNode.Nodes.Add(CreateTreeNode(Localizer.Text("Books by Series"), "author-series", opdsStructure["author-series"]));
+            authorDetailsNode.Nodes.Add(CreateTreeNode(Localizer.Text("Books without Series"), "author-no-series", opdsStructure["author-no-series"]));
+            authorDetailsNode.Nodes.Add(CreateTreeNode(Localizer.Text("Books Alphabetically"), "author-alphabetic", opdsStructure["author-alphabetic"]));
+            authorDetailsNode.Nodes.Add(CreateTreeNode(Localizer.Text("Books by Date"), "author-by-date", opdsStructure["author-by-date"]));
 
             authorsNode.Nodes.Add(authorDetailsNode);
             rootNode.Nodes.Add(authorsNode);
 
             // Series section
-            rootNode.Nodes.Add(CreateTreeNode("By Series", "sequencesindex", opdsStructure["sequencesindex"]));
+            rootNode.Nodes.Add(CreateTreeNode(Localizer.Text("By Series"), "sequencesindex", opdsStructure["sequencesindex"]));
 
             // Genres section
-            rootNode.Nodes.Add(CreateTreeNode("By Genres", "genres", opdsStructure["genres"]));
+            rootNode.Nodes.Add(CreateTreeNode(Localizer.Text("By Genres"), "genres", opdsStructure["genres"]));
 
             // Downloads section
-            rootNode.Nodes.Add(CreateTreeNode("Downloaded books", "downloads", opdsStructure["downloads"]));
+            rootNode.Nodes.Add(CreateTreeNode(Localizer.Text("Downloaded books"), "downloads", opdsStructure["downloads"]));
 
             treeViewOPDS.Nodes.Add(rootNode);
             treeViewOPDS.ExpandAll();

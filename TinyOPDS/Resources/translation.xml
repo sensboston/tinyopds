@@ -1868,6 +1868,145 @@
 			<text lang="fr">Aucun chapitre disponible</text>
 			<text lang="pl">Brak rozdziałów</text>
 		</property>
-	
+
+		<!-- OPDS Structure -->
+		<property name="Root">
+			<text lang="en">Root</text>
+			<text lang="ru">Корень</text>
+			<text lang="uk">Корінь</text>
+			<text lang="de">Stamm</text>
+			<text lang="es">Raíz</text>
+			<text lang="fr">Racine</text>
+			<text lang="pl">Katalog główny</text>
+		</property>
+		<property name="New Books">
+			<text lang="en">New Books</text>
+			<text lang="ru">Новые книги</text>
+			<text lang="uk">Нові книги</text>
+			<text lang="de">Neue Bücher</text>
+			<text lang="es">Libros nuevos</text>
+			<text lang="fr">Nouveaux livres</text>
+			<text lang="pl">Nowe książki</text>
+		</property>
+		<property name="New Books (by date)">
+			<text lang="en">New Books (by date)</text>
+			<text lang="ru">Новые книги (по дате)</text>
+			<text lang="uk">Нові книги (за датою)</text>
+			<text lang="de">Neue Bücher (nach Datum)</text>
+			<text lang="es">Libros nuevos (por fecha)</text>
+			<text lang="fr">Nouveaux livres (par date)</text>
+			<text lang="pl">Nowe książki (według daty)</text>
+		</property>
+		<property name="New Books (alphabetically)">
+			<text lang="en">New Books (alphabetically)</text>
+			<text lang="ru">Новые книги (по алфавиту)</text>
+			<text lang="uk">Нові книги (за алфавітом)</text>
+			<text lang="de">Neue Bücher (alphabetisch)</text>
+			<text lang="es">Libros nuevos (alfabéticamente)</text>
+			<text lang="fr">Nouveaux livres (alphabétique)</text>
+			<text lang="pl">Nowe książki (alfabetycznie)</text>
+		</property>
+		<property name="By Authors">
+			<text lang="en">By Authors</text>
+			<text lang="ru">По авторам</text>
+			<text lang="uk">За авторами</text>
+			<text lang="de">Nach Autoren</text>
+			<text lang="es">Por autores</text>
+			<text lang="fr">Par auteurs</text>
+			<text lang="pl">Według autorów</text>
+		</property>
+		<property name="Author's books">
+			<text lang="en">Author's books</text>
+			<text lang="ru">Книги автора</text>
+			<text lang="uk">Книги автора</text>
+			<text lang="de">Bücher des Autors</text>
+			<text lang="es">Libros del autor</text>
+			<text lang="fr">Livres de l'auteur</text>
+			<text lang="pl">Książki autora</text>
+		</property>
+		<property name="Books by Series">
+			<text lang="en">Books by Series</text>
+			<text lang="ru">Книги по сериям</text>
+			<text lang="uk">Книги за серіями</text>
+			<text lang="de">Bücher nach Serien</text>
+			<text lang="es">Libros por series</text>
+			<text lang="fr">Livres par séries</text>
+			<text lang="pl">Książki według serii</text>
+		</property>
+		<property name="Books without Series">
+			<text lang="en">Books without Series</text>
+			<text lang="ru">Книги без серий</text>
+			<text lang="uk">Книги без серій</text>
+			<text lang="de">Bücher ohne Serie</text>
+			<text lang="es">Libros sin serie</text>
+			<text lang="fr">Livres sans série</text>
+			<text lang="pl">Książki bez serii</text>
+		</property>
+		<property name="Books Alphabetically">
+			<text lang="en">Books Alphabetically</text>
+			<text lang="ru">Книги по алфавиту</text>
+			<text lang="uk">Книги за алфавітом</text>
+			<text lang="de">Bücher alphabetisch</text>
+			<text lang="es">Libros alfabéticamente</text>
+			<text lang="fr">Livres alphabétique</text>
+			<text lang="pl">Książki alfabetycznie</text>
+		</property>
+		<property name="Books by Date">
+			<text lang="en">Books by Date</text>
+			<text lang="ru">Книги по дате</text>
+			<text lang="uk">Книги за датою</text>
+			<text lang="de">Bücher nach Datum</text>
+			<text lang="es">Libros por fecha</text>
+			<text lang="fr">Livres par date</text>
+			<text lang="pl">Książki według daty</text>
+		</property>
+		<property name="By Series">
+			<text lang="en">By Series</text>
+			<text lang="ru">По сериям</text>
+			<text lang="uk">За серіями</text>
+			<text lang="de">Nach Serien</text>
+			<text lang="es">Por series</text>
+			<text lang="fr">Par séries</text>
+			<text lang="pl">Według serii</text>
+		</property>
+		<property name="By Genres">
+			<text lang="en">By Genres</text>
+			<text lang="ru">По жанрам</text>
+			<text lang="uk">За жанрами</text>
+			<text lang="de">Nach Genres</text>
+			<text lang="es">Por géneros</text>
+			<text lang="fr">Par genres</text>
+			<text lang="pl">Według gatunków</text>
+		</property>
+		<property name="Downloaded books">
+			<text lang="en">Downloaded books</text>
+			<text lang="ru">Скачанные книги</text>
+			<text lang="uk">Завантажені книги</text>
+			<text lang="de">Heruntergeladene Bücher</text>
+			<text lang="es">Libros descargados</text>
+			<text lang="fr">Livres téléchargés</text>
+			<text lang="pl">Pobrane książki</text>
+		</property>
+
+		<!-- Credentials Grid -->
+		<property name="User">
+			<text lang="en">User</text>
+			<text lang="ru">Пользователь</text>
+			<text lang="uk">Користувач</text>
+			<text lang="de">Benutzer</text>
+			<text lang="es">Usuario</text>
+			<text lang="fr">Utilisateur</text>
+			<text lang="pl">Użytkownik</text>
+		</property>
+		<property name="Password">
+			<text lang="en">Password</text>
+			<text lang="ru">Пароль</text>
+			<text lang="uk">Пароль</text>
+			<text lang="de">Passwort</text>
+			<text lang="es">Contraseña</text>
+			<text lang="fr">Mot de passe</text>
+			<text lang="pl">Hasło</text>
+		</property>		
+		
 	</properties>
 </root>

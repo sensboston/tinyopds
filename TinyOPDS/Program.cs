@@ -42,15 +42,25 @@ namespace TinyOPDS
 
             // Initialize embedded DLL loader first (before any other operations)
             EmbeddedDllLoader.Initialize();
-
-            // Initialize embedded DLL loader first (before any other operations)
-            EmbeddedDllLoader.Initialize();
             EmbeddedDllLoader.PreloadNativeDlls();
 
-            // DPI Awareness for .NET Framework 4.7 and later
-            if (Utils.IsWindows && Environment.OSVersion.Version.Major >= 6)
+            // DPI Awareness for Windows 8.1 and later
+            // shcore.dll is only available starting from Windows 8.1 (version 6.3)
+            if (Utils.IsWindows)
             {
-                SetProcessDpiAwareness(PROCESS_DPI_AWARENESS.Process_Per_Monitor_DPI_Aware);
+                try
+                {
+                    Version osVersion = Environment.OSVersion.Version;
+                    // Windows 8.1 = 6.3, Windows 10 = 10.0
+                    if ((osVersion.Major == 6 && osVersion.Minor >= 3) || osVersion.Major >= 10)
+                    {
+                        SetProcessDpiAwareness(PROCESS_DPI_AWARENESS.Process_Per_Monitor_DPI_Aware);
+                    }
+                }
+                catch
+                {
+                    // Ignore DPI awareness errors on older Windows versions
+                }
             }
 
             PortableSettingsProvider.SettingsFileName = "TinyOPDS.config";

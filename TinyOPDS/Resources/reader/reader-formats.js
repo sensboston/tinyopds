@@ -727,6 +727,10 @@ class FormatConverter {
             return 'fr';
         }
 
+        if (/[ąćęłńśźżĄĆĘŁŃŚŹŻ]/.test(sample)) {
+            return 'pl';
+        }
+
         if (/[ñáéíóúÑÁÉÍÓÚ]/.test(sample)) {
             return 'es';
         }

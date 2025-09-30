@@ -1,4 +1,4 @@
-# TinyOPDS 3.7
+# TinyOPDS 3.8
 Lightweight and powerful OPDS server for home libraries
 
 ![](https://github.com/sensboston/tinyopds/blob/master/wiki/ss1.png?raw=true)

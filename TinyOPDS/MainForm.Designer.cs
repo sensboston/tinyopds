@@ -443,7 +443,6 @@
             // 
             // scannerButton
             // 
-            this.scannerButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.scannerButton.Location = new System.Drawing.Point(281, 260);
             this.scannerButton.Name = "scannerButton";
             this.scannerButton.Size = new System.Drawing.Size(204, 40);
@@ -687,7 +686,6 @@
             // 
             // serverButton
             // 
-            this.serverButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.serverButton.Location = new System.Drawing.Point(281, 260);
             this.serverButton.Name = "serverButton";
             this.serverButton.Size = new System.Drawing.Size(204, 40);

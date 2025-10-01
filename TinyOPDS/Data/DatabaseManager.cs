@@ -6,7 +6,6 @@
  * SPDX-License-Identifier: MIT
  *
  * Database manager for SQLite operations with FTS5 support
- * MODIFIED: Thread-safe version with proper transaction management
  *
  */
 
@@ -37,6 +36,49 @@ namespace TinyOPDS.Data
 
         public DatabaseManager(string databasePath)
         {
+            // Ensure directory exists (critical for Microsoft Store apps)
+            string directory = Path.GetDirectoryName(databasePath);
+            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+            {
+                try
+                {
+                    Directory.CreateDirectory(directory);
+                    Log.WriteLine("Created database directory: {0}", directory);
+                }
+                catch (Exception ex)
+                {
+                    Log.WriteLine(LogLevel.Error, "Failed to create database directory: {0}", ex.Message);
+                    throw new InvalidOperationException($"Cannot create database directory: {directory}", ex);
+                }
+            }
+
+            // Check write permissions
+            if (!string.IsNullOrEmpty(directory))
+            {
+                string testFile = Path.Combine(directory, Path.GetRandomFileName());
+                try
+                {
+                    using (File.Create(testFile, 1, FileOptions.DeleteOnClose))
+                    {
+                        // File created successfully, we have write permission
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.WriteLine(LogLevel.Error, "No write permission in directory: {0}", directory);
+
+                    // Additional diagnostics for Microsoft Store apps
+                    if (databasePath.Contains("WindowsApps"))
+                    {
+                        Log.WriteLine(LogLevel.Error, "Microsoft Store app detected - database path contains 'WindowsApps'");
+                        Log.WriteLine(LogLevel.Error, "Should be using LocalApplicationData instead!");
+                        Log.WriteLine(LogLevel.Error, "Check Utils.ServiceFilesLocation implementation");
+                    }
+
+                    throw new UnauthorizedAccessException($"Cannot write to directory: {directory}", ex);
+                }
+            }
+
             connectionString = $"Data Source={databasePath};Version=3;";
 
             // Create database file if it doesn't exist (only on Windows with System.Data.SQLite)
@@ -49,16 +91,41 @@ namespace TinyOPDS.Data
                     {
                         var createFileMethod = sqliteType.GetMethod("CreateFile", new[] { typeof(string) });
                         createFileMethod?.Invoke(null, new object[] { databasePath });
+                        Log.WriteLine("Created new SQLite database file: {0}", databasePath);
                     }
                 }
                 catch (Exception ex)
                 {
-                    Log.WriteLine(LogLevel.Warning, "Could not create SQLite file: {0}", ex.Message);
+                    Log.WriteLine(LogLevel.Warning, "Could not create SQLite file using CreateFile method: {0}", ex.Message);
+                    // Will try to create on first connection
                 }
             }
 
-            connection = SqliteConnectionFactory.CreateConnection(connectionString);
-            connection.Open();
+            try
+            {
+                connection = SqliteConnectionFactory.CreateConnection(connectionString);
+                connection.Open();
+                Log.WriteLine("Successfully opened SQLite database connection at: {0}", databasePath);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Failed to open database at: {0}", databasePath);
+                Log.WriteLine(LogLevel.Error, "Error: {0}", ex.Message);
+
+                // Additional diagnostics
+                if (databasePath.Contains("WindowsApps"))
+                {
+                    Log.WriteLine(LogLevel.Error, "CRITICAL: Detected Microsoft Store app path in database location!");
+                    Log.WriteLine(LogLevel.Error, "Database path should be in LocalApplicationData, not in WindowsApps!");
+                }
+
+                if (!File.Exists(databasePath))
+                {
+                    Log.WriteLine(LogLevel.Error, "Database file does not exist and could not be created");
+                }
+
+                throw;
+            }
 
             // Apply performance optimizations
             ApplyPerformanceOptimizations();
@@ -1175,6 +1242,6 @@ namespace TinyOPDS.Data
         public string Key { get; set; }
         public int Value { get; set; }
         public DateTime UpdatedAt { get; set; }
-        public int? PeriodDays { get; set; }  // For new_books statistic - period in days
+        public int? PeriodDays { get; set; }
     }
 }

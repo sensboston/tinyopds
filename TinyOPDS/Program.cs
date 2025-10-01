@@ -13,10 +13,12 @@
 using System;
 using System.Windows.Forms;
 using System.Threading;
+using System.Drawing;
 using System.Diagnostics;
+using System.IO;
+
 using Bluegrams.Application;
 using TinyOPDS.Properties;
-using System.Drawing;
 
 namespace TinyOPDS
 {
@@ -63,8 +65,8 @@ namespace TinyOPDS
                 }
             }
 
-            PortableSettingsProvider.SettingsFileName = "TinyOPDS.config";
-            PortableSettingsProvider.ApplyProvider(Settings.Default);
+            // Configure settings provider with proper path based on write permissions
+            ConfigureSettingsProvider();
 
             Application.SetCompatibleTextRenderingDefault(false);
             Application.EnableVisualStyles();
@@ -99,6 +101,109 @@ namespace TinyOPDS
                 {
                     try { mutex.ReleaseMutex(); } catch { }
                 }
+            }
+        }
+
+        /// <summary>
+        /// Configure settings provider to use appropriate path based on write permissions
+        /// </summary>
+        private static void ConfigureSettingsProvider()
+        {
+            try
+            {
+                string exeDir = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+
+                // Test if we can write to exe directory (portable mode)
+                if (CanWriteToDirectory(exeDir))
+                {
+                    // Use portable mode - config file in exe directory
+                    PortableSettingsProvider.SettingsFileName = "TinyOPDS.config";
+                    PortableSettingsProvider.ApplyProvider(Settings.Default);
+
+                    // Log for diagnostics (Log might not be initialized yet, so use Console if needed)
+                    try
+                    {
+                        Log.WriteLine("Using portable config in exe directory: {0}", Path.Combine(exeDir, "TinyOPDS.config"));
+                    }
+                    catch
+                    {
+                        Console.WriteLine("Using portable config in exe directory: {0}", Path.Combine(exeDir, "TinyOPDS.config"));
+                    }
+                }
+                else
+                {
+                    // Use LocalApplicationData for restricted environments (Microsoft Store, etc.)
+                    string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                    string appDataPath = Path.Combine(localAppData, "TinyOPDS");
+
+                    // Create directory if it doesn't exist
+                    if (!Directory.Exists(appDataPath))
+                    {
+                        Directory.CreateDirectory(appDataPath);
+                    }
+
+                    // Set full path for config file
+                    string configPath = Path.Combine(appDataPath, "TinyOPDS.config");
+                    PortableSettingsProvider.SettingsFileName = configPath;
+                    PortableSettingsProvider.ApplyProvider(Settings.Default);
+
+                    // Log for diagnostics
+                    try
+                    {
+                        Log.WriteLine("Using config in AppData: {0}", configPath);
+                    }
+                    catch
+                    {
+                        Console.WriteLine("Using config in AppData: {0}", configPath);
+                    }
+
+                    // Show notification on first run if config doesn't exist yet
+                    if (!File.Exists(configPath))
+                    {
+                        try
+                        {
+                            Log.WriteLine("First run detected - config will be created in: {0}", appDataPath);
+                        }
+                        catch
+                        {
+                            Console.WriteLine("First run detected - config will be created in: {0}", appDataPath);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Fallback to default behavior if something goes wrong
+                Console.WriteLine("Error configuring settings provider: {0}", ex.Message);
+                PortableSettingsProvider.SettingsFileName = "TinyOPDS.config";
+                PortableSettingsProvider.ApplyProvider(Settings.Default);
+            }
+        }
+
+        /// <summary>
+        /// Test if we have write permissions to a specific directory
+        /// </summary>
+        /// <param name="path">Directory path to test</param>
+        /// <returns>true if we can write to the directory, false otherwise</returns>
+        private static bool CanWriteToDirectory(string path)
+        {
+            try
+            {
+                // Try to create a temporary file with a random name
+                string testFile = Path.Combine(path, Path.GetRandomFileName());
+
+                // Create and immediately delete the test file
+                using (var fs = File.Create(testFile, 1, FileOptions.DeleteOnClose))
+                {
+                    // File is created successfully, we have write permission
+                }
+
+                return true;
+            }
+            catch
+            {
+                // Any exception means we can't write to this directory
+                return false;
             }
         }
 

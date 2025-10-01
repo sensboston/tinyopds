@@ -20,7 +20,7 @@ TinyOPDS is a simple and lightweight OPDS server written in C#. Works on Windows
 - **Redesigned HTTP server** - now efficiently handles parallel requests from multiple clients
 - **TinyOPDSCLI** - console version renamed and modernized to current standards
 - **Easy installation** - CLI now has installer option for Linux and macOS, no command line knowledge required
-- **Multi-language support** - interface (GUI and embedded website) localized in 6 languages
+- **Multi-language support** - interface (GUI and embedded website) localized in 7 languages
 
 ### Real performance metrics:
 
@@ -72,7 +72,7 @@ TinyOPDS - це простий та легкий OPDS сервер, написа
 - **Перероблений HTTP сервер** - тепер ефективно обробляє паралельні запити від множини клієнтів
 - **TinyOPDSCLI** - консольна версія перейменована та модернізована для сучасних стандартів
 - **Проста установка** - в консольну версію додані інсталятори для Linux та macOS, що не потребують знання командного рядка
-- **Багатомовна підтримка** - інтерфейс програми та вбудованого веб-сайту локалізовані для 6 мов
+- **Багатомовна підтримка** - інтерфейс програми та вбудованого веб-сайту локалізовані для 7 мов
 
 ### Реальні показники:
 
@@ -124,7 +124,7 @@ TinyOPDS - это простой OPDS сервер, написанный на C#
 - **Переработанный HTTP сервер** - теперь эффективно обрабатывает параллельные запросы от множества клиентов
 - **TinyOPDSCLI** - консольная версия переименована и модернизирована для современных стандартов
 - **Простая установка** - в консольную версию добавлены инсталляторы для Linux и macOS, не требующие знания командной строки
-- **Мультиязычная поддержка** - интерфейс программы и встроенного веб-сайта локализованы для 6 языков
+- **Мультиязычная поддержка** - интерфейс программы и встроенного веб-сайта локализованы для 7 языков
 
 ### Реальные показатели:
 

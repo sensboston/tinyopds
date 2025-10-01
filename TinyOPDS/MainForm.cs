@@ -1153,22 +1153,25 @@ namespace TinyOPDS
 
                 if (File.Exists(logPath))
                 {
+                    // Copy to temp with same name for consistency
+                    string tempLogPath = Path.Combine(Path.GetTempPath(), "TinyOPDS.log");
+                    File.Copy(logPath, tempLogPath, true);
+
                     ProcessStartInfo psi = new ProcessStartInfo
                     {
-                        FileName = logPath,
+                        FileName = tempLogPath,
                         UseShellExecute = true
                     };
                     Process.Start(psi);
                 }
                 else
                 {
-                    // Log the issue for debugging
-                    Log.WriteLine(LogLevel.Warning, "Log file not found when trying to view: {0}", logPath);
+                    Log.WriteLine(LogLevel.Warning, "Log file not found: {0}", logPath);
                 }
             }
             catch (Exception ex)
             {
-                Log.WriteLine(LogLevel.Error, "Error opening log file: {0}", ex.Message);
+                Log.WriteLine(LogLevel.Error, "Failed to open log file: {0}", ex.Message);
             }
         }
 

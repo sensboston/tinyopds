@@ -6,6 +6,7 @@
  * SPDX-License-Identifier: MIT
  *
  * Simple logging solution, w/o third party
+ * FIXED: Use correct path for Microsoft Store apps
  *
  */
 
@@ -20,7 +21,16 @@ namespace TinyOPDS
     /// </summary>
     public static class Log
     {
-        public static string LogFileName = "TinyOPDS.log";
+        // Store only the filename, full path will be calculated dynamically
+        private static string logFileName = "TinyOPDS.log";
+
+        /// <summary>
+        /// Get full path to log file (calculated each time to ensure correct location)
+        /// </summary>
+        public static string LogFileName
+        {
+            get { return GetLogPath(); }
+        }
 
         /// <summary>
         /// 
@@ -42,8 +52,25 @@ namespace TinyOPDS
             get { return saveToFile; }
             set
             {
-                LogFileName = GetLogPath();
                 saveToFile = value;
+
+                // Ensure directory exists when enabling logging
+                if (saveToFile)
+                {
+                    try
+                    {
+                        string logPath = GetLogPath();
+                        string directory = Path.GetDirectoryName(logPath);
+                        if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+                        {
+                            Directory.CreateDirectory(directory);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Failed to create log directory: {ex.Message}");
+                    }
+                }
             }
         }
 
@@ -53,8 +80,6 @@ namespace TinyOPDS
         /// <returns>Full path to log file</returns>
         private static string GetLogPath()
         {
-            string logFileName = "TinyOPDS.log";
-
             // If running as service on Unix/Linux, try system log directory
             if (IsRunningAsService)
             {
@@ -89,8 +114,8 @@ namespace TinyOPDS
                 }
             }
 
-            // Default: use application directory (portable mode)
-            // This covers: Windows, GUI mode, CLI user mode, and fallback for service mode
+            // Default: use Utils.ServiceFilesLocation which handles Microsoft Store apps correctly
+            // This covers: Windows (regular and Store), GUI mode, CLI user mode, and fallback for service mode
             return Path.Combine(Utils.ServiceFilesLocation, logFileName);
         }
 
@@ -142,12 +167,26 @@ namespace TinyOPDS
                 FileStream fileStream = null;
                 try
                 {
-                    fileStream = new FileStream(LogFileName, (File.Exists(LogFileName) ? FileMode.Append : FileMode.Create), FileAccess.Write, FileShare.ReadWrite);
+                    // Always get fresh path to ensure correct location
+                    string fullLogPath = GetLogPath();
+
+                    // Ensure directory exists (in case Utils.ServiceFilesLocation changed)
+                    string directory = Path.GetDirectoryName(fullLogPath);
+                    if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+                    {
+                        Directory.CreateDirectory(directory);
+                    }
+
+                    fileStream = new FileStream(fullLogPath, (File.Exists(fullLogPath) ? FileMode.Append : FileMode.Create), FileAccess.Write, FileShare.ReadWrite);
                     using (StreamWriter writer = new StreamWriter(fileStream))
                     {
                         fileStream = null;
-                        writer.WriteLine(string.Format("{0:MM/dd/yyyy HH:mm:ss.f}\t{1}", DateTime.Now, message), LogFileName);
+                        writer.WriteLine(string.Format("{0:MM/dd/yyyy HH:mm:ss.f}\t{1}", DateTime.Now, message));
                     }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Failed to write to log file: {ex.Message}");
                 }
                 finally
                 {

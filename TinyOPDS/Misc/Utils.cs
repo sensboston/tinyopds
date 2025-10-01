@@ -18,7 +18,6 @@ using System.Collections;
 using System.Security.Cryptography;
 using System.Text;
 using System.Security.Principal;
-using System.Runtime.InteropServices;
 
 namespace TinyOPDS
 {
@@ -66,6 +65,8 @@ namespace TinyOPDS
         private static bool? isMacOS;
         private static bool? isLinux;
         private static bool? isWindows;
+        private static bool? canWriteToExeDirectory;
+        private static string serviceFilesLocation;
 
         /// <summary>
         /// Check current account privileges
@@ -248,13 +249,108 @@ namespace TinyOPDS
             }
         }
 
-        // Default path to service files: databases, log, setting
+        /// <summary>
+        /// Check if we can write to the directory where the executable is located
+        /// This helps detect if we're running as a Microsoft Store app or in a restricted environment
+        /// </summary>
+        public static bool CanWriteToExeDirectory
+        {
+            get
+            {
+                if (!canWriteToExeDirectory.HasValue)
+                {
+                    string exeDir = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+                    canWriteToExeDirectory = CanWriteToDirectory(exeDir);
+                }
+                return canWriteToExeDirectory.Value;
+            }
+        }
+
+        /// <summary>
+        /// Test if we have write permissions to a specific directory
+        /// </summary>
+        /// <param name="path">Directory path to test</param>
+        /// <returns>true if we can write to the directory, false otherwise</returns>
+        private static bool CanWriteToDirectory(string path)
+        {
+            try
+            {
+                // Try to create a temporary file with a random name
+                string testFile = Path.Combine(path, Path.GetRandomFileName());
+
+                // Create and immediately delete the test file
+                using (var fs = File.Create(testFile, 1, FileOptions.DeleteOnClose))
+                {
+                    // File is created successfully, we have write permission
+                }
+
+                return true;
+            }
+            catch
+            {
+                // Any exception means we can't write to this directory
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Detect if running as Microsoft Store app (or any other restricted environment)
+        /// </summary>
+        public static bool IsMicrosoftStoreApp
+        {
+            get
+            {
+                // If we can't write to exe directory, we're likely in a restricted environment
+                // This includes Microsoft Store apps (WindowsApps folder) or other restricted installations
+                return !CanWriteToExeDirectory;
+            }
+        }
+
+        // Default path to service files: databases, log, settings
         public static string ServiceFilesLocation
         {
             get
             {
-                //return Properties.Settings.Default.ServiceFilesPath;
-                return Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+                if (string.IsNullOrEmpty(serviceFilesLocation))
+                {
+                    string exeDir = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+
+                    // First try to use the exe directory (portable mode)
+                    if (CanWriteToDirectory(exeDir))
+                    {
+                        serviceFilesLocation = exeDir;
+                        Log.WriteLine("Using portable mode, data location: {0}", serviceFilesLocation);
+                    }
+                    else
+                    {
+                        // Fall back to LocalApplicationData for restricted environments (Microsoft Store, etc.)
+                        string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                        serviceFilesLocation = Path.Combine(localAppData, "TinyOPDS");
+
+                        // Create directory if it doesn't exist
+                        if (!Directory.Exists(serviceFilesLocation))
+                        {
+                            try
+                            {
+                                Directory.CreateDirectory(serviceFilesLocation);
+                                Log.WriteLine("Created app data directory: {0}", serviceFilesLocation);
+                            }
+                            catch (Exception ex)
+                            {
+                                // If we can't create the directory, fall back to temp
+                                Log.WriteLine(LogLevel.Error, "Failed to create app data directory: {0}", ex.Message);
+                                serviceFilesLocation = Path.GetTempPath();
+                                Log.WriteLine(LogLevel.Warning, "Using temp directory as last resort: {0}", serviceFilesLocation);
+                            }
+                        }
+                        else
+                        {
+                            Log.WriteLine("Using app data location: {0}", serviceFilesLocation);
+                        }
+                    }
+                }
+
+                return serviceFilesLocation;
             }
         }
 

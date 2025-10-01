@@ -1143,51 +1143,6 @@
 			<text lang="pl">Szukaj książek według tytułu</text>
 		</property>
 		<property>
-			<text lang="en">Search results for books: «{0}»</text>
-			<text lang="ru">Результаты поиска книг: «{0}»</text>
-			<text lang="uk">Результати пошуку книг: «{0}»</text>
-			<text lang="de">Suchergebnisse für Bücher: «{0}»</text>
-			<text lang="es">Resultados de búsqueda de libros: «{0}»</text>
-			<text lang="fr">Résultats de recherche pour les livres : «{0}»</text>
-			<text lang="pl">Wyniki wyszukiwania książek: «{0}»</text>
-		</property>
-		<property>
-			<text lang="en">Books starting with «{0}»</text>
-			<text lang="ru">Книги, начинающиеся с «{0}»</text>
-			<text lang="uk">Книги, що починаються з «{0}»</text>
-			<text lang="de">Bücher beginnend mit «{0}»</text>
-			<text lang="es">Libros que comienzan con «{0}»</text>
-			<text lang="fr">Livres commençant par «{0}»</text>
-			<text lang="pl">Książki zaczynające się od «{0}»</text>
-		</property>
-		<property form="MainForm" ctrl="label29">
-			<text lang="en">Network interface:</text>
-			<text lang="ru">Сетевой интерфейс:</text>
-			<text lang="uk">Мережевий інтерфейс:</text>
-			<text lang="de">Netzwerkschnittstelle:</text>
-			<text lang="es">Interfaz de red:</text>
-			<text lang="fr">Interface réseau:</text>
-			<text lang="pl">Interfejs sieciowy:</text>
-		</property>
-		<property>
-			<text lang="en">Search in authors</text>
-			<text lang="ru">Поиск среди авторов</text>
-			<text lang="uk">Пошук серед авторів</text>
-			<text lang="de">Suche in Autoren</text>
-			<text lang="es">Buscar entre autores</text>
-			<text lang="fr">Rechercher parmi les auteurs</text>
-			<text lang="pl">Szukaj wśród autorów</text>
-		</property>
-		<property>
-			<text lang="en">Search in book titles</text>
-			<text lang="ru">Поиск в названиях книг</text>
-			<text lang="uk">Пошук у назвах книг</text>
-			<text lang="de">Suche in Buchtiteln</text>
-			<text lang="es">Buscar en títulos de libros</text>
-			<text lang="fr">Rechercher dans les titres de livres</text>
-			<text lang="pl">Szukaj w tytułach książek</text>
-		</property>
-		<property>
 			<text lang="en">Found {0} author(s)</text>
 			<text lang="ru">Найдено авторов: {0}</text>
 			<text lang="uk">Знайдено авторів: {0}</text>

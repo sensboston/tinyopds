@@ -97,13 +97,17 @@ namespace TinyOPDS.OPDS
             // Add page info to title
             if (paginatedResult.TotalPages > 1)
             {
-                string pageInfo = StringUtils.ApplyPluralForm(paginatedResult.TotalBooks, Localizer.Language,
-                    string.Format(" - {0} {1}/{2} ({3} {4})",
-                        Localizer.Text("Page"),
-                        pageNumber + 1,
-                        paginatedResult.TotalPages,
-                        paginatedResult.TotalBooks,
-                        Localizer.Text("books")));
+                 string booksInfo = StringUtils.ApplyPluralForm(
+                    paginatedResult.TotalBooks,
+                    Localizer.Language,
+                    string.Format(Localizer.Text("{0} books"), paginatedResult.TotalBooks)
+                );
+
+                string pageInfo = string.Format(" - {0} {1}/{2} ({3})",
+                    Localizer.Text("Page"),
+                    pageNumber + 1,
+                    paginatedResult.TotalPages,
+                    booksInfo);
 
                 doc.Root.Element("title").Value += pageInfo;
             }

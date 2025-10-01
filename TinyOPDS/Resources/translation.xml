@@ -1732,6 +1732,15 @@
 			<text lang="fr">Rechercher</text>
 			<text lang="pl">Szukaj</text>
 		</property>
+		<property>
+			<text lang="en">Page</text>
+			<text lang="ru">Страница</text>
+			<text lang="uk">Сторінка</text>
+			<text lang="de">Seite</text>
+			<text lang="es">Page</text>
+			<text lang="fr">Página</text>
+			<text lang="pl">Strona</text>
+		</property>
 
 		<property>
 			<text lang="en">Table of Contents</text>

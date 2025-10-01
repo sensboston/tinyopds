@@ -1147,8 +1147,29 @@ namespace TinyOPDS
 
         private void ViewLogFile_Click(object sender, EventArgs e)
         {
-            if (File.Exists(Log.LogFileName))
-                Process.Start(Log.LogFileName);
+            try
+            {
+                string logPath = Log.LogFileName;
+
+                if (File.Exists(logPath))
+                {
+                    ProcessStartInfo psi = new ProcessStartInfo
+                    {
+                        FileName = logPath,
+                        UseShellExecute = true
+                    };
+                    Process.Start(psi);
+                }
+                else
+                {
+                    // Log the issue for debugging
+                    Log.WriteLine(LogLevel.Warning, "Log file not found when trying to view: {0}", logPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error opening log file: {0}", ex.Message);
+            }
         }
 
         private void SortOrderCombo_SelectedIndexChanged(object sender, EventArgs e)

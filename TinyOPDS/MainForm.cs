@@ -1584,6 +1584,12 @@ namespace TinyOPDS
             }
         }
 
+        private void checkBox1_CheckedChanged(object sender, EventArgs e)
+        {
+            Settings.Default.DarkThemeOnWeb = darkTheme.Checked;
+            Settings.Default.Save();
+        }
+
         private void HandleNodeDependencies(string tag, bool isChecked)
         {
             isLoading = true;

@@ -134,6 +134,10 @@ namespace TinyOPDS.Server
             var books = StringUtils.ApplyPluralForm(booksCount, Localizer.Language, string.Format(Localizer.Text("{0} books"), booksCount));
             string libName = string.Format("{0}: {1}", Properties.Settings.Default.ServerName, books);
             args.AddParam("libName", "", libName);
+            if (Properties.Settings.Default.DarkThemeOnWeb)
+            {
+                args.AddParam("darkTheme", "", "dark");
+            }
 
             // Web interface localization
             AddWebInterfaceParameters(args);

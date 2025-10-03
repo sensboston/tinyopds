@@ -325,6 +325,15 @@
 			<text lang="fr">Sauvegarder le log dans un fichier</text>
 			<text lang="pl">Zapisz dziennik do pliku</text>
 		</property>
+		<property form="MainForm" ctrl="darkTheme">
+			<text lang="en">Dark theme</text>
+			<text lang="ru">Темная тема</text>
+			<text lang="uk">Темна тема</text>
+			<text lang="de">Dunkles Thema</text>
+			<text lang="es">Tema oscuro</text>
+			<text lang="fr">Thème sombre</text>
+			<text lang="pl">Ciemny motyw</text>
+		</property>
 		<property form="MainForm" ctrl="tabPage1">
 			<text lang="en">Scanner</text>
 			<text lang="ru">Сканер</text>

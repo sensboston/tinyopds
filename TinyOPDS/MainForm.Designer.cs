@@ -149,6 +149,7 @@
             this.serverMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripSeparator();
             this.exitMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.darkTheme = new System.Windows.Forms.CheckBox();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.tabPage2.SuspendLayout();
@@ -1128,6 +1129,7 @@
             // tabPage3
             // 
             this.tabPage3.BackColor = System.Drawing.SystemColors.Control;
+            this.tabPage3.Controls.Add(this.darkTheme);
             this.tabPage3.Controls.Add(this.oneInstance);
             this.tabPage3.Controls.Add(this.viewLogFile);
             this.tabPage3.Controls.Add(this.label32);
@@ -1453,6 +1455,17 @@
             this.exitMenuItem.Text = "Exit";
             this.exitMenuItem.Click += new System.EventHandler(this.ExitMenuItem_Click);
             // 
+            // darkTheme
+            // 
+            this.darkTheme.AutoSize = true;
+            this.darkTheme.Location = new System.Drawing.Point(288, 170);
+            this.darkTheme.Name = "darkTheme";
+            this.darkTheme.Size = new System.Drawing.Size(81, 17);
+            this.darkTheme.TabIndex = 41;
+            this.darkTheme.Text = "Dark theme";
+            this.darkTheme.UseVisualStyleBackColor = true;
+            this.darkTheme.CheckedChanged += new System.EventHandler(this.checkBox1_CheckedChanged);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -1486,6 +1499,7 @@
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.wrongAttemptsCount)).EndInit();
             this.tabPage3.ResumeLayout(false);
+            this.tabPage3.PerformLayout();
             this.tabPage4.ResumeLayout(false);
             this.tabPage4.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).EndInit();
@@ -1614,6 +1628,7 @@
         private System.Windows.Forms.PictureBox pictureBox2;
         private System.Windows.Forms.Button clearDownloadsButton;
         private System.Windows.Forms.CheckBox filterByLanguage;
+        private System.Windows.Forms.CheckBox darkTheme;
     }
 }
 

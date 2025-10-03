@@ -444,5 +444,17 @@ namespace TinyOPDS.Properties {
                 this["ClearDBOnScan"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool DarkThemeOnWeb {
+            get {
+                return ((bool)(this["DarkThemeOnWeb"]));
+            }
+            set {
+                this["DarkThemeOnWeb"] = value;
+            }
+        }
     }
 }

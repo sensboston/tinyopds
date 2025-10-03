@@ -254,6 +254,15 @@
 			<text lang="pl">ZAKOŃCZONO</text>
 		</property>
 		<property>
+			<text lang="en">Cleaning database...</text>
+			<text lang="ru">Очистка базы данных...</text>
+			<text lang="uk">Очищення бази даних...</text>
+			<text lang="de">Datenbank wird geleert...</text>
+			<text lang="es">Vaciando la base de datos...</text>
+			<text lang="fr">Vidage de la base de données...</text>
+			<text lang="pl">Opróżnianie bazy danych...</text>
+		</property>
+		<property>
 			<text lang="en">Stop scanning</text>
 			<text lang="ru">Остановить сканирование</text>
 			<text lang="uk">Зупинити сканування</text>

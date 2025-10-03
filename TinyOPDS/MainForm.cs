@@ -632,6 +632,32 @@ namespace TinyOPDS
                     UpdateInfo(true);
                     Log.WriteLine("Directory scanner completed");
                 };
+
+
+                // Optional pre-scan database cleaning
+                if (Settings.Default.ClearDBOnScan)
+                {
+                    try
+                    {
+                        scannerButton.Text = Localizer.Text("Cleaning database...");
+                        scannerButton.Enabled = false;
+
+                        Library.ClearDatabase(preserveGenres: true);
+                        Log.WriteLine("Database cleared before scanning (CleanDBOnScan = true)");
+                        var stats = GetLibraryStats();
+                        stats.Total = stats.FB2 = stats.EPUB = 0;
+                        booksInDB.Text = $"{stats.Total}           fb2: {stats.FB2}       epub: {stats.EPUB}";
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.WriteLine(LogLevel.Error, "Failed to clear database before scan: {0}", ex.Message);
+                    }
+                    finally
+                    {
+                        scannerButton.Enabled = true;
+                    }
+                }
+
                 fb2Count = epubCount = skippedFiles = invalidFiles = dups = 0;
                 scanStartTime = DateTime.Now;
                 startTime.Text = scanStartTime.ToString(@"HH\:mm\:ss");

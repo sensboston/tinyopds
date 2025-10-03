@@ -957,6 +957,77 @@ namespace TinyOPDS.Data
             return genres;
         }
 
+        /// <summary>
+        /// Clear entire database, optionally preserving genres 
+        /// </summary>
+        /// <param name="preserveGenres"></param>
+        public void ClearDatabase(bool preserveGenres = true)
+        {
+            IDbTransaction tx = null;
+            try
+            {
+                Log.WriteLine("Clearing database (preserveGenres = {0})", preserveGenres);
+
+                // Use a single transaction
+                tx = BeginTransactionWithObject();
+
+                // Child tables first
+                ExecuteNonQueryInTransaction(DatabaseSchema.DeleteAllDownloads, tx);
+                ExecuteNonQueryInTransaction(DatabaseSchema.DeleteAllBookAuthors, tx);
+                ExecuteNonQueryInTransaction(DatabaseSchema.DeleteAllBookGenres, tx);
+                ExecuteNonQueryInTransaction(DatabaseSchema.DeleteAllBookTranslators, tx);
+                ExecuteNonQueryInTransaction(DatabaseSchema.DeleteAllBookSequences, tx);
+
+                // FTS virtual tables
+                ExecuteNonQueryInTransaction(DatabaseSchema.DeleteAllBooksFTS, tx);
+                ExecuteNonQueryInTransaction(DatabaseSchema.DeleteAllAuthorsFTS, tx);
+                ExecuteNonQueryInTransaction(DatabaseSchema.DeleteAllSequencesFTS, tx);
+
+                // Core entities
+                ExecuteNonQueryInTransaction(DatabaseSchema.DeleteAllBooks, tx);
+                ExecuteNonQueryInTransaction(DatabaseSchema.DeleteAllAuthors, tx);
+                ExecuteNonQueryInTransaction(DatabaseSchema.DeleteAllTranslators, tx);
+                ExecuteNonQueryInTransaction(DatabaseSchema.DeleteAllSequences, tx);
+
+                // Genres (optional)
+                if (!preserveGenres)
+                {
+                    ExecuteNonQueryInTransaction(DatabaseSchema.DeleteAllGenres, tx);
+                }
+
+                // Stats
+                ExecuteNonQueryInTransaction(DatabaseSchema.DeleteAllLibraryStats, tx);
+
+                tx.Commit();
+                tx.Dispose();
+                tx = null;
+
+                // Re-init auxiliary data outside of transaction
+                if (!preserveGenres)
+                {
+                    InitializeGenres();
+                }
+                InitializeLibraryStats();
+
+                // Compact and update planner stats
+                try { ExecuteNonQuery("VACUUM"); } catch { /* ignore */ }
+                try { ExecuteNonQuery("ANALYZE"); } catch { /* ignore */ }
+
+                Log.WriteLine("Database cleared successfully");
+            }
+            catch (Exception ex)
+            {
+                tx?.Rollback();
+                Log.WriteLine(LogLevel.Error, "Error clearing database: {0}", ex.Message);
+                throw;
+            }
+            finally
+            {
+                tx?.Dispose();
+            }
+        }
+
+
         public int ExecuteNonQuery(string sql, params IDbDataParameter[] parameters)
         {
             lock (connectionLock)

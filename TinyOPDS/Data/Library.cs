@@ -1745,7 +1745,6 @@ namespace TinyOPDS.Data
 
         #endregion
 
-
         #region Helper Methods
 
         /// <summary>
@@ -1844,6 +1843,8 @@ namespace TinyOPDS.Data
                 reverseAliases[canonicalName].Add(alias.Key);
             }
         }
+
+        public static void ClearDatabase(bool preserveGenres = true) => db?.ClearDatabase(preserveGenres);
 
         #endregion
     }

@@ -432,5 +432,17 @@ namespace TinyOPDS.Properties {
                 this["FilterBooksByInterfaceLanguage"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool ClearDBOnScan {
+            get {
+                return ((bool)(this["ClearDBOnScan"]));
+            }
+            set {
+                this["ClearDBOnScan"] = value;
+            }
+        }
     }
 }

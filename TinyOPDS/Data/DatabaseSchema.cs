@@ -958,5 +958,25 @@ namespace TinyOPDS.Data
             WHERE ID = @OldID";
 
         #endregion
+
+        #region Clear Database Queries
+        public const string DeleteAllDownloads = @"DELETE FROM Downloads";
+        public const string DeleteAllBookAuthors = @"DELETE FROM BookAuthors";
+        public const string DeleteAllBookGenres = @"DELETE FROM BookGenres";
+        public const string DeleteAllBookTranslators = @"DELETE FROM BookTranslators";
+        public const string DeleteAllBookSequences = @"DELETE FROM BookSequences";
+
+        public const string DeleteAllBooks = @"DELETE FROM Books";
+        public const string DeleteAllAuthors = @"DELETE FROM Authors";
+        public const string DeleteAllTranslators = @"DELETE FROM Translators";
+        public const string DeleteAllSequences = @"DELETE FROM Sequences";
+        public const string DeleteAllLibraryStats = @"DELETE FROM LibraryStats";
+
+        // FTS virtual tables
+        public const string DeleteAllBooksFTS = @"DELETE FROM BooksFTS";
+        public const string DeleteAllAuthorsFTS = @"DELETE FROM AuthorsFTS";
+        public const string DeleteAllSequencesFTS = @"DELETE FROM SequencesFTS";
+        #endregion
+
     }
 }

@@ -1020,6 +1020,21 @@ namespace TinyOPDSCLI
                 Console.WriteLine("\nScan completed. Press any key to exit...");
                 Console.ReadKey();
             };
+
+            // Optional pre-scan database cleaning
+            if (Settings.Default.ClearDBOnScan)
+            {
+                try
+                {
+                    Library.ClearDatabase(preserveGenres: true);
+                    Log.WriteLine("Database cleared before scanning (CleanDBOnScan = true)");
+                }
+                catch (Exception ex)
+                {
+                    Log.WriteLine(LogLevel.Error, "Failed to clear database before scan: {0}", ex.Message);
+                }
+            }
+
             fb2Count = epubCount = skippedFiles = invalidFiles = dups = 0;
             scanStartTime = DateTime.Now;
             scanner.Start(Library.LibraryPath);

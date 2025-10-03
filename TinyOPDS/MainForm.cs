@@ -465,6 +465,7 @@ namespace TinyOPDS
             appVersion.Text = string.Format(Localizer.Text("version {0}.{1} {2}"), Utils.Version.Major, Utils.Version.Minor, Utils.Version.Major == 0 ? " (beta)" : "");
             filterByLanguage.Checked = Settings.Default.FilterBooksByInterfaceLanguage;
             oneInstance.Checked = Settings.Default.OnlyOneInstance;
+            darkTheme.Checked = Settings.Default.DarkThemeOnWeb;
 
             if (Utils.IsLinux) startWithWindows.Enabled = false;
 

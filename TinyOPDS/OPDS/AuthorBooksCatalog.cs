@@ -87,7 +87,8 @@ namespace TinyOPDS.OPDS
                                 string.Format(Localizer.Text("{0} books in series"), seriesBooks.Count)),
                             new XAttribute("type", "text")),
                         new XElement("link",
-                            new XAttribute("href", "/sequence/" + Uri.EscapeDataString(seriesGroup.Key)),
+                            // FIX: Include author in URL to maintain filter context
+                            new XAttribute("href", "/author-sequence/" + Uri.EscapeDataString(author) + "/" + Uri.EscapeDataString(seriesGroup.Key)),
                             new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                     )
                 );

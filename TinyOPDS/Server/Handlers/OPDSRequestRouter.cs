@@ -177,6 +177,31 @@ namespace TinyOPDS.Server
                     return new AuthorBooksCatalog().GetBooksCatalog(authorParam, AuthorBooksCatalog.ViewType.Alphabetic, acceptFB2, threshold).ToStringWithDeclaration();
                 }
             }
+            else if (request.StartsWith("/author-sequence/"))
+            {
+                // Handle author-filtered sequence view: /author-sequence/author/sequence
+                string parameters = request.Substring(17); // Skip "/author-sequence/"
+                int slashIndex = parameters.IndexOf('/');
+
+                if (slashIndex > 0)
+                {
+                    string authorParam = parameters.Substring(0, slashIndex);
+                    string sequenceParam = parameters.Substring(slashIndex + 1);
+
+                    Log.WriteLine(LogLevel.Info, "Author-sequence route: author='{0}', sequence='{1}'",
+                        authorParam, sequenceParam);
+
+                    // Use the new method that filters by both author and sequence
+                    return new BooksCatalog().GetCatalogByAuthorAndSequence(
+                        authorParam, sequenceParam, acceptFB2, threshold).ToStringWithDeclaration();
+                }
+                else
+                {
+                    // Invalid URL format, fallback to regular sequence view
+                    Log.WriteLine(LogLevel.Warning, "Invalid author-sequence URL format: {0}", request);
+                    return new BooksCatalog().GetCatalogBySequence(parameters, acceptFB2, threshold).ToStringWithDeclaration();
+                }
+            }
             else if (request.StartsWith("/sequencesindex") && IsRouteEnabled("sequencesindex"))
             {
                 int numChars = request.StartsWith("/sequencesindex/") ? 16 : 15;

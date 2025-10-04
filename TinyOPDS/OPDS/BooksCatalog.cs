@@ -363,5 +363,192 @@ namespace TinyOPDS.OPDS
             }
             return doc;
         }
+
+
+        /// <summary>
+        /// Returns books catalog by selected author and sequence
+        /// Filters books to show only those from the specified author in the specified sequence
+        /// </summary>
+        /// <param name="author">Author name (URL-encoded)</param>
+        /// <param name="sequence">Sequence name (URL-encoded)</param>
+        /// <param name="acceptFB2">Client can accept FB2 files</param>
+        /// <param name="threshold">Items per page</param>
+        /// <returns>OPDS catalog document</returns>
+        public XDocument GetCatalogByAuthorAndSequence(string author, string sequence, bool acceptFB2, int threshold = 100)
+        {
+            // Decode parameters
+            if (!string.IsNullOrEmpty(author))
+                author = Uri.UnescapeDataString(author).Replace('+', ' ');
+            if (!string.IsNullOrEmpty(sequence))
+                sequence = Uri.UnescapeDataString(sequence).Replace('+', ' ');
+
+            Log.WriteLine(LogLevel.Info, "GetCatalogByAuthorAndSequence: author='{0}', sequence='{1}'", author, sequence);
+
+            // Create feed document with proper title showing both author and sequence
+            XDocument doc = new XDocument(
+                new XElement("feed",
+                    new XAttribute(XNamespace.Xmlns + "dc", Namespaces.dc),
+                    new XAttribute(XNamespace.Xmlns + "os", Namespaces.os),
+                    new XAttribute(XNamespace.Xmlns + "opds", Namespaces.opds),
+                    new XElement("id", "tag:author-sequence:" + author + ":" + sequence),
+                    new XElement("title", string.Format("{0} - {1}", sequence, author)),
+                    new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
+                    new XElement("icon", "/icons/books.ico"),
+                    Links.opensearch, Links.search, Links.start)
+            );
+
+            // Get all books in the sequence
+            List<Book> books = Library.GetBooksBySequence(sequence);
+
+            // Filter by author (case-insensitive comparison)
+            books = books.Where(b => b.Authors != null &&
+                                    b.Authors.Any(a => a.Equals(author, StringComparison.OrdinalIgnoreCase)))
+                         .ToList();
+
+            // Filter by format if needed
+            if (!acceptFB2)
+            {
+                books = books.Where(b => System.IO.Path.GetExtension(b.FileName).ToLower() != ".fb2").ToList();
+            }
+
+            // Sort books by sequence number (using the new Sequences structure)
+            books = books.OrderBy(b =>
+            {
+                // Find the sequence number for this specific sequence
+                var seq = b.Sequences?.FirstOrDefault(s => s.Name == sequence);
+                return seq?.NumberInSequence ?? 0;
+            })
+                .ThenBy(b => b.Title)
+                .ToList();
+
+            Log.WriteLine(LogLevel.Info, "Found {0} books for author '{1}' in sequence '{2}'",
+                books.Count, author, sequence);
+
+            // Prepare for entry creation
+            bool useCyrillic = Properties.Settings.Default.SortOrder > 0;
+            List<Genre> genres = Library.Genres;
+
+            // Add book entries
+            foreach (Book book in books)
+            {
+                XElement entry = new XElement("entry",
+                    new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
+                    new XElement("id", "tag:book:" + book.ID),
+                    new XElement("title", book.Title)
+                );
+
+                // Add authors
+                foreach (string authorName in book.Authors)
+                {
+                    entry.Add(
+                        new XElement("author",
+                            new XElement("name", authorName),
+                            new XElement("uri", "/author-details/" + Uri.EscapeDataString(authorName))
+                    ));
+                }
+
+                // Add genres
+                foreach (string genreStr in book.Genres)
+                {
+                    Genre genre = genres.Where(g => g.Tag.Equals(genreStr)).FirstOrDefault();
+                    if (genre != null)
+                        entry.Add(new XElement("category",
+                            new XAttribute("term", (useCyrillic ? genre.Translation : genre.Name)),
+                            new XAttribute("label", (useCyrillic ? genre.Translation : genre.Name))));
+                }
+
+                // Build content text
+                string plainText = "";
+
+                if (!string.IsNullOrEmpty(book.Annotation))
+                {
+                    plainText = book.Annotation.Trim();
+                }
+
+                if (book.Translators.Count > 0)
+                {
+                    if (!string.IsNullOrEmpty(plainText)) plainText += "\n";
+                    plainText += Localizer.Text("Translation:") + " " + string.Join(", ", book.Translators);
+                }
+
+                if (book.BookDate.Year > 1800 && book.BookDate.Year <= DateTime.Now.Year)
+                {
+                    if (!string.IsNullOrEmpty(plainText)) plainText += "\n";
+                    plainText += Localizer.Text("Year of publication:") + " " + book.BookDate.Year;
+                }
+
+                // Add series info - show the correct number for this specific sequence
+                if (book.Sequences != null && book.Sequences.Count > 0)
+                {
+                    var requestedSequence = book.Sequences.FirstOrDefault(s => s.Name == sequence);
+                    if (requestedSequence != null)
+                    {
+                        if (!string.IsNullOrEmpty(plainText)) plainText += "\n";
+                        plainText += Localizer.Text("Series:") + " " + requestedSequence.Name;
+                        if (requestedSequence.NumberInSequence > 0)
+                            plainText += " #" + requestedSequence.NumberInSequence;
+                    }
+                }
+
+                entry.Add(
+                    new XElement(Namespaces.dc + "language", book.Language),
+                    new XElement(Namespaces.dc + "format", book.BookType == BookType.FB2 ? "fb2+zip" : "epub+zip"),
+                    new XElement("content", new XAttribute("type", "text"), plainText),
+                    new XElement("format", book.BookType == BookType.EPUB ? "epub" : "fb2"),
+                    new XElement("size", string.Format("{0} Kb", (int)book.DocumentSize / 1024))
+                );
+
+                // Add cover and thumbnail links
+                entry.Add(
+                    new XElement("link", new XAttribute("href", "/cover/" + book.ID + ".jpeg"),
+                        new XAttribute("rel", "http://opds-spec.org/image"), new XAttribute("type", "image/jpeg")),
+                    new XElement("link", new XAttribute("href", "/cover/" + book.ID + ".jpeg"),
+                        new XAttribute("rel", "x-stanza-cover-image"), new XAttribute("type", "image/jpeg")),
+                    new XElement("link", new XAttribute("href", "/thumbnail/" + book.ID + ".jpeg"),
+                        new XAttribute("rel", "http://opds-spec.org/thumbnail"), new XAttribute("type", "image/jpeg")),
+                    new XElement("link", new XAttribute("href", "/thumbnail/" + book.ID + ".jpeg"),
+                        new XAttribute("rel", "x-stanza-cover-image-thumbnail"), new XAttribute("type", "image/jpeg"))
+                );
+
+                // Add download links
+                if (book.BookType == BookType.EPUB || (book.BookType == BookType.FB2 && !acceptFB2))
+                {
+                    entry.Add(new XElement("link",
+                        new XAttribute("href", "/download/" + book.ID + "/epub"),
+                        new XAttribute("rel", "http://opds-spec.org/acquisition/open-access"),
+                        new XAttribute("type", "application/epub+zip")));
+                }
+
+                if (book.BookType == BookType.FB2)
+                {
+                    entry.Add(new XElement("link",
+                        new XAttribute("href", "/download/" + book.ID + "/fb2"),
+                        new XAttribute("rel", "http://opds-spec.org/acquisition/open-access"),
+                        new XAttribute("type", "application/fb2+zip")));
+                }
+
+                // Add navigation links for all authors of this book
+                foreach (string bookAuthor in book.Authors ?? new List<string>())
+                {
+                    entry.Add(new XElement("link",
+                        new XAttribute("href", "/author-details/" + Uri.EscapeDataString(bookAuthor)),
+                        new XAttribute("rel", "related"),
+                        new XAttribute("type", "application/atom+xml;profile=opds-catalog"),
+                        new XAttribute("title", string.Format(Localizer.Text("All books by author {0}"), bookAuthor))));
+                }
+
+                // Add link to view ALL books in this series (without author filter)
+                entry.Add(new XElement("link",
+                    new XAttribute("href", "/sequence/" + Uri.EscapeDataString(sequence)),
+                    new XAttribute("rel", "related"),
+                    new XAttribute("type", "application/atom+xml;profile=opds-catalog"),
+                    new XAttribute("title", string.Format(Localizer.Text("All books by series {0}"), sequence))));
+
+                doc.Root.Add(entry);
+            }
+
+            return doc;
+        }
+
     }
 }

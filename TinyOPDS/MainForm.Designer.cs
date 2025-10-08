@@ -120,6 +120,7 @@
             this.rememberClients = new System.Windows.Forms.CheckBox();
             this.useHTTPAuth = new System.Windows.Forms.CheckBox();
             this.tabPage3 = new System.Windows.Forms.TabPage();
+            this.darkTheme = new System.Windows.Forms.CheckBox();
             this.oneInstance = new System.Windows.Forms.CheckBox();
             this.viewLogFile = new System.Windows.Forms.Button();
             this.label32 = new System.Windows.Forms.Label();
@@ -149,7 +150,6 @@
             this.serverMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripSeparator();
             this.exitMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.darkTheme = new System.Windows.Forms.CheckBox();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.tabPage2.SuspendLayout();
@@ -220,7 +220,7 @@
             this.tabPage1.Controls.Add(this.libraryPath);
             this.tabPage1.Location = new System.Drawing.Point(4, 34);
             this.tabPage1.Name = "tabPage1";
-            this.tabPage1.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage1.Padding = new System.Windows.Forms.Padding(3, 3, 3, 3);
             this.tabPage1.Size = new System.Drawing.Size(513, 317);
             this.tabPage1.TabIndex = 0;
             this.tabPage1.Text = "Scanner";
@@ -492,7 +492,7 @@
             this.tabPage2.Controls.Add(this.serverName);
             this.tabPage2.Location = new System.Drawing.Point(4, 34);
             this.tabPage2.Name = "tabPage2";
-            this.tabPage2.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage2.Padding = new System.Windows.Forms.Padding(3, 3, 3, 3);
             this.tabPage2.Size = new System.Drawing.Size(513, 317);
             this.tabPage2.TabIndex = 1;
             this.tabPage2.Text = "Server";
@@ -764,7 +764,7 @@
             // 
             this.filterByLanguage.AutoSize = true;
             this.filterByLanguage.Location = new System.Drawing.Point(292, 244);
-            this.filterByLanguage.Margin = new System.Windows.Forms.Padding(1);
+            this.filterByLanguage.Margin = new System.Windows.Forms.Padding(1, 1, 1, 1);
             this.filterByLanguage.Name = "filterByLanguage";
             this.filterByLanguage.Size = new System.Drawing.Size(180, 17);
             this.filterByLanguage.TabIndex = 12;
@@ -775,7 +775,7 @@
             // clearDownloadsButton
             // 
             this.clearDownloadsButton.Location = new System.Drawing.Point(25, 237);
-            this.clearDownloadsButton.Margin = new System.Windows.Forms.Padding(1);
+            this.clearDownloadsButton.Margin = new System.Windows.Forms.Padding(1, 1, 1, 1);
             this.clearDownloadsButton.Name = "clearDownloadsButton";
             this.clearDownloadsButton.Size = new System.Drawing.Size(174, 29);
             this.clearDownloadsButton.TabIndex = 11;
@@ -806,7 +806,7 @@
             "768 MB",
             "1024 MB"});
             this.comboBox1.Location = new System.Drawing.Point(292, 185);
-            this.comboBox1.Margin = new System.Windows.Forms.Padding(1);
+            this.comboBox1.Margin = new System.Windows.Forms.Padding(1, 1, 1, 1);
             this.comboBox1.Name = "comboBox1";
             this.comboBox1.Size = new System.Drawing.Size(136, 21);
             this.comboBox1.TabIndex = 9;
@@ -817,9 +817,9 @@
             this.groupBox1.Controls.Add(this.radioButton2);
             this.groupBox1.Controls.Add(this.radioButton1);
             this.groupBox1.Location = new System.Drawing.Point(25, 160);
-            this.groupBox1.Margin = new System.Windows.Forms.Padding(1);
+            this.groupBox1.Margin = new System.Windows.Forms.Padding(1, 1, 1, 1);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Padding = new System.Windows.Forms.Padding(1);
+            this.groupBox1.Padding = new System.Windows.Forms.Padding(1, 1, 1, 1);
             this.groupBox1.Size = new System.Drawing.Size(174, 52);
             this.groupBox1.TabIndex = 8;
             this.groupBox1.TabStop = false;
@@ -829,7 +829,7 @@
             // 
             this.radioButton2.AutoSize = true;
             this.radioButton2.Location = new System.Drawing.Point(109, 24);
-            this.radioButton2.Margin = new System.Windows.Forms.Padding(1);
+            this.radioButton2.Margin = new System.Windows.Forms.Padding(1, 1, 1, 1);
             this.radioButton2.Name = "radioButton2";
             this.radioButton2.Size = new System.Drawing.Size(59, 17);
             this.radioButton2.TabIndex = 1;
@@ -842,7 +842,7 @@
             this.radioButton1.AutoSize = true;
             this.radioButton1.Checked = true;
             this.radioButton1.Location = new System.Drawing.Point(15, 24);
-            this.radioButton1.Margin = new System.Windows.Forms.Padding(1);
+            this.radioButton1.Margin = new System.Windows.Forms.Padding(1, 1, 1, 1);
             this.radioButton1.Name = "radioButton1";
             this.radioButton1.Size = new System.Drawing.Size(72, 17);
             this.radioButton1.TabIndex = 0;
@@ -962,9 +962,9 @@
             // 
             this.tabPage7.Controls.Add(this.treeViewOPDS);
             this.tabPage7.Location = new System.Drawing.Point(4, 34);
-            this.tabPage7.Margin = new System.Windows.Forms.Padding(1);
+            this.tabPage7.Margin = new System.Windows.Forms.Padding(1, 1, 1, 1);
             this.tabPage7.Name = "tabPage7";
-            this.tabPage7.Padding = new System.Windows.Forms.Padding(1);
+            this.tabPage7.Padding = new System.Windows.Forms.Padding(1, 1, 1, 1);
             this.tabPage7.Size = new System.Drawing.Size(513, 317);
             this.tabPage7.TabIndex = 6;
             this.tabPage7.Text = "OPDS routes";
@@ -978,7 +978,7 @@
             this.treeViewOPDS.CheckBoxes = true;
             this.treeViewOPDS.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(254)));
             this.treeViewOPDS.Location = new System.Drawing.Point(2, 2);
-            this.treeViewOPDS.Margin = new System.Windows.Forms.Padding(1);
+            this.treeViewOPDS.Margin = new System.Windows.Forms.Padding(1, 1, 1, 1);
             this.treeViewOPDS.Name = "treeViewOPDS";
             this.treeViewOPDS.Size = new System.Drawing.Size(509, 313);
             this.treeViewOPDS.TabIndex = 2;
@@ -1001,7 +1001,7 @@
             this.tabPage5.Controls.Add(this.useHTTPAuth);
             this.tabPage5.Location = new System.Drawing.Point(4, 34);
             this.tabPage5.Name = "tabPage5";
-            this.tabPage5.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage5.Padding = new System.Windows.Forms.Padding(3, 3, 3, 3);
             this.tabPage5.Size = new System.Drawing.Size(513, 317);
             this.tabPage5.TabIndex = 4;
             this.tabPage5.Text = "Auth";
@@ -1144,17 +1144,28 @@
             this.tabPage3.Controls.Add(this.startWithWindows);
             this.tabPage3.Location = new System.Drawing.Point(4, 34);
             this.tabPage3.Name = "tabPage3";
-            this.tabPage3.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage3.Padding = new System.Windows.Forms.Padding(3, 3, 3, 3);
             this.tabPage3.Size = new System.Drawing.Size(513, 317);
             this.tabPage3.TabIndex = 2;
             this.tabPage3.Text = "Misc";
             // 
+            // darkTheme
+            // 
+            this.darkTheme.AutoSize = true;
+            this.darkTheme.Location = new System.Drawing.Point(275, 170);
+            this.darkTheme.Name = "darkTheme";
+            this.darkTheme.Size = new System.Drawing.Size(81, 17);
+            this.darkTheme.TabIndex = 41;
+            this.darkTheme.Text = "Dark theme";
+            this.darkTheme.UseVisualStyleBackColor = true;
+            this.darkTheme.CheckedChanged += new System.EventHandler(this.checkBox1_CheckedChanged);
+            // 
             // oneInstance
             // 
-            this.oneInstance.Location = new System.Drawing.Point(288, 67);
-            this.oneInstance.Margin = new System.Windows.Forms.Padding(1);
+            this.oneInstance.Location = new System.Drawing.Point(275, 68);
+            this.oneInstance.Margin = new System.Windows.Forms.Padding(1, 1, 1, 1);
             this.oneInstance.Name = "oneInstance";
-            this.oneInstance.Size = new System.Drawing.Size(186, 17);
+            this.oneInstance.Size = new System.Drawing.Size(216, 17);
             this.oneInstance.TabIndex = 40;
             this.oneInstance.Text = "Only one instance";
             this.oneInstance.UseVisualStyleBackColor = true;
@@ -1162,7 +1173,7 @@
             // 
             // viewLogFile
             // 
-            this.viewLogFile.Location = new System.Drawing.Point(288, 233);
+            this.viewLogFile.Location = new System.Drawing.Point(275, 233);
             this.viewLogFile.Name = "viewLogFile";
             this.viewLogFile.Size = new System.Drawing.Size(186, 23);
             this.viewLogFile.TabIndex = 39;
@@ -1172,7 +1183,7 @@
             // 
             // label32
             // 
-            this.label32.Location = new System.Drawing.Point(285, 110);
+            this.label32.Location = new System.Drawing.Point(272, 110);
             this.label32.Name = "label32";
             this.label32.Size = new System.Drawing.Size(189, 13);
             this.label32.TabIndex = 38;
@@ -1186,7 +1197,7 @@
             "Never",
             "Once a week",
             "Once a month"});
-            this.updateCombo.Location = new System.Drawing.Point(288, 130);
+            this.updateCombo.Location = new System.Drawing.Point(275, 130);
             this.updateCombo.Name = "updateCombo";
             this.updateCombo.Size = new System.Drawing.Size(186, 21);
             this.updateCombo.TabIndex = 37;
@@ -1264,9 +1275,9 @@
             // 
             this.startMinimized.Checked = global::TinyOPDS.Properties.Settings.Default.StartMinimized;
             this.startMinimized.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "StartMinimized", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.startMinimized.Location = new System.Drawing.Point(289, 24);
+            this.startMinimized.Location = new System.Drawing.Point(275, 24);
             this.startMinimized.Name = "startMinimized";
-            this.startMinimized.Size = new System.Drawing.Size(185, 17);
+            this.startMinimized.Size = new System.Drawing.Size(216, 17);
             this.startMinimized.TabIndex = 1;
             this.startMinimized.Text = "Start minimized";
             this.startMinimized.UseVisualStyleBackColor = true;
@@ -1300,7 +1311,7 @@
             this.tabPage4.Controls.Add(this.pictureBox1);
             this.tabPage4.Location = new System.Drawing.Point(4, 34);
             this.tabPage4.Name = "tabPage4";
-            this.tabPage4.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage4.Padding = new System.Windows.Forms.Padding(3, 3, 3, 3);
             this.tabPage4.Size = new System.Drawing.Size(513, 317);
             this.tabPage4.TabIndex = 3;
             this.tabPage4.Text = "About";
@@ -1309,7 +1320,7 @@
             // 
             this.pictureBox2.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox2.Image")));
             this.pictureBox2.Location = new System.Drawing.Point(13, 248);
-            this.pictureBox2.Margin = new System.Windows.Forms.Padding(1);
+            this.pictureBox2.Margin = new System.Windows.Forms.Padding(1, 1, 1, 1);
             this.pictureBox2.Name = "pictureBox2";
             this.pictureBox2.Size = new System.Drawing.Size(98, 55);
             this.pictureBox2.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
@@ -1454,17 +1465,6 @@
             this.exitMenuItem.Size = new System.Drawing.Size(144, 22);
             this.exitMenuItem.Text = "Exit";
             this.exitMenuItem.Click += new System.EventHandler(this.ExitMenuItem_Click);
-            // 
-            // darkTheme
-            // 
-            this.darkTheme.AutoSize = true;
-            this.darkTheme.Location = new System.Drawing.Point(288, 170);
-            this.darkTheme.Name = "darkTheme";
-            this.darkTheme.Size = new System.Drawing.Size(81, 17);
-            this.darkTheme.TabIndex = 41;
-            this.darkTheme.Text = "Dark theme";
-            this.darkTheme.UseVisualStyleBackColor = true;
-            this.darkTheme.CheckedChanged += new System.EventHandler(this.checkBox1_CheckedChanged);
             // 
             // MainForm
             // 

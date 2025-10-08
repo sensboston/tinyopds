@@ -984,6 +984,8 @@ namespace TinyOPDS
             if (watcher != null && watcher.IsEnabled != useWatcher.Checked)
             {
                 watcher.IsEnabled = useWatcher.Checked;
+                Settings.Default.WatchLibrary = watcher.IsEnabled;
+                Settings.Default.Save();
             }
         }
 

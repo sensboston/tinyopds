@@ -906,7 +906,7 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					}
 
 					.book-descr-wrap{position:relative}
-					.descr-toggle{position:absolute;right:-12px;top:-22px;width:20px;height:20px;border-radius:4px;border:1px solid #ccd;display:none;align-items:center;justify-content:center;font-weight:700;font-size:16px;line-height:1;cursor:pointer;background:transparent}
+					.descr-toggle{position:absolute;right:-8px;top:-20px;width:18px;height:18px;border-radius:4px;border:1px solid #ccd;display:none;align-items:center;justify-content:center;font-size:16px;line-height:1;cursor:pointer;background:transparent}
 					@media (max-width:768px){
 					.descr-toggle{display:flex}
 					.book-descr.collapsed{overflow:hidden}
@@ -961,12 +961,27 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					var toggle = item.querySelector('.descr-toggle');
 					var left = item.querySelector('.download-section');
 					if(!wrap || !descr || !toggle || !left) return;
+
 					var h = left.getBoundingClientRect().height / 2;
+
+					// Check if this item was already initialized
+					var alreadyInitialized = toggle.hasAttribute('data-initialized');
+
+					if(!alreadyInitialized){
+					// First time initialization - set as collapsed
 					descr.style.maxHeight = Math.max(0, Math.round(h)) + 'px';
 					descr.classList.add('collapsed');
 					toggle.setAttribute('aria-expanded','false');
-					// Check if click handler already added to avoid multiple handlers
-					if(!toggle.hasAttribute('data-initialized')){
+					} else {
+					// Already initialized - only update height if collapsed
+					if(descr.classList.contains('collapsed')){
+					descr.style.maxHeight = Math.max(0, Math.round(h)) + 'px';
+					}
+					// If expanded, don't touch it to avoid collapsing during scroll
+					}
+
+					// Add click handler only once
+					if(!alreadyInitialized){
 					toggle.setAttribute('data-initialized', 'true');
 					toggle.addEventListener('click', function(){
 					var isCollapsed = descr.classList.contains('collapsed');
@@ -993,7 +1008,8 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', setup); } else { setup(); }
 					window.addEventListener('resize', function(){ setup(); });
 					})();
-				</script>
+				</script>				
+				
 			</head>
 			<body>
 				<div class="fixed-header">

@@ -444,7 +444,7 @@ namespace TinyOPDS.Properties {
                 this["ClearDBOnScan"] = value;
             }
         }
-
+        
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
@@ -454,6 +454,18 @@ namespace TinyOPDS.Properties {
             }
             set {
                 this["DarkThemeOnWeb"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string AuthorizedClients {
+            get {
+                return ((string)(this["AuthorizedClients"]));
+            }
+            set {
+                this["AuthorizedClients"] = value;
             }
         }
     }

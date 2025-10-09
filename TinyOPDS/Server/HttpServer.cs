@@ -11,6 +11,8 @@
  * 
  * MODIFIED: Fixed ClientHash to use session tokens instead of User-Agent
  * FIXED: Allow anonymous access to images for OPDS clients compatibility
+ * MODIFIED: Added case-insensitive HTTP headers processing
+ * MODIFIED: Added persistent storage for authorized clients in Settings
  * 
  */
 
@@ -46,7 +48,6 @@ namespace TinyOPDS.Server
         public DateTime LastAccess { get; set; }
         public string Username { get; set; }
 
-        // Session valid for 30 days of inactivity
         public bool IsValid()
         {
             return (DateTime.Now - LastAccess).TotalDays < 30;
@@ -72,34 +73,39 @@ namespace TinyOPDS.Server
         public string HttpMethod;
         public string HttpUrl;
         public string HttpProtocolVersion;
-        public Dictionary<string, string> HttpHeaders = new Dictionary<string, string>();
+        public Dictionary<string, string> HttpHeaders = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-        // Client identification for request cancellation
         public string ClientHash { get; private set; }
 
         public static BindingList<Credential> Credentials = new BindingList<Credential>();
 
-        // MODIFIED: Changed from simple list to session-based dictionary
-        // Key is session token, value is SessionInfo
         public static Dictionary<string, SessionInfo> AuthorizedSessions = new Dictionary<string, SessionInfo>();
         private static readonly object sessionLock = new object();
 
-        // Keep for backward compatibility but will be phased out
         public static List<string> AuthorizedClients = new List<string>();
+        private static readonly object clientsLock = new object();
 
         public static Dictionary<string, int> BannedClients = new Dictionary<string, int>();
 
-        // Cache for fast credential lookup
         private static readonly Dictionary<string, string> credentialCache = new Dictionary<string, string>();
         private static readonly object credentialCacheLock = new object();
 
-        // Maximum post size, 64 Kb max
         private const int MAX_POST_SIZE = 1024 * 64;
-
-        // Output buffer size, 128 Kb max
         private const int OUTPUT_BUFFER_SIZE = 1024 * 128;
 
         private bool disposed = false;
+
+        static HttpProcessor()
+        {
+            if (!string.IsNullOrEmpty(Properties.Settings.Default.AuthorizedClients))
+            {
+                var clients = Properties.Settings.Default.AuthorizedClients.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                lock (clientsLock)
+                {
+                    AuthorizedClients.AddRange(clients);
+                }
+            }
+        }
 
         public HttpProcessor(TcpClient socket, HttpServer server)
         {
@@ -132,7 +138,7 @@ namespace TinyOPDS.Server
 
             var buffer = new System.Text.StringBuilder(256);
             int attempts = 0;
-            const int maxAttempts = 100; // 1 second total timeout
+            const int maxAttempts = 100;
 
             while (attempts < maxAttempts)
             {
@@ -148,27 +154,24 @@ namespace TinyOPDS.Server
 
                 if (next_char == -1)
                 {
-                    // No data available, wait briefly and retry
                     Thread.Sleep(10);
                     attempts++;
                     continue;
                 }
 
-                attempts = 0; // Reset counter when we get data
+                attempts = 0;
 
                 if (next_char == '\n') break;
                 if (next_char == '\r') continue;
 
                 buffer.Append((char)next_char);
 
-                // Prevent extremely long lines (potential DoS protection)
                 if (buffer.Length > 8192) break;
             }
 
             return buffer.ToString();
         }
 
-        // Generate session token
         private static string GenerateSessionToken()
         {
             var random = new Random();
@@ -177,7 +180,6 @@ namespace TinyOPDS.Server
             return Convert.ToBase64String(bytes).Replace("+", "-").Replace("/", "_").TrimEnd('=');
         }
 
-        // Parse session token from Cookie header
         private string GetSessionTokenFromCookie()
         {
             if (HttpHeaders.ContainsKey("Cookie"))
@@ -195,7 +197,6 @@ namespace TinyOPDS.Server
             return null;
         }
 
-        // Clean up expired sessions periodically
         private static void CleanupExpiredSessions()
         {
             lock (sessionLock)
@@ -238,13 +239,10 @@ namespace TinyOPDS.Server
 
         private void ProcessInternal()
         {
-            // We can't use a StreamReader for input, because it buffers up extra data on us inside it's
-            // "processed" view of the world, and we want the data raw after the headers
             inputStream = new BufferedStream(Socket.GetStream());
 
             if (ParseRequest())
             {
-                // We probably shouldn't be using a StreamWriter for all output from handlers either
                 OutputStream = new StreamWriter(new BufferedStream(Socket.GetStream(), OUTPUT_BUFFER_SIZE))
                 {
                     AutoFlush = true
@@ -257,8 +255,6 @@ namespace TinyOPDS.Server
 
                 string remoteIP = (Socket.Client.RemoteEndPoint as IPEndPoint).Address.ToString();
 
-                // MODIFIED: Use IP-only for ClientHash (for backward compatibility and request tracking)
-                // This is now only used for request cancellation, not for authorization
                 this.ClientHash = Utils.CreateGuid(Utils.IsoOidNamespace, remoteIP).ToString();
 
                 string sessionToken = null;
@@ -266,8 +262,6 @@ namespace TinyOPDS.Server
 
                 if (Properties.Settings.Default.UseHTTPAuth)
                 {
-                    // FIXED: Check if this is an image request - bypass auth for OPDS client compatibility
-                    // OPDS clients often don't send Authorization headers for embedded resources
                     bool isImageRequest = HttpUrl.Contains("/cover/") ||
                                         HttpUrl.Contains("/thumbnail/") ||
                                         HttpUrl.EndsWith(".jpeg") ||
@@ -276,16 +270,13 @@ namespace TinyOPDS.Server
 
                     if (isImageRequest)
                     {
-                        // Allow image requests without authentication for OPDS compatibility
                         authorized = true;
                         Log.WriteLine(LogLevel.Info, "Bypassing auth for image request from {0}: {1}", remoteIP, HttpUrl);
                     }
                     else
                     {
-                        // Normal authorization flow for non-image requests
                         authorized = false;
 
-                        // Is remote IP banned?
                         if (Properties.Settings.Default.BanClients)
                         {
                             lock (BannedClients)
@@ -300,7 +291,6 @@ namespace TinyOPDS.Server
 
                         if (checkLogin)
                         {
-                            // MODIFIED: Check for session token first
                             if (Properties.Settings.Default.RememberClients)
                             {
                                 sessionToken = GetSessionTokenFromCookie();
@@ -313,10 +303,7 @@ namespace TinyOPDS.Server
                                         {
                                             var session = AuthorizedSessions[sessionToken];
 
-                                            // Validate session: check if not expired and optionally check IP
-                                            // For better security, we check IP match, but you can disable this
-                                            // if users have dynamic IPs
-                                            bool ipCheck = true; // Set to false if you want to allow IP changes
+                                            bool ipCheck = true;
 
                                             if (session.IsValid() && (!ipCheck || session.IpAddress == remoteIP))
                                             {
@@ -328,14 +315,12 @@ namespace TinyOPDS.Server
                                             }
                                             else if (!session.IsValid())
                                             {
-                                                // Remove expired session
                                                 AuthorizedSessions.Remove(sessionToken);
                                                 Log.WriteLine(LogLevel.Authentication,
                                                     "Expired session removed for user {0}", session.Username);
                                             }
                                             else
                                             {
-                                                // IP mismatch - possible session hijacking attempt
                                                 Log.WriteLine(LogLevel.Authentication,
                                                     "IP mismatch for session. Expected: {0}, Got: {1}",
                                                     session.IpAddress, remoteIP);
@@ -344,12 +329,18 @@ namespace TinyOPDS.Server
                                     }
                                 }
 
-                                // Also check old system for backward compatibility
-                                if (!authorized && AuthorizedClients.Contains(ClientHash))
+                                if (!authorized)
                                 {
-                                    authorized = true;
-                                    // Migrate to new session system
-                                    sendSessionCookie = true;
+                                    lock (clientsLock)
+                                    {
+                                        if (AuthorizedClients.Contains(ClientHash))
+                                        {
+                                            authorized = true;
+                                            sendSessionCookie = true;
+                                            Log.WriteLine(LogLevel.Authentication,
+                                                "Client {0} authorized from persistent storage", remoteIP);
+                                        }
+                                    }
                                 }
                             }
 
@@ -368,11 +359,9 @@ namespace TinyOPDS.Server
                                             string user = credential[0];
                                             string password = credential[1];
 
-                                            // Use cached credentials for faster lookup
                                             authorized = ValidateCredentials(user, password);
                                             if (authorized)
                                             {
-                                                // MODIFIED: Create new session
                                                 if (Properties.Settings.Default.RememberClients)
                                                 {
                                                     sessionToken = GenerateSessionToken();
@@ -389,7 +378,6 @@ namespace TinyOPDS.Server
                                                     {
                                                         AuthorizedSessions[sessionToken] = sessionInfo;
 
-                                                        // Cleanup old sessions periodically (every 100 logins)
                                                         if (AuthorizedSessions.Count % 100 == 0)
                                                         {
                                                             CleanupExpiredSessions();
@@ -399,8 +387,15 @@ namespace TinyOPDS.Server
                                                     sendSessionCookie = true;
                                                 }
 
-                                                // Keep old system for backward compatibility
-                                                AuthorizedClients.Add(ClientHash);
+                                                lock (clientsLock)
+                                                {
+                                                    if (!AuthorizedClients.Contains(ClientHash))
+                                                    {
+                                                        AuthorizedClients.Add(ClientHash);
+                                                        Properties.Settings.Default.AuthorizedClients = string.Join(",", AuthorizedClients);
+                                                        Properties.Settings.Default.Save();
+                                                    }
+                                                }
 
                                                 HttpServer.ServerStatistics.IncrementSuccessfulLoginAttempts();
                                                 Log.WriteLine(LogLevel.Authentication,
@@ -432,7 +427,6 @@ namespace TinyOPDS.Server
                     {
                         HttpServer.ServerStatistics.IncrementGetRequests();
 
-                        // MODIFIED: Send session cookie with response if needed
                         if (sendSessionCookie && !string.IsNullOrEmpty(sessionToken))
                         {
                             HandleGETRequestWithSession(sessionToken);
@@ -472,7 +466,6 @@ namespace TinyOPDS.Server
                 }
             }
 
-            // Flush output stream
             if (OutputStream != null && OutputStream.BaseStream.CanWrite)
             {
                 try
@@ -503,7 +496,6 @@ namespace TinyOPDS.Server
         {
             lock (credentialCacheLock)
             {
-                // Rebuild cache if credentials changed
                 if (credentialCache.Count != Credentials.Count)
                 {
                     credentialCache.Clear();
@@ -543,7 +535,6 @@ namespace TinyOPDS.Server
                 }
                 string name = line.Substring(0, separator);
                 int pos = separator + 1;
-                // strip spaces
                 while ((pos < line.Length) && (line[pos] == ' ')) pos++;
 
                 string value = line.Substring(pos, line.Length - pos);
@@ -556,18 +547,15 @@ namespace TinyOPDS.Server
             Server.HandleGETRequest(this);
         }
 
-        // MODIFIED: New method to handle GET with session cookie
         private void HandleGETRequestWithSession(string sessionToken)
         {
-            // This will be handled by Server.HandleGETRequest, but we need to set the cookie
-            // Store the token temporarily so WriteSuccess can add the cookie header
             this.pendingSessionToken = sessionToken;
             Server.HandleGETRequest(this);
         }
 
         private string pendingSessionToken = null;
 
-        private const int BUF_SIZE = 4096; // Increased from 1024
+        private const int BUF_SIZE = 4096;
         public void HandlePOSTRequest()
         {
             MemoryStream memStream = null;
@@ -614,12 +602,11 @@ namespace TinyOPDS.Server
             {
                 OutputStream.Write("HTTP/1.1 " + statusLine + "\n");
 
-                // MODIFIED: Add session cookie if pending
                 if (!string.IsNullOrEmpty(pendingSessionToken))
                 {
                     OutputStream.Write($"Set-Cookie: TinyOPDS_Session={pendingSessionToken}; " +
-                                     $"HttpOnly; Path=/; Max-Age=2592000\n"); // 30 days
-                    pendingSessionToken = null; // Clear after sending
+                                     $"HttpOnly; Path=/; Max-Age=2592000\n");
+                    pendingSessionToken = null;
                 }
 
                 if (!string.IsNullOrEmpty(additionalHeaders))
@@ -627,7 +614,6 @@ namespace TinyOPDS.Server
                     OutputStream.Write(additionalHeaders + "\n");
                 }
 
-                // Support for Keep-Alive connections
                 if (keepAlive && HttpHeaders.ContainsKey("Connection") &&
                     HttpHeaders["Connection"].ToLower().Contains("keep-alive"))
                 {
@@ -723,7 +709,6 @@ namespace TinyOPDS.Server
             StatisticsUpdated?.Invoke(this, null);
         }
 
-        // Thread-safe increment methods for high-load scenarios
         public void IncrementBooksSent()
         {
             Interlocked.Increment(ref booksSent);
@@ -780,11 +765,10 @@ namespace TinyOPDS.Server
         private TimeSpan idleTimeout = TimeSpan.FromMinutes(10);
         public bool IsIdle { get { return isIdle; } }
 
-        // Connection management
         private readonly SemaphoreSlim connectionSemaphore;
         private const int MAX_CONCURRENT_CONNECTIONS = 100;
         private const int SOCKET_BUFFER_SIZE = 1024 * 512;
-        private const int IDLE_CHECK_INTERVAL = 600; // 60 seconds at 100ms intervals
+        private const int IDLE_CHECK_INTERVAL = 600;
 
         public HttpServer(int Port, int Timeout = 10000)
         {
@@ -850,12 +834,10 @@ namespace TinyOPDS.Server
                         socket.SendBufferSize = SOCKET_BUFFER_SIZE;
                         socket.NoDelay = true;
 
-                        // Reset idle state
                         isIdle = false;
                         requestTime = DateTime.Now;
                         loopCount = 0;
 
-                        // Use semaphore to limit concurrent connections
                         ThreadPool.QueueUserWorkItem(ProcessConnectionWithThrottling, socket);
                     }
                     else
@@ -863,7 +845,6 @@ namespace TinyOPDS.Server
                         Thread.Sleep(100);
                     }
 
-                    // Check the idle state once a minute
                     if (loopCount++ > IDLE_CHECK_INTERVAL)
                     {
                         loopCount = 0;
@@ -892,7 +873,6 @@ namespace TinyOPDS.Server
 
             try
             {
-                // Wait for available connection slot
                 connectionSemaphore?.Wait();
 
                 processor = new HttpProcessor(socket, this);

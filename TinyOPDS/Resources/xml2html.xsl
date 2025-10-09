@@ -43,11 +43,11 @@ xmlns:x="http://www.w3.org/2005/Atom">
 		</xsl:variable>
 
 		<html>
-		<xsl:if test="$darkTheme">
-            <xsl:attribute name="class">
-                <xsl:value-of select="$darkTheme"/>
-            </xsl:attribute>
-        </xsl:if>
+			<xsl:if test="$darkTheme">
+				<xsl:attribute name="class">
+					<xsl:value-of select="$darkTheme"/>
+				</xsl:attribute>
+			</xsl:if>
 			<head>
 				<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 				<meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -714,199 +714,212 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					}
 					}
 					.dark body {
-                      background-color: #121212;
-                      color: #ddd;
-                    }
+					background-color: #121212;
+					color: #ddd;
+					}
 
-                    .dark .fixed-header {
-                      background: linear-gradient(135deg, #252e57 0%, #3f1f5f 100%);
-                      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
-                    }
+					.dark .fixed-header {
+					background: linear-gradient(135deg, #252e57 0%, #3f1f5f 100%);
+					box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
+					}
 
-                    .dark .header-icon {
-                      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
-                      background: rgba(0, 0, 0, 0.3);
-                    }
+					.dark .header-icon {
+					box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+					background: rgba(0, 0, 0, 0.3);
+					}
 
-                    .dark .header-text {
-                      color: #eee;
-                    }
+					.dark .header-text {
+					color: #eee;
+					}
 
-                    .dark .server-title {
-                      color: #eee;
-                      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
-                    }
+					.dark .server-title {
+					color: #eee;
+					text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+					}
 
-                    .dark .server-title:hover {
-                      color: #fff;
-                      text-shadow: 0 0 12px rgba(200, 200, 255, 0.8);
-                    }
+					.dark .server-title:hover {
+					color: #fff;
+					text-shadow: 0 0 12px rgba(200, 200, 255, 0.8);
+					}
 
-                    .dark .library-name {
-                      color: rgba(230, 230, 230, 0.9);
-                    }
+					.dark .library-name {
+					color: rgba(230, 230, 230, 0.9);
+					}
 
-                    .dark .search-input {
-                      background: rgba(255, 255, 255, 0.1);
-                      color: #eee;
-                      box-shadow: 0 2px 8px rgba(255, 255, 255, 0.05);
-                    }
+					.dark .search-input {
+					background: rgba(255, 255, 255, 0.1);
+					color: #eee;
+					box-shadow: 0 2px 8px rgba(255, 255, 255, 0.05);
+					}
 
-                    .dark .search-input:focus {
-                      background: rgba(255, 255, 255, 0.15);
-                      box-shadow: 0 4px 16px rgba(255, 255, 255, 0.2);
-                    }
+					.dark .search-input:focus {
+					background: rgba(255, 255, 255, 0.15);
+					box-shadow: 0 4px 16px rgba(255, 255, 255, 0.2);
+					}
 
-                    .dark .search-input::placeholder {
-                      color: #aaa;
-                    }
+					.dark .search-input::placeholder {
+					color: #aaa;
+					}
 
-                    .dark .search-button {
-                      background: rgba(102, 126, 234, 0.9);
-                      color: white;
-                      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.5);
-                    }
+					.dark .search-button {
+					background: rgba(102, 126, 234, 0.9);
+					color: white;
+					box-shadow: 0 2px 8px rgba(102, 126, 234, 0.5);
+					}
 
-                    .dark .search-button:hover {
-                      background: rgba(102, 126, 234, 1);
-                      box-shadow: 0 4px 16px rgba(102, 126, 234, 0.7);
-                    }
+					.dark .search-button:hover {
+					background: rgba(102, 126, 234, 1);
+					box-shadow: 0 4px 16px rgba(102, 126, 234, 0.7);
+					}
 
-                    .dark .main-content {
-                      color: #ddd;
-                    }
+					.dark .main-content {
+					color: #ddd;
+					}
 
-                    .dark .category-item {
-                      border-bottom: 1px solid #333;
-                    }
+					.dark .category-item {
+					border-bottom: 1px solid #333;
+					}
 
-                    .dark .category-item:hover {
-                      background-color: #222530;
-                    }
+					.dark .category-item:hover {
+					background-color: #222530;
+					}
 
-                    .dark .category-link {
-                      color: #ccc;
-                    }
+					.dark .category-link {
+					color: #ccc;
+					}
 
-                    .dark .category-descr {
-                      color: #999;
-                    }
+					.dark .category-descr {
+					color: #999;
+					}
 
-                    .dark .book-item {
-                      background: #1c1c1c;
-                      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
-                      border: 1px solid #333;
-                      color: #ddd;
-                    }
+					.dark .book-item {
+					background: #1c1c1c;
+					box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
+					border: 1px solid #333;
+					color: #ddd;
+					}
 
-                    .dark .download-date {
-                      color: #aaa;
-                      background: rgba(30, 30, 30, 0.95);
-                      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
-                    }
+					.dark .download-date {
+					color: #aaa;
+					background: rgba(30, 30, 30, 0.95);
+					box-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+					}
 
-                    .dark .book-item:hover {
-                      box-shadow: 0 8px 24px rgba(102, 126, 234, 0.8);
-                    }
+					.dark .book-item:hover {
+					box-shadow: 0 8px 24px rgba(102, 126, 234, 0.8);
+					}
 
-                    .dark .cover {
-                      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.6);
-                      background-color: #222;
-                    }
+					.dark .cover {
+					box-shadow: 0 2px 8px rgba(102, 126, 234, 0.6);
+					background-color: #222;
+					}
 
-                    .dark .book-title {
-                      color: #ddd;
-                    }
+					.dark .book-title {
+					color: #ddd;
+					}
 
-                    .dark .book-info {
-                      color: #bbb;
-                      background: #2a2a2a;
-                    }
+					.dark .book-info {
+					color: #bbb;
+					background: #2a2a2a;
+					}
 
-                    .dark .book-info .info-line strong {
-                      color: #ddd;
-                    }
+					.dark .book-info .info-line strong {
+					color: #ddd;
+					}
 
-                    .dark .book-info .info-line span {
-                      color: #ddd;
-                    }
+					.dark .book-info .info-line span {
+					color: #ddd;
+					}
 
-                    .dark .book-author {
-                      color: #7b8bee;
-                    }
+					.dark .book-author {
+					color: #7b8bee;
+					}
 
-                    .dark .book-author:hover {
-                      color: #9f85d9;
-                    }
+					.dark .book-author:hover {
+					color: #9f85d9;
+					}
 
-                    .dark .book-descr {
-                      color: #aaa;
-                    }
+					.dark .book-descr {
+					color: #aaa;
+					}
 
-                    .dark .read-button {
-                      background: linear-gradient(135deg, #4a4e70 0%, #3b2c5a 100%);
-                      color: white;
-                      box-shadow: 0 2px 6px rgba(74, 78, 112, 0.6);
-                    }
+					.dark .read-button {
+					background: linear-gradient(135deg, #4a4e70 0%, #3b2c5a 100%);
+					color: white;
+					box-shadow: 0 2px 6px rgba(74, 78, 112, 0.6);
+					}
 
-                    .dark .read-button:hover {
-                      background: linear-gradient(135deg, #3c3f59 0%, #2e2844 100%);
-                      color: white;
-                      box-shadow: 0 4px 12px rgba(74, 78, 112, 0.8);
-                    }
+					.dark .read-button:hover {
+					background: linear-gradient(135deg, #3c3f59 0%, #2e2844 100%);
+					color: white;
+					box-shadow: 0 4px 12px rgba(74, 78, 112, 0.8);
+					}
 
-                    .dark .download-link {
-                      color: white;
-                    }
+					.dark .download-link {
+					color: white;
+					}
 
-                    .dark .download-fb2 {
-                      background: linear-gradient(135deg, #2e6f3a 0%, #25582e 100%);
-                      color: white;
-                      box-shadow: 0 2px 6px rgba(46, 111, 58, 0.6);
-                    }
+					.dark .download-fb2 {
+					background: linear-gradient(135deg, #2e6f3a 0%, #25582e 100%);
+					color: white;
+					box-shadow: 0 2px 6px rgba(46, 111, 58, 0.6);
+					}
 
-                    .dark .download-fb2:hover {
-                      background: linear-gradient(135deg, #25582e 0%, #1d4324 100%);
-                      color: white;
-                      box-shadow: 0 4px 12px rgba(46, 111, 58, 0.8);
-                    }
+					.dark .download-fb2:hover {
+					background: linear-gradient(135deg, #25582e 0%, #1d4324 100%);
+					color: white;
+					box-shadow: 0 4px 12px rgba(46, 111, 58, 0.8);
+					}
 
-                    .dark .download-epub {
-                      background: linear-gradient(135deg, #2a5c93 0%, #234872 100%);
-                      color: white;
-                      box-shadow: 0 2px 6px rgba(42, 92, 147, 0.6);
-                    }
+					.dark .download-epub {
+					background: linear-gradient(135deg, #2a5c93 0%, #234872 100%);
+					color: white;
+					box-shadow: 0 2px 6px rgba(42, 92, 147, 0.6);
+					}
 
-                    .dark .download-epub:hover {
-                      background: linear-gradient(135deg, #234872 0%, #1b3553 100%);
-                      color: white;
-                      box-shadow: 0 4px 12px rgba(42, 92, 147, 0.8);
-                    }
+					.dark .download-epub:hover {
+					background: linear-gradient(135deg, #234872 0%, #1b3553 100%);
+					color: white;
+					box-shadow: 0 4px 12px rgba(42, 92, 147, 0.8);
+					}
 
-                    .dark h4 {
-                      color: #ddd;
-                    }
+					.dark h4 {
+					color: #ddd;
+					}
 
-                    .dark .loading-spinner {
-                      border: 4px solid #2a2a2a;
-                      border-top: 4px solid #667eea;
-                    }
+					.dark .loading-spinner {
+					border: 4px solid #2a2a2a;
+					border-top: 4px solid #667eea;
+					}
 
-                    .dark .loading-text {
-                      color: #aaa;
-                    }
+					.dark .loading-text {
+					color: #aaa;
+					}
 
-                    .dark .end-message {
-                      color: #666;
-                    }
+					.dark .end-message {
+					color: #666;
+					}
 
-                    .dark .error-message {
-                      background: #330000;
-                      color: #ff6b6b;
-                    }
+					.dark .error-message {
+					background: #330000;
+					color: #ff6b6b;
+					}
+
+					.book-descr-wrap{position:relative}
+					.descr-toggle{position:absolute;right:-8px;top:-20px;width:18px;height:18px;border-radius:4px;border:1px solid #ccd;display:none;align-items:center;justify-content:center;font-size:16px;line-height:1;cursor:pointer;background:transparent}
+					@media (max-width:768px){
+					.descr-toggle{display:flex}
+					.book-descr.collapsed{overflow:hidden}
+					.book-descr.expanded{max-height:none}
+					}
+					.dark .descr-toggle{background:transparent;border-color:#444;color:#eee}
 				</style>
-				<script src="/smart-header.js"><xsl:text> </xsl:text></script>
-				<script src="/infinite-scroll.js"><xsl:text> </xsl:text></script>
+				<script src="/smart-header.js">
+					<xsl:text> </xsl:text>
+				</script>
+				<script src="/infinite-scroll.js">
+					<xsl:text> </xsl:text>
+				</script>
 				<script>
 					// Store reader localization strings in localStorage for reader.html
 					(function() {
@@ -937,6 +950,66 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					}
 					})();
 				</script>
+
+				<script>
+					(function(){
+					function setup(){
+					if(!window.matchMedia || !window.matchMedia('(max-width: 768px)').matches) return;
+					document.querySelectorAll('.book-item').forEach(function(item){
+					var wrap = item.querySelector('.book-descr-wrap');
+					var descr = item.querySelector('.book-descr');
+					var toggle = item.querySelector('.descr-toggle');
+					var left = item.querySelector('.download-section');
+					if(!wrap || !descr || !toggle || !left) return;
+
+					var h = left.getBoundingClientRect().height / 2;
+
+					// Check if this item was already initialized
+					var alreadyInitialized = toggle.hasAttribute('data-initialized');
+
+					if(!alreadyInitialized){
+					// First time initialization - set as collapsed
+					descr.style.maxHeight = Math.max(0, Math.round(h)) + 'px';
+					descr.classList.add('collapsed');
+					toggle.setAttribute('aria-expanded','false');
+					} else {
+					// Already initialized - only update height if collapsed
+					if(descr.classList.contains('collapsed')){
+					descr.style.maxHeight = Math.max(0, Math.round(h)) + 'px';
+					}
+					// If expanded, don't touch it to avoid collapsing during scroll
+					}
+
+					// Add click handler only once
+					if(!alreadyInitialized){
+					toggle.setAttribute('data-initialized', 'true');
+					toggle.addEventListener('click', function(){
+					var isCollapsed = descr.classList.contains('collapsed');
+					if(isCollapsed){
+					descr.classList.remove('collapsed');
+					descr.classList.add('expanded');
+					descr.style.maxHeight = 'none';
+					toggle.textContent = '−';
+					toggle.setAttribute('aria-expanded','true');
+					toggle.title = '-';
+					} else {
+					var h2 = left.getBoundingClientRect().height / 2;
+					descr.style.maxHeight = Math.max(0, Math.round(h2)) + 'px';
+					descr.classList.remove('expanded');
+					descr.classList.add('collapsed');
+					toggle.textContent = '+';
+					toggle.setAttribute('aria-expanded','false');
+					toggle.title = '+';
+					}
+					});
+					}
+					});
+					}
+					if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', setup); } else { setup(); }
+					window.addEventListener('resize', function(){ setup(); });
+					})();
+				</script>				
+				
 			</head>
 			<body>
 				<div class="fixed-header">
@@ -1159,8 +1232,11 @@ xmlns:x="http://www.w3.org/2005/Atom">
 												<xsl:value-of select="x:author/x:name"/>
 											</a>
 
-											<div class="book-descr" lang="ru">
-												<xsl:value-of select="x:content"/>
+											<div class="book-descr-wrap">
+												<div class="book-descr" lang="ru">
+													<xsl:value-of select="x:content"/>
+												</div>
+												<button class="descr-toggle" type="button" aria-expanded="false" title="+">+</button>
 											</div>
 										</div>
 									</div>

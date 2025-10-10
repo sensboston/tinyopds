@@ -242,7 +242,7 @@
             this.label21.Location = new System.Drawing.Point(40, 169);
             this.label21.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.label21.Name = "label21";
-            this.label21.Size = new System.Drawing.Size(344, 43);
+            this.label21.Size = new System.Drawing.Size(359, 43);
             this.label21.TabIndex = 31;
             this.label21.Text = "Database file name: ";
             // 
@@ -265,7 +265,7 @@
             this.duplicates.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.duplicates.MinimumSize = new System.Drawing.Size(133, 0);
             this.duplicates.Name = "duplicates";
-            this.duplicates.Size = new System.Drawing.Size(133, 31);
+            this.duplicates.Size = new System.Drawing.Size(133, 43);
             this.duplicates.TabIndex = 29;
             this.duplicates.Text = "0";
             // 
@@ -294,7 +294,7 @@
             this.status.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.status.MinimumSize = new System.Drawing.Size(133, 0);
             this.status.Name = "status";
-            this.status.Size = new System.Drawing.Size(232, 31);
+            this.status.Size = new System.Drawing.Size(241, 52);
             this.status.TabIndex = 26;
             this.status.Text = "STOPPED";
             // 
@@ -313,7 +313,7 @@
             this.rate.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.rate.MinimumSize = new System.Drawing.Size(133, 0);
             this.rate.Name = "rate";
-            this.rate.Size = new System.Drawing.Size(232, 31);
+            this.rate.Size = new System.Drawing.Size(240, 53);
             this.rate.TabIndex = 24;
             this.rate.Text = "0 books/min";
             // 
@@ -332,7 +332,7 @@
             this.elapsedTime.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.elapsedTime.MinimumSize = new System.Drawing.Size(133, 0);
             this.elapsedTime.Name = "elapsedTime";
-            this.elapsedTime.Size = new System.Drawing.Size(232, 31);
+            this.elapsedTime.Size = new System.Drawing.Size(232, 47);
             this.elapsedTime.TabIndex = 22;
             this.elapsedTime.Text = "00:00:00";
             // 
@@ -351,7 +351,7 @@
             this.startTime.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.startTime.MinimumSize = new System.Drawing.Size(133, 0);
             this.startTime.Name = "startTime";
-            this.startTime.Size = new System.Drawing.Size(232, 31);
+            this.startTime.Size = new System.Drawing.Size(232, 52);
             this.startTime.TabIndex = 20;
             this.startTime.Text = "00:00:00";
             // 
@@ -370,7 +370,7 @@
             this.booksProcessed.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.booksProcessed.MinimumSize = new System.Drawing.Size(133, 0);
             this.booksProcessed.Name = "booksProcessed";
-            this.booksProcessed.Size = new System.Drawing.Size(133, 31);
+            this.booksProcessed.Size = new System.Drawing.Size(133, 50);
             this.booksProcessed.TabIndex = 18;
             this.booksProcessed.Text = "0";
             // 
@@ -389,7 +389,7 @@
             this.invalidBooks.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.invalidBooks.MinimumSize = new System.Drawing.Size(133, 0);
             this.invalidBooks.Name = "invalidBooks";
-            this.invalidBooks.Size = new System.Drawing.Size(133, 31);
+            this.invalidBooks.Size = new System.Drawing.Size(133, 47);
             this.invalidBooks.TabIndex = 16;
             this.invalidBooks.Text = "0";
             // 
@@ -408,7 +408,7 @@
             this.skippedBooks.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.skippedBooks.MinimumSize = new System.Drawing.Size(133, 0);
             this.skippedBooks.Name = "skippedBooks";
-            this.skippedBooks.Size = new System.Drawing.Size(133, 31);
+            this.skippedBooks.Size = new System.Drawing.Size(133, 47);
             this.skippedBooks.TabIndex = 14;
             this.skippedBooks.Text = "0";
             // 
@@ -423,11 +423,11 @@
             // 
             // booksFound
             // 
-            this.booksFound.Location = new System.Drawing.Point(392, 331);
+            this.booksFound.Location = new System.Drawing.Point(394, 331);
             this.booksFound.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.booksFound.MinimumSize = new System.Drawing.Size(341, 0);
             this.booksFound.Name = "booksFound";
-            this.booksFound.Size = new System.Drawing.Size(341, 31);
+            this.booksFound.Size = new System.Drawing.Size(341, 52);
             this.booksFound.TabIndex = 12;
             this.booksFound.Text = "fb2: 0       epub: 0";
             // 
@@ -437,7 +437,7 @@
             this.booksInDB.Margin = new System.Windows.Forms.Padding(8, 0, 8, 0);
             this.booksInDB.MinimumSize = new System.Drawing.Size(501, 0);
             this.booksInDB.Name = "booksInDB";
-            this.booksInDB.Size = new System.Drawing.Size(501, 31);
+            this.booksInDB.Size = new System.Drawing.Size(501, 52);
             this.booksInDB.TabIndex = 11;
             this.booksInDB.Text = "0         fb2:  0       epub: 0";
             // 

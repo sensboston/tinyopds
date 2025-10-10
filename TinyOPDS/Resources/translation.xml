@@ -10,6 +10,15 @@
 		<language id="pl">Polski</language>
 	</languages>
 	<properties>
+		<property form="MainForm" ctrl="clearAuthorizedClients">
+			<text lang="en">Clear all authorized clients</text>
+			<text lang="ru">Очистить всех авторизованных клиентов</text>
+			<text lang="uk">Очистити всіх авторизованих клієнтів</text>
+			<text lang="de">Alle autorisierten Clients löschen</text>
+			<text lang="es">Borrar todos los clientes autorizados</text>
+			<text lang="fr">Effacer tous les clients autorisés</text>
+			<text lang="pl">Wyczyść wszystkich autoryzowanych klientów</text>
+		</property>
 		<property form="MainForm" ctrl="groupBox1">
 			<text lang="en">Cache images</text>
 			<text lang="ru">Кэширование изображений</text>

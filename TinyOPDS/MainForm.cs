@@ -1593,6 +1593,11 @@ namespace TinyOPDS
             Settings.Default.Save();
         }
 
+        private void clearAuthorizedClients_Click(object sender, EventArgs e)
+        {
+            HttpProcessor.ClearAllAuthorizedClients();
+        }
+
         private void HandleNodeDependencies(string tag, bool isChecked)
         {
             isLoading = true;

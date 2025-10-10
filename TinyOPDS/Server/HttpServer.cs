@@ -9,11 +9,6 @@
  * and abstract class for HTTP server with enhanced stability
  * and request cancellation support
  * 
- * MODIFIED: Fixed ClientHash to use session tokens instead of User-Agent
- * FIXED: Allow anonymous access to images for OPDS clients compatibility
- * MODIFIED: Added case-insensitive HTTP headers processing
- * MODIFIED: Added persistent storage for authorized clients in Settings
- * 
  */
 
 using System;
@@ -85,6 +80,9 @@ namespace TinyOPDS.Server
         public static List<string> AuthorizedClients = new List<string>();
         private static readonly object clientsLock = new object();
 
+        private static DateTime lastClearTime = DateTime.MinValue;
+        private static readonly object clearTimeLock = new object();
+
         public static Dictionary<string, int> BannedClients = new Dictionary<string, int>();
 
         private static readonly Dictionary<string, string> credentialCache = new Dictionary<string, string>();
@@ -105,6 +103,29 @@ namespace TinyOPDS.Server
                     AuthorizedClients.AddRange(clients);
                 }
             }
+        }
+
+        public static void ClearAllAuthorizedClients()
+        {
+            lock (clientsLock)
+            {
+                AuthorizedClients.Clear();
+            }
+
+            lock (sessionLock)
+            {
+                AuthorizedSessions.Clear();
+            }
+
+            lock (clearTimeLock)
+            {
+                lastClearTime = DateTime.Now;
+            }
+
+            Properties.Settings.Default.AuthorizedClients = string.Empty;
+            Properties.Settings.Default.Save();
+
+            Log.WriteLine(LogLevel.Info, "All authorized clients and sessions cleared");
         }
 
         public HttpProcessor(TcpClient socket, HttpServer server)
@@ -346,72 +367,86 @@ namespace TinyOPDS.Server
 
                             if (!authorized && HttpHeaders.ContainsKey("Authorization"))
                             {
-                                string hash = HttpHeaders["Authorization"];
-
-                                if (hash.StartsWith("Basic "))
+                                bool recentlyClearedCheck = false;
+                                lock (clearTimeLock)
                                 {
-                                    try
+                                    recentlyClearedCheck = (DateTime.Now - lastClearTime).TotalSeconds < 10;
+                                }
+
+                                if (recentlyClearedCheck)
+                                {
+                                    Log.WriteLine(LogLevel.Authentication,
+                                        "Authorization ignored for {0} - recent clear operation", remoteIP);
+                                }
+                                else
+                                {
+                                    string hash = HttpHeaders["Authorization"];
+
+                                    if (hash.StartsWith("Basic "))
                                     {
-                                        string[] credential = hash.Substring(6).DecodeFromBase64().Split(':');
-
-                                        if (credential.Length == 2)
+                                        try
                                         {
-                                            string user = credential[0];
-                                            string password = credential[1];
+                                            string[] credential = hash.Substring(6).DecodeFromBase64().Split(':');
 
-                                            authorized = ValidateCredentials(user, password);
-                                            if (authorized)
+                                            if (credential.Length == 2)
                                             {
-                                                if (Properties.Settings.Default.RememberClients)
+                                                string user = credential[0];
+                                                string password = credential[1];
+
+                                                authorized = ValidateCredentials(user, password);
+                                                if (authorized)
                                                 {
-                                                    sessionToken = GenerateSessionToken();
-                                                    var sessionInfo = new SessionInfo
+                                                    if (Properties.Settings.Default.RememberClients)
                                                     {
-                                                        Token = sessionToken,
-                                                        IpAddress = remoteIP,
-                                                        Created = DateTime.Now,
-                                                        LastAccess = DateTime.Now,
-                                                        Username = user
-                                                    };
-
-                                                    lock (sessionLock)
-                                                    {
-                                                        AuthorizedSessions[sessionToken] = sessionInfo;
-
-                                                        if (AuthorizedSessions.Count % 100 == 0)
+                                                        sessionToken = GenerateSessionToken();
+                                                        var sessionInfo = new SessionInfo
                                                         {
-                                                            CleanupExpiredSessions();
+                                                            Token = sessionToken,
+                                                            IpAddress = remoteIP,
+                                                            Created = DateTime.Now,
+                                                            LastAccess = DateTime.Now,
+                                                            Username = user
+                                                        };
+
+                                                        lock (sessionLock)
+                                                        {
+                                                            AuthorizedSessions[sessionToken] = sessionInfo;
+
+                                                            if (AuthorizedSessions.Count % 100 == 0)
+                                                            {
+                                                                CleanupExpiredSessions();
+                                                            }
+                                                        }
+
+                                                        sendSessionCookie = true;
+                                                    }
+
+                                                    lock (clientsLock)
+                                                    {
+                                                        if (!AuthorizedClients.Contains(ClientHash))
+                                                        {
+                                                            AuthorizedClients.Add(ClientHash);
+                                                            Properties.Settings.Default.AuthorizedClients = string.Join(",", AuthorizedClients);
+                                                            Properties.Settings.Default.Save();
                                                         }
                                                     }
 
-                                                    sendSessionCookie = true;
+                                                    HttpServer.ServerStatistics.IncrementSuccessfulLoginAttempts();
+                                                    Log.WriteLine(LogLevel.Authentication,
+                                                        "User {0} from {1} successfully logged in", user, remoteIP);
                                                 }
-
-                                                lock (clientsLock)
+                                                else
                                                 {
-                                                    if (!AuthorizedClients.Contains(ClientHash))
-                                                    {
-                                                        AuthorizedClients.Add(ClientHash);
-                                                        Properties.Settings.Default.AuthorizedClients = string.Join(",", AuthorizedClients);
-                                                        Properties.Settings.Default.Save();
-                                                    }
+                                                    Log.WriteLine(LogLevel.Authentication,
+                                                        "Authentication failed! IP: {0} user: {1}", remoteIP, user);
                                                 }
-
-                                                HttpServer.ServerStatistics.IncrementSuccessfulLoginAttempts();
-                                                Log.WriteLine(LogLevel.Authentication,
-                                                    "User {0} from {1} successfully logged in", user, remoteIP);
-                                            }
-                                            else
-                                            {
-                                                Log.WriteLine(LogLevel.Authentication,
-                                                    "Authentication failed! IP: {0} user: {1}", remoteIP, user);
                                             }
                                         }
-                                    }
-                                    catch (Exception e)
-                                    {
-                                        Log.WriteLine(LogLevel.Authentication,
-                                            "Authentication exception: IP: {0}, {1}", remoteIP, e.Message);
+                                        catch (Exception e)
+                                        {
+                                            Log.WriteLine(LogLevel.Authentication,
+                                                "Authentication exception: IP: {0}, {1}", remoteIP, e.Message);
+                                        }
                                     }
                                 }
                             }

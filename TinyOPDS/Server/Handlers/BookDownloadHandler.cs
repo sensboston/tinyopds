@@ -6,9 +6,7 @@
  * SPDX-License-Identifier: MIT
  *
  * This module handles books download requests (FB2 and EPUB)
- * ENHANCED: Added download tracking to database
- * FIXED: Always convert FB2 to EPUB when .epub is requested
- * 
+ *
  */
 
 using System;
@@ -48,7 +46,6 @@ namespace TinyOPDS.Server
                     return;
                 }
 
-                // Determine download format and type
                 string downloadFormat = null;
                 string downloadType = "download";
 
@@ -63,8 +60,7 @@ namespace TinyOPDS.Server
                     HandleEpubDownload(processor, book, acceptFB2);
                 }
 
-                // Record download to database through Library
-                RecordDownload(bookID, downloadType, downloadFormat, processor.HttpHeaders);
+                RecordDownload(bookID, downloadType, downloadFormat, processor);
 
                 HttpServer.ServerStatistics.IncrementBooksSent();
             }
@@ -78,16 +74,16 @@ namespace TinyOPDS.Server
         /// <summary>
         /// Records download to database through Library
         /// </summary>
-        private void RecordDownload(string bookId, string downloadType, string format, Dictionary<string, string> headers)
+        private void RecordDownload(string bookId, string downloadType, string format, HttpProcessor processor)
         {
             try
             {
-                // Extract client info from headers if available
                 string clientInfo = null;
-                if (headers != null)
+                if (processor != null)
                 {
-                    string userAgent = headers.ContainsKey("User-Agent") ? headers["User-Agent"] : null;
-                    string clientIp = headers.ContainsKey("X-Forwarded-For") ? headers["X-Forwarded-For"] : (headers.ContainsKey("REMOTE_ADDR") ? headers["REMOTE_ADDR"] : null);
+                    string userAgent = processor.HttpHeaders.ContainsKey("User-Agent") ?
+                        processor.HttpHeaders["User-Agent"] : null;
+                    string clientIp = GetRealClientIP(processor);
 
                     if (!string.IsNullOrEmpty(userAgent) || !string.IsNullOrEmpty(clientIp))
                     {
@@ -95,7 +91,6 @@ namespace TinyOPDS.Server
                             userAgent ?? "Unknown",
                             clientIp ?? "Unknown");
 
-                        // Limit client info length to prevent database issues
                         if (clientInfo.Length > 255)
                         {
                             clientInfo = clientInfo.Substring(0, 255);
@@ -103,7 +98,6 @@ namespace TinyOPDS.Server
                     }
                 }
 
-                // Use Library method instead of creating new DatabaseManager
                 Library.RecordDownload(bookId, downloadType, format, clientInfo);
 
                 Log.WriteLine(LogLevel.Info, "Recorded {0} download for book {1}, format: {2}",
@@ -111,10 +105,59 @@ namespace TinyOPDS.Server
             }
             catch (Exception ex)
             {
-                // Don't fail the download if we can't record it
                 Log.WriteLine(LogLevel.Warning, "Failed to record download for book {0}: {1}",
                     bookId, ex.Message);
             }
+        }
+
+        /// <summary>
+        /// Gets real client IP from processor
+        /// </summary>
+        private string GetRealClientIP(HttpProcessor processor)
+        {
+            try
+            {
+                string directIP = (processor.Socket.Client.RemoteEndPoint as System.Net.IPEndPoint).Address.ToString();
+
+                if (IsLocalOrTrustedProxy(directIP))
+                {
+                    if (processor.HttpHeaders.ContainsKey("X-Forwarded-For"))
+                    {
+                        string forwardedFor = processor.HttpHeaders["X-Forwarded-For"];
+                        if (!string.IsNullOrEmpty(forwardedFor))
+                        {
+                            var ips = forwardedFor.Split(',');
+                            return ips[0].Trim();
+                        }
+                    }
+
+                    if (processor.HttpHeaders.ContainsKey("X-Real-IP"))
+                    {
+                        string realIP = processor.HttpHeaders["X-Real-IP"];
+                        if (!string.IsNullOrEmpty(realIP))
+                        {
+                            return realIP.Trim();
+                        }
+                    }
+                }
+
+                return directIP;
+            }
+            catch
+            {
+                return "Unknown";
+            }
+        }
+
+        private bool IsLocalOrTrustedProxy(string ip)
+        {
+            if (ip == "127.0.0.1" || ip == "::1" || ip == "localhost")
+                return true;
+
+            if (ip.StartsWith("192.168.") || ip.StartsWith("10.") || ip.StartsWith("172."))
+                return true;
+
+            return false;
         }
 
         /// <summary>
@@ -126,19 +169,15 @@ namespace TinyOPDS.Server
             {
                 Log.WriteLine(LogLevel.Info, "Extracting book ID from request: {0}", request);
 
-                // Remove leading slash and split by slashes
                 if (request.StartsWith("/"))
                     request = request.Substring(1);
 
                 string[] parts = request.Split('/');
                 Log.WriteLine(LogLevel.Info, "Request parts: [{0}]", string.Join(", ", parts));
 
-                // Expected: download/{guid}/fb2 or download/{guid}/epub 
                 if (parts.Length >= 3 && parts[0] == "download")
                 {
                     string guid = parts[1];
-
-                    // Clean up common GUID encoding artifacts
                     guid = guid.Replace("%7B", "{").Replace("%7D", "}");
 
                     Log.WriteLine(LogLevel.Info, "Extracted book ID: {0}", guid);
@@ -161,7 +200,6 @@ namespace TinyOPDS.Server
         {
             using (var memStream = new MemoryStream())
             {
-                // Use cancellation token with timeout for downloads
                 using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60)))
                 {
                     if (!ExtractBookContentWithCancellation(book, memStream, cts.Token))
@@ -171,7 +209,6 @@ namespace TinyOPDS.Server
                     }
                 }
 
-                // Use System.IO.Compression for creating ZIP files in .NET 4.8
                 using (var outputStream = new MemoryStream())
                 {
                     using (var zipArchive = new System.IO.Compression.ZipArchive(outputStream, System.IO.Compression.ZipArchiveMode.Create, true))
@@ -191,13 +228,11 @@ namespace TinyOPDS.Server
 
                     outputStream.Position = 0;
 
-                    // Set proper filename for download
                     string downloadFileName = Transliteration.Front(
                         string.Format("{0}_{1}.fb2.zip",
                             book.Authors.FirstOrDefault() ?? "Unknown",
                             book.Title));
 
-                    // Write response headers manually
                     processor.OutputStream.WriteLine("HTTP/1.0 200 OK");
                     processor.OutputStream.WriteLine("Content-Type: application/zip");
                     processor.OutputStream.WriteLine("Content-Disposition: attachment; filename=\"{0}\"", downloadFileName);
@@ -218,7 +253,6 @@ namespace TinyOPDS.Server
         {
             using (var memStream = new MemoryStream())
             {
-                // Use cancellation token with timeout for downloads
                 using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60)))
                 {
                     if (!ExtractBookContentWithCancellation(book, memStream, cts.Token))
@@ -228,9 +262,6 @@ namespace TinyOPDS.Server
                     }
                 }
 
-                // FIXED: Always convert FB2 to EPUB when .epub is requested,
-                // regardless of whether the client accepts FB2 or not.
-                // When user explicitly requests .epub, they want EPUB format!
                 if (book.BookType == BookType.FB2)
                 {
                     Log.WriteLine(LogLevel.Info, "Converting FB2 to EPUB for book: {0}", book.FileName);
@@ -247,13 +278,11 @@ namespace TinyOPDS.Server
                     Log.WriteLine(LogLevel.Info, "Book is already in EPUB format: {0}", book.FileName);
                 }
 
-                // Set proper filename for download
                 string downloadFileName = Transliteration.Front(
                     string.Format("{0}_{1}.epub",
                         book.Authors.FirstOrDefault() ?? "Unknown",
                         book.Title));
 
-                // Write response headers manually
                 processor.OutputStream.WriteLine("HTTP/1.0 200 OK");
                 processor.OutputStream.WriteLine("Content-Type: application/epub+zip");
                 processor.OutputStream.WriteLine("Content-Disposition: attachment; filename=\"{0}\"", downloadFileName);
@@ -274,7 +303,6 @@ namespace TinyOPDS.Server
         /// </summary>
         public bool ExtractBookContent(Book book, MemoryStream memStream)
         {
-            // Wrapper for legacy code - uses default cancellation token
             return ExtractBookContentWithCancellation(book, memStream, CancellationToken.None);
         }
 
@@ -285,10 +313,8 @@ namespace TinyOPDS.Server
         {
             try
             {
-                // Build full path using library path if needed
                 string bookPath = book.FilePath;
 
-                // Check if path is relative and build full path
                 if (!Path.IsPathRooted(bookPath))
                 {
                     string libraryPath = Properties.Settings.Default.LibraryPath;
@@ -298,11 +324,25 @@ namespace TinyOPDS.Server
                     }
                 }
 
+                // Path traversal protection
+                if (bookPath.Contains("..") || bookPath.Contains("~"))
+                {
+                    Log.WriteLine(LogLevel.Warning, "Suspicious path detected: {0}", bookPath);
+                    return false;
+                }
+
                 Log.WriteLine(LogLevel.Info, "Attempting to extract book content from: {0}", bookPath);
 
                 if (bookPath.ToLower().Contains(".zip@"))
                 {
                     string[] pathParts = bookPath.Split('@');
+
+                    // Path traversal protection for ZIP path
+                    if (pathParts[0].Contains("..") || pathParts[0].Contains("~"))
+                    {
+                        Log.WriteLine(LogLevel.Warning, "Suspicious ZIP path detected: {0}", pathParts[0]);
+                        return false;
+                    }
 
                     if (!File.Exists(pathParts[0]))
                     {
@@ -310,10 +350,8 @@ namespace TinyOPDS.Server
                         return false;
                     }
 
-                    // Check cancellation before opening ZIP
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    // Use System.IO.Compression.ZipFile for .NET 4.8
                     using (var zipArchive = System.IO.Compression.ZipFile.OpenRead(pathParts[0]))
                     {
                         var entry = zipArchive.Entries.FirstOrDefault(e =>
@@ -321,13 +359,11 @@ namespace TinyOPDS.Server
 
                         if (entry != null)
                         {
-                            // Check cancellation before extraction
                             cancellationToken.ThrowIfCancellationRequested();
 
                             using (var entryStream = entry.Open())
                             {
-                                // Copy with cancellation support
-                                const int bufferSize = 81920; // 80KB buffer
+                                const int bufferSize = 81920;
                                 byte[] buffer = new byte[bufferSize];
                                 int bytesRead;
 
@@ -357,12 +393,10 @@ namespace TinyOPDS.Server
                         return false;
                     }
 
-                    // Check cancellation before reading file
                     cancellationToken.ThrowIfCancellationRequested();
 
                     using (var stream = new FileStream(bookPath, FileMode.Open, FileAccess.Read, FileShare.Read))
                     {
-                        // Copy with cancellation support
                         const int bufferSize = 81920;
                         byte[] buffer = new byte[bufferSize];
                         int bytesRead;

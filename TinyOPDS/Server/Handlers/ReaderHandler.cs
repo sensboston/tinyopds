@@ -7,7 +7,6 @@
  *
  * This module handles embedded reader functionality
  * for FB2 and EPUB books
- * ENHANCED: Added read event tracking to database
  * 
  */
 
@@ -26,7 +25,7 @@ namespace TinyOPDS.Server
     /// </summary>
     public class ReaderHandler
     {
-        private string readerHtml = null; // Cache for reader HTML
+        private string readerHtml = null;
         private readonly BookDownloadHandler downloadHandler;
 
         public ReaderHandler()
@@ -42,10 +41,7 @@ namespace TinyOPDS.Server
         {
             try
             {
-                // Extract book ID from /reader/{bookId}
-                string bookId = request.Substring(8); // Remove "/reader/"
-
-                // Clean up GUID encoding
+                string bookId = request.Substring(8);
                 bookId = bookId.Replace("%7B", "{").Replace("%7D", "}");
 
                 Log.WriteLine(LogLevel.Info, "Reader request for book: {0}", bookId);
@@ -58,10 +54,8 @@ namespace TinyOPDS.Server
                     return;
                 }
 
-                // Get book content with cancellation support for better performance
                 using (var memStream = new MemoryStream())
                 {
-                    // Create a cancellation token with 30 second timeout for reader requests
                     using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30)))
                     {
                         if (!downloadHandler.ExtractBookContentWithCancellation(book, memStream, cts.Token))
@@ -71,22 +65,18 @@ namespace TinyOPDS.Server
                         }
                     }
 
-                    // Prepare book data as base64
                     memStream.Position = 0;
                     byte[] bookData = memStream.ToArray();
                     string base64Data = Convert.ToBase64String(bookData);
 
-                    // Determine MIME type
                     string mimeType = book.BookType == BookType.FB2 ? "application/x-fictionbook+xml" : "application/epub+zip";
 
-                    // Prepare file name
                     string fileName = Transliteration.Front(
                         string.Format("{0}_{1}.{2}",
                             book.Authors.FirstOrDefault() ?? "Unknown",
                             book.Title,
                             book.BookType == BookType.FB2 ? "fb2" : "epub"));
 
-                    // Create modified HTML with embedded book
                     string html = PrepareReaderHtml(base64Data, mimeType, fileName, book.Title, book.Authors.FirstOrDefault());
 
                     if (!string.IsNullOrEmpty(html))
@@ -94,8 +84,7 @@ namespace TinyOPDS.Server
                         processor.WriteSuccess("text/html; charset=utf-8");
                         processor.OutputStream.Write(html);
 
-                        // Record read event to database
-                        RecordReadEvent(bookId, book.BookType.ToString().ToLower(), processor.HttpHeaders);
+                        RecordReadEvent(bookId, book.BookType.ToString().ToLower(), processor);
 
                         Log.WriteLine(LogLevel.Info, "Successfully served reader for book: {0}", book.Title);
                     }
@@ -115,17 +104,16 @@ namespace TinyOPDS.Server
         /// <summary>
         /// Records book read event to database through Library
         /// </summary>
-        private void RecordReadEvent(string bookId, string format, System.Collections.Generic.Dictionary<string, string> headers)
+        private void RecordReadEvent(string bookId, string format, HttpProcessor processor)
         {
             try
             {
-                // Extract client info from headers if available
                 string clientInfo = null;
-                if (headers != null)
+                if (processor != null)
                 {
-                    string userAgent = headers.ContainsKey("User-Agent") ? headers["User-Agent"] : null;
-                    string clientIp = headers.ContainsKey("X-Forwarded-For") ? headers["X-Forwarded-For"] :
-                                      (headers.ContainsKey("REMOTE_ADDR") ? headers["REMOTE_ADDR"] : null);
+                    string userAgent = processor.HttpHeaders.ContainsKey("User-Agent") ?
+                        processor.HttpHeaders["User-Agent"] : null;
+                    string clientIp = GetRealClientIP(processor);
 
                     if (!string.IsNullOrEmpty(userAgent) || !string.IsNullOrEmpty(clientIp))
                     {
@@ -133,7 +121,6 @@ namespace TinyOPDS.Server
                             userAgent ?? "Unknown",
                             clientIp ?? "Unknown");
 
-                        // Limit client info length to prevent database issues
                         if (clientInfo.Length > 255)
                         {
                             clientInfo = clientInfo.Substring(0, 255);
@@ -141,16 +128,64 @@ namespace TinyOPDS.Server
                     }
                 }
 
-                // Record as "read" event instead of "download"
                 Library.RecordDownload(bookId, "read", format, clientInfo);
 
                 Log.WriteLine(LogLevel.Info, "Recorded read event for book {0}, format: {1}", bookId, format);
             }
             catch (Exception ex)
             {
-                // Don't fail the reader if we can't record the event
                 Log.WriteLine(LogLevel.Warning, "Failed to record read event for book {0}: {1}", bookId, ex.Message);
             }
+        }
+
+        /// <summary>
+        /// Gets real client IP from processor
+        /// </summary>
+        private string GetRealClientIP(HttpProcessor processor)
+        {
+            try
+            {
+                string directIP = (processor.Socket.Client.RemoteEndPoint as System.Net.IPEndPoint).Address.ToString();
+
+                if (IsLocalOrTrustedProxy(directIP))
+                {
+                    if (processor.HttpHeaders.ContainsKey("X-Forwarded-For"))
+                    {
+                        string forwardedFor = processor.HttpHeaders["X-Forwarded-For"];
+                        if (!string.IsNullOrEmpty(forwardedFor))
+                        {
+                            var ips = forwardedFor.Split(',');
+                            return ips[0].Trim();
+                        }
+                    }
+
+                    if (processor.HttpHeaders.ContainsKey("X-Real-IP"))
+                    {
+                        string realIP = processor.HttpHeaders["X-Real-IP"];
+                        if (!string.IsNullOrEmpty(realIP))
+                        {
+                            return realIP.Trim();
+                        }
+                    }
+                }
+
+                return directIP;
+            }
+            catch
+            {
+                return "Unknown";
+            }
+        }
+
+        private bool IsLocalOrTrustedProxy(string ip)
+        {
+            if (ip == "127.0.0.1" || ip == "::1" || ip == "localhost")
+                return true;
+
+            if (ip.StartsWith("192.168.") || ip.StartsWith("10.") || ip.StartsWith("172."))
+                return true;
+
+            return false;
         }
 
         /// <summary>
@@ -160,10 +195,8 @@ namespace TinyOPDS.Server
         {
             try
             {
-                // Load from embedded resources
                 string resourceBase = Assembly.GetExecutingAssembly().GetName().Name + ".Resources.reader.";
 
-                // Load HTML template
                 using (Stream htmlStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceBase + "reader.html"))
                 {
                     if (htmlStream != null)
@@ -172,15 +205,12 @@ namespace TinyOPDS.Server
                         {
                             string html = reader.ReadToEnd();
 
-                            // Load CSS files
                             string mainCss = LoadResourceText(resourceBase + "reader.css");
                             string themesCss = LoadResourceText(resourceBase + "reader-themes.css");
 
-                            // Load JS files
                             string formatsJs = LoadResourceText(resourceBase + "reader-formats.js");
                             string mainJs = LoadResourceText(resourceBase + "reader-main.js");
 
-                            // Replace link and script tags with inline content
                             if (!string.IsNullOrEmpty(mainCss) && !string.IsNullOrEmpty(themesCss))
                             {
                                 string cssBlock = string.Format("<style>\n{0}\n</style>\n<style>\n{1}\n</style>", mainCss, themesCss);
@@ -251,14 +281,12 @@ namespace TinyOPDS.Server
 
                 string html = readerHtml ?? GetFallbackReaderHtml();
 
-                // Create error message in reader
                 string errorMessage = "Book not found";
                 string errorHtml = html.Replace(
                     "<div class=\"book-content light font-serif\" id=\"bookContent\"></div>",
                     string.Format("<div class=\"book-content light font-serif\" id=\"bookContent\"><div class=\"error\">{0}</div></div>", errorMessage)
                 );
 
-                // Set error title
                 errorHtml = errorHtml.Replace("Reader", string.Format("Reader - {0}", errorMessage));
 
                 processor.WriteSuccess("text/html; charset=utf-8");
@@ -287,7 +315,6 @@ namespace TinyOPDS.Server
 
                 string html = readerHtml ?? GetFallbackReaderHtml();
 
-                // Create error message in reader with book info
                 string errorMessage = "Book file not found";
                 string bookInfo = string.Format("<h1>{0}</h1><p class=\"author\">{1}</p>",
                     book.Title,
@@ -299,7 +326,6 @@ namespace TinyOPDS.Server
                         bookInfo, errorMessage, book.FilePath)
                 );
 
-                // Set error title with book title
                 errorHtml = errorHtml.Replace("Reader", string.Format("Reader - {0}", book.Title));
 
                 processor.WriteSuccess("text/html; charset=utf-8");
@@ -341,10 +367,8 @@ namespace TinyOPDS.Server
                     }
                 }
 
-                // Create a copy of the reader HTML
                 string html = readerHtml;
 
-                // Prepare localization strings as JSON
                 var locStrings = new StringBuilder();
                 locStrings.Append("{");
                 locStrings.AppendFormat("'tableOfContents':'{0}',", EscapeJsString(Localizer.Text("Table of Contents")));
@@ -365,7 +389,6 @@ namespace TinyOPDS.Server
                 locStrings.AppendFormat("'noChapters':'{0}'", EscapeJsString(Localizer.Text("No chapters available")));
                 locStrings.Append("}");
 
-                // Inject book data and localization into the HTML
                 string scriptInjection = string.Format(@"
 <script>
 // Injected book data
@@ -382,17 +405,14 @@ localStorage.setItem('tinyopds-localization', JSON.stringify({5}));
 // Auto-load the book after page loads
 document.addEventListener('DOMContentLoaded', function() {{
     setTimeout(function() {{
-        // Create a blob from the data URL
         var dataUrl = window.tinyOPDSBook.data;
         fetch(dataUrl)
             .then(res => res.blob())
             .then(blob => {{
-                // Create a File object
                 var file = new File([blob], window.tinyOPDSBook.fileName, {{
                     type: blob.type
                 }});
                 
-                // Find the reader instance and load the file
                 if (window.universalReader) {{
                     window.universalReader.handleFileSelect(file);
                 }}
@@ -409,10 +429,8 @@ document.addEventListener('DOMContentLoaded', function() {{
                     locStrings.ToString()
                 );
 
-                // Replace </head> with our script injection
                 html = html.Replace("</head>", scriptInjection);
 
-                // Modify the reader initialization to expose the instance globally
                 html = html.Replace(
                     "new UniversalReader();",
                     "window.universalReader = new UniversalReader();"

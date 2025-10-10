@@ -122,10 +122,15 @@ namespace TinyOPDS.Server
                 lastClearTime = DateTime.Now;
             }
 
+            lock (BannedClients)
+            {
+                BannedClients.Clear();
+            }
+
             Properties.Settings.Default.AuthorizedClients = string.Empty;
             Properties.Settings.Default.Save();
 
-            Log.WriteLine(LogLevel.Info, "All authorized clients and sessions cleared");
+            Log.WriteLine(LogLevel.Info, "All authorized clients, sessions, and banned clients cleared");
         }
 
         public HttpProcessor(TcpClient socket, HttpServer server)
@@ -291,10 +296,25 @@ namespace TinyOPDS.Server
 
                     if (isImageRequest)
                     {
-                        authorized = true;
-                        Log.WriteLine(LogLevel.Info, "Bypassing auth for image request from {0}: {1}", remoteIP, HttpUrl);
+                        // Allow images only for previously authorized clients (OPDS compatibility)
+                        bool isPreviouslyAuthorized = false;
+                        lock (clientsLock)
+                        {
+                            isPreviouslyAuthorized = AuthorizedClients.Contains(ClientHash);
+                        }
+
+                        if (isPreviouslyAuthorized)
+                        {
+                            authorized = true;
+                            Log.WriteLine(LogLevel.Info, "Image access granted for authorized client {0}: {1}", remoteIP, HttpUrl);
+                        }
+                        else
+                        {
+                            authorized = false;
+                            Log.WriteLine(LogLevel.Info, "Image access denied for unauthorized client {0}: {1}", remoteIP, HttpUrl);
+                        }
                     }
-                    else
+                    else if (!authorized)
                     {
                         authorized = false;
 

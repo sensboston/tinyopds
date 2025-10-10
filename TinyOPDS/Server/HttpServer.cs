@@ -274,7 +274,7 @@ namespace TinyOPDS.Server
                 bool authorized = true;
                 bool checkLogin = true;
 
-                string remoteIP = (Socket.Client.RemoteEndPoint as IPEndPoint).Address.ToString();
+                string remoteIP = GetRealClientIP();
 
                 this.ClientHash = Utils.CreateGuid(Utils.IsoOidNamespace, remoteIP).ToString();
 
@@ -542,6 +542,48 @@ namespace TinyOPDS.Server
 
                 return credentialCache.ContainsKey(user) && credentialCache[user].Equals(password);
             }
+        }
+
+        private string GetRealClientIP()
+        {
+            string directIP = (Socket.Client.RemoteEndPoint as IPEndPoint).Address.ToString();
+
+            // Trust X-Forwarded-For/X-Real-IP only from local/trusted proxies to prevent IP spoofing
+            if (IsLocalOrTrustedProxy(directIP))
+            {
+                if (HttpHeaders.ContainsKey("X-Forwarded-For"))
+                {
+                    string forwardedFor = HttpHeaders["X-Forwarded-For"];
+                    if (!string.IsNullOrEmpty(forwardedFor))
+                    {
+                        var ips = forwardedFor.Split(',');
+                        return ips[0].Trim();
+                    }
+                }
+
+                if (HttpHeaders.ContainsKey("X-Real-IP"))
+                {
+                    string realIP = HttpHeaders["X-Real-IP"];
+                    if (!string.IsNullOrEmpty(realIP))
+                    {
+                        return realIP.Trim();
+                    }
+                }
+            }
+
+            return directIP;
+        }
+
+        private bool IsLocalOrTrustedProxy(string ip)
+        {
+            if (ip == "127.0.0.1" || ip == "::1" || ip == "localhost")
+                return true;
+
+            // Private network ranges
+            if (ip.StartsWith("192.168.") || ip.StartsWith("10.") || ip.StartsWith("172."))
+                return true;
+
+            return false;
         }
 
         public bool ParseRequest()

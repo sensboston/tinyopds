@@ -8,6 +8,7 @@
  * This module handles OPDS catalog request routing and
  * generation based on configurable structure
  * ENHANCED: Added download statistics catalog routing (/downstat)
+ * ENHANCED: Auto-redirect to single active subroute when only one option remains
  * 
  */
 
@@ -114,7 +115,7 @@ namespace TinyOPDS.Server
             {
                 return new NewBooksCatalog().GetCatalog(request.Substring(9), false, acceptFB2, threshold).ToStringWithDeclaration();
             }
-            else if (request.StartsWith("/downstat") && IsRouteEnabled("downloads"))  // Note: config key stays as "downloads" for compatibility
+            else if (request.StartsWith("/downstat") && IsRouteEnabled("downloads"))
             {
                 return HandleDownloadStatisticsRequest(request, acceptFB2, threshold);
             }
@@ -123,7 +124,6 @@ namespace TinyOPDS.Server
                 int numChars = request.StartsWith("/authorsindex/") ? 14 : 13;
                 string searchPattern = request.Substring(numChars);
 
-                // Important: Pass the URL-encoded pattern to catalog - let it handle decoding
                 Log.WriteLine(LogLevel.Info, "AuthorsIndex search pattern (raw): '{0}'", searchPattern);
 
                 return new AuthorsCatalog().GetCatalog(searchPattern, false, threshold).ToStringWithDeclaration();
@@ -133,7 +133,7 @@ namespace TinyOPDS.Server
                 string authorParam = request.Substring(16);
                 Log.WriteLine(LogLevel.Info, "Author details parameter (raw): '{0}'", authorParam);
 
-                return new AuthorDetailsCatalogWithStructure(opdsStructure).GetCatalog(authorParam).ToStringWithDeclaration();
+                return HandleAuthorDetailsRequest(authorParam, acceptFB2, threshold);
             }
             else if (request.StartsWith("/author-series/") && IsRouteEnabled("author-series"))
             {
@@ -170,7 +170,7 @@ namespace TinyOPDS.Server
 
                 if (IsRouteEnabled("author-details"))
                 {
-                    return new AuthorDetailsCatalogWithStructure(opdsStructure).GetCatalog(authorParam).ToStringWithDeclaration();
+                    return HandleAuthorDetailsRequest(authorParam, acceptFB2, threshold);
                 }
                 else
                 {
@@ -179,8 +179,7 @@ namespace TinyOPDS.Server
             }
             else if (request.StartsWith("/author-sequence/"))
             {
-                // Handle author-filtered sequence view: /author-sequence/author/sequence
-                string parameters = request.Substring(17); // Skip "/author-sequence/"
+                string parameters = request.Substring(17);
                 int slashIndex = parameters.IndexOf('/');
 
                 if (slashIndex > 0)
@@ -191,13 +190,11 @@ namespace TinyOPDS.Server
                     Log.WriteLine(LogLevel.Info, "Author-sequence route: author='{0}', sequence='{1}'",
                         authorParam, sequenceParam);
 
-                    // Use the new method that filters by both author and sequence
                     return new BooksCatalog().GetCatalogByAuthorAndSequence(
                         authorParam, sequenceParam, acceptFB2, threshold).ToStringWithDeclaration();
                 }
                 else
                 {
-                    // Invalid URL format, fallback to regular sequence view
                     Log.WriteLine(LogLevel.Warning, "Invalid author-sequence URL format: {0}", request);
                     return new BooksCatalog().GetCatalogBySequence(parameters, acceptFB2, threshold).ToStringWithDeclaration();
                 }
@@ -242,7 +239,37 @@ namespace TinyOPDS.Server
         }
 
         /// <summary>
-        /// Handles download statistics catalog requests (/downstat path)
+        /// Handles author details requests with auto-redirect to single active subroute
+        /// </summary>
+        private string HandleAuthorDetailsRequest(string authorParam, bool acceptFB2, int threshold)
+        {
+            var activeSubroutes = GetActiveAuthorDetailsSubroutes();
+
+            if (activeSubroutes.Count == 1)
+            {
+                // Only one subroute active - redirect directly to it
+                string singleRoute = activeSubroutes[0];
+                Log.WriteLine(LogLevel.Info, "Auto-redirecting to single active author subroute: {0}", singleRoute);
+
+                switch (singleRoute)
+                {
+                    case "author-series":
+                        return new AuthorBooksCatalog().GetSeriesCatalog(authorParam, acceptFB2, threshold).ToStringWithDeclaration();
+                    case "author-no-series":
+                        return new AuthorBooksCatalog().GetBooksCatalog(authorParam, AuthorBooksCatalog.ViewType.NoSeries, acceptFB2, threshold).ToStringWithDeclaration();
+                    case "author-alphabetic":
+                        return new AuthorBooksCatalog().GetBooksCatalog(authorParam, AuthorBooksCatalog.ViewType.Alphabetic, acceptFB2, threshold).ToStringWithDeclaration();
+                    case "author-by-date":
+                        return new AuthorBooksCatalog().GetBooksCatalog(authorParam, AuthorBooksCatalog.ViewType.ByDate, acceptFB2, threshold).ToStringWithDeclaration();
+                }
+            }
+
+            // Multiple or no subroutes - show intermediate catalog
+            return new AuthorDetailsCatalogWithStructure(opdsStructure).GetCatalog(authorParam).ToStringWithDeclaration();
+        }
+
+        /// <summary>
+        /// Handles download statistics catalog requests with auto-redirect to single active subroute
         /// </summary>
         private string HandleDownloadStatisticsRequest(string request, bool acceptFB2, int threshold)
         {
@@ -253,28 +280,76 @@ namespace TinyOPDS.Server
                 int idx = request.IndexOf("?pageNumber=");
                 string pageStr = request.Substring(idx + 12);
                 int.TryParse(pageStr, out pageNumber);
-                request = request.Substring(0, idx); // Remove query string for route matching
+                request = request.Substring(0, idx);
             }
 
             Log.WriteLine(LogLevel.Info, "Download statistics request: '{0}', page: {1}", request, pageNumber);
 
             if (request.Equals("/downstat"))
             {
-                // Root download statistics catalog
-                return new DownloadCatalog().GetRootCatalog().ToStringWithDeclaration();
+                var activeSubroutes = GetActiveDownloadsSubroutes();
+
+                if (activeSubroutes.Count == 1)
+                {
+                    // Only one subroute active - redirect directly to it
+                    string singleRoute = activeSubroutes[0];
+                    Log.WriteLine(LogLevel.Info, "Auto-redirecting to single active downloads subroute: {0}", singleRoute);
+
+                    bool sortByDate = singleRoute == "downloads-by-date";
+                    return new DownloadCatalog().GetCatalog(sortByDate, pageNumber, threshold, acceptFB2).ToStringWithDeclaration();
+                }
+
+                // Multiple or no subroutes - show intermediate catalog
+                return new DownloadCatalogWithStructure(opdsStructure).GetRootCatalog().ToStringWithDeclaration();
             }
-            else if (request.Equals("/downstat/date"))
+            else if (request.Equals("/downstat/date") && IsRouteEnabled("downloads-by-date"))
             {
-                // Downloads sorted by date
                 return new DownloadCatalog().GetCatalog(true, pageNumber, threshold, acceptFB2).ToStringWithDeclaration();
             }
-            else if (request.Equals("/downstat/alpha"))
+            else if (request.Equals("/downstat/alpha") && IsRouteEnabled("downloads-alphabetic"))
             {
-                // Downloads sorted alphabetically
                 return new DownloadCatalog().GetCatalog(false, pageNumber, threshold, acceptFB2).ToStringWithDeclaration();
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Gets list of active download subroutes
+        /// </summary>
+        private List<string> GetActiveDownloadsSubroutes()
+        {
+            var activeRoutes = new List<string>();
+
+            if (IsRouteEnabled("downloads-by-date"))
+                activeRoutes.Add("downloads-by-date");
+
+            if (IsRouteEnabled("downloads-alphabetic"))
+                activeRoutes.Add("downloads-alphabetic");
+
+            return activeRoutes;
+        }
+
+        /// <summary>
+        /// Gets list of active author details subroutes
+        /// </summary>
+        private List<string> GetActiveAuthorDetailsSubroutes()
+        {
+            var activeRoutes = new List<string>();
+
+            if (IsRouteEnabled("author-series"))
+                activeRoutes.Add("author-series");
+
+            if (IsRouteEnabled("author-no-series"))
+                activeRoutes.Add("author-no-series");
+
+            if (IsRouteEnabled("author-alphabetic"))
+                activeRoutes.Add("author-alphabetic");
+
+            if (IsRouteEnabled("author-by-date"))
+                activeRoutes.Add("author-by-date");
+
+            return activeRoutes;
         }
 
         /// <summary>
@@ -351,7 +426,9 @@ namespace TinyOPDS.Server
                 {"author-by-date", true},
                 {"sequencesindex", true},
                 {"genres", true},
-                {"downloads", true}  // Keep as "downloads" for settings compatibility
+                {"downloads", true},
+                {"downloads-by-date", true},
+                {"downloads-alphabetic", true}
             };
         }
 
@@ -413,7 +490,7 @@ namespace TinyOPDS.Server
                         else if (href.Contains("/authorsindex") && !IsEnabled("authorsindex")) shouldRemove = true;
                         else if (href.Contains("/sequencesindex") && !IsEnabled("sequencesindex")) shouldRemove = true;
                         else if (href.Contains("/genres") && !IsEnabled("genres")) shouldRemove = true;
-                        else if (href.Contains("/downstat") && !IsEnabled("downloads")) shouldRemove = true;  // Check /downstat path but use "downloads" key
+                        else if (href.Contains("/downstat") && !IsEnabled("downloads")) shouldRemove = true;
 
                         if (shouldRemove)
                         {
@@ -471,6 +548,51 @@ namespace TinyOPDS.Server
             }
 
             return authorDetails;
+        }
+
+        private bool IsEnabled(string route)
+        {
+            return _opdsStructure.ContainsKey(route) && _opdsStructure[route];
+        }
+    }
+
+    internal class DownloadCatalogWithStructure
+    {
+        private readonly Dictionary<string, bool> _opdsStructure;
+
+        public DownloadCatalogWithStructure(Dictionary<string, bool> opdsStructure)
+        {
+            _opdsStructure = opdsStructure;
+        }
+
+        public XDocument GetRootCatalog()
+        {
+            var downloadCatalog = new DownloadCatalog().GetRootCatalog();
+
+            // Remove disabled entries
+            var entries = downloadCatalog.Root.Elements("entry").ToList();
+            foreach (var entry in entries)
+            {
+                var link = entry.Element("link");
+                if (link != null)
+                {
+                    string href = link.Attribute("href")?.Value;
+                    if (!string.IsNullOrEmpty(href))
+                    {
+                        bool shouldRemove = false;
+
+                        if (href.Contains("/downstat/date") && !IsEnabled("downloads-by-date")) shouldRemove = true;
+                        else if (href.Contains("/downstat/alpha") && !IsEnabled("downloads-alphabetic")) shouldRemove = true;
+
+                        if (shouldRemove)
+                        {
+                            entry.Remove();
+                        }
+                    }
+                }
+            }
+
+            return downloadCatalog;
         }
 
         private bool IsEnabled(string route)

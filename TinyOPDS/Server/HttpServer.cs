@@ -19,6 +19,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.ComponentModel;
+using System.Security.Cryptography;
 
 namespace TinyOPDS.Server
 {
@@ -42,15 +43,41 @@ namespace TinyOPDS.Server
         public DateTime Created { get; set; }
         public DateTime LastAccess { get; set; }
         public string Username { get; set; }
+        public string UserAgent { get; set; }
+
+        private const int SessionTimeoutDays = 7;
 
         public bool IsValid()
         {
-            return (DateTime.Now - LastAccess).TotalDays < 30;
+            return (DateTime.UtcNow - LastAccess).TotalDays < SessionTimeoutDays;
         }
 
         public void UpdateLastAccess()
         {
-            LastAccess = DateTime.Now;
+            LastAccess = DateTime.UtcNow;
+        }
+    }
+
+    /// <summary>
+    /// Temporary authorization cache entry
+    /// </summary>
+    public class AuthCacheEntry
+    {
+        public string ClientFingerprint { get; set; }
+        public DateTime AuthorizedAt { get; set; }
+        public DateTime LastAccess { get; set; }
+        public string Username { get; set; }
+
+        private const int CacheTimeoutMinutes = 10;
+
+        public bool IsValid()
+        {
+            return (DateTime.UtcNow - LastAccess).TotalMinutes < CacheTimeoutMinutes;
+        }
+
+        public void UpdateLastAccess()
+        {
+            LastAccess = DateTime.UtcNow;
         }
     }
 
@@ -71,19 +98,21 @@ namespace TinyOPDS.Server
         public Dictionary<string, string> HttpHeaders = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         public string ClientHash { get; private set; }
+        public string ClientFingerprint { get; private set; }
+        public string RealClientIP { get; private set; }
+        public string Username { get; private set; }
 
         public static BindingList<Credential> Credentials = new BindingList<Credential>();
 
         public static Dictionary<string, SessionInfo> AuthorizedSessions = new Dictionary<string, SessionInfo>();
         private static readonly object sessionLock = new object();
 
-        public static List<string> AuthorizedClients = new List<string>();
-        private static readonly object clientsLock = new object();
-
-        private static DateTime lastClearTime = DateTime.MinValue;
-        private static readonly object clearTimeLock = new object();
+        private static Dictionary<string, AuthCacheEntry> AuthorizationCache = new Dictionary<string, AuthCacheEntry>();
+        private static readonly object authCacheLock = new object();
+        private static DateTime lastCacheCleanup = DateTime.UtcNow;
 
         public static Dictionary<string, int> BannedClients = new Dictionary<string, int>();
+        internal static readonly object bannedLock = new object();
 
         private static readonly Dictionary<string, string> credentialCache = new Dictionary<string, string>();
         private static readonly object credentialCacheLock = new object();
@@ -93,23 +122,11 @@ namespace TinyOPDS.Server
 
         private bool disposed = false;
 
-        static HttpProcessor()
-        {
-            if (!string.IsNullOrEmpty(Properties.Settings.Default.AuthorizedClients))
-            {
-                var clients = Properties.Settings.Default.AuthorizedClients.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
-                lock (clientsLock)
-                {
-                    AuthorizedClients.AddRange(clients);
-                }
-            }
-        }
-
         public static void ClearAllAuthorizedClients()
         {
-            lock (clientsLock)
+            lock (authCacheLock)
             {
-                AuthorizedClients.Clear();
+                AuthorizationCache.Clear();
             }
 
             lock (sessionLock)
@@ -117,12 +134,7 @@ namespace TinyOPDS.Server
                 AuthorizedSessions.Clear();
             }
 
-            lock (clearTimeLock)
-            {
-                lastClearTime = DateTime.Now;
-            }
-
-            lock (BannedClients)
+            lock (bannedLock)
             {
                 BannedClients.Clear();
             }
@@ -200,10 +212,12 @@ namespace TinyOPDS.Server
 
         private static string GenerateSessionToken()
         {
-            var random = new Random();
-            var bytes = new byte[32];
-            random.NextBytes(bytes);
-            return Convert.ToBase64String(bytes).Replace("+", "-").Replace("/", "_").TrimEnd('=');
+            using (var rng = new RNGCryptoServiceProvider())
+            {
+                var bytes = new byte[32];
+                rng.GetBytes(bytes);
+                return Convert.ToBase64String(bytes).Replace("+", "-").Replace("/", "_").TrimEnd('=');
+            }
         }
 
         private string GetSessionTokenFromCookie()
@@ -236,6 +250,35 @@ namespace TinyOPDS.Server
                 {
                     AuthorizedSessions.Remove(token);
                 }
+            }
+        }
+
+        private static void CleanupAuthorizationCache()
+        {
+            lock (authCacheLock)
+            {
+                var expiredEntries = AuthorizationCache
+                    .Where(kvp => !kvp.Value.IsValid())
+                    .Select(kvp => kvp.Key)
+                    .ToList();
+
+                foreach (var key in expiredEntries)
+                {
+                    AuthorizationCache.Remove(key);
+                }
+
+                lastCacheCleanup = DateTime.UtcNow;
+            }
+        }
+
+        private string GenerateClientFingerprint(string realIP, string userAgent)
+        {
+            string fingerprint = realIP + "|" + (userAgent ?? "unknown");
+            using (var sha256 = SHA256.Create())
+            {
+                byte[] bytes = System.Text.Encoding.UTF8.GetBytes(fingerprint);
+                byte[] hash = sha256.ComputeHash(bytes);
+                return Convert.ToBase64String(hash);
             }
         }
 
@@ -279,195 +322,179 @@ namespace TinyOPDS.Server
                 bool authorized = true;
                 bool checkLogin = true;
 
-                string remoteIP = GetRealClientIP();
+                string directIP = (Socket.Client.RemoteEndPoint as IPEndPoint).Address.ToString();
+                this.RealClientIP = CalculateRealClientIP(directIP);
+                string userAgent = HttpHeaders.ContainsKey("User-Agent") ? HttpHeaders["User-Agent"] : "";
 
-                this.ClientHash = Utils.CreateGuid(Utils.IsoOidNamespace, remoteIP).ToString();
+                Log.WriteLine(LogLevel.Info, "Request from {0} (direct: {1}): {2}",
+                    RealClientIP, directIP, HttpUrl);
+
+                this.ClientHash = Utils.CreateGuid(Utils.IsoOidNamespace, RealClientIP).ToString();
+                this.ClientFingerprint = GenerateClientFingerprint(RealClientIP, userAgent);
 
                 string sessionToken = null;
                 bool sendSessionCookie = false;
 
+                if ((DateTime.UtcNow - lastCacheCleanup).TotalMinutes > 5)
+                {
+                    CleanupAuthorizationCache();
+                    if (AuthorizedSessions.Count > 0 && AuthorizedSessions.Count % 100 == 0)
+                    {
+                        CleanupExpiredSessions();
+                    }
+                }
+
                 if (Properties.Settings.Default.UseHTTPAuth)
                 {
+                    authorized = false;
+
                     bool isImageRequest = HttpUrl.Contains("/cover/") ||
                                         HttpUrl.Contains("/thumbnail/") ||
                                         HttpUrl.EndsWith(".jpeg") ||
                                         HttpUrl.EndsWith(".jpg") ||
                                         HttpUrl.EndsWith(".png");
 
-                    if (isImageRequest)
+                    if (Properties.Settings.Default.BanClients)
                     {
-                        // Allow images only for previously authorized clients (OPDS compatibility)
-                        bool isPreviouslyAuthorized = false;
-                        lock (clientsLock)
+                        lock (bannedLock)
                         {
-                            isPreviouslyAuthorized = AuthorizedClients.Contains(ClientHash);
-                        }
-
-                        if (isPreviouslyAuthorized)
-                        {
-                            authorized = true;
-                            Log.WriteLine(LogLevel.Info, "Image access granted for authorized client {0}: {1}", remoteIP, HttpUrl);
-                        }
-                        else
-                        {
-                            authorized = false;
-                            Log.WriteLine(LogLevel.Info, "Image access denied for unauthorized client {0}: {1}", remoteIP, HttpUrl);
+                            if (BannedClients.ContainsKey(RealClientIP) &&
+                                BannedClients[RealClientIP] >= Properties.Settings.Default.WrongAttemptsCount)
+                            {
+                                checkLogin = false;
+                                Log.WriteLine(LogLevel.Authentication, "IP address {0} is banned!", RealClientIP);
+                                WriteForbidden();
+                                return;
+                            }
                         }
                     }
-                    else if (!authorized)
-                    {
-                        authorized = false;
 
-                        if (Properties.Settings.Default.BanClients)
+                    if (checkLogin)
+                    {
+                        if (Properties.Settings.Default.RememberClients)
                         {
-                            lock (BannedClients)
+                            sessionToken = GetSessionTokenFromCookie();
+
+                            if (!string.IsNullOrEmpty(sessionToken))
                             {
-                                if (BannedClients.Count > 0 && BannedClients.ContainsKey(remoteIP) &&
-                                    BannedClients[remoteIP] >= TinyOPDS.Properties.Settings.Default.WrongAttemptsCount)
+                                lock (sessionLock)
                                 {
-                                    checkLogin = false;
+                                    if (AuthorizedSessions.ContainsKey(sessionToken))
+                                    {
+                                        var session = AuthorizedSessions[sessionToken];
+
+                                        if (session.IsValid() &&
+                                            session.IpAddress == RealClientIP &&
+                                            (string.IsNullOrEmpty(session.UserAgent) || session.UserAgent == userAgent))
+                                        {
+                                            session.UpdateLastAccess();
+                                            authorized = true;
+                                            this.Username = session.Username;
+                                            Log.WriteLine(LogLevel.Authentication,
+                                                "Session authenticated for user {0} from {1}",
+                                                session.Username, RealClientIP);
+                                        }
+                                        else if (!session.IsValid())
+                                        {
+                                            AuthorizedSessions.Remove(sessionToken);
+                                            Log.WriteLine(LogLevel.Authentication,
+                                                "Expired session removed for user {0}", session.Username);
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (!authorized && isImageRequest)
+                            {
+                                lock (authCacheLock)
+                                {
+                                    if (AuthorizationCache.ContainsKey(ClientFingerprint))
+                                    {
+                                        var entry = AuthorizationCache[ClientFingerprint];
+                                        if (entry.IsValid())
+                                        {
+                                            entry.UpdateLastAccess();
+                                            authorized = true;
+                                            this.Username = entry.Username;
+                                            Log.WriteLine(LogLevel.Authentication,
+                                                "Cached authorization for {0} from {1}", entry.Username, RealClientIP);
+                                        }
+                                        else
+                                        {
+                                            AuthorizationCache.Remove(ClientFingerprint);
+                                        }
+                                    }
                                 }
                             }
                         }
 
-                        if (checkLogin)
+                        if (!authorized && HttpHeaders.ContainsKey("Authorization"))
                         {
-                            if (Properties.Settings.Default.RememberClients)
+                            string hash = HttpHeaders["Authorization"];
+
+                            if (hash.StartsWith("Basic "))
                             {
-                                sessionToken = GetSessionTokenFromCookie();
-
-                                if (!string.IsNullOrEmpty(sessionToken))
+                                try
                                 {
-                                    lock (sessionLock)
+                                    string[] credential = hash.Substring(6).DecodeFromBase64().Split(':');
+
+                                    if (credential.Length == 2)
                                     {
-                                        if (AuthorizedSessions.ContainsKey(sessionToken))
+                                        string user = credential[0];
+                                        string password = credential[1];
+
+                                        authorized = ValidateCredentials(user, password);
+                                        if (authorized)
                                         {
-                                            var session = AuthorizedSessions[sessionToken];
+                                            this.Username = user;
 
-                                            bool ipCheck = true;
+                                            if (Properties.Settings.Default.RememberClients)
+                                            {
+                                                sessionToken = GenerateSessionToken();
+                                                var sessionInfo = new SessionInfo
+                                                {
+                                                    Token = sessionToken,
+                                                    IpAddress = RealClientIP,
+                                                    Created = DateTime.UtcNow,
+                                                    LastAccess = DateTime.UtcNow,
+                                                    Username = user,
+                                                    UserAgent = userAgent
+                                                };
 
-                                            if (session.IsValid() && (!ipCheck || session.IpAddress == remoteIP))
-                                            {
-                                                session.UpdateLastAccess();
-                                                authorized = true;
-                                                Log.WriteLine(LogLevel.Authentication,
-                                                    "Session authenticated for user {0} from {1}",
-                                                    session.Username, remoteIP);
-                                            }
-                                            else if (!session.IsValid())
-                                            {
-                                                AuthorizedSessions.Remove(sessionToken);
-                                                Log.WriteLine(LogLevel.Authentication,
-                                                    "Expired session removed for user {0}", session.Username);
-                                            }
-                                            else
-                                            {
-                                                Log.WriteLine(LogLevel.Authentication,
-                                                    "IP mismatch for session. Expected: {0}, Got: {1}",
-                                                    session.IpAddress, remoteIP);
-                                            }
-                                        }
-                                    }
-                                }
+                                                lock (sessionLock)
+                                                {
+                                                    AuthorizedSessions[sessionToken] = sessionInfo;
+                                                }
 
-                                if (!authorized)
-                                {
-                                    lock (clientsLock)
-                                    {
-                                        if (AuthorizedClients.Contains(ClientHash))
-                                        {
-                                            authorized = true;
-                                            sendSessionCookie = true;
+                                                sendSessionCookie = true;
+
+                                                lock (authCacheLock)
+                                                {
+                                                    AuthorizationCache[ClientFingerprint] = new AuthCacheEntry
+                                                    {
+                                                        ClientFingerprint = ClientFingerprint,
+                                                        AuthorizedAt = DateTime.UtcNow,
+                                                        LastAccess = DateTime.UtcNow,
+                                                        Username = user
+                                                    };
+                                                }
+                                            }
+
+                                            HttpServer.ServerStatistics.IncrementSuccessfulLoginAttempts();
                                             Log.WriteLine(LogLevel.Authentication,
-                                                "Client {0} authorized from persistent storage", remoteIP);
+                                                "User {0} from {1} successfully logged in", user, RealClientIP);
+                                        }
+                                        else
+                                        {
+                                            Log.WriteLine(LogLevel.Authentication,
+                                                "Authentication failed! IP: {0} user: {1}", RealClientIP, user);
                                         }
                                     }
                                 }
-                            }
-
-                            if (!authorized && HttpHeaders.ContainsKey("Authorization"))
-                            {
-                                bool recentlyClearedCheck = false;
-                                lock (clearTimeLock)
-                                {
-                                    recentlyClearedCheck = (DateTime.Now - lastClearTime).TotalSeconds < 10;
-                                }
-
-                                if (recentlyClearedCheck)
+                                catch (Exception e)
                                 {
                                     Log.WriteLine(LogLevel.Authentication,
-                                        "Authorization ignored for {0} - recent clear operation", remoteIP);
-                                }
-                                else
-                                {
-                                    string hash = HttpHeaders["Authorization"];
-
-                                    if (hash.StartsWith("Basic "))
-                                    {
-                                        try
-                                        {
-                                            string[] credential = hash.Substring(6).DecodeFromBase64().Split(':');
-
-                                            if (credential.Length == 2)
-                                            {
-                                                string user = credential[0];
-                                                string password = credential[1];
-
-                                                authorized = ValidateCredentials(user, password);
-                                                if (authorized)
-                                                {
-                                                    if (Properties.Settings.Default.RememberClients)
-                                                    {
-                                                        sessionToken = GenerateSessionToken();
-                                                        var sessionInfo = new SessionInfo
-                                                        {
-                                                            Token = sessionToken,
-                                                            IpAddress = remoteIP,
-                                                            Created = DateTime.Now,
-                                                            LastAccess = DateTime.Now,
-                                                            Username = user
-                                                        };
-
-                                                        lock (sessionLock)
-                                                        {
-                                                            AuthorizedSessions[sessionToken] = sessionInfo;
-
-                                                            if (AuthorizedSessions.Count % 100 == 0)
-                                                            {
-                                                                CleanupExpiredSessions();
-                                                            }
-                                                        }
-
-                                                        sendSessionCookie = true;
-                                                    }
-
-                                                    lock (clientsLock)
-                                                    {
-                                                        if (!AuthorizedClients.Contains(ClientHash))
-                                                        {
-                                                            AuthorizedClients.Add(ClientHash);
-                                                            Properties.Settings.Default.AuthorizedClients = string.Join(",", AuthorizedClients);
-                                                            Properties.Settings.Default.Save();
-                                                        }
-                                                    }
-
-                                                    HttpServer.ServerStatistics.IncrementSuccessfulLoginAttempts();
-                                                    Log.WriteLine(LogLevel.Authentication,
-                                                        "User {0} from {1} successfully logged in", user, remoteIP);
-                                                }
-                                                else
-                                                {
-                                                    Log.WriteLine(LogLevel.Authentication,
-                                                        "Authentication failed! IP: {0} user: {1}", remoteIP, user);
-                                                }
-                                            }
-                                        }
-                                        catch (Exception e)
-                                        {
-                                            Log.WriteLine(LogLevel.Authentication,
-                                                "Authentication exception: IP: {0}, {1}", remoteIP, e.Message);
-                                        }
-                                    }
+                                        "Authentication exception: IP: {0}, {1}", RealClientIP, e.Message);
                                 }
                             }
                         }
@@ -476,7 +503,7 @@ namespace TinyOPDS.Server
 
                 if (authorized)
                 {
-                    HttpServer.ServerStatistics.AddClient(ClientHash);
+                    HttpServer.ServerStatistics.AddClient(ClientHash, Username);
 
                     if (HttpMethod.Equals("GET"))
                     {
@@ -499,25 +526,21 @@ namespace TinyOPDS.Server
                 }
                 else
                 {
+                    Log.WriteLine(LogLevel.Authentication, "Unauthorized: IP={0}, URL={1}, UserAgent={2}, HasAuth={3}",
+                        RealClientIP, HttpUrl, userAgent, HttpHeaders.ContainsKey("Authorization"));
+
                     if (Properties.Settings.Default.BanClients)
                     {
-                        lock (BannedClients)
+                        lock (bannedLock)
                         {
-                            if (!BannedClients.ContainsKey(remoteIP)) BannedClients[remoteIP] = 0;
-                            BannedClients[remoteIP]++;
-                        }
-                        if (!checkLogin)
-                        {
-                            Log.WriteLine(LogLevel.Authentication, "IP address {0} is banned!", remoteIP);
-                            WriteForbidden();
-                            return;
+                            if (!BannedClients.ContainsKey(RealClientIP))
+                                BannedClients[RealClientIP] = 0;
+                            BannedClients[RealClientIP]++;
                         }
                     }
-                    if (checkLogin)
-                    {
-                        HttpServer.ServerStatistics.IncrementWrongLoginAttempts();
-                        WriteNotAuthorized();
-                    }
+
+                    HttpServer.ServerStatistics.IncrementWrongLoginAttempts();
+                    WriteNotAuthorized();
                 }
             }
 
@@ -564,22 +587,13 @@ namespace TinyOPDS.Server
             }
         }
 
-        private string GetRealClientIP()
+        private string CalculateRealClientIP(string directIP)
         {
-            string directIP = (Socket.Client.RemoteEndPoint as IPEndPoint).Address.ToString();
-
-            // Trust X-Forwarded-For/X-Real-IP only from local/trusted proxies to prevent IP spoofing
-            if (IsLocalOrTrustedProxy(directIP))
+            if (directIP == "127.0.0.1" || directIP == "::1")
             {
-                if (HttpHeaders.ContainsKey("X-Forwarded-For"))
-                {
-                    string forwardedFor = HttpHeaders["X-Forwarded-For"];
-                    if (!string.IsNullOrEmpty(forwardedFor))
-                    {
-                        var ips = forwardedFor.Split(',');
-                        return ips[0].Trim();
-                    }
-                }
+                Log.WriteLine(LogLevel.Info, "Tunnel request - X-Real-IP: {0}, X-Forwarded-For: {1}",
+                    HttpHeaders.ContainsKey("X-Real-IP") ? HttpHeaders["X-Real-IP"] : "none",
+                    HttpHeaders.ContainsKey("X-Forwarded-For") ? HttpHeaders["X-Forwarded-For"] : "none");
 
                 if (HttpHeaders.ContainsKey("X-Real-IP"))
                 {
@@ -589,21 +603,19 @@ namespace TinyOPDS.Server
                         return realIP.Trim();
                     }
                 }
+
+                if (HttpHeaders.ContainsKey("X-Forwarded-For"))
+                {
+                    string forwardedFor = HttpHeaders["X-Forwarded-For"];
+                    if (!string.IsNullOrEmpty(forwardedFor))
+                    {
+                        var ips = forwardedFor.Split(',');
+                        return ips[0].Trim();
+                    }
+                }
             }
 
             return directIP;
-        }
-
-        private bool IsLocalOrTrustedProxy(string ip)
-        {
-            if (ip == "127.0.0.1" || ip == "::1" || ip == "localhost")
-                return true;
-
-            // Private network ranges
-            if (ip.StartsWith("192.168.") || ip.StartsWith("10.") || ip.StartsWith("172."))
-                return true;
-
-            return false;
         }
 
         public bool ParseRequest()
@@ -701,8 +713,13 @@ namespace TinyOPDS.Server
 
                 if (!string.IsNullOrEmpty(pendingSessionToken))
                 {
+                    bool useHttps = HttpHeaders.ContainsKey("X-Forwarded-Proto") &&
+                                  HttpHeaders["X-Forwarded-Proto"].ToLower() == "https";
+
+                    string cookieFlags = useHttps ? "Secure; " : "";
+
                     OutputStream.Write($"Set-Cookie: TinyOPDS_Session={pendingSessionToken}; " +
-                                     $"HttpOnly; Path=/; Max-Age=2592000\n");
+                                     $"HttpOnly; {cookieFlags}SameSite=Lax; Path=/; Max-Age=604800\n");
                     pendingSessionToken = null;
                 }
 
@@ -784,13 +801,24 @@ namespace TinyOPDS.Server
         public int SuccessfulLoginAttempts { get { return successfulLoginAttempts; } set { successfulLoginAttempts = value; StatisticsUpdated?.Invoke(this, null); } }
         public int WrongLoginAttempts { get { return wrongLoginAttempts; } set { wrongLoginAttempts = value; StatisticsUpdated?.Invoke(this, null); } }
         public int UniqueClientsCount { get { return uniqueClients.Count; } }
-        public int BannedClientsCount { get { lock (HttpProcessor.BannedClients) { return HttpProcessor.BannedClients.Count(client => client.Value >= Properties.Settings.Default.WrongAttemptsCount); } } }
+        public int BannedClientsCount
+        {
+            get
+            {
+                lock (HttpProcessor.bannedLock)
+                {
+                    return HttpProcessor.BannedClients.Count(client => client.Value >= Properties.Settings.Default.WrongAttemptsCount);
+                }
+            }
+        }
 
-        public void AddClient(string newClient)
+        public void AddClient(string clientHash, string username = null)
         {
             lock (uniqueClients)
             {
-                uniqueClients[newClient] = true;
+                // Use username for authenticated users, IP-based hash for others
+                string key = !string.IsNullOrEmpty(username) ? "user:" + username : "ip:" + clientHash;
+                uniqueClients[key] = true;
             }
         }
 

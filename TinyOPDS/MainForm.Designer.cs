@@ -1045,7 +1045,7 @@
             this.treeViewOPDS.Location = new System.Drawing.Point(5, 5);
             this.treeViewOPDS.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.treeViewOPDS.Name = "treeViewOPDS";
-            this.treeViewOPDS.Size = new System.Drawing.Size(1351, 741);
+            this.treeViewOPDS.Size = new System.Drawing.Size(1351, 788);
             this.treeViewOPDS.TabIndex = 2;
             this.treeViewOPDS.AfterCheck += new System.Windows.Forms.TreeViewEventHandler(this.TreeViewOPDS_AfterCheck);
             // 

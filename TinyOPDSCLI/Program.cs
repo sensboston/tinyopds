@@ -881,8 +881,7 @@ namespace TinyOPDSCLI
             }
 
             // Create and start HTTP server
-            HttpProcessor.AuthorizedClients = new List<string>();
-            HttpProcessor.BannedClients.Clear();
+            HttpProcessor.ClearAllAuthorizedClients();
             server = new OPDSServer(IPAddress.Any, int.Parse(Settings.Default.ServerPort));
 
             serverThread = new Thread(new ThreadStart(server.Listen))

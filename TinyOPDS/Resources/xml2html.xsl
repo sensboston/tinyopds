@@ -273,7 +273,6 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					.cover {
 					width: 120px;
 					height: 190px;
-					max-width: 120px;
 					flex-shrink: 0;
 					margin-right: 0;
 					border-radius: 8px;

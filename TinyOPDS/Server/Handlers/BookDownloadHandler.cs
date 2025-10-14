@@ -83,7 +83,7 @@ namespace TinyOPDS.Server
                 {
                     string userAgent = processor.HttpHeaders.ContainsKey("User-Agent") ?
                         processor.HttpHeaders["User-Agent"] : null;
-                    string clientIp = GetRealClientIP(processor);
+                    string clientIp = processor.RealClientIP; // Use centralized property
 
                     if (!string.IsNullOrEmpty(userAgent) || !string.IsNullOrEmpty(clientIp))
                     {
@@ -108,56 +108,6 @@ namespace TinyOPDS.Server
                 Log.WriteLine(LogLevel.Warning, "Failed to record download for book {0}: {1}",
                     bookId, ex.Message);
             }
-        }
-
-        /// <summary>
-        /// Gets real client IP from processor
-        /// </summary>
-        private string GetRealClientIP(HttpProcessor processor)
-        {
-            try
-            {
-                string directIP = (processor.Socket.Client.RemoteEndPoint as System.Net.IPEndPoint).Address.ToString();
-
-                if (IsLocalOrTrustedProxy(directIP))
-                {
-                    if (processor.HttpHeaders.ContainsKey("X-Forwarded-For"))
-                    {
-                        string forwardedFor = processor.HttpHeaders["X-Forwarded-For"];
-                        if (!string.IsNullOrEmpty(forwardedFor))
-                        {
-                            var ips = forwardedFor.Split(',');
-                            return ips[0].Trim();
-                        }
-                    }
-
-                    if (processor.HttpHeaders.ContainsKey("X-Real-IP"))
-                    {
-                        string realIP = processor.HttpHeaders["X-Real-IP"];
-                        if (!string.IsNullOrEmpty(realIP))
-                        {
-                            return realIP.Trim();
-                        }
-                    }
-                }
-
-                return directIP;
-            }
-            catch
-            {
-                return "Unknown";
-            }
-        }
-
-        private bool IsLocalOrTrustedProxy(string ip)
-        {
-            if (ip == "127.0.0.1" || ip == "::1" || ip == "localhost")
-                return true;
-
-            if (ip.StartsWith("192.168.") || ip.StartsWith("10.") || ip.StartsWith("172."))
-                return true;
-
-            return false;
         }
 
         /// <summary>

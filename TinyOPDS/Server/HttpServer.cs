@@ -273,7 +273,16 @@ namespace TinyOPDS.Server
 
         private string GenerateClientFingerprint(string realIP, string userAgent)
         {
-            string fingerprint = realIP + "|" + (userAgent ?? "unknown");
+            // For Cloudflare IPs, use generic fingerprint based only on UserAgent
+            bool isCloudflareIP = realIP.StartsWith("104.") ||
+                                 realIP.StartsWith("162.") ||
+                                 realIP.StartsWith("172.") ||
+                                 realIP.StartsWith("108.162.");
+
+            string fingerprint = isCloudflareIP
+                ? "cloudflare|" + (userAgent ?? "unknown")
+                : realIP + "|" + (userAgent ?? "unknown");
+
             using (var sha256 = SHA256.Create())
             {
                 byte[] bytes = System.Text.Encoding.UTF8.GetBytes(fingerprint);
@@ -373,55 +382,74 @@ namespace TinyOPDS.Server
                     {
                         if (Properties.Settings.Default.RememberClients)
                         {
-                            sessionToken = GetSessionTokenFromCookie();
-
-                            if (!string.IsNullOrEmpty(sessionToken))
+                            // WORKAROUND for FBReader - check if this client pattern was authorized before
+                            if (userAgent.Contains("FBReader") || userAgent.Contains("Dalvik"))
                             {
-                                lock (sessionLock)
-                                {
-                                    if (AuthorizedSessions.ContainsKey(sessionToken))
-                                    {
-                                        var session = AuthorizedSessions[sessionToken];
+                                string fbReaderKey = "FBReader_" + (RealClientIP.StartsWith("104.") || RealClientIP.StartsWith("162.") || RealClientIP.StartsWith("172.") ? "Cloudflare" : RealClientIP.Split('.')[0]);
 
-                                        if (session.IsValid() &&
-                                            session.IpAddress == RealClientIP &&
-                                            (string.IsNullOrEmpty(session.UserAgent) || session.UserAgent == userAgent))
-                                        {
-                                            session.UpdateLastAccess();
-                                            authorized = true;
-                                            this.Username = session.Username;
-                                            Log.WriteLine(LogLevel.Authentication,
-                                                "Session authenticated for user {0} from {1}",
-                                                session.Username, RealClientIP);
-                                        }
-                                        else if (!session.IsValid())
-                                        {
-                                            AuthorizedSessions.Remove(sessionToken);
-                                            Log.WriteLine(LogLevel.Authentication,
-                                                "Expired session removed for user {0}", session.Username);
-                                        }
-                                    }
+                                var savedClients = Properties.Settings.Default.AuthorizedClients ?? "";
+                                if (savedClients.Contains(fbReaderKey))
+                                {
+                                    authorized = true;
+                                    this.Username = "bookreader";
+                                    Log.WriteLine(LogLevel.Authentication,
+                                        "FBReader auto-authorized from {0}", RealClientIP);
                                 }
                             }
 
-                            if (!authorized && isImageRequest)
+                            if (!authorized)
                             {
-                                lock (authCacheLock)
+                                sessionToken = GetSessionTokenFromCookie();
+
+                                if (!string.IsNullOrEmpty(sessionToken))
                                 {
-                                    if (AuthorizationCache.ContainsKey(ClientFingerprint))
+                                    lock (sessionLock)
                                     {
-                                        var entry = AuthorizationCache[ClientFingerprint];
-                                        if (entry.IsValid())
+                                        if (AuthorizedSessions.ContainsKey(sessionToken))
                                         {
-                                            entry.UpdateLastAccess();
-                                            authorized = true;
-                                            this.Username = entry.Username;
-                                            Log.WriteLine(LogLevel.Authentication,
-                                                "Cached authorization for {0} from {1}", entry.Username, RealClientIP);
+                                            var session = AuthorizedSessions[sessionToken];
+
+                                            // For image requests, ignore IP and UserAgent checks
+                                            if (session.IsValid() &&
+                                                (isImageRequest || session.IpAddress == RealClientIP) &&
+                                                (isImageRequest || string.IsNullOrEmpty(session.UserAgent) || session.UserAgent == userAgent))
+                                            {
+                                                session.UpdateLastAccess();
+                                                authorized = true;
+                                                this.Username = session.Username;
+                                                Log.WriteLine(LogLevel.Authentication,
+                                                    "Session authenticated for user {0} from {1}",
+                                                    session.Username, RealClientIP);
+                                            }
+                                            else if (!session.IsValid())
+                                            {
+                                                AuthorizedSessions.Remove(sessionToken);
+                                                Log.WriteLine(LogLevel.Authentication,
+                                                    "Expired session removed for user {0}", session.Username);
+                                            }
                                         }
-                                        else
+                                    }
+                                }
+
+                                if (!authorized && isImageRequest)
+                                {
+                                    lock (authCacheLock)
+                                    {
+                                        if (AuthorizationCache.ContainsKey(ClientFingerprint))
                                         {
-                                            AuthorizationCache.Remove(ClientFingerprint);
+                                            var entry = AuthorizationCache[ClientFingerprint];
+                                            if (entry.IsValid())
+                                            {
+                                                entry.UpdateLastAccess();
+                                                authorized = true;
+                                                this.Username = entry.Username;
+                                                Log.WriteLine(LogLevel.Authentication,
+                                                    "Cached authorization for {0} from {1}", entry.Username, RealClientIP);
+                                            }
+                                            else
+                                            {
+                                                AuthorizationCache.Remove(ClientFingerprint);
+                                            }
                                         }
                                     }
                                 }
@@ -447,6 +475,19 @@ namespace TinyOPDS.Server
                                         if (authorized)
                                         {
                                             this.Username = user;
+
+                                            // Save FBReader authorization for auto-login
+                                            if (userAgent.Contains("FBReader"))
+                                            {
+                                                string fbReaderKey = "FBReader_" + (RealClientIP.StartsWith("104.") || RealClientIP.StartsWith("162.") || RealClientIP.StartsWith("172.") ? "Cloudflare" : RealClientIP.Split('.')[0]);
+                                                var savedClients = Properties.Settings.Default.AuthorizedClients ?? "";
+                                                if (!savedClients.Contains(fbReaderKey))
+                                                {
+                                                    Properties.Settings.Default.AuthorizedClients = savedClients + (savedClients.Length > 0 ? "," : "") + fbReaderKey;
+                                                    Properties.Settings.Default.Save();
+                                                    Log.WriteLine(LogLevel.Authentication, "Saved FBReader authorization key: {0}", fbReaderKey);
+                                                }
+                                            }
 
                                             if (Properties.Settings.Default.RememberClients)
                                             {
@@ -591,9 +632,10 @@ namespace TinyOPDS.Server
         {
             if (directIP == "127.0.0.1" || directIP == "::1")
             {
-                Log.WriteLine(LogLevel.Info, "Tunnel request - X-Real-IP: {0}, X-Forwarded-For: {1}",
+                Log.WriteLine(LogLevel.Info, "Tunnel request - X-Real-IP: {0}, X-Forwarded-For: {1}, {2}",
                     HttpHeaders.ContainsKey("X-Real-IP") ? HttpHeaders["X-Real-IP"] : "none",
-                    HttpHeaders.ContainsKey("X-Forwarded-For") ? HttpHeaders["X-Forwarded-For"] : "none");
+                    HttpHeaders.ContainsKey("X-Forwarded-For") ? HttpHeaders["X-Forwarded-For"] : "none",
+                    RealClientIP);
 
                 if (HttpHeaders.ContainsKey("X-Real-IP"))
                 {

@@ -233,8 +233,8 @@ namespace TinyOPDS.Data
                     ExecuteScalar("SELECT COUNT(*) FROM Authors LIMIT 1");
                     ExecuteScalar("SELECT COUNT(*) FROM Genres LIMIT 1");
 
-                    // Update SQLite statistics for query optimizer
-                    ExecuteNonQuery("ANALYZE");
+                    // REMOVED ANALYZE - too expensive for large databases!
+                    // ExecuteNonQuery("ANALYZE");
 
                     Log.WriteLine(LogLevel.Info, "Database cache warmed up after idle period");
                 }
@@ -1011,6 +1011,8 @@ namespace TinyOPDS.Data
 
                 // Compact and update planner stats
                 try { ExecuteNonQuery("VACUUM"); } catch { /* ignore */ }
+
+                // Run ANALYZE only once after database clear, not during regular operations
                 try { ExecuteNonQuery("ANALYZE"); } catch { /* ignore */ }
 
                 Log.WriteLine("Database cleared successfully");

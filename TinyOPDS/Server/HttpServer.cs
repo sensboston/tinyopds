@@ -45,7 +45,8 @@ namespace TinyOPDS.Server
         public string Username { get; set; }
         public string UserAgent { get; set; }
 
-        private const int SessionTimeoutDays = 7;
+        // Permanent sessions - never expire
+        private const int SessionTimeoutDays = 365 * 10; // 10 years
 
         public bool IsValid()
         {
@@ -68,7 +69,8 @@ namespace TinyOPDS.Server
         public DateTime LastAccess { get; set; }
         public string Username { get; set; }
 
-        private const int CacheTimeoutMinutes = 10;
+        // Permanent cache - never expire  
+        private const int CacheTimeoutMinutes = 60 * 24 * 365; // 1 year in minutes
 
         public bool IsValid()
         {
@@ -116,6 +118,16 @@ namespace TinyOPDS.Server
 
         private static readonly Dictionary<string, string> credentialCache = new Dictionary<string, string>();
         private static readonly object credentialCacheLock = new object();
+        private static DateTime lastCredentialCacheUpdate = DateTime.MinValue;
+
+        // Permanent authorized clients storage
+        private static HashSet<string> PermanentlyAuthorizedFingerprints = new HashSet<string>();
+        private static readonly object permanentAuthLock = new object();
+        private static bool permanentAuthLoaded = false;
+
+        // Shared SHA256 instance for better performance
+        private static readonly SHA256 sha256Instance = SHA256.Create();
+        private static readonly object sha256Lock = new object();
 
         private const int MAX_POST_SIZE = 1024 * 64;
         private const int OUTPUT_BUFFER_SIZE = 1024 * 128;
@@ -137,6 +149,17 @@ namespace TinyOPDS.Server
             lock (bannedLock)
             {
                 BannedClients.Clear();
+            }
+
+            lock (permanentAuthLock)
+            {
+                PermanentlyAuthorizedFingerprints.Clear();
+                permanentAuthLoaded = false; // Reset the flag
+            }
+
+            lock (credentialCacheLock)
+            {
+                lastCredentialCacheUpdate = DateTime.MinValue; // Force cache refresh
             }
 
             Properties.Settings.Default.AuthorizedClients = string.Empty;
@@ -237,57 +260,111 @@ namespace TinyOPDS.Server
             return null;
         }
 
-        private static void CleanupExpiredSessions()
+        // Check if IP belongs to Cloudflare
+        private bool IsCloudflareIP(string ip)
         {
-            lock (sessionLock)
+            string[] cloudflareRanges = new string[]
             {
-                var expiredTokens = AuthorizedSessions
-                    .Where(kvp => !kvp.Value.IsValid())
-                    .Select(kvp => kvp.Key)
-                    .ToList();
+                "103.21.", "103.22.", "103.31.",
+                "104.16.", "104.17.", "104.18.", "104.19.",
+                "104.20.", "104.21.", "104.22.", "104.23.",
+                "104.24.", "104.25.", "104.26.", "104.27.",
+                "108.162.",
+                "131.0.72.",
+                "141.101.",
+                "162.158.", "162.159.",
+                "172.64.", "172.65.", "172.66.", "172.67.",
+                "172.68.", "172.69.", "172.70.", "172.71.",
+                "173.245.",
+                "188.114.",
+                "190.93.",
+                "197.234.",
+                "198.41."
+            };
 
-                foreach (var token in expiredTokens)
-                {
-                    AuthorizedSessions.Remove(token);
-                }
-            }
-        }
-
-        private static void CleanupAuthorizationCache()
-        {
-            lock (authCacheLock)
+            foreach (string range in cloudflareRanges)
             {
-                var expiredEntries = AuthorizationCache
-                    .Where(kvp => !kvp.Value.IsValid())
-                    .Select(kvp => kvp.Key)
-                    .ToList();
-
-                foreach (var key in expiredEntries)
-                {
-                    AuthorizationCache.Remove(key);
-                }
-
-                lastCacheCleanup = DateTime.UtcNow;
+                if (ip.StartsWith(range))
+                    return true;
             }
+
+            return false;
         }
 
         private string GenerateClientFingerprint(string realIP, string userAgent)
         {
-            // For Cloudflare IPs, use generic fingerprint based only on UserAgent
-            bool isCloudflareIP = realIP.StartsWith("104.") ||
-                                 realIP.StartsWith("162.") ||
-                                 realIP.StartsWith("172.") ||
-                                 realIP.StartsWith("108.162.");
+            // For Cloudflare IPs, use generic fingerprint
+            bool isCloudflareIP = IsCloudflareIP(realIP);
 
-            string fingerprint = isCloudflareIP
-                ? "cloudflare|" + (userAgent ?? "unknown")
-                : realIP + "|" + (userAgent ?? "unknown");
+            // For FBReader, always use universal fingerprint
+            bool isFBReader = userAgent != null &&
+                (userAgent.Contains("FBReader") || userAgent.Contains("Dalvik"));
 
-            using (var sha256 = SHA256.Create())
+            string fingerprint;
+            if (isFBReader)
+            {
+                // FBReader gets universal fingerprint
+                fingerprint = "fbreader|universal";
+            }
+            else if (isCloudflareIP)
+            {
+                // Cloudflare IPs get fingerprint based on UserAgent only
+                fingerprint = "cloudflare|" + (userAgent ?? "unknown");
+            }
+            else
+            {
+                // Regular IPs get full fingerprint
+                fingerprint = realIP + "|" + (userAgent ?? "unknown");
+            }
+
+            // Use shared SHA256 instance for better performance
+            lock (sha256Lock)
             {
                 byte[] bytes = System.Text.Encoding.UTF8.GetBytes(fingerprint);
-                byte[] hash = sha256.ComputeHash(bytes);
+                byte[] hash = sha256Instance.ComputeHash(bytes);
                 return Convert.ToBase64String(hash);
+            }
+        }
+
+        // Load permanently authorized fingerprints from settings
+        private static void LoadPermanentlyAuthorized()
+        {
+            lock (permanentAuthLock)
+            {
+                if (!permanentAuthLoaded)
+                {
+                    var saved = Properties.Settings.Default.AuthorizedClients ?? "";
+                    if (!string.IsNullOrEmpty(saved))
+                    {
+                        var fingerprints = saved.Split(',');
+                        foreach (var fp in fingerprints)
+                        {
+                            if (!string.IsNullOrWhiteSpace(fp))
+                                PermanentlyAuthorizedFingerprints.Add(fp.Trim());
+                        }
+                    }
+                    permanentAuthLoaded = true;
+                }
+            }
+        }
+
+        // Save fingerprint as permanently authorized
+        private static void SavePermanentlyAuthorized(string fingerprint)
+        {
+            lock (permanentAuthLock)
+            {
+                if (!PermanentlyAuthorizedFingerprints.Contains(fingerprint))
+                {
+                    PermanentlyAuthorizedFingerprints.Add(fingerprint);
+
+                    // Save to settings
+                    Properties.Settings.Default.AuthorizedClients =
+                        string.Join(",", PermanentlyAuthorizedFingerprints);
+                    Properties.Settings.Default.Save();
+
+                    Log.WriteLine(LogLevel.Authentication,
+                        "Permanently saved authorization for fingerprint: {0}", fingerprint);
+                }
             }
         }
 
@@ -344,14 +421,8 @@ namespace TinyOPDS.Server
                 string sessionToken = null;
                 bool sendSessionCookie = false;
 
-                if ((DateTime.UtcNow - lastCacheCleanup).TotalMinutes > 5)
-                {
-                    CleanupAuthorizationCache();
-                    if (AuthorizedSessions.Count > 0 && AuthorizedSessions.Count % 100 == 0)
-                    {
-                        CleanupExpiredSessions();
-                    }
-                }
+                // Load permanently authorized clients on first use
+                LoadPermanentlyAuthorized();
 
                 if (Properties.Settings.Default.UseHTTPAuth)
                 {
@@ -363,6 +434,7 @@ namespace TinyOPDS.Server
                                         HttpUrl.EndsWith(".jpg") ||
                                         HttpUrl.EndsWith(".png");
 
+                    // Check if banned
                     if (Properties.Settings.Default.BanClients)
                     {
                         lock (bannedLock)
@@ -380,82 +452,67 @@ namespace TinyOPDS.Server
 
                     if (checkLogin)
                     {
-                        if (Properties.Settings.Default.RememberClients)
+                        // First check if permanently authorized
+                        lock (permanentAuthLock)
                         {
-                            // WORKAROUND for FBReader - check if this client pattern was authorized before
-                            if (userAgent.Contains("FBReader") || userAgent.Contains("Dalvik"))
+                            if (PermanentlyAuthorizedFingerprints.Contains(ClientFingerprint))
                             {
-                                string fbReaderKey = "FBReader_" + (RealClientIP.StartsWith("104.") || RealClientIP.StartsWith("162.") || RealClientIP.StartsWith("172.") ? "Cloudflare" : RealClientIP.Split('.')[0]);
-
-                                var savedClients = Properties.Settings.Default.AuthorizedClients ?? "";
-                                if (savedClients.Contains(fbReaderKey))
-                                {
-                                    authorized = true;
-                                    this.Username = "bookreader";
-                                    Log.WriteLine(LogLevel.Authentication,
-                                        "FBReader auto-authorized from {0}", RealClientIP);
-                                }
+                                authorized = true;
+                                this.Username = "permanent_user";
+                                Log.WriteLine(LogLevel.Authentication,
+                                    "Permanently authorized client from {0}", RealClientIP);
                             }
+                        }
 
-                            if (!authorized)
+                        if (!authorized && Properties.Settings.Default.RememberClients)
+                        {
+                            // Check session cookie
+                            sessionToken = GetSessionTokenFromCookie();
+
+                            if (!string.IsNullOrEmpty(sessionToken))
                             {
-                                sessionToken = GetSessionTokenFromCookie();
-
-                                if (!string.IsNullOrEmpty(sessionToken))
+                                lock (sessionLock)
                                 {
-                                    lock (sessionLock)
+                                    if (AuthorizedSessions.ContainsKey(sessionToken))
                                     {
-                                        if (AuthorizedSessions.ContainsKey(sessionToken))
-                                        {
-                                            var session = AuthorizedSessions[sessionToken];
+                                        var session = AuthorizedSessions[sessionToken];
 
-                                            // For image requests, ignore IP and UserAgent checks
-                                            if (session.IsValid() &&
-                                                (isImageRequest || session.IpAddress == RealClientIP) &&
-                                                (isImageRequest || string.IsNullOrEmpty(session.UserAgent) || session.UserAgent == userAgent))
-                                            {
-                                                session.UpdateLastAccess();
-                                                authorized = true;
-                                                this.Username = session.Username;
-                                                Log.WriteLine(LogLevel.Authentication,
-                                                    "Session authenticated for user {0} from {1}",
-                                                    session.Username, RealClientIP);
-                                            }
-                                            else if (!session.IsValid())
-                                            {
-                                                AuthorizedSessions.Remove(sessionToken);
-                                                Log.WriteLine(LogLevel.Authentication,
-                                                    "Expired session removed for user {0}", session.Username);
-                                            }
+                                        // Simplified validation for permanent sessions
+                                        if (session.IsValid())
+                                        {
+                                            session.UpdateLastAccess();
+                                            authorized = true;
+                                            this.Username = session.Username;
+                                            Log.WriteLine(LogLevel.Authentication,
+                                                "Session authenticated for user {0} from {1}",
+                                                session.Username, RealClientIP);
                                         }
                                     }
                                 }
+                            }
 
-                                if (!authorized && isImageRequest)
+                            // Check authorization cache
+                            if (!authorized)
+                            {
+                                lock (authCacheLock)
                                 {
-                                    lock (authCacheLock)
+                                    if (AuthorizationCache.ContainsKey(ClientFingerprint))
                                     {
-                                        if (AuthorizationCache.ContainsKey(ClientFingerprint))
+                                        var entry = AuthorizationCache[ClientFingerprint];
+                                        if (entry.IsValid())
                                         {
-                                            var entry = AuthorizationCache[ClientFingerprint];
-                                            if (entry.IsValid())
-                                            {
-                                                entry.UpdateLastAccess();
-                                                authorized = true;
-                                                this.Username = entry.Username;
-                                                Log.WriteLine(LogLevel.Authentication,
-                                                    "Cached authorization for {0} from {1}", entry.Username, RealClientIP);
-                                            }
-                                            else
-                                            {
-                                                AuthorizationCache.Remove(ClientFingerprint);
-                                            }
+                                            entry.UpdateLastAccess();
+                                            authorized = true;
+                                            this.Username = entry.Username;
+                                            Log.WriteLine(LogLevel.Authentication,
+                                                "Cached authorization for {0} from {1}", entry.Username, RealClientIP);
                                         }
                                     }
                                 }
                             }
                         }
 
+                        // Try HTTP Basic Auth
                         if (!authorized && HttpHeaders.ContainsKey("Authorization"))
                         {
                             string hash = HttpHeaders["Authorization"];
@@ -476,21 +533,12 @@ namespace TinyOPDS.Server
                                         {
                                             this.Username = user;
 
-                                            // Save FBReader authorization for auto-login
-                                            if (userAgent.Contains("FBReader"))
-                                            {
-                                                string fbReaderKey = "FBReader_" + (RealClientIP.StartsWith("104.") || RealClientIP.StartsWith("162.") || RealClientIP.StartsWith("172.") ? "Cloudflare" : RealClientIP.Split('.')[0]);
-                                                var savedClients = Properties.Settings.Default.AuthorizedClients ?? "";
-                                                if (!savedClients.Contains(fbReaderKey))
-                                                {
-                                                    Properties.Settings.Default.AuthorizedClients = savedClients + (savedClients.Length > 0 ? "," : "") + fbReaderKey;
-                                                    Properties.Settings.Default.Save();
-                                                    Log.WriteLine(LogLevel.Authentication, "Saved FBReader authorization key: {0}", fbReaderKey);
-                                                }
-                                            }
+                                            // Save as permanently authorized
+                                            SavePermanentlyAuthorized(ClientFingerprint);
 
                                             if (Properties.Settings.Default.RememberClients)
                                             {
+                                                // Create session
                                                 sessionToken = GenerateSessionToken();
                                                 var sessionInfo = new SessionInfo
                                                 {
@@ -509,6 +557,7 @@ namespace TinyOPDS.Server
 
                                                 sendSessionCookie = true;
 
+                                                // Add to cache
                                                 lock (authCacheLock)
                                                 {
                                                     AuthorizationCache[ClientFingerprint] = new AuthCacheEntry
@@ -615,13 +664,26 @@ namespace TinyOPDS.Server
         {
             lock (credentialCacheLock)
             {
+                // Update cache only if credentials changed
+                bool needsUpdate = false;
                 if (credentialCache.Count != Credentials.Count)
+                {
+                    needsUpdate = true;
+                }
+                else if ((DateTime.UtcNow - lastCredentialCacheUpdate).TotalMinutes > 5)
+                {
+                    // Periodically refresh cache
+                    needsUpdate = true;
+                }
+
+                if (needsUpdate)
                 {
                     credentialCache.Clear();
                     foreach (Credential cred in Credentials)
                     {
                         credentialCache[cred.User] = cred.Password;
                     }
+                    lastCredentialCacheUpdate = DateTime.UtcNow;
                 }
 
                 return credentialCache.ContainsKey(user) && credentialCache[user].Equals(password);
@@ -632,10 +694,9 @@ namespace TinyOPDS.Server
         {
             if (directIP == "127.0.0.1" || directIP == "::1")
             {
-                Log.WriteLine(LogLevel.Info, "Tunnel request - X-Real-IP: {0}, X-Forwarded-For: {1}, {2}",
+                Log.WriteLine(LogLevel.Info, "Tunnel request - X-Real-IP: {0}, X-Forwarded-For: {1}",
                     HttpHeaders.ContainsKey("X-Real-IP") ? HttpHeaders["X-Real-IP"] : "none",
-                    HttpHeaders.ContainsKey("X-Forwarded-For") ? HttpHeaders["X-Forwarded-For"] : "none",
-                    RealClientIP);
+                    HttpHeaders.ContainsKey("X-Forwarded-For") ? HttpHeaders["X-Forwarded-For"] : "none");
 
                 if (HttpHeaders.ContainsKey("X-Real-IP"))
                 {
@@ -760,8 +821,9 @@ namespace TinyOPDS.Server
 
                     string cookieFlags = useHttps ? "Secure; " : "";
 
+                    // Set cookie for 10 years
                     OutputStream.Write($"Set-Cookie: TinyOPDS_Session={pendingSessionToken}; " +
-                                     $"HttpOnly; {cookieFlags}SameSite=Lax; Path=/; Max-Age=604800\n");
+                                     $"HttpOnly; {cookieFlags}SameSite=Lax; Path=/; Max-Age=315360000\n");
                     pendingSessionToken = null;
                 }
 
@@ -858,7 +920,6 @@ namespace TinyOPDS.Server
         {
             lock (uniqueClients)
             {
-                // Use username for authenticated users, IP-based hash for others
                 string key = !string.IsNullOrEmpty(username) ? "user:" + username : "ip:" + clientHash;
                 uniqueClients[key] = true;
             }
@@ -1009,10 +1070,11 @@ namespace TinyOPDS.Server
                     }
                     else
                     {
-                        Thread.Sleep(100);
+                        // Use shorter sleep for faster response
+                        Thread.Sleep(10); // Was 100ms, now 10ms for 10x faster response
                     }
 
-                    if (loopCount++ > IDLE_CHECK_INTERVAL)
+                    if (loopCount++ > IDLE_CHECK_INTERVAL * 10) // Adjusted for shorter sleep
                     {
                         loopCount = 0;
                         if (DateTime.Now.Subtract(requestTime) > idleTimeout)

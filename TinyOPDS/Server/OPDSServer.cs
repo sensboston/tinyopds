@@ -30,8 +30,7 @@ namespace TinyOPDS.Server
         private readonly ResourceHandlers resourceHandlers;
         private readonly OPDSUtilities utilities;
 
-        public OPDSServer(IPAddress interfaceIP, int port, int timeout = 5000)
-            : base(interfaceIP, port, timeout)
+        public OPDSServer(IPAddress interfaceIP, int port, int timeout = 5000) : base(interfaceIP, port, timeout)
         {
             // Initialize all handlers
             utilities = new OPDSUtilities();
@@ -59,7 +58,6 @@ namespace TinyOPDS.Server
         public override void HandleGETRequest(HttpProcessor processor)
         {
             string clientIP = utilities.GetClientIP(processor);
-            string clientHash = processor.ClientHash; // Get client hash for request cancellation
 
             Log.WriteLine("HTTP GET request from {0}: {1}", clientIP, processor.HttpUrl);
 
@@ -92,7 +90,7 @@ namespace TinyOPDS.Server
                     Properties.Settings.Default.ItemsPerWebPage;
 
                 // Route to appropriate handler based on request type
-                RouteRequest(processor, request, ext, isOPDSRequest, acceptFB2, threshold, clientHash);
+                RouteRequest(processor, request, ext, isOPDSRequest, acceptFB2, threshold);
             }
             catch (Exception e)
             {
@@ -104,8 +102,7 @@ namespace TinyOPDS.Server
         /// <summary>
         /// Routes request to appropriate handler
         /// </summary>
-        private void RouteRequest(HttpProcessor processor, string request, string ext,
-            bool isOPDSRequest, bool acceptFB2, int threshold, string clientHash)
+        private void RouteRequest(HttpProcessor processor, string request, string ext, bool isOPDSRequest, bool acceptFB2, int threshold)
         {
             // Handle reader requests
             if (request.StartsWith("/reader/"))
@@ -157,15 +154,7 @@ namespace TinyOPDS.Server
             // Handle image requests (covers and thumbnails)
             else if (ext.Equals(".jpeg") || ext.Equals(".png"))
             {
-                // Use cancellation-aware handler if client hash is available
-                if (!string.IsNullOrEmpty(clientHash))
-                {
-                    imageHandler.HandleImageRequest(processor, request, clientHash);
-                }
-                else
-                {
-                    imageHandler.HandleImageRequest(processor, request);
-                }
+                imageHandler.HandleImageRequest(processor, request);
             }
             // Handle icon requests
             else if (ext.Equals(".ico"))

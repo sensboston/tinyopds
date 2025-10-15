@@ -95,7 +95,7 @@ namespace TinyOPDS.Server
                     " xmlns=\"http://a9.com/-/spec/opensearch/1.1/\"");
 
                 // OpenSearch always needs to be accessible from root
-                xml = ApplyUriPrefixes(xml, false);
+                xml = OPDSUtilities.ApplyUriPrefixes(xml, false);
 
                 processor.WriteSuccess("application/atom+xml;charset=utf-8");
                 processor.OutputStream.Write(xml);
@@ -146,32 +146,6 @@ namespace TinyOPDS.Server
                 Log.WriteLine(LogLevel.Error, "JavaScript request error for {0}: {1}", request, ex.Message);
                 processor.WriteFailure();
             }
-        }
-
-        /// <summary>
-        /// Applies URI prefixes to XML content
-        /// </summary>
-        private string ApplyUriPrefixes(string xml, bool isOPDSRequest)
-        {
-            try
-            {
-                // Always use relative paths for maximum compatibility and simplicity
-                // For OPDS requests, add the /opds prefix
-                // For web requests, no prefix needed
-                if (isOPDSRequest && !string.IsNullOrEmpty(Properties.Settings.Default.RootPrefix))
-                {
-                    string prefix = "/" + Properties.Settings.Default.RootPrefix;
-                    xml = xml.Replace("href=\"", "href=\"" + prefix);
-
-                    // Special case: opensearch.xml must always be at root
-                    xml = xml.Replace(prefix + "/opds-opensearch.xml", "/opds-opensearch.xml");
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.WriteLine(LogLevel.Warning, "Error applying URI prefixes: {0}", ex.Message);
-            }
-            return xml;
         }
     }
 }

@@ -27,12 +27,10 @@ namespace TinyOPDS.Server
     {
         private Dictionary<string, bool> opdsStructure;
         private readonly XslTransformHandler xslHandler;
-        private readonly OPDSUtilities utilities;
 
         public OPDSRequestRouter(XslTransformHandler xslHandler)
         {
             this.xslHandler = xslHandler;
-            this.utilities = new OPDSUtilities();
             LoadOPDSStructure();
         }
 
@@ -62,8 +60,8 @@ namespace TinyOPDS.Server
                     }
                 }
 
-                xml = utilities.FixNamespace(xml);
-                xml = utilities.ApplyUriPrefixes(xml, isOPDSRequest);
+                xml = OPDSUtilities.FixNamespace(xml);
+                xml = OPDSUtilities.ApplyUriPrefixes(xml, isOPDSRequest);
 
                 if (isOPDSRequest)
                 {

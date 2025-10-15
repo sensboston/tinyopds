@@ -23,63 +23,6 @@ namespace TinyOPDS.Server
     public class ImageRequestHandler
     {
         /// <summary>
-        /// Main entry point for handling image requests
-        /// </summary>
-        public void HandleImageRequest(HttpProcessor processor, string request, string clientHash)
-        {
-            string bookID = null;
-
-            try
-            {
-                bool getCover = request.Contains("/cover/");
-                bookID = ExtractBookIdFromImageRequest(request, getCover);
-
-                if (string.IsNullOrEmpty(bookID))
-                {
-                    Log.WriteLine(LogLevel.Warning, "Invalid book ID in image request: {0}", request);
-                    processor.WriteBadRequest();
-                    return;
-                }
-
-                Book book = Library.GetBook(bookID);
-                if (book == null)
-                {
-                    Log.WriteLine(LogLevel.Warning, "Book {0} not found for image request", bookID);
-                    processor.WriteFailure();
-                    return;
-                }
-
-                var imageObject = GetOrCreateCoverImageWithCancellation(bookID, book);
-
-                if (imageObject != null)
-                {
-                    SendImageToClient(processor, imageObject, getCover, bookID);
-                }
-                else
-                {
-                    Log.WriteLine(LogLevel.Warning, "No image available for book {0}", bookID);
-                    processor.WriteFailure();
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                Log.WriteLine(LogLevel.Info, "Image request cancelled for book {0}", bookID ?? "unknown");
-            }
-            catch (Exception ex)
-            {
-                Log.WriteLine(LogLevel.Error, "Image request error for book {0}: {1}", bookID ?? "unknown", ex.Message);
-                try
-                {
-                    processor.WriteFailure();
-                }
-                catch { }
-            }
-            finally
-            {
-            }
-        }
-
-        /// <summary>
         /// Handles image request without cancellation support (legacy)
         /// </summary>
         public void HandleImageRequest(HttpProcessor processor, string request)

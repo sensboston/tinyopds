@@ -321,22 +321,22 @@ namespace TinyOPDS.Server
 
                 var locStrings = new StringBuilder();
                 locStrings.Append("{");
-                locStrings.AppendFormat("'tableOfContents':'{0}',", EscapeJsString(Localizer.Text("Table of Contents")));
-                locStrings.AppendFormat("'openBook':'{0}',", EscapeJsString(Localizer.Text("Open Book")));
-                locStrings.AppendFormat("'decreaseFont':'{0}',", EscapeJsString(Localizer.Text("Decrease Font")));
-                locStrings.AppendFormat("'increaseFont':'{0}',", EscapeJsString(Localizer.Text("Increase Font")));
-                locStrings.AppendFormat("'changeFont':'{0}',", EscapeJsString(Localizer.Text("Change Font")));
-                locStrings.AppendFormat("'changeTheme':'{0}',", EscapeJsString(Localizer.Text("Change Theme")));
-                locStrings.AppendFormat("'decreaseMargins':'{0}',", EscapeJsString(Localizer.Text("Decrease Margins")));
-                locStrings.AppendFormat("'increaseMargins':'{0}',", EscapeJsString(Localizer.Text("Increase Margins")));
-                locStrings.AppendFormat("'standardWidth':'{0}',", EscapeJsString(Localizer.Text("Standard Width")));
-                locStrings.AppendFormat("'fullWidth':'{0}',", EscapeJsString(Localizer.Text("Full Width")));
-                locStrings.AppendFormat("'fullscreen':'{0}',", EscapeJsString(Localizer.Text("Fullscreen")));
-                locStrings.AppendFormat("'loading':'{0}',", EscapeJsString(Localizer.Text("Loading...")));
-                locStrings.AppendFormat("'errorLoading':'{0}',", EscapeJsString(Localizer.Text("Error loading file")));
-                locStrings.AppendFormat("'noTitle':'{0}',", EscapeJsString(Localizer.Text("Untitled")));
-                locStrings.AppendFormat("'unknownAuthor':'{0}',", EscapeJsString(Localizer.Text("Unknown Author")));
-                locStrings.AppendFormat("'noChapters':'{0}'", EscapeJsString(Localizer.Text("No chapters available")));
+                locStrings.AppendFormat("'tableOfContents':'{0}',", OPDSUtilities.EscapeJsString(Localizer.Text("Table of Contents")));
+                locStrings.AppendFormat("'openBook':'{0}',", OPDSUtilities.EscapeJsString(Localizer.Text("Open Book")));
+                locStrings.AppendFormat("'decreaseFont':'{0}',", OPDSUtilities.EscapeJsString(Localizer.Text("Decrease Font")));
+                locStrings.AppendFormat("'increaseFont':'{0}',", OPDSUtilities.EscapeJsString(Localizer.Text("Increase Font")));
+                locStrings.AppendFormat("'changeFont':'{0}',", OPDSUtilities.EscapeJsString(Localizer.Text("Change Font")));
+                locStrings.AppendFormat("'changeTheme':'{0}',", OPDSUtilities.EscapeJsString(Localizer.Text("Change Theme")));
+                locStrings.AppendFormat("'decreaseMargins':'{0}',", OPDSUtilities.EscapeJsString(Localizer.Text("Decrease Margins")));
+                locStrings.AppendFormat("'increaseMargins':'{0}',", OPDSUtilities.EscapeJsString(Localizer.Text("Increase Margins")));
+                locStrings.AppendFormat("'standardWidth':'{0}',", OPDSUtilities.EscapeJsString(Localizer.Text("Standard Width")));
+                locStrings.AppendFormat("'fullWidth':'{0}',", OPDSUtilities.EscapeJsString(Localizer.Text("Full Width")));
+                locStrings.AppendFormat("'fullscreen':'{0}',", OPDSUtilities.EscapeJsString(Localizer.Text("Fullscreen")));
+                locStrings.AppendFormat("'loading':'{0}',", OPDSUtilities.EscapeJsString(Localizer.Text("Loading...")));
+                locStrings.AppendFormat("'errorLoading':'{0}',", OPDSUtilities.EscapeJsString(Localizer.Text("Error loading file")));
+                locStrings.AppendFormat("'noTitle':'{0}',", OPDSUtilities.EscapeJsString(Localizer.Text("Untitled")));
+                locStrings.AppendFormat("'unknownAuthor':'{0}',", OPDSUtilities.EscapeJsString(Localizer.Text("Unknown Author")));
+                locStrings.AppendFormat("'noChapters':'{0}'", OPDSUtilities.EscapeJsString(Localizer.Text("No chapters available")));
                 locStrings.Append("}");
 
                 string scriptInjection = string.Format(@"
@@ -373,9 +373,9 @@ document.addEventListener('DOMContentLoaded', function() {{
 </head>",
                     mimeType,
                     base64Data,
-                    EscapeJsString(fileName),
-                    EscapeJsString(bookTitle),
-                    EscapeJsString(author ?? ""),
+                    OPDSUtilities.EscapeJsString(fileName),
+                    OPDSUtilities.EscapeJsString(bookTitle),
+                    OPDSUtilities.EscapeJsString(author ?? ""),
                     locStrings.ToString()
                 );
 
@@ -393,20 +393,6 @@ document.addEventListener('DOMContentLoaded', function() {{
                 Log.WriteLine(LogLevel.Error, "Error preparing reader HTML: {0}", ex.Message);
                 return null;
             }
-        }
-
-        /// <summary>
-        /// Escapes JavaScript string for safe embedding
-        /// </summary>
-        private string EscapeJsString(string str)
-        {
-            if (string.IsNullOrEmpty(str)) return "";
-
-            return str.Replace("\\", "\\\\")
-                     .Replace("'", "\\'")
-                     .Replace("\"", "\\\"")
-                     .Replace("\r", "\\r")
-                     .Replace("\n", "\\n");
         }
     }
 }

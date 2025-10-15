@@ -165,7 +165,7 @@ namespace TinyOPDS.Server
         /// <summary>
         /// Fixes missing Atom namespace in XML if needed
         /// </summary>
-        public string FixNamespace(string xml)
+        public static string FixNamespace(string xml)
         {
             if (xml.Contains("<feed ") && !xml.Contains("xmlns=\"http://www.w3.org/2005/Atom\""))
             {
@@ -181,7 +181,7 @@ namespace TinyOPDS.Server
         /// <summary>
         /// Applies URI prefixes to XML content for OPDS/Web routing
         /// </summary>
-        public string ApplyUriPrefixes(string xml, bool isOPDSRequest)
+        public static string ApplyUriPrefixes(string xml, bool isOPDSRequest)
         {
             try
             {
@@ -207,7 +207,7 @@ namespace TinyOPDS.Server
         /// <summary>
         /// Escapes JavaScript string for safe embedding in HTML
         /// </summary>
-        public string EscapeJsString(string str)
+        public static string EscapeJsString(string str)
         {
             if (string.IsNullOrEmpty(str)) return "";
 

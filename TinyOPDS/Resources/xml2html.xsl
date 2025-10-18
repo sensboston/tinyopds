@@ -692,6 +692,9 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					overflow-wrap: break-word;
 					white-space: pre-line;
 					}
+
+					.book-descr-wrap { pointer-events: none; }
+					.descr-toggle { pointer-events: auto; }
 					}
 
 					@media (min-width: 769px) {

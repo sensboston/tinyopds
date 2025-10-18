@@ -409,7 +409,7 @@ class FormatConverter {
         return fb2Content;
     }
 
-    // HTML to FB2 conversion
+    // HTML to FB2 conversion - FIXED paragraph handling
     convertHtmlToFb2(html, baseDir, imageMap, chapterIndex) {
         const doc = new DOMParser().parseFromString(html, 'text/html');
         let fb2 = `<section id="chapter_${chapterIndex}">`;
@@ -419,7 +419,11 @@ class FormatConverter {
 
             for (let node of element.childNodes) {
                 if (node.nodeType === Node.TEXT_NODE) {
-                    result += this.escapeXml(node.textContent);
+                    const text = this.escapeXml(node.textContent);
+                    // Only add text if it's not just whitespace
+                    if (text.trim()) {
+                        result += text;
+                    }
                 } else if (node.nodeType === Node.ELEMENT_NODE) {
                     const tag = node.tagName.toLowerCase();
 
@@ -435,7 +439,26 @@ class FormatConverter {
                         case 'p':
                             const content = processElement(node);
                             if (content.trim()) {
+                                // Just add paragraph without extra spacing
                                 result += `<p>${content}</p>`;
+                            }
+                            break;
+                        case 'div':
+                            // Process div content but check if it contains block elements
+                            const divContent = processElement(node);
+                            if (divContent.trim()) {
+                                // Check if div contains its own paragraphs or just inline content
+                                const hasBlockElements = Array.from(node.children).some(child =>
+                                    ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'div', 'blockquote'].includes(child.tagName.toLowerCase())
+                                );
+
+                                if (!hasBlockElements && divContent.trim()) {
+                                    // Treat as paragraph if div contains only inline content
+                                    result += `<p>${divContent}</p>`;
+                                } else {
+                                    // Div contains block elements, just add the content
+                                    result += divContent;
+                                }
                             }
                             break;
                         case 'em':
@@ -490,8 +513,10 @@ class FormatConverter {
                             break;
                         case 'hr':
                             result += '<empty-line/><p>* * *</p><empty-line/>';
+                            needsSpacing = false;
                             break;
                         default:
+                            // For any other tags, just process their content
                             result += processElement(node);
                     }
                 }

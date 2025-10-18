@@ -202,12 +202,12 @@ namespace TinyOPDS.Data
                 try
                 {
                     // Try to open file for content hash generation
-                    if (File.Exists(book.FilePath))
-                    {
-                        fileStream = new FileStream(book.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                    }
+                    //if (File.Exists(book.FilePath))
+                    //{
+                    //    fileStream = new FileStream(book.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                    //}
 
-                    var duplicateResult = duplicateDetector.CheckDuplicate(book, fileStream);
+                    var duplicateResult = duplicateDetector.CheckDuplicate(book);
 
                     if (duplicateResult.IsDuplicate)
                     {
@@ -433,12 +433,12 @@ namespace TinyOPDS.Data
                             Stream fileStream = null;
                             try
                             {
-                                if (File.Exists(book.FilePath))
-                                {
-                                    fileStream = new FileStream(book.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                                    if (string.IsNullOrEmpty(book.ContentHash))
-                                        book.ContentHash = book.GenerateContentHash(fileStream);
-                                }
+                                //if (File.Exists(book.FilePath))
+                                //{
+                                //    fileStream = new FileStream(book.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                                //    if (string.IsNullOrEmpty(book.ContentHash))
+                                //        book.ContentHash = book.GenerateContentHash(fileStream);
+                                //}
 
                                 // STEP 1: Check for duplicates within the current batch
                                 bool foundInBatch = false;
@@ -540,7 +540,7 @@ namespace TinyOPDS.Data
                                 // STEP 2: If not found in batch, check database
                                 if (!skipBook && !foundInBatch)
                                 {
-                                    duplicateResult = duplicateDetector.CheckDuplicate(book, fileStream);
+                                    duplicateResult = duplicateDetector.CheckDuplicate(book);
 
                                     if (duplicateResult.IsDuplicate)
                                     {

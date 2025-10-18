@@ -159,7 +159,7 @@ namespace TinyOPDS.Parsers
             var title = metadata.Element(dcNs + "title")?.Value;
             book.Title = !string.IsNullOrEmpty(title) ? title : book.FileName;
 
-            // Authors
+            // Authors - try creators first
             book.Authors = new List<string>();
             var creators = metadata.Elements(dcNs + "creator");
             foreach (var creator in creators)
@@ -170,6 +170,36 @@ namespace TinyOPDS.Parsers
                     string normalized = NormalizeAuthorName(authorName);
                     if (!string.IsNullOrEmpty(normalized))
                         book.Authors.Add(normalized);
+                }
+            }
+
+            // If no creators, try contributors
+            if (book.Authors.Count == 0)
+            {
+                var contributors = metadata.Elements(dcNs + "contributor");
+                foreach (var contributor in contributors)
+                {
+                    string contributorName = contributor.Value;
+                    if (!string.IsNullOrEmpty(contributorName))
+                    {
+                        string normalized = NormalizeAuthorName(contributorName);
+                        if (!string.IsNullOrEmpty(normalized))
+                        {
+                            book.Authors.Add(normalized);
+                            Log.WriteLine(LogLevel.Info, "Using contributor as author: {0}", normalized);
+                        }
+                    }
+                }
+            }
+
+            // If still no authors, try publisher as last resort
+            if (book.Authors.Count == 0)
+            {
+                var publisher = metadata.Element(dcNs + "publisher")?.Value;
+                if (!string.IsNullOrEmpty(publisher))
+                {
+                    book.Authors.Add(publisher);
+                    Log.WriteLine(LogLevel.Info, "Using publisher as author: {0}", publisher);
                 }
             }
 
@@ -189,6 +219,12 @@ namespace TinyOPDS.Parsers
             // Subjects/Genres
             var subjects = metadata.Elements(dcNs + "subject").Select(s => s.Value).ToList();
             book.Genres = LookupGenres(subjects);
+
+            // If no genres from subjects, add default
+            if (book.Genres == null || book.Genres.Count == 0)
+            {
+                book.Genres = new List<string> { "prose" };
+            }
 
             // Series information
             ParseSeriesInfo(metadata, book);

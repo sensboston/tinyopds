@@ -6,8 +6,6 @@
  * SPDX-License-Identifier: MIT
  *
  * Native FB2 parser without external dependencies - optimized version
- * FIXED: Now properly extracts document ID from FB2 instead of generating random GUIDs
- * FIXED: Proper date handling - ALWAYS validates dates before returning Book object
  *
  */
 
@@ -19,9 +17,9 @@ using System.Text;
 using System.Xml.Linq;
 using System.Drawing;
 using System.Globalization;
+using System.Text.RegularExpressions;
 
 using TinyOPDS.Data;
-using System.Text.RegularExpressions;
 
 namespace TinyOPDS.Parsers
 {
@@ -68,14 +66,12 @@ namespace TinyOPDS.Parsers
                 Log.WriteLine(LogLevel.Error, "Book.Parse() exception {0} on file: {1}", e.Message, fileName);
             }
 
-            // CRITICAL FIX: Always validate dates before returning, regardless of parsing success
             EnsureValidDates(book, fileName);
 
             return book;
         }
 
         /// <summary>
-        /// CRITICAL: Ensures book has valid dates - NEVER allows DateTime.MinValue
         /// This method MUST be called before returning any Book object
         /// </summary>
         private void EnsureValidDates(Book book, string fileName)

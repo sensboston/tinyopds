@@ -58,6 +58,9 @@
   </ItemGroup>
   <!-- ============== CLI SPECIFIC FILES ============== -->
   <ItemGroup>
+    <Compile Include="..\TinyOPDS\Converters\FB2MobiConverter.cs">
+      <Link>Converters\FB2MobiConverter.cs</Link>
+    </Compile>
     <Compile Include="..\TinyOPDS\Misc\Pluralizer.cs">
       <Link>Misc\Pluralizer.cs</Link>
     </Compile>

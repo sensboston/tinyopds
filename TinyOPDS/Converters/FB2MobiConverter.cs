@@ -5,8 +5,8 @@
  * Copyright (c) 2013-2025 SeNSSoFT
  * SPDX-License-Identifier: MIT
  *
- * FB2 to MOBI converter with proper Kindle compatibility
- * Creates valid MOBI files with mandatory EXTH records for old Kindle devices
+ * FB2 to MOBI converter with two-pass HTML generation
+ * Uses filepos byte offsets for internal links (Kindle compatible)
  *
  */
 
@@ -29,9 +29,13 @@ namespace TinyOPDS
         private readonly Dictionary<string, byte[]> images = new Dictionary<string, byte[]>();
         private readonly Dictionary<string, string> footnotes = new Dictionary<string, string>();
 
-        /// <summary>
-        /// Convert FB2 stream to MOBI stream
-        /// </summary>
+        // Two-pass link resolution
+        private MemoryStream htmlBuffer;
+        private Dictionary<string, long> anchorOffsets;
+        private List<(long placeholderPos, string targetId)> linkPlaceholders;
+
+        private const string FILEPOS_PLACEHOLDER = "0000000000";
+
         public bool ConvertToMobiStream(Book book, Stream fb2Stream, Stream mobiStream)
         {
             try
@@ -42,15 +46,13 @@ namespace TinyOPDS
                     return false;
                 }
 
-                //ExtractImages();
                 ExtractFootnotes();
-                string htmlContent = GenerateHtml(book);
-                byte[] htmlBytes = Encoding.UTF8.GetBytes(htmlContent);
+                byte[] htmlBytes = GenerateHtmlWithLinks(book);
 
                 WriteMobiFile(mobiStream, htmlBytes, book);
 
-                Log.WriteLine(LogLevel.Info, "Created MOBI for: {0} ({1} images, {2} footnotes)",
-                    book.FileName, images.Count, footnotes.Count);
+                Log.WriteLine(LogLevel.Info, "Created MOBI for: {0} ({1} footnotes)",
+                    book.FileName, footnotes.Count);
                 return true;
             }
             catch (Exception ex)
@@ -73,33 +75,6 @@ namespace TinyOPDS
             catch
             {
                 return false;
-            }
-        }
-
-        private void ExtractImages()
-        {
-            images.Clear();
-            var binaries = fb2Xml.Root?.Descendants(fb2Ns + "binary");
-            if (binaries == null) return;
-
-            foreach (var binary in binaries)
-            {
-                try
-                {
-                    string id = binary.Attribute("id")?.Value;
-                    if (string.IsNullOrEmpty(id)) continue;
-
-                    string base64Data = binary.Value.Trim();
-                    byte[] imageData = Convert.FromBase64String(base64Data);
-
-                    if (imageData.Length > 0)
-                    {
-                        images[id] = imageData;
-                    }
-                }
-                catch
-                {
-                }
             }
         }
 
@@ -135,35 +110,107 @@ namespace TinyOPDS
             }
         }
 
-        private string GenerateHtml(Book book)
+        private int ExtractNumber(string id)
         {
-            var html = new StringBuilder();
+            var digits = new string(id.Where(char.IsDigit).ToArray());
+            if (int.TryParse(digits, out int num))
+                return num;
+            return int.MaxValue;
+        }
 
-            html.AppendLine("<!DOCTYPE html>");
-            html.AppendLine("<html>");
-            html.AppendLine("<head>");
-            html.AppendLine("<meta charset=\"UTF-8\"/>");
-            html.AppendFormat("<title>{0}</title>\n", EscapeHtml(book.Title));
-            html.AppendLine("<style>");
-            html.AppendLine("body { font-family: serif; margin: 1em; line-height: 1.4; }");
-            html.AppendLine("p { margin: 0.5em 0; text-indent: 1.5em; }");
-            html.AppendLine("img { max-width: 100%; height: auto; display: block; margin: 1em auto; }");
-            html.AppendLine(".footnote-ref { vertical-align: super; font-size: 0.8em; }");
-            html.AppendLine(".footnote { font-size: 0.9em; margin: 0.3em 0; padding-left: 1.5em; }");
-            html.AppendLine(".footnotes { margin-top: 2em; border-top: 1px solid #ccc; padding-top: 1em; }");
-            html.AppendLine("</style>");
-            html.AppendLine("</head>");
-            html.AppendLine("<body>");
+        /// <summary>
+        /// Two-pass HTML generation with filepos link resolution
+        /// </summary>
+        private byte[] GenerateHtmlWithLinks(Book book)
+        {
+            htmlBuffer = new MemoryStream();
+            anchorOffsets = new Dictionary<string, long>();
+            linkPlaceholders = new List<(long, string)>();
 
-            html.AppendFormat("<p width=\"0\" align=\"center\"><b>{0}</b></p>\n", EscapeHtml(book.Title));
+            // Pass 1: Generate HTML with placeholders
+            GenerateHtmlContent(book);
+
+            // Pass 2: Resolve links
+            byte[] result = htmlBuffer.ToArray();
+            ResolveLinkPlaceholders(result);
+
+            return result;
+        }
+
+        private void Write(string text)
+        {
+            byte[] bytes = Encoding.UTF8.GetBytes(text);
+            htmlBuffer.Write(bytes, 0, bytes.Length);
+        }
+
+        private void WriteLine(string text)
+        {
+            Write(text);
+            Write("\n");
+        }
+
+        private void WriteAnchor(string id)
+        {
+            // Record byte position for this anchor
+            anchorOffsets[id] = htmlBuffer.Position;
+        }
+
+        private void WriteLink(string targetId, string linkText)
+        {
+            // filepos without quotes (as per MOBI spec)
+            Write("<a filepos=");
+            linkPlaceholders.Add((htmlBuffer.Position, targetId));
+            Write(FILEPOS_PLACEHOLDER);
+            Write(">");
+            Write(linkText);
+            Write("</a>");
+        }
+
+        private void ResolveLinkPlaceholders(byte[] html)
+        {
+            foreach (var (placeholderPos, targetId) in linkPlaceholders)
+            {
+                if (anchorOffsets.TryGetValue(targetId, out long targetOffset))
+                {
+                    string offsetStr = targetOffset.ToString("D10");
+                    byte[] offsetBytes = Encoding.ASCII.GetBytes(offsetStr);
+                    Array.Copy(offsetBytes, 0, html, placeholderPos, 10);
+                }
+                else
+                {
+                    Log.WriteLine(LogLevel.Warning, "Unresolved link target: {0}", targetId);
+                }
+            }
+        }
+
+        private void GenerateHtmlContent(Book book)
+        {
+            WriteLine("<!DOCTYPE html>");
+            WriteLine("<html>");
+            WriteLine("<head>");
+            WriteLine("<meta charset=\"UTF-8\"/>");
+            Write("<title>");
+            Write(EscapeHtml(book.Title));
+            WriteLine("</title>");
+            WriteLine("</head>");
+            WriteLine("<body>");
+
+            // Book title
+            Write("<p width=\"0\" align=\"center\"><font size=\"+2\"><b>");
+            Write(EscapeHtml(book.Title));
+            WriteLine("</b></font></p>");
+
+            // Authors
             if (book.Authors?.Count > 0)
             {
-                html.AppendFormat("<p width=\"0\" align=\"center\">{0}</p>\n", EscapeHtml(string.Join(", ", book.Authors)));
+                Write("<p width=\"0\" align=\"center\">");
+                Write(EscapeHtml(string.Join(", ", book.Authors)));
+                WriteLine("</p>");
             }
-            html.AppendLine("<br/>");
+            WriteLine("<br/>");
+            WriteLine("<hr/>");
 
-            html.AppendLine("<hr/>");
-
+            // Main body
             var mainBody = fb2Xml.Root?.Elements(fb2Ns + "body")
                 .FirstOrDefault(b => b.Attribute("name")?.Value != "notes");
 
@@ -176,35 +223,52 @@ namespace TinyOPDS
                     bool hasTitle = topSections[i].Element(fb2Ns + "title") != null;
                     bool needsPagebreak = hasTitle && foundFirstTitled;
                     if (hasTitle) foundFirstTitled = true;
-                    ProcessSection(topSections[i], html, needsPagebreak);
+                    ProcessSection(topSections[i], needsPagebreak);
                 }
             }
 
+            // Footnotes section
             if (footnotes.Count > 0)
             {
-                html.AppendLine("<mbp:pagebreak/>");
-                html.AppendLine("<div class=\"footnotes\">");
-                html.AppendFormat("<p width=\"0\" align=\"center\"><b>{0}</b></p>\n", "Notes:");
-                html.AppendLine("<br/>");
-                foreach (var fn in footnotes.OrderBy(kvp => kvp.Key))
+                var sortedFootnotes = footnotes.OrderBy(fn => ExtractNumber(fn.Key)).ToList();
+
+                foreach (var fn in sortedFootnotes)
                 {
-                    html.AppendFormat("<p class=\"footnote\" id=\"{0}\">[{1}] {2}</p>\n",
-                        fn.Key, fn.Key, EscapeHtml(fn.Value));
+                    WriteLine("<mbp:pagebreak/>");
+
+                    int noteNum = ExtractNumber(fn.Key);
+
+                    // Padding to absorb Kindle's display quirk (shows ~10 chars before filepos)
+                    Write("          ");
+                    WriteAnchor("note_" + fn.Key);
+                    WriteLine("");
+
+                    Write("<p width=\"0\" align=\"center\"><b>[");
+                    Write(noteNum.ToString());
+                    WriteLine("]</b></p>");
+                    WriteLine("<br/>");
+
+                    Write("<p>");
+                    Write(EscapeHtml(fn.Value));
+                    WriteLine("</p>");
+                    WriteLine("<br/>");
+
+                    // Back link
+                    Write("<center><font size=\"+4\"><b>");
+                    WriteLink("back_" + fn.Key, "←");
+                    WriteLine("</b></font></center>");
                 }
-                html.AppendLine("</div>");
             }
 
-            html.AppendLine("</body>");
-            html.AppendLine("</html>");
-
-            return html.ToString();
+            WriteLine("</body>");
+            WriteLine("</html>");
         }
 
-        private void ProcessSection(XElement section, StringBuilder html, bool needsPagebreak)
+        private void ProcessSection(XElement section, bool needsPagebreak)
         {
             if (needsPagebreak)
             {
-                html.AppendLine("<mbp:pagebreak/>");
+                WriteLine("<mbp:pagebreak/>");
             }
 
             var title = section.Element(fb2Ns + "title");
@@ -218,7 +282,9 @@ namespace TinyOPDS
                         var text = ExtractText(p);
                         if (!string.IsNullOrWhiteSpace(text))
                         {
-                            html.AppendFormat("<p width=\"0\" align=\"center\"><b>{0}</b></p>\n", EscapeHtml(text));
+                            Write("<p width=\"0\" align=\"center\"><b>");
+                            Write(EscapeHtml(text));
+                            WriteLine("</b></p>");
                         }
                     }
                 }
@@ -227,10 +293,12 @@ namespace TinyOPDS
                     var titleText = ExtractText(title);
                     if (!string.IsNullOrWhiteSpace(titleText))
                     {
-                        html.AppendFormat("<p width=\"0\" align=\"center\"><b>{0}</b></p>\n", EscapeHtml(titleText));
+                        Write("<p width=\"0\" align=\"center\"><b>");
+                        Write(EscapeHtml(titleText));
+                        WriteLine("</b></p>");
                     }
                 }
-                html.AppendLine("<br/>");
+                WriteLine("<br/>");
             }
 
             var childSections = new List<XElement>();
@@ -240,15 +308,11 @@ namespace TinyOPDS
                 switch (elem.Name.LocalName)
                 {
                     case "p":
-                        ProcessParagraph(elem, html);
+                        ProcessParagraph(elem);
                         break;
 
                     case "empty-line":
-                        html.AppendLine("<br/>");
-                        break;
-
-                    case "image":
-                        ProcessImage(elem, html);
+                        WriteLine("<br/>");
                         break;
 
                     case "section":
@@ -257,26 +321,56 @@ namespace TinyOPDS
                 }
             }
 
-            // Process nested sections: pagebreak only before 2nd+ section WITH title
+            // Process nested sections
             bool foundFirstTitled = false;
             for (int i = 0; i < childSections.Count; i++)
             {
                 bool hasTitle = childSections[i].Element(fb2Ns + "title") != null;
                 bool childNeedsPagebreak = hasTitle && foundFirstTitled;
                 if (hasTitle) foundFirstTitled = true;
-                ProcessSection(childSections[i], html, childNeedsPagebreak);
+                ProcessSection(childSections[i], childNeedsPagebreak);
             }
+
+            WriteLine("<br/>");
         }
 
-        private void ProcessParagraph(XElement paragraph, StringBuilder html)
+        private void ProcessParagraph(XElement paragraph)
         {
-            var sb = new StringBuilder();
+            var content = new StringBuilder();
+            var footnoteIds = new List<string>();
 
+            // First pass: collect ALL footnote IDs in paragraph
+            foreach (var node in paragraph.Nodes())
+            {
+                if (node is XElement elemNode && elemNode.Name.LocalName == "a")
+                {
+                    var href = elemNode.Attribute(xlinkNs + "href")?.Value;
+                    if (!string.IsNullOrEmpty(href))
+                    {
+                        href = href.TrimStart('#');
+                        if (footnotes.ContainsKey(href))
+                        {
+                            footnoteIds.Add(href);
+                        }
+                    }
+                }
+            }
+
+            // Place back-anchors for ALL footnotes at paragraph start
+            foreach (var fnId in footnoteIds)
+            {
+                Write("          ");
+                WriteAnchor("back_" + fnId);
+                WriteLine("");
+            }
+
+            // Second pass: build paragraph content
+            Write("<p>");
             foreach (var node in paragraph.Nodes())
             {
                 if (node is XText textNode)
                 {
-                    sb.Append(EscapeHtml(textNode.Value));
+                    content.Append(EscapeHtml(textNode.Value));
                 }
                 else if (node is XElement elemNode)
                 {
@@ -288,55 +382,42 @@ namespace TinyOPDS
                             href = href.TrimStart('#');
                             if (footnotes.ContainsKey(href))
                             {
-                                sb.AppendFormat("<a class=\"footnote-ref\" href=\"#{0}\">{1}</a>",
-                                    href, EscapeHtml(ExtractText(elemNode)));
+                                // Flush content before link
+                                if (content.Length > 0)
+                                {
+                                    Write(content.ToString());
+                                    content.Clear();
+                                }
+
+                                int noteNum = ExtractNumber(href);
+                                Write("<sup>");
+                                WriteLink("note_" + href, "[" + noteNum + "]");
+                                Write("</sup>");
                             }
                             else
                             {
-                                sb.Append(EscapeHtml(ExtractText(elemNode)));
+                                content.Append(EscapeHtml(ExtractText(elemNode)));
                             }
                         }
                         else
                         {
-                            sb.Append(EscapeHtml(ExtractText(elemNode)));
+                            content.Append(EscapeHtml(ExtractText(elemNode)));
                         }
                     }
                     else
                     {
-                        sb.Append(EscapeHtml(ExtractText(elemNode)));
+                        content.Append(EscapeHtml(ExtractText(elemNode)));
                     }
                 }
             }
 
-            var text = sb.ToString().Trim();
+            // Write remaining content
+            var text = content.ToString().Trim();
             if (!string.IsNullOrWhiteSpace(text))
             {
-                html.AppendFormat("<p>{0}</p>\n", text);
+                Write(text);
             }
-        }
-
-        private void ProcessImage(XElement imageElem, StringBuilder html)
-        {
-            var href = imageElem.Attribute(xlinkNs + "href")?.Value;
-            if (string.IsNullOrEmpty(href)) return;
-
-            href = href.TrimStart('#');
-            if (images.ContainsKey(href))
-            {
-                html.AppendFormat("<div style=\"text-align:center;\"><img src=\"kindle:embed:{0:D4}\" alt=\"\"/></div>\n",
-                    GetImageIndex(href));
-            }
-        }
-
-        private int GetImageIndex(string imageId)
-        {
-            int index = 0;
-            foreach (var key in images.Keys)
-            {
-                if (key == imageId) return index;
-                index++;
-            }
-            return -1;
+            WriteLine("</p>");
         }
 
         private string ExtractText(XElement element)
@@ -365,9 +446,7 @@ namespace TinyOPDS
                 offset += size;
             }
 
-            var imageRecords = new List<byte[]>(images.Values);
-            int firstImageIndex = images.Count > 0 ? 1 + textRecords.Count : -1;
-            int totalRecords = 1 + textRecords.Count + imageRecords.Count + 3;
+            int totalRecords = 1 + textRecords.Count + 3;
 
             WritePalmDbHeader(stream, book.Title, totalRecords);
 
@@ -385,14 +464,7 @@ namespace TinyOPDS
                 currentOffset += rec.Length;
             }
 
-            foreach (var img in imageRecords)
-            {
-                WriteInt32BE(stream, currentOffset);
-                stream.Write(new byte[] { 0, 0, 0, 0 }, 0, 4);
-                currentOffset += img.Length;
-            }
-
-            int flisIndex = 1 + textRecords.Count + imageRecords.Count;
+            int flisIndex = 1 + textRecords.Count;
             int fcisIndex = flisIndex + 1;
 
             WriteInt32BE(stream, currentOffset);
@@ -417,8 +489,7 @@ namespace TinyOPDS
             WriteInt16BE(stream, 4096);
             WriteInt32BE(stream, 0);
 
-            WriteMobiHeader(stream, book, textRecords.Count, firstImageIndex, flisIndex, fcisIndex);
-
+            WriteMobiHeader(stream, book, textRecords.Count, flisIndex, fcisIndex);
             WriteExthHeader(stream, book);
 
             byte[] titleBytes = Encoding.UTF8.GetBytes(book.Title);
@@ -433,11 +504,6 @@ namespace TinyOPDS
             foreach (var record in textRecords)
             {
                 stream.Write(record, 0, record.Length);
-            }
-
-            foreach (var image in imageRecords)
-            {
-                stream.Write(image, 0, image.Length);
             }
 
             WriteFLISRecord(stream);
@@ -457,10 +523,7 @@ namespace TinyOPDS
             }
 
             exthSize += 8 + Encoding.UTF8.GetByteCount(book.Title);
-
             exthSize += 8 + 4;
-
-            byte[] creatorSoft = BitConverter.GetBytes(200);
             exthSize += 8 + 4;
             exthSize += 8 + 4;
             exthSize += 8 + 4;
@@ -508,7 +571,7 @@ namespace TinyOPDS
         }
 
         private void WriteMobiHeader(Stream stream, Book book, int recordCount,
-            int firstImageIndex, int flisIndex, int fcisIndex)
+            int flisIndex, int fcisIndex)
         {
             long mobiStart = stream.Position;
 
@@ -549,7 +612,7 @@ namespace TinyOPDS
             WriteInt32BE(stream, 0);
             WriteInt32BE(stream, 0);
             WriteInt32BE(stream, 6);
-            WriteInt32BE(stream, firstImageIndex);
+            WriteInt32BE(stream, -1);  // No images
             WriteInt32BE(stream, 0);
             WriteInt32BE(stream, 0);
             WriteInt32BE(stream, 0);

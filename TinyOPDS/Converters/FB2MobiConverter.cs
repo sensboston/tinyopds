@@ -146,9 +146,6 @@ namespace TinyOPDS
             html.AppendFormat("<title>{0}</title>\n", EscapeHtml(book.Title));
             html.AppendLine("<style>");
             html.AppendLine("body { font-family: serif; margin: 1em; line-height: 1.4; }");
-            html.AppendLine("h1 { text-align: center; margin-bottom: 0.5em; font-size: 1.3em; }");
-            html.AppendLine("h3 { text-align: center; margin-top: 0; color: #666; font-size: 1.1em; }");
-            html.AppendLine("h2 { margin-top: 1.5em; margin-bottom: 0.5em; font-size: 1.1em; }");
             html.AppendLine("p { margin: 0.5em 0; text-indent: 1.5em; }");
             html.AppendLine("img { max-width: 100%; height: auto; display: block; margin: 1em auto; }");
             html.AppendLine(".footnote-ref { vertical-align: super; font-size: 0.8em; }");
@@ -158,11 +155,12 @@ namespace TinyOPDS
             html.AppendLine("</head>");
             html.AppendLine("<body>");
 
-            html.AppendFormat("<h1>{0}</h1>\n", EscapeHtml(book.Title));
+            html.AppendFormat("<p width=\"0\" align=\"center\"><b>{0}</b></p>\n", EscapeHtml(book.Title));
             if (book.Authors?.Count > 0)
             {
-                html.AppendFormat("<h3>{0}</h3>\n", EscapeHtml(string.Join(", ", book.Authors)));
+                html.AppendFormat("<p width=\"0\" align=\"center\">{0}</p>\n", EscapeHtml(string.Join(", ", book.Authors)));
             }
+            html.AppendLine("<br/>");
 
             html.AppendLine("<hr/>");
 
@@ -172,16 +170,22 @@ namespace TinyOPDS
             if (mainBody != null)
             {
                 var topSections = mainBody.Elements(fb2Ns + "section").ToList();
+                bool foundFirstTitled = false;
                 for (int i = 0; i < topSections.Count; i++)
                 {
-                    ProcessSection(topSections[i], html, i == 0);
+                    bool hasTitle = topSections[i].Element(fb2Ns + "title") != null;
+                    bool needsPagebreak = hasTitle && foundFirstTitled;
+                    if (hasTitle) foundFirstTitled = true;
+                    ProcessSection(topSections[i], html, needsPagebreak);
                 }
             }
 
             if (footnotes.Count > 0)
             {
+                html.AppendLine("<mbp:pagebreak/>");
                 html.AppendLine("<div class=\"footnotes\">");
-                html.AppendLine("<h2>Notes:</h2>");
+                html.AppendFormat("<p width=\"0\" align=\"center\"><b>{0}</b></p>\n", "Notes:");
+                html.AppendLine("<br/>");
                 foreach (var fn in footnotes.OrderBy(kvp => kvp.Key))
                 {
                     html.AppendFormat("<p class=\"footnote\" id=\"{0}\">[{1}] {2}</p>\n",
@@ -196,10 +200,9 @@ namespace TinyOPDS
             return html.ToString();
         }
 
-        private void ProcessSection(XElement section, StringBuilder html, bool isFirstInParent)
+        private void ProcessSection(XElement section, StringBuilder html, bool needsPagebreak)
         {
-            // Pagebreak before section, except for first child (stays with parent)
-            if (!isFirstInParent)
+            if (needsPagebreak)
             {
                 html.AppendLine("<mbp:pagebreak/>");
             }
@@ -207,11 +210,27 @@ namespace TinyOPDS
             var title = section.Element(fb2Ns + "title");
             if (title != null)
             {
-                var titleText = ExtractText(title);
-                if (!string.IsNullOrWhiteSpace(titleText))
+                var paragraphs = title.Elements(fb2Ns + "p").ToList();
+                if (paragraphs.Count > 0)
                 {
-                    html.AppendFormat("<h3>{0}</h3>\n", EscapeHtml(titleText));
+                    foreach (var p in paragraphs)
+                    {
+                        var text = ExtractText(p);
+                        if (!string.IsNullOrWhiteSpace(text))
+                        {
+                            html.AppendFormat("<p width=\"0\" align=\"center\"><b>{0}</b></p>\n", EscapeHtml(text));
+                        }
+                    }
                 }
+                else
+                {
+                    var titleText = ExtractText(title);
+                    if (!string.IsNullOrWhiteSpace(titleText))
+                    {
+                        html.AppendFormat("<p width=\"0\" align=\"center\"><b>{0}</b></p>\n", EscapeHtml(titleText));
+                    }
+                }
+                html.AppendLine("<br/>");
             }
 
             var childSections = new List<XElement>();
@@ -238,10 +257,14 @@ namespace TinyOPDS
                 }
             }
 
-            // Process nested sections with proper pagebreak logic
+            // Process nested sections: pagebreak only before 2nd+ section WITH title
+            bool foundFirstTitled = false;
             for (int i = 0; i < childSections.Count; i++)
             {
-                ProcessSection(childSections[i], html, i == 0);
+                bool hasTitle = childSections[i].Element(fb2Ns + "title") != null;
+                bool childNeedsPagebreak = hasTitle && foundFirstTitled;
+                if (hasTitle) foundFirstTitled = true;
+                ProcessSection(childSections[i], html, childNeedsPagebreak);
             }
         }
 

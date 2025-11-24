@@ -171,9 +171,10 @@ namespace TinyOPDS
 
             if (mainBody != null)
             {
-                foreach (var section in mainBody.Elements(fb2Ns + "section"))
+                var topSections = mainBody.Elements(fb2Ns + "section").ToList();
+                for (int i = 0; i < topSections.Count; i++)
                 {
-                    ProcessSection(section, html);
+                    ProcessSection(topSections[i], html, i == 0);
                 }
             }
 
@@ -195,8 +196,14 @@ namespace TinyOPDS
             return html.ToString();
         }
 
-        private void ProcessSection(XElement section, StringBuilder html)
+        private void ProcessSection(XElement section, StringBuilder html, bool isFirstInParent)
         {
+            // Pagebreak before section, except for first child (stays with parent)
+            if (!isFirstInParent)
+            {
+                html.AppendLine("<mbp:pagebreak/>");
+            }
+
             var title = section.Element(fb2Ns + "title");
             if (title != null)
             {
@@ -206,6 +213,8 @@ namespace TinyOPDS
                     html.AppendFormat("<h3>{0}</h3>\n", EscapeHtml(titleText));
                 }
             }
+
+            var childSections = new List<XElement>();
 
             foreach (var elem in section.Elements())
             {
@@ -224,12 +233,16 @@ namespace TinyOPDS
                         break;
 
                     case "section":
-                        ProcessSection(elem, html);
+                        childSections.Add(elem);
                         break;
                 }
             }
 
-            html.AppendLine("<mbp:pagebreak/>");
+            // Process nested sections with proper pagebreak logic
+            for (int i = 0; i < childSections.Count; i++)
+            {
+                ProcessSection(childSections[i], html, i == 0);
+            }
         }
 
         private void ProcessParagraph(XElement paragraph, StringBuilder html)
@@ -610,8 +623,8 @@ namespace TinyOPDS
                 exthSize += rec.Length;
             }
 
-            int padding = (4 - (exthSize % 4)) % 4;
-            exthSize += padding;
+            int exthPadding = (4 - (exthSize % 4)) % 4;
+            exthSize += exthPadding;
 
             stream.Write(Encoding.ASCII.GetBytes("EXTH"), 0, 4);
             WriteInt32BE(stream, exthSize);
@@ -622,9 +635,9 @@ namespace TinyOPDS
                 stream.Write(rec, 0, rec.Length);
             }
 
-            if (padding > 0)
+            if (exthPadding > 0)
             {
-                stream.Write(new byte[padding], 0, padding);
+                stream.Write(new byte[exthPadding], 0, exthPadding);
             }
         }
 

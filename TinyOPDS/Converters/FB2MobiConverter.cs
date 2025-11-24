@@ -42,7 +42,7 @@ namespace TinyOPDS
                     return false;
                 }
 
-                ExtractImages();
+                //ExtractImages();
                 ExtractFootnotes();
                 string htmlContent = GenerateHtml(book);
                 byte[] htmlBytes = Encoding.UTF8.GetBytes(htmlContent);
@@ -146,9 +146,9 @@ namespace TinyOPDS
             html.AppendFormat("<title>{0}</title>\n", EscapeHtml(book.Title));
             html.AppendLine("<style>");
             html.AppendLine("body { font-family: serif; margin: 1em; line-height: 1.4; }");
-            html.AppendLine("h1 { text-align: center; margin-bottom: 0.5em; }");
-            html.AppendLine("h3 { text-align: center; margin-top: 0; color: #666; }");
-            html.AppendLine("h2 { margin-top: 1.5em; margin-bottom: 0.5em; }");
+            html.AppendLine("h1 { text-align: center; margin-bottom: 0.5em; font-size: 1.3em; }");
+            html.AppendLine("h3 { text-align: center; margin-top: 0; color: #666; font-size: 1.1em; }");
+            html.AppendLine("h2 { margin-top: 1.5em; margin-bottom: 0.5em; font-size: 1.1em; }");
             html.AppendLine("p { margin: 0.5em 0; text-indent: 1.5em; }");
             html.AppendLine("img { max-width: 100%; height: auto; display: block; margin: 1em auto; }");
             html.AppendLine(".footnote-ref { vertical-align: super; font-size: 0.8em; }");
@@ -180,7 +180,7 @@ namespace TinyOPDS
             if (footnotes.Count > 0)
             {
                 html.AppendLine("<div class=\"footnotes\">");
-                html.AppendLine("<h2>Примечания</h2>");
+                html.AppendLine("<h2>Notes:</h2>");
                 foreach (var fn in footnotes.OrderBy(kvp => kvp.Key))
                 {
                     html.AppendFormat("<p class=\"footnote\" id=\"{0}\">[{1}] {2}</p>\n",
@@ -203,7 +203,7 @@ namespace TinyOPDS
                 var titleText = ExtractText(title);
                 if (!string.IsNullOrWhiteSpace(titleText))
                 {
-                    html.AppendFormat("<h2>{0}</h2>\n", EscapeHtml(titleText));
+                    html.AppendFormat("<h3>{0}</h3>\n", EscapeHtml(titleText));
                 }
             }
 
@@ -228,6 +228,8 @@ namespace TinyOPDS
                         break;
                 }
             }
+
+            html.AppendLine("<mbp:pagebreak/>");
         }
 
         private void ProcessParagraph(XElement paragraph, StringBuilder html)

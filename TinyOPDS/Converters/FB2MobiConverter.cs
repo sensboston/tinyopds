@@ -1,13 +1,6 @@
 ﻿/*
- * This file is part of TinyOPDS server project
- * https://github.com/sensboston/tinyopds
- *
- * Copyright (c) 2013-2025 SeNSSoFT
- * SPDX-License-Identifier: MIT
- *
- * FB2 to MOBI converter with two-pass HTML generation
- * Uses filepos byte offsets for internal links (Kindle compatible)
- *
+ * FB2 to MOBI converter - TinyOPDS
+ * v12: Correct byte position calculation for popup footnotes
  */
 
 using System;
@@ -23,18 +16,18 @@ namespace TinyOPDS
 {
     public class FB2MobiConverter
     {
+        private const int RECORD_SIZE = 4096;
+        private const int NULL_INDEX = unchecked((int)0xFFFFFFFF);
+        private const string FILEPOS_PLACEHOLDER = "0000000000";
+
         private XDocument fb2Xml = null;
         private XNamespace fb2Ns;
         private readonly XNamespace xlinkNs = "http://www.w3.org/1999/xlink";
-        private readonly Dictionary<string, byte[]> images = new Dictionary<string, byte[]>();
-        private readonly Dictionary<string, string> footnotes = new Dictionary<string, string>();
-
-        // Two-pass link resolution
-        private MemoryStream htmlBuffer;
-        private Dictionary<string, long> anchorOffsets;
-        private List<(long placeholderPos, string targetId)> linkPlaceholders;
-
-        private const string FILEPOS_PLACEHOLDER = "0000000000";
+        private Dictionary<string, byte[]> images = new Dictionary<string, byte[]>();
+        private Dictionary<string, int> imageIndices = new Dictionary<string, int>();
+        private Dictionary<string, string> footnotes = new Dictionary<string, string>();
+        private string coverImageId = null;
+        private int coverRecindex = 0;
 
         public bool ConvertToMobiStream(Book book, Stream fb2Stream, Stream mobiStream)
         {
@@ -46,13 +39,18 @@ namespace TinyOPDS
                     return false;
                 }
 
+                ExtractCoverImage();
+                ExtractImages();
+                BuildImageIndices();
                 ExtractFootnotes();
-                byte[] htmlBytes = GenerateHtmlWithLinks(book);
+
+                string htmlContent = GenerateHtmlWithFootnotes(book);
+                byte[] htmlBytes = Encoding.UTF8.GetBytes(htmlContent);
 
                 WriteMobiFile(mobiStream, htmlBytes, book);
 
-                Log.WriteLine(LogLevel.Info, "Created MOBI for: {0} ({1} footnotes)",
-                    book.FileName, footnotes.Count);
+                Log.WriteLine(LogLevel.Info, "Created MOBI: {0} ({1} images, {2} footnotes, cover: {3})",
+                    book.FileName, images.Count, footnotes.Count, coverImageId != null ? "yes" : "no");
                 return true;
             }
             catch (Exception ex)
@@ -61,6 +59,8 @@ namespace TinyOPDS
                 return false;
             }
         }
+
+        #region FB2 Parsing
 
         private bool LoadFB2Xml(Stream stream)
         {
@@ -75,6 +75,63 @@ namespace TinyOPDS
             catch
             {
                 return false;
+            }
+        }
+
+        private void ExtractCoverImage()
+        {
+            coverImageId = null;
+            var coverpage = fb2Xml.Root?.Descendants(fb2Ns + "coverpage").FirstOrDefault();
+            if (coverpage == null) return;
+
+            var imageElem = coverpage.Element(fb2Ns + "image");
+            if (imageElem == null) return;
+
+            var href = imageElem.Attribute(xlinkNs + "href")?.Value;
+            if (string.IsNullOrEmpty(href)) return;
+
+            coverImageId = href.TrimStart('#');
+        }
+
+        private void ExtractImages()
+        {
+            images.Clear();
+            var binaries = fb2Xml.Root?.Descendants(fb2Ns + "binary");
+            if (binaries == null) return;
+
+            foreach (var binary in binaries)
+            {
+                try
+                {
+                    string id = binary.Attribute("id")?.Value;
+                    if (string.IsNullOrEmpty(id)) continue;
+
+                    string base64Data = binary.Value.Trim();
+                    byte[] imageData = Convert.FromBase64String(base64Data);
+
+                    if (imageData.Length > 0)
+                    {
+                        images[id] = imageData;
+                    }
+                }
+                catch { }
+            }
+        }
+
+        private void BuildImageIndices()
+        {
+            imageIndices.Clear();
+            coverRecindex = 0;
+
+            int index = 1;
+            foreach (var key in images.Keys)
+            {
+                imageIndices[key] = index;
+                if (key == coverImageId)
+                {
+                    coverRecindex = index;
+                }
+                index++;
             }
         }
 
@@ -110,314 +167,292 @@ namespace TinyOPDS
             }
         }
 
-        private int ExtractNumber(string id)
+        #endregion
+
+        #region HTML Generation with Popup Footnotes
+
+        private string GenerateHtmlWithFootnotes(Book book)
         {
-            var digits = new string(id.Where(char.IsDigit).ToArray());
-            if (int.TryParse(digits, out int num))
-                return num;
-            return int.MaxValue;
-        }
+            string html = GenerateHtml(book);
 
-        /// <summary>
-        /// Two-pass HTML generation with filepos link resolution
-        /// </summary>
-        private byte[] GenerateHtmlWithLinks(Book book)
-        {
-            htmlBuffer = new MemoryStream();
-            anchorOffsets = new Dictionary<string, long>();
-            linkPlaceholders = new List<(long, string)>();
+            if (footnotes.Count == 0)
+                return html;
 
-            // Pass 1: Generate HTML with placeholders
-            GenerateHtmlContent(book);
+            byte[] htmlBytes = Encoding.UTF8.GetBytes(html);
 
-            // Pass 2: Resolve links
-            byte[] result = htmlBuffer.ToArray();
-            ResolveLinkPlaceholders(result);
+            var replacements = new Dictionary<string, int>();
 
-            return result;
-        }
-
-        private void Write(string text)
-        {
-            byte[] bytes = Encoding.UTF8.GetBytes(text);
-            htmlBuffer.Write(bytes, 0, bytes.Length);
-        }
-
-        private void WriteLine(string text)
-        {
-            Write(text);
-            Write("\n");
-        }
-
-        private void WriteAnchor(string id)
-        {
-            // Record byte position for this anchor
-            anchorOffsets[id] = htmlBuffer.Position;
-        }
-
-        private void WriteLink(string targetId, string linkText)
-        {
-            // filepos without quotes (as per MOBI spec)
-            Write("<a filepos=");
-            linkPlaceholders.Add((htmlBuffer.Position, targetId));
-            Write(FILEPOS_PLACEHOLDER);
-            Write(">");
-            Write(linkText);
-            Write("</a>");
-        }
-
-        private void ResolveLinkPlaceholders(byte[] html)
-        {
-            foreach (var (placeholderPos, targetId) in linkPlaceholders)
+            // Find byte positions of all <a tags with id="back_n_X" and id="n_X"
+            foreach (var fnId in footnotes.Keys)
             {
-                if (anchorOffsets.TryGetValue(targetId, out long targetOffset))
+                // Position of <a id="back_X"
+                string backPattern = string.Format("<a id=\"back_{0}\"", fnId);
+                int backPos = FindBytePosition(htmlBytes, backPattern);
+                if (backPos >= 0)
                 {
-                    string offsetStr = targetOffset.ToString("D10");
-                    byte[] offsetBytes = Encoding.ASCII.GetBytes(offsetStr);
-                    Array.Copy(offsetBytes, 0, html, placeholderPos, 10);
+                    replacements["back_" + fnId] = backPos;
                 }
-                else
+
+                // Position of <a filepos=... id="X"
+                string notePattern = string.Format("<a filepos={0} id=\"{1}\"", FILEPOS_PLACEHOLDER, fnId);
+                int notePos = FindBytePosition(htmlBytes, notePattern);
+                if (notePos >= 0)
                 {
-                    Log.WriteLine(LogLevel.Warning, "Unresolved link target: {0}", targetId);
+                    replacements[fnId] = notePos;
                 }
+            }
+
+            // Replace placeholders
+            var result = new StringBuilder(html);
+
+            foreach (var fnId in footnotes.Keys)
+            {
+                // Replace filepos in back_X pointing to n_X
+                if (replacements.ContainsKey(fnId))
+                {
+                    string oldValue = string.Format("id=\"back_{0}\" filepos={1}", fnId, FILEPOS_PLACEHOLDER);
+                    string newValue = string.Format("id=\"back_{0}\" filepos={1:D10}", fnId, replacements[fnId]);
+                    ReplaceFirst(result, oldValue, newValue);
+                }
+
+                // Replace filepos in n_X pointing to back_n_X
+                if (replacements.ContainsKey("back_" + fnId))
+                {
+                    string oldValue = string.Format("filepos={0} id=\"{1}\"", FILEPOS_PLACEHOLDER, fnId);
+                    string newValue = string.Format("filepos={0:D10} id=\"{1}\"", replacements["back_" + fnId], fnId);
+                    ReplaceFirst(result, oldValue, newValue);
+                }
+            }
+
+            return result.ToString();
+        }
+
+        private int FindBytePosition(byte[] htmlBytes, string pattern)
+        {
+            byte[] patternBytes = Encoding.UTF8.GetBytes(pattern);
+
+            for (int i = 0; i <= htmlBytes.Length - patternBytes.Length; i++)
+            {
+                bool match = true;
+                for (int j = 0; j < patternBytes.Length; j++)
+                {
+                    if (htmlBytes[i + j] != patternBytes[j])
+                    {
+                        match = false;
+                        break;
+                    }
+                }
+                if (match)
+                    return i;
+            }
+            return -1;
+        }
+
+        private void ReplaceFirst(StringBuilder sb, string oldValue, string newValue)
+        {
+            string s = sb.ToString();
+            int pos = s.IndexOf(oldValue);
+            if (pos >= 0)
+            {
+                sb.Remove(pos, oldValue.Length);
+                sb.Insert(pos, newValue);
             }
         }
 
-        private void GenerateHtmlContent(Book book)
+        private string GenerateHtml(Book book)
         {
-            WriteLine("<!DOCTYPE html>");
-            WriteLine("<html>");
-            WriteLine("<head>");
-            WriteLine("<meta charset=\"UTF-8\"/>");
-            Write("<title>");
-            Write(EscapeHtml(book.Title));
-            WriteLine("</title>");
-            WriteLine("</head>");
-            WriteLine("<body>");
+            var html = new StringBuilder();
 
-            // Book title
-            Write("<p width=\"0\" align=\"center\"><font size=\"+2\"><b>");
-            Write(EscapeHtml(book.Title));
-            WriteLine("</b></font></p>");
+            html.Append("<html>\r\n");
+            html.Append("<head>\r\n");
+            html.Append("<guide>\r\n");
+            html.Append("<reference title=\"Starts here\" type=\"text\" filepos=0000000000 />\r\n");
+            html.Append("</guide>\r\n");
+            html.Append("</head>\r\n");
+            html.Append("<body>\r\n");
 
-            // Authors
+            // Title page
+            html.Append("<p width=\"0\" align=\"center\">\r\n");
+            html.Append("<font size=\"+2\">\r\n");
+            html.Append("<b>");
+            html.Append(EscapeHtml(book.Title));
+            html.Append("</b>\r\n");
+            html.Append("</font>\r\n");
+            html.Append("</p>\r\n");
+
             if (book.Authors?.Count > 0)
             {
-                Write("<p width=\"0\" align=\"center\">");
-                Write(EscapeHtml(string.Join(", ", book.Authors)));
-                WriteLine("</p>");
+                html.Append("<p width=\"0\" align=\"center\">");
+                html.Append(EscapeHtml(string.Join(", ", book.Authors)));
+                html.Append("</p>\r\n");
             }
-            WriteLine("<br/>");
-            WriteLine("<hr/>");
 
-            // Main body
+            html.Append("<br />\r\n");
+
             var mainBody = fb2Xml.Root?.Elements(fb2Ns + "body")
                 .FirstOrDefault(b => b.Attribute("name")?.Value != "notes");
 
             if (mainBody != null)
             {
-                var topSections = mainBody.Elements(fb2Ns + "section").ToList();
-                bool foundFirstTitled = false;
-                for (int i = 0; i < topSections.Count; i++)
+                foreach (var section in mainBody.Elements(fb2Ns + "section"))
                 {
-                    bool hasTitle = topSections[i].Element(fb2Ns + "title") != null;
-                    bool needsPagebreak = hasTitle && foundFirstTitled;
-                    if (hasTitle) foundFirstTitled = true;
-                    ProcessSection(topSections[i], needsPagebreak);
+                    ProcessSection(section, html);
                 }
             }
 
             // Footnotes section
             if (footnotes.Count > 0)
             {
-                var sortedFootnotes = footnotes.OrderBy(fn => ExtractNumber(fn.Key)).ToList();
+                html.Append("<mbp:pagebreak />\r\n");
+                html.Append("<p width=\"0\" align=\"center\">\r\n");
+                html.Append("<font size=\"+1\">\r\n");
+                html.Append("<b>Примечания</b>\r\n");
+                html.Append("</font>\r\n");
+                html.Append("</p>\r\n");
+                html.Append("<div height=\"1em\"></div>\r\n");
 
-                foreach (var fn in sortedFootnotes)
+                int noteNum = 1;
+                foreach (var fn in footnotes)
                 {
-                    WriteLine("<mbp:pagebreak/>");
-
-                    int noteNum = ExtractNumber(fn.Key);
-
-                    // Padding to absorb Kindle's display quirk (shows ~10 chars before filepos)
-                    Write("          ");
-                    WriteAnchor("note_" + fn.Key);
-                    WriteLine("");
-
-                    Write("<p width=\"0\" align=\"center\"><b>[");
-                    Write(noteNum.ToString());
-                    WriteLine("]</b></p>");
-                    WriteLine("<br/>");
-
-                    Write("<p>");
-                    Write(EscapeHtml(fn.Value));
-                    WriteLine("</p>");
-                    WriteLine("<br/>");
-
-                    // Back link
-                    Write("<center><font size=\"+4\"><b>");
-                    WriteLink("back_" + fn.Key, "←");
-                    WriteLine("</b></font></center>");
+                    html.Append("<p width=\"0\" align=\"justify\">\r\n");
+                    html.Append("<font size=\"-1\">\r\n");
+                    html.AppendFormat("<a filepos={0} id=\"{1}\">{2}).</a> {3}\r\n",
+                        FILEPOS_PLACEHOLDER, fn.Key, noteNum, EscapeHtml(fn.Value));
+                    html.Append("</font>\r\n");
+                    html.Append("</p>\r\n");
+                    noteNum++;
                 }
             }
 
-            WriteLine("</body>");
-            WriteLine("</html>");
+            html.Append("</body>\r\n");
+            html.Append("</html>\r\n");
+
+            return html.ToString();
         }
 
-        private void ProcessSection(XElement section, bool needsPagebreak)
+        private void ProcessSection(XElement section, StringBuilder html)
         {
-            if (needsPagebreak)
-            {
-                WriteLine("<mbp:pagebreak/>");
-            }
-
             var title = section.Element(fb2Ns + "title");
             if (title != null)
             {
-                var paragraphs = title.Elements(fb2Ns + "p").ToList();
-                if (paragraphs.Count > 0)
+                var titleText = ExtractText(title);
+                if (!string.IsNullOrWhiteSpace(titleText))
                 {
-                    foreach (var p in paragraphs)
-                    {
-                        var text = ExtractText(p);
-                        if (!string.IsNullOrWhiteSpace(text))
-                        {
-                            Write("<p width=\"0\" align=\"center\"><b>");
-                            Write(EscapeHtml(text));
-                            WriteLine("</b></p>");
-                        }
-                    }
+                    html.Append("<p width=\"0\" align=\"center\">\r\n");
+                    html.Append("<b>");
+                    html.Append(EscapeHtml(titleText));
+                    html.Append("</b>\r\n");
+                    html.Append("</p>\r\n");
+                    html.Append("<br />\r\n");
                 }
-                else
-                {
-                    var titleText = ExtractText(title);
-                    if (!string.IsNullOrWhiteSpace(titleText))
-                    {
-                        Write("<p width=\"0\" align=\"center\"><b>");
-                        Write(EscapeHtml(titleText));
-                        WriteLine("</b></p>");
-                    }
-                }
-                WriteLine("<br/>");
             }
-
-            var childSections = new List<XElement>();
 
             foreach (var elem in section.Elements())
             {
                 switch (elem.Name.LocalName)
                 {
                     case "p":
-                        ProcessParagraph(elem);
+                        ProcessParagraph(elem, html);
                         break;
 
                     case "empty-line":
-                        WriteLine("<br/>");
+                        html.Append("<br />\r\n");
+                        break;
+
+                    case "image":
+                        ProcessImage(elem, html);
                         break;
 
                     case "section":
-                        childSections.Add(elem);
+                        ProcessSection(elem, html);
                         break;
                 }
             }
 
-            // Process nested sections
-            bool foundFirstTitled = false;
-            for (int i = 0; i < childSections.Count; i++)
-            {
-                bool hasTitle = childSections[i].Element(fb2Ns + "title") != null;
-                bool childNeedsPagebreak = hasTitle && foundFirstTitled;
-                if (hasTitle) foundFirstTitled = true;
-                ProcessSection(childSections[i], childNeedsPagebreak);
-            }
-
-            WriteLine("<br/>");
+            html.Append("<mbp:pagebreak />\r\n");
         }
 
-        private void ProcessParagraph(XElement paragraph)
+        private void ProcessParagraph(XElement paragraph, StringBuilder html)
         {
-            var content = new StringBuilder();
-            var footnoteIds = new List<string>();
+            var sb = new StringBuilder();
 
-            // First pass: collect ALL footnote IDs in paragraph
-            foreach (var node in paragraph.Nodes())
-            {
-                if (node is XElement elemNode && elemNode.Name.LocalName == "a")
-                {
-                    var href = elemNode.Attribute(xlinkNs + "href")?.Value;
-                    if (!string.IsNullOrEmpty(href))
-                    {
-                        href = href.TrimStart('#');
-                        if (footnotes.ContainsKey(href))
-                        {
-                            footnoteIds.Add(href);
-                        }
-                    }
-                }
-            }
-
-            // Place back-anchors for ALL footnotes at paragraph start
-            foreach (var fnId in footnoteIds)
-            {
-                Write("          ");
-                WriteAnchor("back_" + fnId);
-                WriteLine("");
-            }
-
-            // Second pass: build paragraph content
-            Write("<p>");
             foreach (var node in paragraph.Nodes())
             {
                 if (node is XText textNode)
                 {
-                    content.Append(EscapeHtml(textNode.Value));
+                    sb.Append(EscapeHtml(textNode.Value));
                 }
                 else if (node is XElement elemNode)
                 {
-                    if (elemNode.Name.LocalName == "a")
+                    switch (elemNode.Name.LocalName)
                     {
-                        var href = elemNode.Attribute(xlinkNs + "href")?.Value;
-                        if (!string.IsNullOrEmpty(href))
-                        {
-                            href = href.TrimStart('#');
-                            if (footnotes.ContainsKey(href))
+                        case "a":
+                            var href = elemNode.Attribute(xlinkNs + "href")?.Value;
+                            if (!string.IsNullOrEmpty(href))
                             {
-                                // Flush content before link
-                                if (content.Length > 0)
+                                href = href.TrimStart('#');
+                                if (footnotes.ContainsKey(href))
                                 {
-                                    Write(content.ToString());
-                                    content.Clear();
-                                }
+                                    var fnList = footnotes.Keys.ToList();
+                                    int noteNum = fnList.IndexOf(href) + 1;
 
-                                int noteNum = ExtractNumber(href);
-                                Write("<sup>");
-                                WriteLink("note_" + href, "[" + noteNum + "]");
-                                Write("</sup>");
+                                    sb.AppendFormat(" <a id=\"back_{0}\" filepos={1}>",
+                                        href, FILEPOS_PLACEHOLDER);
+                                    sb.Append("<font size=\"-1\">");
+                                    sb.AppendFormat("<sup>[{0}]</sup>", noteNum);
+                                    sb.Append("</font>");
+                                    sb.Append("</a>");
+                                }
+                                else
+                                {
+                                    sb.Append(EscapeHtml(ExtractText(elemNode)));
+                                }
                             }
                             else
                             {
-                                content.Append(EscapeHtml(ExtractText(elemNode)));
+                                sb.Append(EscapeHtml(ExtractText(elemNode)));
                             }
-                        }
-                        else
-                        {
-                            content.Append(EscapeHtml(ExtractText(elemNode)));
-                        }
-                    }
-                    else
-                    {
-                        content.Append(EscapeHtml(ExtractText(elemNode)));
+                            break;
+
+                        case "strong":
+                            sb.AppendFormat("<b>{0}</b>", EscapeHtml(ExtractText(elemNode)));
+                            break;
+
+                        case "emphasis":
+                            sb.AppendFormat("<i>{0}</i>", EscapeHtml(ExtractText(elemNode)));
+                            break;
+
+                        default:
+                            sb.Append(EscapeHtml(ExtractText(elemNode)));
+                            break;
                     }
                 }
             }
 
-            // Write remaining content
-            var text = content.ToString().Trim();
+            var text = sb.ToString().Trim();
             if (!string.IsNullOrWhiteSpace(text))
             {
-                Write(text);
+                html.Append("<p>");
+                html.Append(text);
+                html.Append("</p>\r\n");
             }
-            WriteLine("</p>");
+        }
+
+        private void ProcessImage(XElement imageElem, StringBuilder html)
+        {
+            var href = imageElem.Attribute(xlinkNs + "href")?.Value;
+            if (string.IsNullOrEmpty(href)) return;
+
+            href = href.TrimStart('#');
+            if (imageIndices.ContainsKey(href))
+            {
+                int recindex = imageIndices[href];
+                html.Append("<br />\r\n");
+                html.Append("<p width=\"0\" align=\"center\">\r\n");
+                html.AppendFormat("<img recindex=\"{0:D5}\" />\r\n", recindex);
+                html.Append("</p>\r\n");
+                html.Append("<br />\r\n");
+            }
         }
 
         private string ExtractText(XElement element)
@@ -433,130 +468,107 @@ namespace TinyOPDS
             return System.Net.WebUtility.HtmlEncode(text ?? "");
         }
 
+        #endregion
+
+        #region MOBI Writing
+
         private void WriteMobiFile(Stream stream, byte[] htmlData, Book book)
         {
             var textRecords = new List<byte[]>();
             int offset = 0;
             while (offset < htmlData.Length)
             {
-                int size = Math.Min(4096, htmlData.Length - offset);
+                int size = Math.Min(RECORD_SIZE, htmlData.Length - offset);
                 byte[] record = new byte[size];
                 Array.Copy(htmlData, offset, record, 0, size);
                 textRecords.Add(record);
                 offset += size;
             }
 
-            int totalRecords = 1 + textRecords.Count + 3;
+            var imageRecords = new List<byte[]>(images.Values);
 
-            WritePalmDbHeader(stream, book.Title, totalRecords);
+            int firstImageRecordIndex = imageRecords.Count > 0 ? 1 + textRecords.Count : 0;
+            int flisRecordIndex = 1 + textRecords.Count + imageRecords.Count;
+            int fcisRecordIndex = flisRecordIndex + 1;
+            int eofRecordIndex = fcisRecordIndex + 1;
+            int totalRecords = eofRecordIndex + 1;
 
-            int currentOffset = 78 + (totalRecords * 8) + 2;
-            int headerSize = CalculateHeaderSize(book);
+            byte[] record0 = BuildRecord0(book, htmlData.Length, textRecords.Count,
+                                          firstImageRecordIndex, flisRecordIndex, fcisRecordIndex);
+            byte[] flisRecord = BuildFLISRecord();
+            byte[] fcisRecord = BuildFCISRecord(htmlData.Length);
+            byte[] eofRecord = new byte[] { 0xE9, 0x8E, 0x0D, 0x0A };
 
-            WriteInt32BE(stream, currentOffset);
-            stream.Write(new byte[] { 0, 0, 0, 0 }, 0, 4);
-            currentOffset += headerSize;
+            int headerEnd = 78 + (totalRecords * 8) + 2;
+            var recordOffsets = new List<int>();
+            int currentOffset = headerEnd;
+
+            recordOffsets.Add(currentOffset);
+            currentOffset += record0.Length;
 
             foreach (var rec in textRecords)
             {
-                WriteInt32BE(stream, currentOffset);
-                stream.Write(new byte[] { 0, 0, 0, 0 }, 0, 4);
+                recordOffsets.Add(currentOffset);
                 currentOffset += rec.Length;
             }
 
-            int flisIndex = 1 + textRecords.Count;
-            int fcisIndex = flisIndex + 1;
-
-            WriteInt32BE(stream, currentOffset);
-            stream.Write(new byte[] { 0, 0, 0, 0 }, 0, 4);
-            currentOffset += 36;
-
-            WriteInt32BE(stream, currentOffset);
-            stream.Write(new byte[] { 0, 0, 0, 0 }, 0, 4);
-            currentOffset += 52;
-
-            WriteInt32BE(stream, currentOffset);
-            stream.Write(new byte[] { 0, 0, 0, 0 }, 0, 4);
-
-            stream.Write(new byte[] { 0, 0 }, 0, 2);
-
-            long record0Start = stream.Position;
-
-            WriteInt16BE(stream, 1);
-            WriteInt16BE(stream, 0);
-            WriteInt32BE(stream, htmlData.Length);
-            WriteInt16BE(stream, textRecords.Count);
-            WriteInt16BE(stream, 4096);
-            WriteInt32BE(stream, 0);
-
-            WriteMobiHeader(stream, book, textRecords.Count, flisIndex, fcisIndex);
-            WriteExthHeader(stream, book);
-
-            byte[] titleBytes = Encoding.UTF8.GetBytes(book.Title);
-            stream.Write(titleBytes, 0, titleBytes.Length);
-
-            long headerWritten = stream.Position - record0Start;
-            if (headerWritten < headerSize)
+            foreach (var img in imageRecords)
             {
-                stream.Write(new byte[headerSize - headerWritten], 0, (int)(headerSize - headerWritten));
+                recordOffsets.Add(currentOffset);
+                currentOffset += img.Length;
             }
 
-            foreach (var record in textRecords)
+            recordOffsets.Add(currentOffset);
+            currentOffset += flisRecord.Length;
+
+            recordOffsets.Add(currentOffset);
+            currentOffset += fcisRecord.Length;
+
+            recordOffsets.Add(currentOffset);
+
+            WritePalmDbHeader(stream, book.Title, totalRecords);
+
+            for (int i = 0; i < totalRecords; i++)
             {
-                stream.Write(record, 0, record.Length);
+                WriteInt32BE(stream, recordOffsets[i]);
+                stream.WriteByte(0);
+                int uniqueId = 2 * i;
+                stream.WriteByte((byte)((uniqueId >> 16) & 0xFF));
+                stream.WriteByte((byte)((uniqueId >> 8) & 0xFF));
+                stream.WriteByte((byte)(uniqueId & 0xFF));
             }
 
-            WriteFLISRecord(stream);
-            WriteFCISRecord(stream, htmlData.Length);
-            WriteEOFRecord(stream);
+            stream.WriteByte(0);
+            stream.WriteByte(0);
+
+            stream.Write(record0, 0, record0.Length);
+
+            foreach (var rec in textRecords)
+                stream.Write(rec, 0, rec.Length);
+
+            foreach (var img in imageRecords)
+                stream.Write(img, 0, img.Length);
+
+            stream.Write(flisRecord, 0, flisRecord.Length);
+            stream.Write(fcisRecord, 0, fcisRecord.Length);
+            stream.Write(eofRecord, 0, eofRecord.Length);
         }
 
-        private int CalculateHeaderSize(Book book)
+        private void WritePalmDbHeader(Stream stream, string title, int recordCount)
         {
-            int size = 16 + 232;
-
-            int exthSize = 12;
-
-            if (book.Authors?.Count > 0)
-            {
-                exthSize += 8 + Encoding.UTF8.GetByteCount(book.Authors[0]);
-            }
-
-            exthSize += 8 + Encoding.UTF8.GetByteCount(book.Title);
-            exthSize += 8 + 4;
-            exthSize += 8 + 4;
-            exthSize += 8 + 4;
-            exthSize += 8 + 4;
-
-            int padding = (4 - (exthSize % 4)) % 4;
-            exthSize += padding;
-
-            size += exthSize;
-            size += Encoding.UTF8.GetByteCount(book.Title);
-
-            int remainder = size % 4;
-            if (remainder != 0)
-            {
-                size += (4 - remainder);
-            }
-
-            return size;
-        }
-
-        private void WritePalmDbHeader(Stream stream, string name, int recordCount)
-        {
-            byte[] nameBytes = Encoding.UTF8.GetBytes(name);
-            int nameLen = Math.Min(nameBytes.Length, 31);
-
-            stream.Write(nameBytes, 0, nameLen);
-            stream.Write(new byte[32 - nameLen], 0, 32 - nameLen);
+            string safeName = new string(title.Where(c => c < 128 && c >= 32).ToArray());
+            if (safeName.Length > 31) safeName = safeName.Substring(0, 31);
+            byte[] nameBytes = Encoding.ASCII.GetBytes(safeName);
+            stream.Write(nameBytes, 0, nameBytes.Length);
+            for (int i = nameBytes.Length; i < 32; i++)
+                stream.WriteByte(0);
 
             WriteInt16BE(stream, 0);
             WriteInt16BE(stream, 0);
 
-            uint palmDate = (uint)(DateTime.Now - new DateTime(1904, 1, 1)).TotalSeconds;
-            WriteInt32BE(stream, (int)palmDate);
-            WriteInt32BE(stream, (int)palmDate);
+            int palmTime = (int)((DateTime.UtcNow - new DateTime(1904, 1, 1)).TotalSeconds);
+            WriteInt32BE(stream, palmTime);
+            WriteInt32BE(stream, palmTime);
             WriteInt32BE(stream, 0);
             WriteInt32BE(stream, 0);
             WriteInt32BE(stream, 0);
@@ -565,227 +577,235 @@ namespace TinyOPDS
             stream.Write(Encoding.ASCII.GetBytes("BOOK"), 0, 4);
             stream.Write(Encoding.ASCII.GetBytes("MOBI"), 0, 4);
 
-            WriteInt32BE(stream, (int)(DateTime.Now.Ticks & 0xFFFFFFFF));
+            WriteInt32BE(stream, (2 * recordCount) - 1);
             WriteInt32BE(stream, 0);
             WriteInt16BE(stream, recordCount);
         }
 
-        private void WriteMobiHeader(Stream stream, Book book, int recordCount,
-            int flisIndex, int fcisIndex)
+        private byte[] BuildRecord0(Book book, int textLength, int textRecordCount,
+                                    int firstImageRecordIndex, int flisRecordIndex, int fcisRecordIndex)
         {
-            long mobiStart = stream.Position;
-
-            stream.Write(Encoding.ASCII.GetBytes("MOBI"), 0, 4);
-            WriteInt32BE(stream, 232);
-            WriteInt32BE(stream, 2);
-            WriteInt32BE(stream, 65001);
-            WriteInt32BE(stream, (int)DateTime.Now.Ticks);
-            WriteInt32BE(stream, 6);
-            WriteInt32BE(stream, -1);
-            WriteInt32BE(stream, -1);
-            WriteInt32BE(stream, -1);
-            WriteInt32BE(stream, -1);
-
-            for (int i = 0; i < 6; i++)
-                WriteInt32BE(stream, -1);
-
-            WriteInt32BE(stream, -1);
-
-            int fullNameOffset = 16 + 232;
-            int exthSize = 12;
-            if (book.Authors?.Count > 0)
+            using (var ms = new MemoryStream())
             {
-                exthSize += 8 + Encoding.UTF8.GetByteCount(book.Authors[0]);
-            }
-            exthSize += 8 + Encoding.UTF8.GetByteCount(book.Title);
-            exthSize += 8 + 4;
-            exthSize += 8 + 4;
-            exthSize += 8 + 4;
-            exthSize += 8 + 4;
-            int padding = (4 - (exthSize % 4)) % 4;
-            exthSize += padding;
-            fullNameOffset += exthSize;
+                WriteInt16BE(ms, 1);
+                WriteInt16BE(ms, 0);
+                WriteInt32BE(ms, textLength);
+                WriteInt16BE(ms, textRecordCount);
+                WriteInt16BE(ms, RECORD_SIZE);
+                WriteInt32BE(ms, 0);
 
-            WriteInt32BE(stream, fullNameOffset);
-            WriteInt32BE(stream, Encoding.UTF8.GetByteCount(book.Title));
-            WriteInt32BE(stream, 9);
-            WriteInt32BE(stream, 0);
-            WriteInt32BE(stream, 0);
-            WriteInt32BE(stream, 6);
-            WriteInt32BE(stream, -1);  // No images
-            WriteInt32BE(stream, 0);
-            WriteInt32BE(stream, 0);
-            WriteInt32BE(stream, 0);
-            WriteInt32BE(stream, 0);
-            WriteInt32BE(stream, 0x40);
+                long mobiStart = ms.Position;
 
-            stream.Write(new byte[32], 0, 32);
+                ms.Write(Encoding.ASCII.GetBytes("MOBI"), 0, 4);
+                WriteInt32BE(ms, 232);
+                WriteInt32BE(ms, 2);
+                WriteInt32BE(ms, 65001);
+                WriteInt32BE(ms, new Random().Next());
+                WriteInt32BE(ms, 6);
 
-            WriteInt32BE(stream, -1);
-            WriteInt32BE(stream, -1);
-            WriteInt32BE(stream, 0);
-            WriteInt32BE(stream, 0);
+                for (int i = 0; i < 10; i++)
+                    WriteInt32BE(ms, NULL_INDEX);
 
-            stream.Write(new byte[8], 0, 8);
+                WriteInt32BE(ms, 1 + textRecordCount);
 
-            WriteInt16BE(stream, 1);
-            WriteInt16BE(stream, recordCount);
+                long fullNameOffsetPos = ms.Position;
+                WriteInt32BE(ms, 0);
 
-            WriteInt32BE(stream, 0);
-            WriteInt32BE(stream, fcisIndex);
-            WriteInt32BE(stream, 1);
-            WriteInt32BE(stream, flisIndex);
-            WriteInt32BE(stream, 1);
+                int titleLen = Encoding.UTF8.GetByteCount(book.Title);
+                WriteInt32BE(ms, titleLen);
+                WriteInt32BE(ms, 9);
+                WriteInt32BE(ms, 0);
+                WriteInt32BE(ms, 0);
+                WriteInt32BE(ms, 6);
 
-            stream.Write(new byte[8], 0, 8);
+                WriteInt32BE(ms, firstImageRecordIndex > 0 ? firstImageRecordIndex : NULL_INDEX);
 
-            WriteInt32BE(stream, -1);
-            WriteInt32BE(stream, 0);
-            WriteInt32BE(stream, 0);
-            WriteInt32BE(stream, -1);
+                WriteInt32BE(ms, 0);
+                WriteInt32BE(ms, 0);
+                WriteInt32BE(ms, 0);
+                WriteInt32BE(ms, 0);
 
-            long written = stream.Position - mobiStart;
-            if (written < 232)
-            {
-                stream.Write(new byte[232 - written], 0, (int)(232 - written));
+                WriteInt32BE(ms, 0x40);
+
+                ms.Write(new byte[32], 0, 32);
+
+                WriteInt32BE(ms, NULL_INDEX);
+                WriteInt32BE(ms, NULL_INDEX);
+                WriteInt32BE(ms, 0);
+                WriteInt32BE(ms, 0);
+                WriteInt32BE(ms, 0);
+
+                ms.Write(new byte[8], 0, 8);
+
+                WriteInt16BE(ms, 1);
+                WriteInt16BE(ms, textRecordCount);
+
+                WriteInt32BE(ms, 0);
+                WriteInt32BE(ms, fcisRecordIndex);
+                WriteInt32BE(ms, 1);
+                WriteInt32BE(ms, flisRecordIndex);
+                WriteInt32BE(ms, 1);
+
+                ms.Write(new byte[8], 0, 8);
+
+                WriteInt32BE(ms, NULL_INDEX);
+                WriteInt32BE(ms, 0);
+                WriteInt32BE(ms, 0);
+                WriteInt32BE(ms, NULL_INDEX);
+
+                WriteInt32BE(ms, 1);
+                WriteInt32BE(ms, NULL_INDEX);
+
+                long written = ms.Position - mobiStart;
+                if (written < 232)
+                    ms.Write(new byte[232 - written], 0, (int)(232 - written));
+
+                byte[] exth = BuildExthHeader(book, firstImageRecordIndex);
+                ms.Write(exth, 0, exth.Length);
+
+                int fullNameOffset = (int)(ms.Position - 16);
+                long pos = ms.Position;
+                ms.Position = fullNameOffsetPos;
+                WriteInt32BE(ms, fullNameOffset);
+                ms.Position = pos;
+
+                byte[] titleBytes = Encoding.UTF8.GetBytes(book.Title);
+                ms.Write(titleBytes, 0, titleBytes.Length);
+
+                int pad = (4 - ((int)ms.Length % 4)) % 4;
+                if (pad > 0) ms.Write(new byte[pad], 0, pad);
+                ms.Write(new byte[4], 0, 4);
+
+                return ms.ToArray();
             }
         }
 
-        private void WriteExthHeader(Stream stream, Book book)
+        private byte[] BuildExthHeader(Book book, int firstImageRecordIndex)
         {
-            var records = new List<byte[]>();
-
-            if (book.Authors?.Count > 0)
+            using (var ms = new MemoryStream())
             {
-                byte[] authorData = Encoding.UTF8.GetBytes(book.Authors[0]);
-                byte[] authorRecord = new byte[8 + authorData.Length];
-                WriteInt32BE(authorRecord, 0, 100);
-                WriteInt32BE(authorRecord, 4, 8 + authorData.Length);
-                Array.Copy(authorData, 0, authorRecord, 8, authorData.Length);
-                records.Add(authorRecord);
-            }
+                var records = new List<byte[]>();
 
-            byte[] titleData = Encoding.UTF8.GetBytes(book.Title);
-            byte[] titleRecord = new byte[8 + titleData.Length];
-            WriteInt32BE(titleRecord, 0, 503);
-            WriteInt32BE(titleRecord, 4, 8 + titleData.Length);
-            Array.Copy(titleData, 0, titleRecord, 8, titleData.Length);
-            records.Add(titleRecord);
+                if (book.Authors?.Count > 0)
+                    records.Add(BuildExthRecord(100, Encoding.UTF8.GetBytes(book.Authors[0])));
 
-            byte[] doctypeData = Encoding.UTF8.GetBytes("EBOK");
-            byte[] doctypeRecord = new byte[8 + doctypeData.Length];
-            WriteInt32BE(doctypeRecord, 0, 501);
-            WriteInt32BE(doctypeRecord, 4, 8 + doctypeData.Length);
-            Array.Copy(doctypeData, 0, doctypeRecord, 8, doctypeData.Length);
-            records.Add(doctypeRecord);
+                records.Add(BuildExthRecord(503, Encoding.UTF8.GetBytes(book.Title)));
+                records.Add(BuildExthRecord(501, Encoding.ASCII.GetBytes("EBOK")));
 
-            byte[] creatorSoftRecord = new byte[12];
-            WriteInt32BE(creatorSoftRecord, 0, 204);
-            WriteInt32BE(creatorSoftRecord, 4, 12);
-            WriteInt32BE(creatorSoftRecord, 8, 200);
-            records.Add(creatorSoftRecord);
+                records.Add(BuildExthRecord(204, GetInt32Bytes(201)));
+                records.Add(BuildExthRecord(205, GetInt32Bytes(2)));
+                records.Add(BuildExthRecord(206, GetInt32Bytes(9)));
+                records.Add(BuildExthRecord(207, GetInt32Bytes(0)));
 
-            byte[] creatorMajorRecord = new byte[12];
-            WriteInt32BE(creatorMajorRecord, 0, 205);
-            WriteInt32BE(creatorMajorRecord, 4, 12);
-            WriteInt32BE(creatorMajorRecord, 8, 2);
-            records.Add(creatorMajorRecord);
+                if (firstImageRecordIndex > 0 && coverRecindex > 0)
+                {
+                    int coverOffset = coverRecindex - 1;
+                    records.Add(BuildExthRecord(201, GetInt32Bytes(coverOffset)));
+                    records.Add(BuildExthRecord(203, GetInt32Bytes(0)));
+                }
 
-            byte[] creatorMinorRecord = new byte[12];
-            WriteInt32BE(creatorMinorRecord, 0, 206);
-            WriteInt32BE(creatorMinorRecord, 4, 12);
-            WriteInt32BE(creatorMinorRecord, 8, 9);
-            records.Add(creatorMinorRecord);
+                int dataSize = 0;
+                foreach (var r in records) dataSize += r.Length;
 
-            byte[] creatorBuildRecord = new byte[12];
-            WriteInt32BE(creatorBuildRecord, 0, 207);
-            WriteInt32BE(creatorBuildRecord, 4, 12);
-            WriteInt32BE(creatorBuildRecord, 8, 0);
-            records.Add(creatorBuildRecord);
+                int headerSize = 12 + dataSize;
+                int padding = (4 - (headerSize % 4)) % 4;
 
-            int exthSize = 12;
-            foreach (var rec in records)
-            {
-                exthSize += rec.Length;
-            }
+                ms.Write(Encoding.ASCII.GetBytes("EXTH"), 0, 4);
+                WriteInt32BE(ms, headerSize + padding);
+                WriteInt32BE(ms, records.Count);
 
-            int exthPadding = (4 - (exthSize % 4)) % 4;
-            exthSize += exthPadding;
+                foreach (var r in records)
+                    ms.Write(r, 0, r.Length);
 
-            stream.Write(Encoding.ASCII.GetBytes("EXTH"), 0, 4);
-            WriteInt32BE(stream, exthSize);
-            WriteInt32BE(stream, records.Count);
+                if (padding > 0)
+                    ms.Write(new byte[padding], 0, padding);
 
-            foreach (var rec in records)
-            {
-                stream.Write(rec, 0, rec.Length);
-            }
-
-            if (exthPadding > 0)
-            {
-                stream.Write(new byte[exthPadding], 0, exthPadding);
+                return ms.ToArray();
             }
         }
 
-        private void WriteFLISRecord(Stream stream)
+        private byte[] BuildExthRecord(int type, byte[] data)
         {
-            stream.Write(Encoding.ASCII.GetBytes("FLIS"), 0, 4);
-            WriteInt32BE(stream, 8);
-            WriteInt16BE(stream, 65);
-            WriteInt16BE(stream, 0);
-            WriteInt32BE(stream, 0);
-            WriteInt32BE(stream, -1);
-            WriteInt16BE(stream, 1);
-            WriteInt16BE(stream, 3);
-            WriteInt32BE(stream, 3);
-            WriteInt32BE(stream, 1);
-            WriteInt32BE(stream, -1);
+            byte[] rec = new byte[8 + data.Length];
+            WriteInt32BE(rec, 0, type);
+            WriteInt32BE(rec, 4, 8 + data.Length);
+            Array.Copy(data, 0, rec, 8, data.Length);
+            return rec;
         }
 
-        private void WriteFCISRecord(Stream stream, int textLength)
+        private byte[] GetInt32Bytes(int value)
         {
-            stream.Write(Encoding.ASCII.GetBytes("FCIS"), 0, 4);
-            WriteInt32BE(stream, 20);
-            WriteInt32BE(stream, 16);
-            WriteInt32BE(stream, 1);
-            WriteInt32BE(stream, 0);
-            WriteInt32BE(stream, textLength);
-            WriteInt32BE(stream, 0);
-            WriteInt32BE(stream, 32);
-            WriteInt32BE(stream, 8);
-            WriteInt16BE(stream, 1);
-            WriteInt16BE(stream, 1);
-            WriteInt32BE(stream, 0);
+            return new byte[]
+            {
+                (byte)((value >> 24) & 0xFF),
+                (byte)((value >> 16) & 0xFF),
+                (byte)((value >> 8) & 0xFF),
+                (byte)(value & 0xFF)
+            };
         }
 
-        private void WriteEOFRecord(Stream stream)
+        private byte[] BuildFLISRecord()
         {
-            stream.WriteByte(0xE9);
-            stream.WriteByte(0x8E);
-            stream.WriteByte(0x0D);
-            stream.WriteByte(0x0A);
+            return new byte[]
+            {
+                0x46, 0x4C, 0x49, 0x53,
+                0x00, 0x00, 0x00, 0x08,
+                0x00, 0x41, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00,
+                0xFF, 0xFF, 0xFF, 0xFF,
+                0x00, 0x01, 0x00, 0x03,
+                0x00, 0x00, 0x00, 0x03,
+                0x00, 0x00, 0x00, 0x01,
+                0xFF, 0xFF, 0xFF, 0xFF
+            };
         }
+
+        private byte[] BuildFCISRecord(int textLength)
+        {
+            using (var ms = new MemoryStream())
+            {
+                ms.Write(Encoding.ASCII.GetBytes("FCIS"), 0, 4);
+                WriteInt32BE(ms, 20);
+                WriteInt32BE(ms, 16);
+                WriteInt32BE(ms, 1);
+                WriteInt32BE(ms, 0);
+                WriteInt32BE(ms, textLength);
+                WriteInt32BE(ms, 0);
+                WriteInt32BE(ms, 32);
+                WriteInt32BE(ms, 8);
+                WriteInt16BE(ms, 1);
+                WriteInt16BE(ms, 1);
+                WriteInt32BE(ms, 0);
+                return ms.ToArray();
+            }
+        }
+
+        #endregion
+
+        #region Binary Helpers
 
         private void WriteInt16BE(Stream stream, int value)
         {
-            stream.WriteByte((byte)(value >> 8));
-            stream.WriteByte((byte)value);
+            stream.WriteByte((byte)((value >> 8) & 0xFF));
+            stream.WriteByte((byte)(value & 0xFF));
         }
 
         private void WriteInt32BE(Stream stream, int value)
         {
-            stream.WriteByte((byte)(value >> 24));
-            stream.WriteByte((byte)(value >> 16));
-            stream.WriteByte((byte)(value >> 8));
-            stream.WriteByte((byte)value);
+            stream.WriteByte((byte)((value >> 24) & 0xFF));
+            stream.WriteByte((byte)((value >> 16) & 0xFF));
+            stream.WriteByte((byte)((value >> 8) & 0xFF));
+            stream.WriteByte((byte)(value & 0xFF));
         }
 
         private void WriteInt32BE(byte[] buffer, int offset, int value)
         {
-            buffer[offset] = (byte)(value >> 24);
-            buffer[offset + 1] = (byte)(value >> 16);
-            buffer[offset + 2] = (byte)(value >> 8);
-            buffer[offset + 3] = (byte)value;
+            buffer[offset] = (byte)((value >> 24) & 0xFF);
+            buffer[offset + 1] = (byte)((value >> 16) & 0xFF);
+            buffer[offset + 2] = (byte)((value >> 8) & 0xFF);
+            buffer[offset + 3] = (byte)(value & 0xFF);
         }
+
+        #endregion
     }
 }

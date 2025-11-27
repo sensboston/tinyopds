@@ -1,6 +1,6 @@
 ﻿/*
  * FB2 to MOBI converter - TinyOPDS
- * v19: Fixed multiple references to same footnote + TOC after footnotes
+ * v23: Hierarchical TOC with indentation based on section depth
  */
 
 using System;
@@ -26,7 +26,8 @@ namespace TinyOPDS
         private Dictionary<string, byte[]> images = new Dictionary<string, byte[]>();
         private Dictionary<string, int> imageIndices = new Dictionary<string, int>();
         private Dictionary<string, string> footnotes = new Dictionary<string, string>();
-        private List<string> chapterTitles = new List<string>();
+        private List<Tuple<string, string, int>> chapters = new List<Tuple<string, string, int>>();
+        private int chapterCounter = 0;
         private string coverImageId = null;
         private int coverRecindex = 0;
 
@@ -176,17 +177,12 @@ namespace TinyOPDS
         {
             string html = GenerateHtml(book);
 
-            if (footnotes.Count == 0)
-                return html;
-
             byte[] htmlBytes = Encoding.UTF8.GetBytes(html);
-
             var replacements = new Dictionary<string, int>();
 
-            // Find byte positions of all <a tags with id="back_n_X" and id="n_X"
+            // Find byte positions for footnotes
             foreach (var fnId in footnotes.Keys)
             {
-                // Position of <a id="back_X"
                 string backPattern = string.Format("<a id=\"back_{0}\"", fnId);
                 int backPos = FindBytePosition(htmlBytes, backPattern);
                 if (backPos >= 0)
@@ -194,7 +190,6 @@ namespace TinyOPDS
                     replacements["back_" + fnId] = backPos;
                 }
 
-                // Position of <a filepos=... id="X"
                 string notePattern = string.Format("<a filepos={0} id=\"{1}\"", FILEPOS_PLACEHOLDER, fnId);
                 int notePos = FindBytePosition(htmlBytes, notePattern);
                 if (notePos >= 0)
@@ -203,12 +198,23 @@ namespace TinyOPDS
                 }
             }
 
+            // Find byte positions for chapters (for TOC links)
+            foreach (var ch in chapters)
+            {
+                string chapterPattern = string.Format("<a id=\"{0}\"", ch.Item2);
+                int chapterPos = FindBytePosition(htmlBytes, chapterPattern);
+                if (chapterPos >= 0)
+                {
+                    replacements[ch.Item2] = chapterPos;
+                }
+            }
+
             // Replace placeholders
             var result = new StringBuilder(html);
 
+            // Replace footnote links
             foreach (var fnId in footnotes.Keys)
             {
-                // Replace filepos in ALL back_X links pointing to n_X (may have multiple refs to same footnote)
                 if (replacements.ContainsKey(fnId))
                 {
                     string oldValue = string.Format("id=\"back_{0}\" filepos={1}", fnId, FILEPOS_PLACEHOLDER);
@@ -216,11 +222,21 @@ namespace TinyOPDS
                     ReplaceAll(result, oldValue, newValue);
                 }
 
-                // Replace filepos in n_X pointing to back_n_X (only one per footnote)
                 if (replacements.ContainsKey("back_" + fnId))
                 {
                     string oldValue = string.Format("filepos={0} id=\"{1}\"", FILEPOS_PLACEHOLDER, fnId);
                     string newValue = string.Format("filepos={0:D10} id=\"{1}\"", replacements["back_" + fnId], fnId);
+                    ReplaceFirst(result, oldValue, newValue);
+                }
+            }
+
+            // Replace TOC chapter links
+            foreach (var ch in chapters)
+            {
+                if (replacements.ContainsKey(ch.Item2))
+                {
+                    string oldValue = string.Format("<a filepos={0}>{1}</a>", FILEPOS_PLACEHOLDER, EscapeHtml(ch.Item1));
+                    string newValue = string.Format("<a filepos={0:D10}>{1}</a>", replacements[ch.Item2], EscapeHtml(ch.Item1));
                     ReplaceFirst(result, oldValue, newValue);
                 }
             }
@@ -273,7 +289,8 @@ namespace TinyOPDS
         private string GenerateHtml(Book book)
         {
             var html = new StringBuilder();
-            chapterTitles.Clear();
+            chapters.Clear();
+            chapterCounter = 0;
 
             html.Append("<html>\r\n");
             html.Append("<head>\r\n");
@@ -308,7 +325,7 @@ namespace TinyOPDS
             {
                 foreach (var section in mainBody.Elements(fb2Ns + "section"))
                 {
-                    ProcessSection(section, html);
+                    ProcessSection(section, html, 0);
                 }
             }
 
@@ -316,11 +333,7 @@ namespace TinyOPDS
             if (footnotes.Count > 0)
             {
                 html.Append("<mbp:pagebreak />\r\n");
-                html.Append("<p width=\"0\" align=\"center\">\r\n");
-                html.Append("<font size=\"+1\">\r\n");
-                html.Append("<b>Примечания</b>\r\n");
-                html.Append("</font>\r\n");
-                html.Append("</p>\r\n");
+                html.Append("<a id=\"notes_section\" />\r\n");
                 html.Append("<div height=\"1em\"></div>\r\n");
 
                 int noteNum = 1;
@@ -338,18 +351,23 @@ namespace TinyOPDS
 
             // TOC section (also serves as buffer after last footnote)
             html.Append("<mbp:pagebreak />\r\n");
+            html.Append("<a id=\"toc_section\" />\r\n");
             html.Append("<div>\r\n");
-            html.Append("<div>\r\n");
-            html.Append("<font size=\"+1\">\r\n");
-            html.Append("<b>Содержание</b>\r\n");
-            html.Append("</font>\r\n");
-            html.Append("</div>\r\n");
             html.Append("<div height=\"1em\"></div>\r\n");
-            foreach (var chapter in chapterTitles)
+            foreach (var ch in chapters)
             {
                 html.Append("<div align=\"left\">\r\n");
-                html.AppendFormat("<blockquote>{0}</blockquote>\r\n", EscapeHtml(chapter));
-                html.Append("</div>\r\n");
+                // Add blockquotes for indentation based on depth
+                for (int i = 0; i <= ch.Item3; i++)
+                {
+                    html.Append("<blockquote>");
+                }
+                html.AppendFormat("<a filepos={0}>{1}</a>", FILEPOS_PLACEHOLDER, EscapeHtml(ch.Item1));
+                for (int i = 0; i <= ch.Item3; i++)
+                {
+                    html.Append("</blockquote>");
+                }
+                html.Append("\r\n</div>\r\n");
             }
             html.Append("</div>\r\n");
             html.Append("<mbp:pagebreak />\r\n");
@@ -360,20 +378,47 @@ namespace TinyOPDS
             return html.ToString();
         }
 
-        private void ProcessSection(XElement section, StringBuilder html)
+        private void ProcessSection(XElement section, StringBuilder html, int depth)
         {
             var title = section.Element(fb2Ns + "title");
             if (title != null)
             {
+                var titleParagraphs = title.Elements(fb2Ns + "p").ToList();
                 var titleText = ExtractText(title);
+
                 if (!string.IsNullOrWhiteSpace(titleText))
                 {
-                    chapterTitles.Add(titleText);
-                    html.Append("<p width=\"0\" align=\"center\">\r\n");
-                    html.Append("<b>");
-                    html.Append(EscapeHtml(titleText));
-                    html.Append("</b>\r\n");
-                    html.Append("</p>\r\n");
+                    chapterCounter++;
+                    string chapterId = "chapter_" + chapterCounter;
+                    chapters.Add(Tuple.Create(titleText, chapterId, depth));
+
+                    html.AppendFormat("<a id=\"{0}\" />\r\n", chapterId);
+
+                    if (titleParagraphs.Count > 1)
+                    {
+                        // Multiple paragraphs in title
+                        foreach (var p in titleParagraphs)
+                        {
+                            var pText = ExtractText(p);
+                            if (!string.IsNullOrWhiteSpace(pText))
+                            {
+                                html.Append("<p width=\"0\" align=\"center\">\r\n");
+                                html.Append("<b>");
+                                html.Append(EscapeHtml(pText));
+                                html.Append("</b>\r\n");
+                                html.Append("</p>\r\n");
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Single paragraph or plain text
+                        html.Append("<p width=\"0\" align=\"center\">\r\n");
+                        html.Append("<b>");
+                        html.Append(EscapeHtml(titleText));
+                        html.Append("</b>\r\n");
+                        html.Append("</p>\r\n");
+                    }
                     html.Append("<br />\r\n");
                 }
             }
@@ -395,7 +440,7 @@ namespace TinyOPDS
                         break;
 
                     case "section":
-                        ProcessSection(elem, html);
+                        ProcessSection(elem, html, depth + 1);
                         break;
                 }
             }
@@ -451,6 +496,19 @@ namespace TinyOPDS
 
                         case "emphasis":
                             sb.AppendFormat("<i>{0}</i>", EscapeHtml(ExtractText(elemNode)));
+                            break;
+
+                        case "image":
+                            var imgHref = elemNode.Attribute(xlinkNs + "href")?.Value;
+                            if (!string.IsNullOrEmpty(imgHref))
+                            {
+                                imgHref = imgHref.TrimStart('#');
+                                if (imageIndices.ContainsKey(imgHref))
+                                {
+                                    int recindex = imageIndices[imgHref];
+                                    sb.AppendFormat("<img recindex=\"{0:D5}\" />", recindex);
+                                }
+                            }
                             break;
 
                         default:

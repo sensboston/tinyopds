@@ -1,6 +1,6 @@
 ﻿/*
  * FB2 to MOBI converter - TinyOPDS
- * v12: Correct byte position calculation for popup footnotes
+ * v19: Fixed multiple references to same footnote + TOC after footnotes
  */
 
 using System;
@@ -26,6 +26,7 @@ namespace TinyOPDS
         private Dictionary<string, byte[]> images = new Dictionary<string, byte[]>();
         private Dictionary<string, int> imageIndices = new Dictionary<string, int>();
         private Dictionary<string, string> footnotes = new Dictionary<string, string>();
+        private List<string> chapterTitles = new List<string>();
         private string coverImageId = null;
         private int coverRecindex = 0;
 
@@ -207,15 +208,15 @@ namespace TinyOPDS
 
             foreach (var fnId in footnotes.Keys)
             {
-                // Replace filepos in back_X pointing to n_X
+                // Replace filepos in ALL back_X links pointing to n_X (may have multiple refs to same footnote)
                 if (replacements.ContainsKey(fnId))
                 {
                     string oldValue = string.Format("id=\"back_{0}\" filepos={1}", fnId, FILEPOS_PLACEHOLDER);
                     string newValue = string.Format("id=\"back_{0}\" filepos={1:D10}", fnId, replacements[fnId]);
-                    ReplaceFirst(result, oldValue, newValue);
+                    ReplaceAll(result, oldValue, newValue);
                 }
 
-                // Replace filepos in n_X pointing to back_n_X
+                // Replace filepos in n_X pointing to back_n_X (only one per footnote)
                 if (replacements.ContainsKey("back_" + fnId))
                 {
                     string oldValue = string.Format("filepos={0} id=\"{1}\"", FILEPOS_PLACEHOLDER, fnId);
@@ -259,9 +260,20 @@ namespace TinyOPDS
             }
         }
 
+        private void ReplaceAll(StringBuilder sb, string oldValue, string newValue)
+        {
+            string s = sb.ToString();
+            if (s.Contains(oldValue))
+            {
+                sb.Clear();
+                sb.Append(s.Replace(oldValue, newValue));
+            }
+        }
+
         private string GenerateHtml(Book book)
         {
             var html = new StringBuilder();
+            chapterTitles.Clear();
 
             html.Append("<html>\r\n");
             html.Append("<head>\r\n");
@@ -324,6 +336,24 @@ namespace TinyOPDS
                 }
             }
 
+            // TOC section (also serves as buffer after last footnote)
+            html.Append("<mbp:pagebreak />\r\n");
+            html.Append("<div>\r\n");
+            html.Append("<div>\r\n");
+            html.Append("<font size=\"+1\">\r\n");
+            html.Append("<b>Содержание</b>\r\n");
+            html.Append("</font>\r\n");
+            html.Append("</div>\r\n");
+            html.Append("<div height=\"1em\"></div>\r\n");
+            foreach (var chapter in chapterTitles)
+            {
+                html.Append("<div align=\"left\">\r\n");
+                html.AppendFormat("<blockquote>{0}</blockquote>\r\n", EscapeHtml(chapter));
+                html.Append("</div>\r\n");
+            }
+            html.Append("</div>\r\n");
+            html.Append("<mbp:pagebreak />\r\n");
+
             html.Append("</body>\r\n");
             html.Append("</html>\r\n");
 
@@ -338,6 +368,7 @@ namespace TinyOPDS
                 var titleText = ExtractText(title);
                 if (!string.IsNullOrWhiteSpace(titleText))
                 {
+                    chapterTitles.Add(titleText);
                     html.Append("<p width=\"0\" align=\"center\">\r\n");
                     html.Append("<b>");
                     html.Append(EscapeHtml(titleText));

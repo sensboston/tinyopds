@@ -1,6 +1,13 @@
 ﻿/*
- * FB2 to MOBI converter - TinyOPDS
- * v23: Hierarchical TOC with indentation based on section depth
+ * This file is part of TinyOPDS server project
+ * https://github.com/sensboston/tinyopds
+ *
+ * Copyright (c) 2013-2025 SeNSSoFT
+ * SPDX-License-Identifier: MIT
+ *
+ * Native FB2 to MOBI converter - creates valid mobi files for old Amazon Kindle
+ * readers without external converters
+ *
  */
 
 using System;

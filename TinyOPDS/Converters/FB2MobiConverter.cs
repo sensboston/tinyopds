@@ -759,7 +759,7 @@ namespace TinyOPDS
                 byte[] exth = BuildExthHeader(book, firstImageRecordIndex);
                 ms.Write(exth, 0, exth.Length);
 
-                int fullNameOffset = (int)(ms.Position - 16);
+                int fullNameOffset = (int)ms.Position;
                 long pos = ms.Position;
                 ms.Position = fullNameOffsetPos;
                 WriteInt32BE(ms, fullNameOffset);

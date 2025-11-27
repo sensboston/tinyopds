@@ -1,12 +1,11 @@
-﻿/*
+/*
  * This file is part of TinyOPDS server project
  * https://github.com/sensboston/tinyopds
  *
  * Copyright (c) 2013-2025 SeNSSoFT
  * SPDX-License-Identifier: MIT
  *
- * Simple logging solution, w/o third party
- * FIXED: Use correct path for Microsoft Store apps
+ * Simple logging class
  *
  */
 
@@ -17,7 +16,7 @@ using System.Diagnostics;
 namespace TinyOPDS
 {
     /// <summary>
-    /// A lightweight logging class for Silverlight.
+    /// A lightweight logging class
     /// </summary>
     public static class Log
     {
@@ -75,47 +74,48 @@ namespace TinyOPDS
         }
 
         /// <summary>
-        /// Determine log file path based on execution context
+        /// Determine log file path based on platform
         /// </summary>
         /// <returns>Full path to log file</returns>
         private static string GetLogPath()
         {
-            // If running as service on Unix/Linux, try system log directory
-            if (IsRunningAsService)
+            // Direct platform check without Utils to avoid circular dependency
+            PlatformID platform = Environment.OSVersion.Platform;
+            bool isWindows = platform == PlatformID.Win32NT ||
+                            platform == PlatformID.Win32S ||
+                            platform == PlatformID.Win32Windows ||
+                            platform == PlatformID.WinCE;
+
+            // On Unix-like systems (everything that's NOT Windows), try system log directory
+            if (!isWindows)
             {
-                bool isRunningOnMono = Type.GetType("Mono.Runtime") != null;
-                if (isRunningOnMono)
+                string systemLogDir = "/var/log/tinyopds";
+                try
                 {
-                    PlatformID platform = Environment.OSVersion.Platform;
-                    if (platform == PlatformID.Unix || platform == PlatformID.MacOSX || (int)platform == 128)
+                    if (!Directory.Exists(systemLogDir))
                     {
-                        // Try /var/log/tinyopds/ for service mode
-                        string systemLogDir = "/var/log/tinyopds";
-                        try
-                        {
-                            if (!Directory.Exists(systemLogDir))
-                            {
-                                Directory.CreateDirectory(systemLogDir);
-                            }
-
-                            // Test write access
-                            string testFile = Path.Combine(systemLogDir, ".test");
-                            File.WriteAllText(testFile, "test");
-                            File.Delete(testFile);
-
-                            return Path.Combine(systemLogDir, logFileName);
-                        }
-                        catch
-                        {
-                            // Fall back to application directory
-                            Debug.WriteLine("Cannot write to /var/log/tinyopds/, falling back to application directory");
-                        }
+                        Directory.CreateDirectory(systemLogDir);
                     }
+
+                    // Test write access
+                    string testFile = Path.Combine(systemLogDir, ".test");
+                    File.WriteAllText(testFile, "test");
+                    File.Delete(testFile);
+
+                    return Path.Combine(systemLogDir, logFileName);
+                }
+                catch
+                {
+                    // Fall back to application directory if cannot write to /var/log/tinyopds/
+                    Debug.WriteLine("Cannot write to /var/log/tinyopds/, falling back to application directory");
                 }
             }
 
-            // Default: use Utils.ServiceFilesLocation which handles Microsoft Store apps correctly
-            // This covers: Windows (regular and Store), GUI mode, CLI user mode, and fallback for service mode
+            // For Windows (including Microsoft Store) and Unix fallback:
+            // Use Utils.ServiceFilesLocation which handles:
+            // - Regular Windows: exe directory
+            // - Microsoft Store: LocalApplicationData/TinyOPDS
+            // - Unix fallback: exe directory or LocalApplicationData
             return Path.Combine(Utils.ServiceFilesLocation, logFileName);
         }
 

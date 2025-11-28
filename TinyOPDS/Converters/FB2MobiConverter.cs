@@ -5,8 +5,10 @@
  * Copyright (c) 2013-2025 SeNSSoFT
  * SPDX-License-Identifier: MIT
  *
- * Native FB2 to MOBI converter - creates valid mobi files for old Amazon Kindle
- * readers without external converters
+ * Native FB2 to MOBI converter - creates valid mobi files (MOBI 6)
+ * for old Amazon Kindle readers without external software.
+ * 
+ * TODO: implement INDX records for TOC (system "Go to" menu)
  *
  */
 

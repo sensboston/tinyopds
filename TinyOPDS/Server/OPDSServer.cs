@@ -172,7 +172,7 @@ namespace TinyOPDS.Server
         /// </summary>
         private string DetermineDownloadFormat(string request)
         {
-            // Determine format from path structure: /download/{guid}/fb2 or /download/{guid}/epub
+            // Determine format from path structure: /download/{guid}/fb2 or /download/{guid}/epub or /download/{guid}/mobi
             if (request.Contains("/fb2"))
             {
                 return ".zip"; // FB2 always comes as ZIP
@@ -180,6 +180,10 @@ namespace TinyOPDS.Server
             else if (request.Contains("/epub"))
             {
                 return ".epub";
+            }
+            else if (request.Contains("/mobi"))
+            {
+                return ".mobi";
             }
             return "";
         }

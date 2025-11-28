@@ -414,7 +414,7 @@ namespace TinyOPDS
             label22.Enabled = logVerbosity.Enabled = saveLog.Checked = Settings.Default.SaveLogToDisk;
 
             openPort.Checked = Settings.Default.UseUPnP && Settings.Default.OpenNATPort;
-            banClients.Enabled = rememberClients.Enabled = dataGridView1.Enabled = Settings.Default.UseHTTPAuth;
+            banClients.Enabled = rememberClients.Enabled = dataGridView1.Enabled = label24.Enabled = Settings.Default.UseHTTPAuth;
             wrongAttemptsCount.Enabled = banClients.Checked && useHTTPAuth.Checked;
 
             notifyIcon.Visible = Settings.Default.CloseToTray;
@@ -1045,7 +1045,7 @@ namespace TinyOPDS
 
         private void UseHTTPAuth_CheckedChanged(object sender, EventArgs e)
         {
-            dataGridView1.Enabled = banClients.Enabled = rememberClients.Enabled = useHTTPAuth.Checked;
+            dataGridView1.Enabled = banClients.Enabled = rememberClients.Enabled = label24.Enabled = useHTTPAuth.Checked;
             wrongAttemptsCount.Enabled = banClients.Enabled && banClients.Checked;
         }
 

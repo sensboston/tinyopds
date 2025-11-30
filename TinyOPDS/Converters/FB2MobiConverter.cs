@@ -276,33 +276,8 @@ namespace TinyOPDS
                 }
             }
 
-            // Footnotes section
-            if (_footnotes.Count > 0)
-            {
-                Write("<mbp:pagebreak />\r\n");
-                WriteAnchorTag("notes_section");
-                Write("\r\n");
-                Write("<div height=\"1em\"></div>\r\n");
-
-                int noteNum = 1;
-                foreach (var fn in _footnotes)
-                {
-                    Write("<p width=\"0\" align=\"justify\">\r\n");
-                    Write("<font size=\"-1\">\r\n");
-
-                    // Footnote with link back to reference point
-                    // Record anchor position BEFORE the <a tag
-                    WriteAnchorTagWithFilepos(fn.Key, "back_" + fn.Key, noteNum.ToString() + ").");
-
-                    Write(" ");
-                    Write(EscapeHtml(fn.Value));
-                    Write("\r\n");
-
-                    Write("</font>\r\n");
-                    Write("</p>\r\n");
-                    noteNum++;
-                }
-            }
+            // Footnotes section - preserve FB2 structure with top-level sections
+            GenerateFootnotesSection();
 
             // TOC section
             Write("<mbp:pagebreak />\r\n");
@@ -366,6 +341,86 @@ namespace TinyOPDS
 
                     // Direct write to byte array at placeholder position
                     Array.Copy(posBytes, 0, htmlBytes, patch.PlaceholderPosition, FILEPOS_PLACEHOLDER_LENGTH);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Generates footnotes section preserving FB2 structure with top-level sections
+        /// </summary>
+        private void GenerateFootnotesSection()
+        {
+            var notesBody = _fb2Xml.Root?.Descendants(_fb2Ns + "body")
+                .FirstOrDefault(b => b.Attribute("name")?.Value == "notes");
+
+            if (notesBody == null || _footnotes.Count == 0) return;
+
+            // Get top-level sections (e.g., "Примечания", "Комментарии")
+            var topLevelSections = notesBody.Elements(_fb2Ns + "section").ToList();
+
+            bool isFirstTopSection = true;
+
+            foreach (var topSection in topLevelSections)
+            {
+                // Page break between top-level sections
+                Write("<mbp:pagebreak />\r\n");
+
+                if (isFirstTopSection)
+                {
+                    WriteAnchorTag("notes_section");
+                    Write("\r\n");
+                    isFirstTopSection = false;
+                }
+
+                // Write section title if present (centered, with spacing)
+                var title = topSection.Element(_fb2Ns + "title");
+                if (title != null)
+                {
+                    var titleText = ExtractText(title);
+                    if (!string.IsNullOrWhiteSpace(titleText))
+                    {
+                        Write("<p width=\"0\" align=\"center\">\r\n");
+                        Write("<b>");
+                        Write(EscapeHtml(titleText));
+                        Write("</b>\r\n");
+                        Write("</p>\r\n");
+                        Write("<div height=\"1em\"></div>\r\n");
+                    }
+                }
+
+                // Process footnote subsections within this top-level section
+                bool isFirstNote = true;
+                foreach (var noteSection in topSection.Elements(_fb2Ns + "section"))
+                {
+                    string id = noteSection.Attribute("id")?.Value;
+                    if (string.IsNullOrEmpty(id)) continue;
+
+                    // Check if we have extracted this footnote
+                    if (!_footnotes.TryGetValue(id, out string footnoteText)) continue;
+
+                    // Horizontal rule separator (not before the first note)
+                    if (!isFirstNote)
+                    {
+                        Write("<div height=\"0.5em\"></div>\r\n");
+                        Write("<hr width=\"100%\" />\r\n");
+                        Write("<div height=\"0.5em\"></div>\r\n");
+                    }
+                    isFirstNote = false;
+
+                    // Footnote content with back-link
+                    Write("<p width=\"0\" align=\"justify\">\r\n");
+                    Write("<font size=\"-1\">\r\n");
+
+                    // Use zero-width space inside <a> (Kindle requires non-empty anchor for popup)
+                    // HTML entity to ensure consistent byte length
+                    // Footnote text follows after </a>
+                    WriteAnchorTagWithFilepos(id, "back_" + id, "&#8203;");
+
+                    Write(EscapeHtml(footnoteText));
+                    Write("\r\n");
+
+                    Write("</font>\r\n");
+                    Write("</p>\r\n");
                 }
             }
         }

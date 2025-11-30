@@ -58,6 +58,7 @@
   <ItemGroup>
     <!-- Main Application -->
     <Compile Include="Converters\FB2MobiConverter.cs" />
+    <Compile Include="Converters\MobiHelper.cs" />
     <Compile Include="Misc\Pluralizer.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="MainForm.cs">

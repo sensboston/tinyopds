@@ -105,7 +105,7 @@ namespace TinyOPDS.Server
 
                 Library.RecordDownload(bookId, downloadType, format, clientInfo);
 
-                Log.WriteLine(LogLevel.Info, "Recorded {0} download for book {1}, format: {2}",
+                Log.WriteLine(LogLevel.Info, "Recorded {0} for book {1}, format: {2}",
                     downloadType, bookId, format ?? "n/a");
             }
             catch (Exception ex)

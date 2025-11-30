@@ -402,7 +402,7 @@ namespace TinyOPDS
         /// <summary>
         /// Writes anchor tag with filepos for footnote back-link
         /// Records position BEFORE the tag for the anchor
-        /// Format: <a filepos=XXXXXXXXXX id="anchorId">text</a>
+        /// Format: <a filepos=XXXXXXXXXX>text</a>
         /// </summary>
         private void WriteAnchorTagWithFilepos(string anchorId, string targetId, string text)
         {
@@ -412,17 +412,15 @@ namespace TinyOPDS
 
             Write("<a ");
             WriteFileposPlaceholder(targetId);
-            Write(" id=\"");
-            Write(anchorId);
-            Write("\">");
+            Write(">");
             Write(text);
             Write("</a>");
         }
 
         /// <summary>
-        /// Writes a link tag with anchor and filepos for footnote reference in text
+        /// Writes a link tag with filepos for footnote reference in text
         /// Records position BEFORE the tag for the anchor
-        /// Format: <a id="backAnchorId" filepos=XXXXXXXXXX>content</a>
+        /// Format: <a filepos=XXXXXXXXXX>content</a>
         /// </summary>
         private void WriteFootnoteRefTag(string backAnchorId, string targetFootnoteId, string linkText)
         {
@@ -430,9 +428,7 @@ namespace TinyOPDS
             int position = GetCurrentPosition();
             _anchors[backAnchorId] = position;
 
-            Write("<a id=\"");
-            Write(backAnchorId);
-            Write("\" ");
+            Write("<a ");
             WriteFileposPlaceholder(targetFootnoteId);
             Write(">");
             Write("<font size=\"-1\">");

@@ -20,6 +20,8 @@ using System.Text;
 using System.Linq;
 using System.Xml.Linq;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Imaging;
 
 using TinyOPDS.Data;
 
@@ -154,15 +156,71 @@ namespace TinyOPDS
                     string id = binary.Attribute("id")?.Value;
                     if (string.IsNullOrEmpty(id)) continue;
 
+                    string contentType = binary.Attribute("content-type")?.Value ?? "";
                     string base64Data = binary.Value.Trim();
                     byte[] imageData = Convert.FromBase64String(base64Data);
 
                     if (imageData.Length > 0)
                     {
+                        // Convert PNG to GIF (Kindle doesn't support PNG transparency)
+                        // GIF is better for line art - no JPEG compression artifacts
+                        if (contentType.Contains("png") || IsPngImage(imageData))
+                        {
+                            imageData = ConvertPngToGif(imageData);
+                        }
+
                         _images[id] = imageData;
                     }
                 }
                 catch { }
+            }
+        }
+
+        /// <summary>
+        /// Checks if image data is PNG format by magic bytes
+        /// </summary>
+        private bool IsPngImage(byte[] data)
+        {
+            if (data.Length < 8) return false;
+            // PNG magic: 89 50 4E 47 0D 0A 1A 0A
+            return data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4E && data[3] == 0x47;
+        }
+
+        /// <summary>
+        /// Converts PNG image to GIF (better for line art, no JPEG artifacts)
+        /// Kindle supports GIF natively and it works well with 16 grayscale levels of E-Ink
+        /// </summary>
+        private byte[] ConvertPngToGif(byte[] pngData)
+        {
+            try
+            {
+                using (var inputStream = new MemoryStream(pngData))
+                using (var originalImage = Image.FromStream(inputStream))
+                using (var bitmap = new Bitmap(originalImage.Width, originalImage.Height))
+                {
+                    // Preserve original resolution
+                    bitmap.SetResolution(originalImage.HorizontalResolution, originalImage.VerticalResolution);
+
+                    using (var graphics = Graphics.FromImage(bitmap))
+                    {
+                        // Fill with white background (replaces transparency)
+                        graphics.Clear(Color.White);
+                        // Draw original image without scaling
+                        graphics.DrawImageUnscaled(originalImage, 0, 0);
+                    }
+
+                    // Save as GIF
+                    using (var outputStream = new MemoryStream())
+                    {
+                        bitmap.Save(outputStream, ImageFormat.Gif);
+                        return outputStream.ToArray();
+                    }
+                }
+            }
+            catch
+            {
+                // If conversion fails, return original data
+                return pngData;
             }
         }
 

@@ -61,6 +61,9 @@ namespace TinyOPDS
         // Footnote output state
         private bool _isFirstFootnote;
 
+        // Track footnote reference counts for unique back-link IDs
+        private Dictionary<string, int> _footnoteRefCounts = new Dictionary<string, int>();
+
         /// <summary>
         /// Patch record for deferred filepos resolution
         /// </summary>
@@ -169,7 +172,16 @@ namespace TinyOPDS
                         // GIF is better for line art - no JPEG compression artifacts
                         if (contentType.Contains("png") || IsPngImage(imageData))
                         {
-                            imageData = ConvertPngToGif(imageData);
+                            // Cover image should be JPEG for proper thumbnail generation
+                            // Other images convert to GIF (better for line art)
+                            if (id == _coverImageId)
+                            {
+                                imageData = ConvertPngToJpeg(imageData);
+                            }
+                            else
+                            {
+                                imageData = ConvertPngToGif(imageData);
+                            }
                         }
 
                         _images[id] = imageData;
@@ -227,6 +239,51 @@ namespace TinyOPDS
             }
         }
 
+
+        /// <summary>
+        /// Converts PNG image to JPEG for cover (required for proper thumbnail generation)
+        /// </summary>
+        private byte[] ConvertPngToJpeg(byte[] pngData)
+        {
+            try
+            {
+                using (var inputStream = new MemoryStream(pngData))
+                using (var originalImage = Image.FromStream(inputStream))
+                using (var bitmap = new Bitmap(originalImage.Width, originalImage.Height))
+                {
+                    bitmap.SetResolution(originalImage.HorizontalResolution, originalImage.VerticalResolution);
+
+                    using (var graphics = Graphics.FromImage(bitmap))
+                    {
+                        graphics.Clear(Color.White);
+                        graphics.DrawImageUnscaled(originalImage, 0, 0);
+                    }
+
+                    using (var outputStream = new MemoryStream())
+                    {
+                        var jpegEncoder = ImageCodecInfo.GetImageEncoders()
+                            .FirstOrDefault(enc => enc.FormatID == ImageFormat.Jpeg.Guid);
+
+                        if (jpegEncoder != null)
+                        {
+                            var encoderParams = new EncoderParameters(1);
+                            encoderParams.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, 90L);
+                            bitmap.Save(outputStream, jpegEncoder, encoderParams);
+                        }
+                        else
+                        {
+                            bitmap.Save(outputStream, ImageFormat.Jpeg);
+                        }
+
+                        return outputStream.ToArray();
+                    }
+                }
+            }
+            catch
+            {
+                return pngData;
+            }
+        }
         private void BuildImageIndices()
         {
             _imageIndices.Clear();
@@ -291,6 +348,7 @@ namespace TinyOPDS
             _anchors.Clear();
             _chapters.Clear();
             _chapterCounter = 0;
+            _footnoteRefCounts.Clear();
 
             _htmlStream = new MemoryStream();
             _htmlWriter = new StreamWriter(_htmlStream, new UTF8Encoding(false));
@@ -422,8 +480,17 @@ namespace TinyOPDS
 
             _isFirstFootnote = true;
 
+            bool isFirstTopSection = true;
             foreach (var section in notesBody.Elements(_fb2Ns + "section"))
             {
+                // Add page break before each top-level section except the first
+                if (!isFirstTopSection)
+                {
+                    Write("<mbp:pagebreak />\r\n");
+                    _isFirstFootnote = true; // Reset for new section
+                }
+                isFirstTopSection = false;
+
                 ProcessFootnoteSection(section);
             }
         }
@@ -449,7 +516,7 @@ namespace TinyOPDS
 
                 Write("<p width=\"0\" align=\"justify\">\r\n");
                 Write("<font size=\"-1\">\r\n");
-                WriteAnchorTagWithFilepos(id, "back_" + id, "&#8203;");
+                WriteAnchorTagWithFilepos(id, "back_" + id + "_1", "&#8203;");
                 Write(EscapeHtml(footnoteText));
                 Write("\r\n");
                 Write("</font>\r\n");
@@ -732,8 +799,14 @@ namespace TinyOPDS
                     // Extract ORIGINAL text from the link element (e.g., "[1]" or "{1}")
                     string originalLinkText = ExtractText(linkElem);
 
+                    // Generate unique back-link ID for this reference
+                    if (!_footnoteRefCounts.ContainsKey(href))
+                        _footnoteRefCounts[href] = 0;
+                    _footnoteRefCounts[href]++;
+                    string uniqueBackId = "back_" + href + "_" + _footnoteRefCounts[href];
+
                     Write(" ");
-                    WriteFootnoteRefTag("back_" + href, href, originalLinkText);
+                    WriteFootnoteRefTag(uniqueBackId, href, originalLinkText);
                 }
                 else
                 {

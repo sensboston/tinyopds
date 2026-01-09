@@ -64,6 +64,9 @@
     <Compile Include="..\TinyOPDS\Converters\MobiHelper.cs">
       <Link>Converters\MobiHelper.cs</Link>
     </Compile>
+    <Compile Include="..\TinyOPDS\Converters\MobiNcxBuilder.cs">
+      <Link>Converters\MobiNcxBuilder.cs</Link>
+    </Compile>
     <Compile Include="..\TinyOPDS\Misc\Pluralizer.cs">
       <Link>Misc\Pluralizer.cs</Link>
     </Compile>

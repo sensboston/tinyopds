@@ -8,6 +8,9 @@
  * MobiHelper - low-level MOBI format writer (MOBI 6)
  * Handles PalmDB headers, MOBI/EXTH records, and binary structure.
  *
+ * v8: Extended MOBI header to 264 bytes for full NCX support.
+ *     Fixed breadth-first NCX ordering for Kindle "Go To" menu.
+ *
  */
 
 using System;
@@ -20,6 +23,16 @@ using TinyOPDS.Data;
 
 namespace TinyOPDS
 {
+    /// <summary>
+    /// Chapter entry for NCX TOC generation
+    /// </summary>
+    public class MobiChapter
+    {
+        public string Title { get; set; }
+        public int Offset { get; set; }   // Byte offset in HTML
+        public int Depth { get; set; }    // Hierarchy level (0 = top)
+    }
+
     public class MobiHelper
     {
         private const int RECORD_SIZE = 4096;
@@ -37,11 +50,20 @@ namespace TinyOPDS
         }
 
         /// <summary>
-        /// Writes complete MOBI file to the output stream
+        /// Writes complete MOBI file to the output stream (without NCX)
+        /// </summary>
+        public void WriteMobiFile(Stream stream, byte[] htmlData)
+        {
+            WriteMobiFile(stream, htmlData, null);
+        }
+
+        /// <summary>
+        /// Writes complete MOBI file with NCX TOC support
         /// </summary>
         /// <param name="stream">Output stream</param>
         /// <param name="htmlData">HTML content as UTF-8 bytes</param>
-        public void WriteMobiFile(Stream stream, byte[] htmlData)
+        /// <param name="chapters">Chapter list for NCX generation (null = no NCX)</param>
+        public void WriteMobiFile(Stream stream, byte[] htmlData, IList<MobiChapter> chapters)
         {
             // Split HTML into text records (max 4096 bytes each)
             var textRecords = new List<byte[]>();
@@ -57,16 +79,39 @@ namespace TinyOPDS
 
             var imageRecords = new List<byte[]>(_images);
 
+            // Build NCX records if chapters provided
+            List<byte[]> ncxRecords = null;
+            int ncxRecordIndex = NULL_INDEX;
+
+            if (chapters != null && chapters.Count > 0)
+            {
+                var ncxBuilder = new MobiNcxBuilder();
+                foreach (var ch in chapters)
+                {
+                    ncxBuilder.AddEntry(ch.Title, ch.Offset, ch.Depth);
+                }
+                ncxBuilder.Build(htmlData.Length);
+                ncxRecords = ncxBuilder.Records;
+
+                if (ncxRecords.Count > 0)
+                {
+                    // NCX starts after text + images
+                    ncxRecordIndex = 1 + textRecords.Count + imageRecords.Count;
+                }
+            }
+
             // Calculate record indices
+            int ncxRecordCount = ncxRecords?.Count ?? 0;
             int firstImageRecordIndex = imageRecords.Count > 0 ? 1 + textRecords.Count : 0;
-            int flisRecordIndex = 1 + textRecords.Count + imageRecords.Count;
+            int flisRecordIndex = 1 + textRecords.Count + imageRecords.Count + ncxRecordCount;
             int fcisRecordIndex = flisRecordIndex + 1;
             int eofRecordIndex = fcisRecordIndex + 1;
             int totalRecords = eofRecordIndex + 1;
 
             // Build special records
             byte[] record0 = BuildRecord0(htmlData.Length, textRecords.Count,
-                                          firstImageRecordIndex, flisRecordIndex, fcisRecordIndex);
+                                          firstImageRecordIndex, flisRecordIndex, fcisRecordIndex,
+                                          ncxRecordIndex);
             byte[] flisRecord = BuildFLISRecord();
             byte[] fcisRecord = BuildFCISRecord(htmlData.Length);
             byte[] eofRecord = new byte[] { 0xE9, 0x8E, 0x0D, 0x0A };
@@ -76,27 +121,43 @@ namespace TinyOPDS
             var recordOffsets = new List<int>();
             int currentOffset = headerEnd;
 
+            // Record 0
             recordOffsets.Add(currentOffset);
             currentOffset += record0.Length;
 
+            // Text records
             foreach (var rec in textRecords)
             {
                 recordOffsets.Add(currentOffset);
                 currentOffset += rec.Length;
             }
 
+            // Image records
             foreach (var img in imageRecords)
             {
                 recordOffsets.Add(currentOffset);
                 currentOffset += img.Length;
             }
 
+            // NCX records (INDX Master, INDX Data, CNCX)
+            if (ncxRecords != null)
+            {
+                foreach (var ncx in ncxRecords)
+                {
+                    recordOffsets.Add(currentOffset);
+                    currentOffset += ncx.Length;
+                }
+            }
+
+            // FLIS
             recordOffsets.Add(currentOffset);
             currentOffset += flisRecord.Length;
 
+            // FCIS
             recordOffsets.Add(currentOffset);
             currentOffset += fcisRecord.Length;
 
+            // EOF
             recordOffsets.Add(currentOffset);
 
             // Write PalmDB header
@@ -126,6 +187,12 @@ namespace TinyOPDS
             foreach (var img in imageRecords)
                 stream.Write(img, 0, img.Length);
 
+            if (ncxRecords != null)
+            {
+                foreach (var ncx in ncxRecords)
+                    stream.Write(ncx, 0, ncx.Length);
+            }
+
             stream.Write(flisRecord, 0, flisRecord.Length);
             stream.Write(fcisRecord, 0, fcisRecord.Length);
             stream.Write(eofRecord, 0, eofRecord.Length);
@@ -136,15 +203,14 @@ namespace TinyOPDS
         private void WritePalmDbHeader(Stream stream, string title, int recordCount)
         {
             // Database name (32 bytes, null-padded)
-            string safeName = new string(title.Where(c => c < 128 && c >= 32).ToArray());
-            if (safeName.Length > 31) safeName = safeName.Substring(0, 31);
-            byte[] nameBytes = Encoding.ASCII.GetBytes(safeName);
-            stream.Write(nameBytes, 0, nameBytes.Length);
+            byte[] nameBytes = Encoding.ASCII.GetBytes(SanitizeTitle(title));
+            stream.Write(nameBytes, 0, Math.Min(nameBytes.Length, 31));
             for (int i = nameBytes.Length; i < 32; i++)
                 stream.WriteByte(0);
 
-            // Attributes and version
+            // Attributes
             WriteInt16BE(stream, 0);
+            // Version
             WriteInt16BE(stream, 0);
 
             // Creation/modification dates (PalmOS epoch: 1904-01-01)
@@ -171,7 +237,8 @@ namespace TinyOPDS
         #region MOBI Records
 
         private byte[] BuildRecord0(int textLength, int textRecordCount,
-                                    int firstImageRecordIndex, int flisRecordIndex, int fcisRecordIndex)
+                                    int firstImageRecordIndex, int flisRecordIndex, int fcisRecordIndex,
+                                    int ncxRecordIndex)
         {
             using (var ms = new MemoryStream())
             {
@@ -183,89 +250,118 @@ namespace TinyOPDS
                 WriteInt16BE(ms, RECORD_SIZE); // Record size
                 WriteInt32BE(ms, 0);           // Current position
 
-                long mobiStart = ms.Position;
+                long mobiStart = ms.Position;  // Offset 16
 
-                // MOBI header
-                ms.Write(Encoding.ASCII.GetBytes("MOBI"), 0, 4);
-                WriteInt32BE(ms, 232);         // Header length
-                WriteInt32BE(ms, 2);           // MOBI type (book)
-                WriteInt32BE(ms, 65001);       // Text encoding (UTF-8)
-                WriteInt32BE(ms, new Random().Next()); // Unique ID
-                WriteInt32BE(ms, 6);           // File version
+                // MOBI header (starts at offset 16)
+                // Header length = 264 for full NCX support (matching kindlegen output)
+                ms.Write(Encoding.ASCII.GetBytes("MOBI"), 0, 4);  // 16-19: MOBI magic
+                WriteInt32BE(ms, 264);         // 20-23: Header length (264 for full NCX)
+                WriteInt32BE(ms, 2);           // 24-27: MOBI type (book)
+                WriteInt32BE(ms, 65001);       // 28-31: Text encoding (UTF-8)
+                WriteInt32BE(ms, new Random().Next()); // 32-35: Unique ID
+                WriteInt32BE(ms, 6);           // 36-39: File version
 
-                // Ortographic/inflection/index records (all NULL)
+                // 40-79: Ortographic/inflection/index records (10 x 4 bytes, all NULL)
                 for (int i = 0; i < 10; i++)
                     WriteInt32BE(ms, NULL_INDEX);
 
-                // First non-book record index
+                // 80-83: First non-book record index
                 WriteInt32BE(ms, 1 + textRecordCount);
 
-                // Full name offset (will be filled later)
+                // 84-87: Full name offset (placeholder)
                 long fullNameOffsetPos = ms.Position;
                 WriteInt32BE(ms, 0);
 
-                // Full name length
+                // 88-91: Full name length
                 int titleLen = Encoding.UTF8.GetByteCount(_book.Title);
                 WriteInt32BE(ms, titleLen);
 
-                // Locale and input/output languages
-                WriteInt32BE(ms, 9);  // Locale (English)
-                WriteInt32BE(ms, 0);  // Input language
-                WriteInt32BE(ms, 0);  // Output language
-                WriteInt32BE(ms, 6);  // Min version
+                // 92-95: Locale
+                WriteInt32BE(ms, 9);  // English
+                // 96-99: Input language
+                WriteInt32BE(ms, 0);
+                // 100-103: Output language
+                WriteInt32BE(ms, 0);
+                // 104-107: Min version
+                WriteInt32BE(ms, 6);
 
-                // First image record index
+                // 108-111: First image record index
                 WriteInt32BE(ms, firstImageRecordIndex > 0 ? firstImageRecordIndex : NULL_INDEX);
 
-                // Huffman/HUFF/CDIC records
+                // 112-127: Huffman/HUFF/CDIC records (4 x 4 bytes)
                 WriteInt32BE(ms, 0);
                 WriteInt32BE(ms, 0);
                 WriteInt32BE(ms, 0);
                 WriteInt32BE(ms, 0);
 
-                // EXTH flags
+                // 128-131: EXTH flags
+                // Use 0x40 (has EXTH only) - 0x50 breaks popup footnotes on older Kindles
                 WriteInt32BE(ms, 0x40);
 
-                // Unknown (32 bytes)
+                // 132-163: Unknown (32 bytes)
                 ms.Write(new byte[32], 0, 32);
 
-                // DRM and other indices
+                // 164-167: DRM offset
                 WriteInt32BE(ms, NULL_INDEX);
+                // 168-171: DRM count
                 WriteInt32BE(ms, NULL_INDEX);
+                // 172-175: DRM size
                 WriteInt32BE(ms, 0);
+                // 176-179: DRM flags
                 WriteInt32BE(ms, 0);
+                // 180-183: Unknown
                 WriteInt32BE(ms, 0);
 
-                // Unknown (8 bytes)
+                // 184-191: Unknown (8 bytes)
                 ms.Write(new byte[8], 0, 8);
 
-                // FDST and text record info
+                // 192-193: FDST flow count
                 WriteInt16BE(ms, 1);
+                // 194-195: Text record count (first content)
                 WriteInt16BE(ms, textRecordCount);
 
-                // Unknown and FLIS/FCIS info
+                // 196-199: Unknown
                 WriteInt32BE(ms, 0);
+                // 200-203: FCIS record number
                 WriteInt32BE(ms, fcisRecordIndex);
+                // 204-207: FCIS record count
                 WriteInt32BE(ms, 1);
+                // 208-211: FLIS record number
                 WriteInt32BE(ms, flisRecordIndex);
+                // 212-215: FLIS record count
                 WriteInt32BE(ms, 1);
 
-                // Unknown (8 bytes)
+                // 216-223: Unknown (8 bytes)
                 ms.Write(new byte[8], 0, 8);
 
-                // More indices
+                // 224-227: Unknown
                 WriteInt32BE(ms, NULL_INDEX);
+                // 228-231: Unknown
                 WriteInt32BE(ms, 0);
+                // 232-235: Unknown
                 WriteInt32BE(ms, 0);
+                // 236-239: Unknown
                 WriteInt32BE(ms, NULL_INDEX);
 
-                WriteInt32BE(ms, 1);
+                // 240-243: Extra record data flags
+                WriteInt32BE(ms, 0);
+
+                // 244-247: NCX INDEX RECORD
+                // Keep valid index for TOC, but use EXTH flags 0x40 (not 0x50) for popup footnotes
+                WriteInt32BE(ms, ncxRecordIndex);
+
+                // 248-251: Fragment index (NULL for MOBI 6)
+                WriteInt32BE(ms, NULL_INDEX);
+                // 252-255: Skeleton index (NULL for MOBI 6)
+                WriteInt32BE(ms, NULL_INDEX);
+                // 256-259: DATP offset (NULL)
+                WriteInt32BE(ms, NULL_INDEX);
+                // 260-263: Guide index (NULL for MOBI 6)
                 WriteInt32BE(ms, NULL_INDEX);
 
-                // Pad MOBI header to 232 bytes
-                long written = ms.Position - mobiStart;
-                if (written < 232)
-                    ms.Write(new byte[232 - written], 0, (int)(232 - written));
+                // Pad to header length = 264 bytes from MOBI start
+                // Currently at offset 248 from MOBI start, need 16 more bytes
+                ms.Write(new byte[16], 0, 16);  // 264-279: padding
 
                 // EXTH header
                 byte[] exth = BuildExthHeader(firstImageRecordIndex);
@@ -336,8 +432,9 @@ namespace TinyOPDS
                 foreach (var r in records)
                     ms.Write(r, 0, r.Length);
 
-                if (padding > 0)
-                    ms.Write(new byte[padding], 0, padding);
+                // Padding
+                for (int i = 0; i < padding; i++)
+                    ms.WriteByte(0);
 
                 return ms.ToArray();
             }
@@ -345,27 +442,32 @@ namespace TinyOPDS
 
         private byte[] BuildExthRecord(int type, byte[] data)
         {
-            byte[] rec = new byte[8 + data.Length];
-            WriteInt32BE(rec, 0, type);
-            WriteInt32BE(rec, 4, 8 + data.Length);
-            Array.Copy(data, 0, rec, 8, data.Length);
-            return rec;
+            using (var ms = new MemoryStream())
+            {
+                WriteInt32BE(ms, type);
+                WriteInt32BE(ms, 8 + data.Length);
+                ms.Write(data, 0, data.Length);
+                return ms.ToArray();
+            }
         }
 
         private byte[] BuildFLISRecord()
         {
-            return new byte[]
+            using (var ms = new MemoryStream())
             {
-                0x46, 0x4C, 0x49, 0x53, // "FLIS"
-                0x00, 0x00, 0x00, 0x08,
-                0x00, 0x41, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00,
-                0xFF, 0xFF, 0xFF, 0xFF,
-                0x00, 0x01, 0x00, 0x03,
-                0x00, 0x00, 0x00, 0x03,
-                0x00, 0x00, 0x00, 0x01,
-                0xFF, 0xFF, 0xFF, 0xFF
-            };
+                ms.Write(Encoding.ASCII.GetBytes("FLIS"), 0, 4);
+                WriteInt32BE(ms, 8);
+                WriteInt16BE(ms, 65);
+                WriteInt16BE(ms, 0);
+                WriteInt32BE(ms, 0);
+                WriteInt32BE(ms, unchecked((int)0xFFFFFFFF));
+                WriteInt16BE(ms, 1);
+                WriteInt16BE(ms, 3);
+                WriteInt32BE(ms, 3);
+                WriteInt32BE(ms, 1);
+                WriteInt32BE(ms, unchecked((int)0xFFFFFFFF));
+                return ms.ToArray();
+            }
         }
 
         private byte[] BuildFCISRecord(int textLength)
@@ -406,14 +508,6 @@ namespace TinyOPDS
             stream.WriteByte((byte)(value & 0xFF));
         }
 
-        private void WriteInt32BE(byte[] buffer, int offset, int value)
-        {
-            buffer[offset] = (byte)((value >> 24) & 0xFF);
-            buffer[offset + 1] = (byte)((value >> 16) & 0xFF);
-            buffer[offset + 2] = (byte)((value >> 8) & 0xFF);
-            buffer[offset + 3] = (byte)(value & 0xFF);
-        }
-
         private byte[] GetInt32Bytes(int value)
         {
             return new byte[]
@@ -423,6 +517,18 @@ namespace TinyOPDS
                 (byte)((value >> 8) & 0xFF),
                 (byte)(value & 0xFF)
             };
+        }
+
+        private string SanitizeTitle(string title)
+        {
+            if (string.IsNullOrEmpty(title)) return "Untitled";
+            var sb = new StringBuilder();
+            foreach (char c in title)
+            {
+                if (c >= 32 && c < 127)
+                    sb.Append(c);
+            }
+            return sb.Length > 0 ? sb.ToString() : "Untitled";
         }
 
         #endregion

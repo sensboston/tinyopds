@@ -770,6 +770,60 @@ namespace TinyOPDS.Data
             }
         }
 
+        /// <summary>
+        /// Keep cache warm - called by DatabaseManager keep-alive timer
+        /// This prevents cache expiration during idle periods and keeps data fresh
+        /// </summary>
+        public static void KeepWarm()
+        {
+            if (bookRepository == null || isCacheWarming) return;
+
+            try
+            {
+                // Check if cache is close to expiring (within 2 minutes of NewBooksCacheTimeout)
+                bool needsRefresh = false;
+                lock (cacheLock)
+                {
+                    var timeSinceUpdate = DateTime.Now - lastNewBooksCountUpdate;
+                    needsRefresh = !isCacheInitialized || timeSinceUpdate > TimeSpan.FromMinutes(3);
+                }
+
+                if (needsRefresh)
+                {
+                    // Do a lightweight refresh - just update timestamps and key counts
+                    // This keeps the cache fresh without blocking user requests
+                    isCacheWarming = true;
+
+                    var period = periods[Properties.Settings.Default.NewBooksPeriod];
+                    var fromDate = DateTime.Now.Subtract(period);
+
+                    // Refresh key counts that are needed for root catalog
+                    int newAuthorsCount = bookRepository.GetAuthorsCount();
+                    int newSequencesCount = bookRepository.GetSequencesCount();
+                    int newNewBooksCount = bookRepository.GetNewBooksCount(fromDate);
+                    int newTotalCount = bookRepository.GetTotalBooksCount();
+
+                    lock (cacheLock)
+                    {
+                        cachedAuthorsCount = newAuthorsCount;
+                        cachedSequencesCount = newSequencesCount;
+                        cachedNewBooksCount = newNewBooksCount;
+                        cachedTotalCount = newTotalCount;
+                        lastStatsUpdate = DateTime.Now;
+                        lastNewBooksCountUpdate = DateTime.Now;
+                        isCacheInitialized = true;
+                    }
+
+                    isCacheWarming = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                isCacheWarming = false;
+                Log.WriteLine(LogLevel.Warning, "KeepWarm failed: {0}", ex.Message);
+            }
+        }
+
         #endregion
 
         #region All other properties and methods remain the same

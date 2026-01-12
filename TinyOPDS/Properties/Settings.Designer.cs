@@ -468,5 +468,17 @@ namespace TinyOPDS.Properties {
                 this["AuthorizedClients"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool TOCMenu {
+            get {
+                return ((bool)(this["TOCMenu"]));
+            }
+            set {
+                this["TOCMenu"] = value;
+            }
+        }
     }
 }

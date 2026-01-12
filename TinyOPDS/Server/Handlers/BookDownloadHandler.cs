@@ -59,6 +59,11 @@ namespace TinyOPDS.Server
                     downloadFormat = "epub";
                     HandleEpubDownload(processor, book, acceptFB2);
                 }
+                else if (request.Contains("/mobi") || ext.Equals(".mobi"))
+                {
+                    downloadFormat = "mobi";
+                    HandleMobiDownload(processor, book);
+                }
 
                 RecordDownload(bookID, downloadType, downloadFormat, processor);
 
@@ -100,7 +105,7 @@ namespace TinyOPDS.Server
 
                 Library.RecordDownload(bookId, downloadType, format, clientInfo);
 
-                Log.WriteLine(LogLevel.Info, "Recorded {0} download for book {1}, format: {2}",
+                Log.WriteLine(LogLevel.Info, "Recorded {0} for book {1}, format: {2}",
                     downloadType, bookId, format ?? "n/a");
             }
             catch (Exception ex)
@@ -411,6 +416,81 @@ namespace TinyOPDS.Server
             {
                 Log.WriteLine(LogLevel.Warning, "FB2EpubConverter error for {0}: {1}", book.FileName, ex.Message);
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Handles MOBI download requests - converts FB2 to MOBI on the fly
+        /// </summary>
+        private void HandleMobiDownload(HttpProcessor processor, Book book)
+        {
+            try
+            {
+                // Only FB2 books can be converted to MOBI
+                if (book.BookType != BookType.FB2)
+                {
+                    Log.WriteLine(LogLevel.Warning, "MOBI conversion only supported for FB2 books. Book {0} is {1}",
+                        book.FileName, book.BookType);
+                    processor.WriteFailure();
+                    return;
+                }
+
+                using (var memStream = new MemoryStream())
+                {
+                    // Extract FB2 content
+                    if (!ExtractBookContent(book, memStream))
+                    {
+                        Log.WriteLine(LogLevel.Error, "Failed to extract book content for: {0}", book.FileName);
+                        processor.WriteFailure();
+                        return;
+                    }
+
+                    memStream.Position = 0;
+
+                    // Convert to MOBI
+                    using (var mobiStream = new MemoryStream())
+                    {
+                        var converter = new FB2MobiConverter();
+                        bool success = converter.ConvertToMobiStream(book, memStream, mobiStream);
+
+                        if (!success)
+                        {
+                            Log.WriteLine(LogLevel.Error, "Failed to convert {0} to MOBI", book.FileName);
+                            processor.WriteFailure();
+                            return;
+                        }
+
+                        // Send MOBI file
+                        mobiStream.Position = 0;
+
+                        string fileName = Transliteration.Front(
+                            string.Format("{0}_{1}.mobi",
+                                book.Authors.FirstOrDefault() ?? "Unknown",
+                                book.Title));
+
+                        processor.OutputStream.WriteLine("HTTP/1.0 200 OK");
+                        processor.OutputStream.WriteLine("Content-Type: application/x-mobipocket-ebook");
+                        processor.OutputStream.WriteLine("Content-Disposition: attachment; filename=\"{0}\"", fileName);
+                        processor.OutputStream.WriteLine("Content-Length: {0}", mobiStream.Length);
+                        processor.OutputStream.WriteLine("Connection: close");
+                        processor.OutputStream.WriteLine();
+
+                        mobiStream.CopyTo(processor.OutputStream.BaseStream);
+                        processor.OutputStream.BaseStream.Flush();
+
+                        Log.WriteLine(LogLevel.Info, "Successfully served MOBI conversion for: {0}", book.Title);
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                Log.WriteLine(LogLevel.Info, "MOBI conversion cancelled for: {0}", book.Title);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "MOBI conversion error for {0}: {1}", book.FileName, ex.Message);
+                processor.WriteFailure();
             }
         }
     }

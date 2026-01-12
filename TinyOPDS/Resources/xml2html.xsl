@@ -404,21 +404,21 @@ xmlns:x="http://www.w3.org/2005/Atom">
 
 					.download-links {
 					display: flex;
-					flex-direction: row;
+					flex-direction: column;
 					gap: 4px;
 					margin-top: 6px;
 					width: 120px;
 					}
 
 					.download-link {
-					font-size: 11px;
-					padding: 6px 4px;
+					font-size: 12px;
+					padding: 8px 12px;
 					text-decoration: none;
 					border-radius: 6px;
 					text-align: center;
 					font-weight: 600;
 					display: block;
-					width: 58px;
+					width: 100%;
 					box-sizing: border-box;
 					transition: all 0.3s ease;
 					}
@@ -449,6 +449,20 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					text-decoration: none;
 					transform: translateY(-1px);
 					box-shadow: 0 4px 12px rgba(66, 153, 225, 0.4);
+					}
+
+					.download-mobi {
+					background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%);
+					color: white;
+					box-shadow: 0 2px 6px rgba(156, 39, 176, 0.3);
+					}
+
+					.download-mobi:hover {
+					background: linear-gradient(135deg, #7b1fa2 0%, #6a1b9a 100%);
+					color: white;
+					text-decoration: none;
+					transform: translateY(-1px);
+					box-shadow: 0 4px 12px rgba(156, 39, 176, 0.4);
 					}
 
 					h4 {
@@ -629,7 +643,7 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					}
 
 					.download-link {
-					width: 48px;
+					width: 100%;
 					}
 
 					.book-header {
@@ -883,6 +897,32 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					background: linear-gradient(135deg, #234872 0%, #1b3553 100%);
 					color: white;
 					box-shadow: 0 4px 12px rgba(42, 92, 147, 0.8);
+					}
+
+					.dark .download-mobi {
+					background: linear-gradient(135deg, #6a1b9a 0%, #4a148c 100%);
+					color: white;
+					box-shadow: 0 2px 6px rgba(106, 27, 154, 0.6);
+					}
+
+					.dark .download-mobi:hover {
+					background: linear-gradient(135deg, #4a148c 0%, #311b92 100%);
+					color: white;
+					box-shadow: 0 4px 12px rgba(106, 27, 154, 0.8);
+					}
+
+					.download-mobi {
+					background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%);
+					color: white;
+					box-shadow: 0 2px 6px rgba(156, 39, 176, 0.3);
+					}
+
+					.download-mobi:hover {
+					background: linear-gradient(135deg, #7b1fa2 0%, #6a1b9a 100%);
+					color: white;
+					text-decoration: none;
+					transform: translateY(-1px);
+					box-shadow: 0 4px 12px rgba(156, 39, 176, 0.4);
 					}
 
 					.dark h4 {
@@ -1214,8 +1254,20 @@ xmlns:x="http://www.w3.org/2005/Atom">
 														<xsl:value-of select="$bookId"/>
 														<xsl:text>/epub</xsl:text>
 													</xsl:attribute>
-													ePub
+													EPUB
 												</a>
+
+											<!-- MOBI Download button - only for FB2 books -->
+											<xsl:if test="x:link[attribute::type='application/fb2+zip'] or x:format = 'fb2'">
+												<a class="download-link download-mobi">
+													<xsl:attribute name="href">
+														<xsl:text>/download/</xsl:text>
+														<xsl:value-of select="$bookId"/>
+														<xsl:text>/mobi</xsl:text>
+													</xsl:attribute>
+													MOBI
+												</a>
+											</xsl:if>
 											</div>
 										</div>
 

@@ -169,11 +169,11 @@ namespace TinyOPDS.Data
         private void StartKeepAliveTimer()
         {
             _keepAliveTimer = new Timer(KeepConnectionAlive, null,
-                TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+                TimeSpan.FromSeconds(15), TimeSpan.FromSeconds(15));
         }
 
         /// <summary>
-        /// Keep-alive callback to maintain warm connection
+        /// Keep-alive callback to maintain warm connection and data cache
         /// </summary>
         private void KeepConnectionAlive(object state)
         {
@@ -181,8 +181,43 @@ namespace TinyOPDS.Data
             {
                 lock (connectionLock)
                 {
-                    ExecuteScalar("SELECT 1");
+                    // Warm up data cache with real queries instead of just SELECT 1
+                    // This keeps frequently accessed data pages in SQLite cache
+                    ExecuteScalar("SELECT COUNT(*) FROM Books LIMIT 1");
+                    ExecuteScalar("SELECT COUNT(*) FROM Authors LIMIT 1");
+
+                    // Warm up additional tables used by root catalog
+                    try
+                    {
+                        ExecuteScalar("SELECT COUNT(*) FROM Sequences LIMIT 1");
+                        ExecuteScalar("SELECT COUNT(DISTINCT BookID) FROM Downloads LIMIT 1");
+                        ExecuteScalar("SELECT COUNT(*) FROM LibraryStatistics LIMIT 1");
+                    }
+                    catch { /* Tables may not exist */ }
+
+                    // Warm up FTS indexes (important for search performance)
+                    try
+                    {
+                        ExecuteScalar("SELECT 1 FROM Books_fts LIMIT 1");
+                        ExecuteScalar("SELECT 1 FROM Authors_fts LIMIT 1");
+                    }
+                    catch { /* FTS tables may not exist yet */ }
+
+                    // Optimize query planner statistics periodically
+                    // SQLite recommends running this for long-running applications
+                    try
+                    {
+                        ExecuteNonQuery("PRAGMA optimize");
+                    }
+                    catch { /* May not be supported on all SQLite versions */ }
                 }
+
+                // Keep Library cache warm to prevent slow first request after idle
+                try
+                {
+                    Library.KeepWarm();
+                }
+                catch { /* Library may not be initialized */ }
             }
             catch (Exception ex)
             {
@@ -233,8 +268,14 @@ namespace TinyOPDS.Data
                     ExecuteScalar("SELECT COUNT(*) FROM Authors LIMIT 1");
                     ExecuteScalar("SELECT COUNT(*) FROM Genres LIMIT 1");
 
-                    // REMOVED ANALYZE - too expensive for large databases!
-                    // ExecuteNonQuery("ANALYZE");
+                    // Warm up FTS indexes for faster search
+                    try
+                    {
+                        ExecuteScalar("SELECT 1 FROM Books_fts LIMIT 1");
+                        ExecuteScalar("SELECT 1 FROM Authors_fts LIMIT 1");
+                        ExecuteScalar("SELECT 1 FROM Sequences_fts LIMIT 1");
+                    }
+                    catch { /* FTS tables may not exist yet */ }
 
                     Log.WriteLine(LogLevel.Info, "Database cache warmed up after idle period");
                 }

@@ -293,29 +293,9 @@ namespace TinyOPDS.Server
 
         private string GenerateClientFingerprint(string realIP, string userAgent)
         {
-            // For Cloudflare IPs, use generic fingerprint
-            bool isCloudflareIP = IsCloudflareIP(realIP);
-
-            // For FBReader, always use universal fingerprint
-            bool isFBReader = userAgent != null &&
-                (userAgent.Contains("FBReader") || userAgent.Contains("Dalvik"));
-
-            string fingerprint;
-            if (isFBReader)
-            {
-                // FBReader gets universal fingerprint
-                fingerprint = "fbreader|universal";
-            }
-            else if (isCloudflareIP)
-            {
-                // Cloudflare IPs get fingerprint based on UserAgent only
-                fingerprint = "cloudflare|" + (userAgent ?? "unknown");
-            }
-            else
-            {
-                // Regular IPs get full fingerprint
-                fingerprint = realIP + "|" + (userAgent ?? "unknown");
-            }
+            // Fingerprint must always include client IP: User-Agent alone is not a secret
+            // and can be set to anything by any client
+            string fingerprint = realIP + "|" + (userAgent ?? "unknown");
 
             // Use shared SHA256 instance for better performance
             lock (sha256Lock)
@@ -521,7 +501,8 @@ namespace TinyOPDS.Server
                             {
                                 try
                                 {
-                                    string[] credential = hash.Substring(6).DecodeFromBase64().Split(':');
+                                    // Split on the first colon only: password itself may contain colons (RFC 7617)
+                                    string[] credential = hash.Substring(6).DecodeFromBase64().Split(new[] { ':' }, 2);
 
                                     if (credential.Length == 2)
                                     {
@@ -692,33 +673,45 @@ namespace TinyOPDS.Server
 
         private string CalculateRealClientIP(string directIP)
         {
-            if (directIP == "127.0.0.1" || directIP == "::1")
+            bool isLocalProxy = directIP == "127.0.0.1" || directIP == "::1";
+
+            // Cloudflare (both tunnel and proxy modes) always overwrites CF-Connecting-IP with the real
+            // client address, so unlike X-Real-IP / X-Forwarded-For it can't be forged by the client
+            string ip;
+            if ((isLocalProxy || IsCloudflareIP(directIP)) && TryGetHeaderIP("CF-Connecting-IP", out ip))
+                return ip;
+
+            if (isLocalProxy)
             {
                 Log.WriteLine(LogLevel.Info, "Tunnel request - X-Real-IP: {0}, X-Forwarded-For: {1}",
                     HttpHeaders.ContainsKey("X-Real-IP") ? HttpHeaders["X-Real-IP"] : "none",
                     HttpHeaders.ContainsKey("X-Forwarded-For") ? HttpHeaders["X-Forwarded-For"] : "none");
 
-                if (HttpHeaders.ContainsKey("X-Real-IP"))
-                {
-                    string realIP = HttpHeaders["X-Real-IP"];
-                    if (!string.IsNullOrEmpty(realIP))
-                    {
-                        return realIP.Trim();
-                    }
-                }
-
-                if (HttpHeaders.ContainsKey("X-Forwarded-For"))
-                {
-                    string forwardedFor = HttpHeaders["X-Forwarded-For"];
-                    if (!string.IsNullOrEmpty(forwardedFor))
-                    {
-                        var ips = forwardedFor.Split(',');
-                        return ips[0].Trim();
-                    }
-                }
+                // Local reverse proxy (nginx etc.)
+                if (TryGetHeaderIP("X-Real-IP", out ip) || TryGetHeaderIP("X-Forwarded-For", out ip))
+                    return ip;
             }
 
             return directIP;
+        }
+
+        /// <summary>
+        /// Get client IP from proxy header; only a valid IP address is accepted
+        /// (arbitrary strings must never get into client fingerprint)
+        /// </summary>
+        private bool TryGetHeaderIP(string headerName, out string ip)
+        {
+            ip = null;
+            if (!HttpHeaders.TryGetValue(headerName, out string value) || string.IsNullOrEmpty(value))
+                return false;
+
+            // X-Forwarded-For may contain a chain: "client, proxy1, proxy2"
+            string candidate = value.Split(',')[0].Trim();
+            if (!IPAddress.TryParse(candidate, out IPAddress address))
+                return false;
+
+            ip = address.ToString();
+            return true;
         }
 
         public bool ParseRequest()

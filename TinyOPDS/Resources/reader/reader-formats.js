@@ -610,7 +610,7 @@ class FormatConverter {
 
         for (const child of element.childNodes) {
             if (child.nodeType === Node.TEXT_NODE) {
-                html += child.textContent;
+                html += this.escapeXml(child.textContent);
             } else if (child.nodeType === Node.ELEMENT_NODE) {
                 switch (child.tagName.toLowerCase()) {
                     case 'title':

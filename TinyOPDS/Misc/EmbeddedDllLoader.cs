@@ -82,16 +82,15 @@ namespace TinyOPDS
                         PreloadHomebrewSqlite();
                     }
 
-                    // Set up assembly resolver for Windows only
+                    // Load native DLLs on Windows only
                     // Unix systems will use Mono.Data.Sqlite directly
                     if (!Utils.IsLinux && !Utils.IsMacOS)
                     {
-                        // Load native DLLs first
                         PreloadNativeDlls();
-
-                        // Then set up assembly resolver
-                        AppDomain.CurrentDomain.AssemblyResolve += OnAssemblyResolve;
                     }
+
+                    // Set up assembly resolver (on Unix it resolves platform-independent libraries only)
+                    AppDomain.CurrentDomain.AssemblyResolve += OnAssemblyResolve;
 
                     // Load Mono.Data.Sqlite on Unix systems (Linux and macOS)
                     if (Utils.IsLinux || Utils.IsMacOS)
@@ -235,7 +234,7 @@ namespace TinyOPDS
 
         /// <summary>
         /// Event handler for resolving managed assemblies from embedded resources
-        /// Windows only - Unix systems use Mono.Data.Sqlite
+        /// System.Data.SQLite is resolved on Windows only - Unix systems use Mono.Data.Sqlite
         /// </summary>
         private static Assembly OnAssemblyResolve(object sender, ResolveEventArgs args)
         {
@@ -254,6 +253,12 @@ namespace TinyOPDS
                      !assemblyName.Equals("System.Data.SQLite", StringComparison.OrdinalIgnoreCase)) ||
                     assemblyName.StartsWith("Microsoft.", StringComparison.OrdinalIgnoreCase) ||
                     assemblyName.Equals("mscorlib", StringComparison.OrdinalIgnoreCase))
+                {
+                    return null;
+                }
+
+                if ((Utils.IsLinux || Utils.IsMacOS) &&
+                    assemblyName.Equals("System.Data.SQLite", StringComparison.OrdinalIgnoreCase))
                 {
                     return null;
                 }

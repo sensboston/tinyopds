@@ -1164,21 +1164,16 @@ namespace TinyOPDS.Data
 
         public List<Book> GetBooksByFileNamePrefix(string fileNamePrefix)
         {
-            string languageFilter = GetLanguageFilter();
-
+            // Used for archive removal, so no language filter here: all books of the archive must be found.
+            // Exact prefix comparison instead of LIKE: '_' and '%' in file names are LIKE wildcards
             string query = @"
                 SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
                        Annotation, DocumentSize, AddedDate
-                FROM Books 
-                WHERE FileName LIKE @FileNamePrefix || '%'";
-
-            if (!string.IsNullOrEmpty(languageFilter))
-            {
-                query += " AND Language = @Language";
-            }
+                FROM Books
+                WHERE substr(FileName, 1, length(@FileNamePrefix)) = @FileNamePrefix COLLATE NOCASE";
 
             var books = db.ExecuteQuery<Book>(query, MapBook,
-                AddLanguageParameter(DatabaseManager.CreateParameter("@FileNamePrefix", fileNamePrefix)));
+                DatabaseManager.CreateParameter("@FileNamePrefix", fileNamePrefix));
 
             foreach (var book in books)
             {
@@ -2179,17 +2174,14 @@ namespace TinyOPDS.Data
                 DocumentSize = DatabaseManager.GetUInt32(reader, "DocumentSize")
             };
 
-            // Map new duplicate detection fields if they exist
-            try
+            // Map duplicate detection fields if the query selects them
+            // (checked explicitly: exception per row is too expensive for search results)
+            if (DatabaseManager.HasColumn(reader, "DocumentIDTrusted"))
             {
                 book.DocumentIDTrusted = DatabaseManager.GetBoolean(reader, "DocumentIDTrusted");
                 book.DuplicateKey = DatabaseManager.GetString(reader, "DuplicateKey");
                 book.ReplacedByID = DatabaseManager.GetString(reader, "ReplacedByID");
                 book.ContentHash = DatabaseManager.GetString(reader, "ContentHash");
-            }
-            catch
-            {
-                // Fields might not exist in older queries, ignore
             }
 
             var bookDate = DatabaseManager.GetDateTime(reader, "BookDate");

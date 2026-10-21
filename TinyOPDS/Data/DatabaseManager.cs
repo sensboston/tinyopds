@@ -191,15 +191,15 @@ namespace TinyOPDS.Data
                     {
                         ExecuteScalar("SELECT COUNT(*) FROM Sequences LIMIT 1");
                         ExecuteScalar("SELECT COUNT(DISTINCT BookID) FROM Downloads LIMIT 1");
-                        ExecuteScalar("SELECT COUNT(*) FROM LibraryStatistics LIMIT 1");
+                        ExecuteScalar("SELECT COUNT(*) FROM LibraryStats LIMIT 1");
                     }
                     catch { /* Tables may not exist */ }
 
                     // Warm up FTS indexes (important for search performance)
                     try
                     {
-                        ExecuteScalar("SELECT 1 FROM Books_fts LIMIT 1");
-                        ExecuteScalar("SELECT 1 FROM Authors_fts LIMIT 1");
+                        ExecuteScalar("SELECT 1 FROM BooksFTS LIMIT 1");
+                        ExecuteScalar("SELECT 1 FROM AuthorsFTS LIMIT 1");
                     }
                     catch { /* FTS tables may not exist yet */ }
 
@@ -271,9 +271,9 @@ namespace TinyOPDS.Data
                     // Warm up FTS indexes for faster search
                     try
                     {
-                        ExecuteScalar("SELECT 1 FROM Books_fts LIMIT 1");
-                        ExecuteScalar("SELECT 1 FROM Authors_fts LIMIT 1");
-                        ExecuteScalar("SELECT 1 FROM Sequences_fts LIMIT 1");
+                        ExecuteScalar("SELECT 1 FROM BooksFTS LIMIT 1");
+                        ExecuteScalar("SELECT 1 FROM AuthorsFTS LIMIT 1");
+                        ExecuteScalar("SELECT 1 FROM SequencesFTS LIMIT 1");
                     }
                     catch { /* FTS tables may not exist yet */ }
 
@@ -1271,6 +1271,16 @@ namespace TinyOPDS.Data
         }
 
         // Helper methods for reading from IDataReader - FIXED for cross-platform
+        public static bool HasColumn(IDataReader reader, string columnName)
+        {
+            for (int i = 0; i < reader.FieldCount; i++)
+            {
+                if (string.Equals(reader.GetName(i), columnName, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+            return false;
+        }
+
         public static string GetString(IDataReader reader, string columnName)
         {
             var ordinal = reader.GetOrdinal(columnName);

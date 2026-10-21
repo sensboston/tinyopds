@@ -447,7 +447,7 @@ namespace TinyOPDS.Data
             SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
                    Annotation, DocumentSize, AddedDate, DocumentIDTrusted, 
                    DuplicateKey, ReplacedByID, ContentHash
-            FROM Books
+            FROM Books b
             WHERE ReplacedByID IS NULL";
 
         public const string SelectBookById = @"
@@ -499,7 +499,8 @@ namespace TinyOPDS.Data
             FROM Books b
             INNER JOIN BooksFTS fts ON b.ID = fts.BookID
             WHERE BooksFTS MATCH @SearchPattern
-            ORDER BY 
+              AND b.ReplacedByID IS NULL
+            ORDER BY
                 CASE WHEN b.Title LIKE @LikePattern || '%' THEN 0 ELSE 1 END,
                 bm25(BooksFTS),
                 b.Title";
@@ -510,13 +511,15 @@ namespace TinyOPDS.Data
                    Annotation, DocumentSize, AddedDate
             FROM Books 
             WHERE Title LIKE '%' || @Title || '%' COLLATE NOCASE
+              AND ReplacedByID IS NULL
             ORDER BY Title";
 
         public const string SelectNewBooks = @"
             SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
                    Annotation, DocumentSize, AddedDate
             FROM Books 
-            WHERE AddedDate >= @FromDate";
+            WHERE AddedDate >= @FromDate
+              AND ReplacedByID IS NULL";
 
         public const string SelectMainGenreTranslations = @"
             SELECT Name, Translation 

@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using TinyOPDS.Data;
 
@@ -149,6 +150,39 @@ namespace TinyOPDS.Server
         }
 
         /// <summary>
+        /// Creates ASCII-only file name for Content-Disposition header and ZIP entry
+        /// (non-ASCII characters in file names break some OPDS clients, e.g. FBReader)
+        /// </summary>
+        private static string CreateSafeDownloadFileName(Book book, string extension)
+        {
+            string name = string.Format("{0}_{1}", book.Authors.FirstOrDefault() ?? "Unknown", book.Title);
+            name = Transliteration.Front(name).Normalize(NormalizationForm.FormD);
+
+            var sb = new StringBuilder(name.Length);
+            foreach (char c in name)
+            {
+                if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '.')
+                    sb.Append(c);
+                else if (c == '-' || (c >= (char)0x2010 && c <= (char)0x2015) || c == (char)0x2212)
+                    sb.Append('-');
+                else if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) == System.Globalization.UnicodeCategory.NonSpacingMark)
+                    continue;
+                else
+                    sb.Append('_');
+            }
+
+            // Collapse repeated separators
+            string result = System.Text.RegularExpressions.Regex.Replace(sb.ToString(), "_{2,}", "_");
+            result = System.Text.RegularExpressions.Regex.Replace(result, "_?-_?", "-");
+            result = result.Trim('_', '-', '.');
+
+            if (result.Length > 120) result = result.Substring(0, 120).TrimEnd('_', '-', '.');
+            if (result.Length == 0) result = "book";
+
+            return result + extension;
+        }
+
+        /// <summary>
         /// Handles FB2 book download (creates ZIP with FB2 inside)
         /// </summary>
         private void HandleFB2Download(HttpProcessor processor, Book book)
@@ -168,10 +202,7 @@ namespace TinyOPDS.Server
                 {
                     using (var zipArchive = new System.IO.Compression.ZipArchive(outputStream, System.IO.Compression.ZipArchiveMode.Create, true))
                     {
-                        string fileName = Transliteration.Front(
-                            string.Format("{0}_{1}.fb2",
-                                book.Authors.FirstOrDefault() ?? "Unknown",
-                                book.Title));
+                        string fileName = CreateSafeDownloadFileName(book, ".fb2");
 
                         var zipEntry = zipArchive.CreateEntry(fileName);
                         using (var entryStream = zipEntry.Open())
@@ -183,13 +214,10 @@ namespace TinyOPDS.Server
 
                     outputStream.Position = 0;
 
-                    string downloadFileName = Transliteration.Front(
-                        string.Format("{0}_{1}.fb2.zip",
-                            book.Authors.FirstOrDefault() ?? "Unknown",
-                            book.Title));
+                    string downloadFileName = CreateSafeDownloadFileName(book, ".fb2.zip");
 
                     processor.OutputStream.WriteLine("HTTP/1.0 200 OK");
-                    processor.OutputStream.WriteLine("Content-Type: application/zip");
+                    processor.OutputStream.WriteLine("Content-Type: application/fb2+zip");
                     processor.OutputStream.WriteLine("Content-Disposition: attachment; filename=\"{0}\"", downloadFileName);
                     processor.OutputStream.WriteLine("Content-Length: {0}", outputStream.Length);
                     processor.OutputStream.WriteLine("Connection: close");
@@ -233,10 +261,7 @@ namespace TinyOPDS.Server
                     Log.WriteLine(LogLevel.Info, "Book is already in EPUB format: {0}", book.FileName);
                 }
 
-                string downloadFileName = Transliteration.Front(
-                    string.Format("{0}_{1}.epub",
-                        book.Authors.FirstOrDefault() ?? "Unknown",
-                        book.Title));
+                string downloadFileName = CreateSafeDownloadFileName(book, ".epub");
 
                 processor.OutputStream.WriteLine("HTTP/1.0 200 OK");
                 processor.OutputStream.WriteLine("Content-Type: application/epub+zip");
@@ -308,6 +333,7 @@ namespace TinyOPDS.Server
                     cancellationToken.ThrowIfCancellationRequested();
 
                     using (var zipArchive = System.IO.Compression.ZipFile.OpenRead(pathParts[0]))
+                    using (var entryReader = new ZipEntryReader(pathParts[0]))
                     {
                         var entry = zipArchive.Entries.FirstOrDefault(e =>
                             e.FullName.IndexOf(pathParts[1], StringComparison.OrdinalIgnoreCase) >= 0);
@@ -316,7 +342,7 @@ namespace TinyOPDS.Server
                         {
                             cancellationToken.ThrowIfCancellationRequested();
 
-                            using (var entryStream = entry.Open())
+                            using (var entryStream = entryReader.Open(entry))
                             {
                                 const int bufferSize = 81920;
                                 byte[] buffer = new byte[bufferSize];
@@ -463,10 +489,7 @@ namespace TinyOPDS.Server
                         // Send MOBI file
                         mobiStream.Position = 0;
 
-                        string fileName = Transliteration.Front(
-                            string.Format("{0}_{1}.mobi",
-                                book.Authors.FirstOrDefault() ?? "Unknown",
-                                book.Title));
+                        string fileName = CreateSafeDownloadFileName(book, ".mobi");
 
                         processor.OutputStream.WriteLine("HTTP/1.0 200 OK");
                         processor.OutputStream.WriteLine("Content-Type: application/x-mobipocket-ebook");

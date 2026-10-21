@@ -58,9 +58,11 @@ namespace TinyOPDS.Scanner
             try
             {
                 using (var zipArchive = ZipFile.OpenRead(ZipFileName))
+                using (var entryReader = new ZipEntryReader(ZipFileName))
                 {
-                    foreach (var entry in zipArchive.Entries)
+                    for (int entryIndex = 0; entryIndex < zipArchive.Entries.Count; entryIndex++)
                     {
+                        var entry = zipArchive.Entries[entryIndex];
                         if (Status != FileScannerStatus.SCANNING) break;
 
                         if (!string.IsNullOrEmpty(entry.FullName))
@@ -80,7 +82,7 @@ namespace TinyOPDS.Scanner
                                 }
                                 else if (ext.Contains(".epub"))
                                 {
-                                    using (var entryStream = entry.Open())
+                                    using (var entryStream = entryReader.Open(entry, entryIndex))
                                     using (var memStream = new MemoryStream())
                                     {
                                         entryStream.CopyTo(memStream);
@@ -96,7 +98,7 @@ namespace TinyOPDS.Scanner
                                 }
                                 else if (ext.Contains(".fb2"))
                                 {
-                                    using (var entryStream = entry.Open())
+                                    using (var entryStream = entryReader.Open(entry, entryIndex))
                                     using (var memStream = new MemoryStream())
                                     {
                                         entryStream.CopyTo(memStream);

@@ -55,6 +55,10 @@
     <Reference Include="System.Xml.Linq" />
     <!-- NuGet Package References -->
     <!-- Local Library Reference -->
+    <Reference Include="SharpCompress">
+      <HintPath>..\TinyOPDS\Libs\SharpCompress.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
   <!-- ============== CLI SPECIFIC FILES ============== -->
   <ItemGroup>
@@ -239,6 +243,9 @@
     <Compile Include="..\TinyOPDS\Misc\StringUtils.cs">
       <Link>Misc\StringUtils.cs</Link>
     </Compile>
+    <Compile Include="..\TinyOPDS\Misc\ZipEntryReader.cs">
+      <Link>Misc\ZipEntryReader.cs</Link>
+    </Compile>
     <Compile Include="..\TinyOPDS\Misc\UPnP.cs">
       <Link>Misc\UPnP.cs</Link>
     </Compile>
@@ -266,6 +273,9 @@
     <!-- Core Libraries -->
     <EmbeddedResource Include="..\TinyOPDS\Libs\System.Data.SQLite.dll">
       <Link>Libs\System.Data.SQLite.dll</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\Libs\SharpCompress.dll">
+      <Link>Libs\SharpCompress.dll</Link>
     </EmbeddedResource>
     <EmbeddedResource Include="..\TinyOPDS\Libs\x86\SQLite.Interop.dll">
       <Link>Libs\x86\SQLite.Interop.dll</Link>

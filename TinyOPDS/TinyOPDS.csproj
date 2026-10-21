@@ -53,6 +53,10 @@
     <Reference Include="System.Xml.Linq" />
     <!-- NuGet Package References -->
     <!-- Local Library Reference -->
+    <Reference Include="SharpCompress">
+      <HintPath>Libs\SharpCompress.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
   <!-- ============== SOURCE CODE FILES ============== -->
   <ItemGroup>
@@ -137,6 +141,7 @@
     <Compile Include="Misc\PortableSettingsProviderBase.cs" />
     <Compile Include="Misc\ServiceTools.cs" />
     <Compile Include="Misc\StringUtils.cs" />
+    <Compile Include="Misc\ZipEntryReader.cs" />
     <Compile Include="Misc\UpdateChecker.cs" />
     <Compile Include="Misc\UPnP.cs" />
     <Compile Include="Misc\Utils.cs" />
@@ -191,6 +196,7 @@
     <EmbeddedResource Include="Resources\reader\reader.css" />
     <!-- Embedded Libraries -->
     <EmbeddedResource Include="Libs\System.Data.SQLite.dll" />
+    <EmbeddedResource Include="Libs\SharpCompress.dll" />
     <EmbeddedResource Include="Libs\x64\SQLite.Interop.dll" />
     <EmbeddedResource Include="Libs\x86\SQLite.Interop.dll" />
   </ItemGroup>

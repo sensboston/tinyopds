@@ -241,9 +241,9 @@ class UniversalReader {
                 html += `
                     <div class="toc-item ${isCurrent ? 'current' : ''}"
                          style="padding-left: ${indent}px;"
-                         data-chapter-id="${item.id}"
+                         data-chapter-id="${this.formatConverter.escapeXml(item.id)}"
                          data-level="${level}">
-                        <span class="toc-item-text">${item.title}</span>
+                        <span class="toc-item-text">${this.formatConverter.escapeXml(item.title)}</span>
                     </div>
                 `;
 
@@ -427,8 +427,10 @@ class UniversalReader {
         const binaryNodes = xmlDoc.querySelectorAll('binary');
         binaryNodes.forEach(node => {
             const id = node.getAttribute('id');
-            const contentType = node.getAttribute('content-type') || 'image/jpeg';
-            const base64Data = node.textContent.replace(/\s/g, '');
+            // Both values come from the book and end up in src="..." attribute
+            let contentType = node.getAttribute('content-type') || 'image/jpeg';
+            if (!/^image\/[a-z0-9.+-]+$/i.test(contentType)) contentType = 'image/jpeg';
+            const base64Data = node.textContent.replace(/[^A-Za-z0-9+/=]/g, '');
             this.images[id] = `data:${contentType};base64,${base64Data}`;
         });
 
@@ -464,7 +466,8 @@ class UniversalReader {
 
         // THEN Convert to HTML using corrected body selection logic
         const bodyNodes = xmlDoc.querySelectorAll('body');
-        let htmlContent = `<h1>${title}</h1><p class="author">${author}</p>${coverHtml}`;
+        const escape = (text) => this.formatConverter.escapeXml(text);
+        let htmlContent = `<h1>${escape(title)}</h1><p class="author">${escape(author)}</p>${coverHtml}`;
 
         // FIXED: Use first body element as main body per FB2 standard
         // In FB2 format, the first body is always the main text content

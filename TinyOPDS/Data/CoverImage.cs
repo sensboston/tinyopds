@@ -71,13 +71,14 @@ namespace TinyOPDS.Data
                         }
 
                         using (var zipArchive = System.IO.Compression.ZipFile.OpenRead(pathParts[0]))
+                        using (var entryReader = new ZipEntryReader(pathParts[0]))
                         {
                             var entry = zipArchive.Entries.FirstOrDefault(e =>
                                 e.FullName.IndexOf(pathParts[1], StringComparison.OrdinalIgnoreCase) >= 0);
 
                             if (entry != null)
                             {
-                                using (var entryStream = entry.Open())
+                                using (var entryStream = entryReader.Open(entry))
                                 {
                                     entryStream.CopyTo(memStream);
                                     Log.WriteLine(LogLevel.Info, "Extracted {0} bytes from archive", memStream.Length);

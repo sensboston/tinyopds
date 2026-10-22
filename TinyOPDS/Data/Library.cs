@@ -66,13 +66,22 @@ namespace TinyOPDS.Data
         private static readonly TimeSpan ListsCacheTimeout = TimeSpan.FromMinutes(10);
         private static readonly object listsLock = new object();
 
+        // Navigation statistics cache (genre and series book counts), reset by InvalidateCache
+        private static Dictionary<string, int> cachedGenreStatistics = null;
+        private static List<(string Name, int BookCount)> cachedSequencesWithCount = null;
+        private static string navigationCacheKey = null;
+        private static DateTime lastNavigationCacheUpdate = DateTime.MinValue;
+        private static readonly object navigationCacheLock = new object();
+
         // Genre cache
         private static DateTime lastGenresUpdate = DateTime.MinValue;
         private static List<Genre> cachedGenres = null;
+        private static Dictionary<string, Genre> genresByTag = null;
 
         // Authors alphabetical cache for fast OPDS navigation
         private static Dictionary<string, List<string>> cachedAuthorsByFirstLetter = null;
         private static List<string> cachedAuthorsFirstLetters = null;
+        private static List<string> cachedAllAuthorsSorted = null;
         private static DateTime lastAuthorsByLetterUpdate = DateTime.MinValue;
         private static readonly TimeSpan AuthorsByLetterCacheTimeout = TimeSpan.FromHours(2);
         private static readonly object authorsByLetterLock = new object();
@@ -276,6 +285,7 @@ namespace TinyOPDS.Data
                 {
                     cachedAuthorsByFirstLetter = authorsByLetter;
                     cachedAuthorsFirstLetters = firstLetters.OrderBy(l => l, comparer).ToList();
+                    cachedAllAuthorsSorted = null;
                     lastAuthorsByLetterUpdate = DateTime.Now;
                 }
 
@@ -711,6 +721,12 @@ namespace TinyOPDS.Data
                 {
                     lastAuthorsByLetterUpdate = DateTime.MinValue;
                 }
+            }
+
+            lock (navigationCacheLock)
+            {
+                cachedGenreStatistics = null;
+                cachedSequencesWithCount = null;
             }
 
             // Start async refresh - it will update values when ready
@@ -1255,6 +1271,10 @@ namespace TinyOPDS.Data
                         soundexedGenres[soundexRu] = genre.Tag;
                 }
 
+                genresByTag = new Dictionary<string, Genre>();
+                foreach (var genre in genres.SelectMany(g => g.Subgenres))
+                    genresByTag[genre.Tag] = genre;
+
                 cachedGenres = genres;
                 lastGenresUpdate = DateTime.Now;
 
@@ -1266,7 +1286,19 @@ namespace TinyOPDS.Data
                 Log.WriteLine(LogLevel.Error, "Error loading genres from database: {0}", ex.Message);
                 genres = new List<Genre>();
                 soundexedGenres = new Dictionary<string, string>();
+                genresByTag = new Dictionary<string, Genre>();
             }
+        }
+
+        /// <summary>
+        /// Get subgenre by tag from memory cache (null if unknown).
+        /// Use it for book entries instead of Genres property, which queries book counts for all genres
+        /// </summary>
+        public static Genre GetGenreByTag(string tag)
+        {
+            RefreshGenresCache();
+            var map = genresByTag;
+            return tag != null && map != null && map.TryGetValue(tag, out var genre) ? genre : null;
         }
 
         /// <summary>
@@ -1558,16 +1590,19 @@ namespace TinyOPDS.Data
                 if (string.IsNullOrEmpty(pattern))
                 {
                     // For empty pattern, AuthorsCatalog expects ALL authors to build the alphabet
-                    // We need to return all authors from all letters
-                    var allAuthors = new List<string>();
-                    foreach (var letterGroup in cachedAuthorsByFirstLetter.Values)
+                    // Sorted list is kept until the letters cache is rebuilt: sorting ~200K names takes about a second
+                    if (cachedAllAuthorsSorted == null)
                     {
-                        allAuthors.AddRange(letterGroup);
-                    }
+                        var allAuthors = new List<string>();
+                        foreach (var letterGroup in cachedAuthorsByFirstLetter.Values)
+                        {
+                            allAuthors.AddRange(letterGroup);
+                        }
 
-                    // Sort all authors
-                    var comparer = new OPDSComparer(Properties.Settings.Default.SortOrder > 0);
-                    var result = allAuthors.Distinct().OrderBy(a => a, comparer).ToList();
+                        var comparer = new OPDSComparer(Properties.Settings.Default.SortOrder > 0);
+                        cachedAllAuthorsSorted = allAuthors.Distinct().OrderBy(a => a, comparer).ToList();
+                    }
+                    var result = new List<string>(cachedAllAuthorsSorted);
 
                     // If result is empty, something is wrong - fall back to database
                     if (result.Count == 0)
@@ -1702,7 +1737,78 @@ namespace TinyOPDS.Data
         public static int GetBooksByAuthorCount(string author)
         {
             if (bookRepository == null) return 0;
-            return bookRepository.GetBooksByAuthor(author).Count;
+            return bookRepository.GetBooksByAuthorCount(author);
+        }
+
+        /// <summary>
+        /// Count author's books with and without series
+        /// </summary>
+        public static (int withSeries, int withoutSeries) GetAuthorSeriesStructure(string author)
+        {
+            if (bookRepository == null) return (0, 0);
+            return bookRepository.GetAuthorSeriesStructure(author);
+        }
+
+        private static string GetNavigationCacheKey()
+        {
+            return (Properties.Settings.Default.FilterBooksByInterfaceLanguage ? Properties.Settings.Default.Language : "") +
+                   "|" + Properties.Settings.Default.SortOrder;
+        }
+
+        // Must be called under navigationCacheLock
+        private static void ValidateNavigationCache()
+        {
+            string key = GetNavigationCacheKey();
+            if (key != navigationCacheKey || DateTime.Now - lastNavigationCacheUpdate > ListsCacheTimeout)
+            {
+                cachedGenreStatistics = null;
+                cachedSequencesWithCount = null;
+                navigationCacheKey = key;
+                lastNavigationCacheUpdate = DateTime.Now;
+            }
+        }
+
+        /// <summary>
+        /// Book counts per genre tag (cached, returned dictionary must not be modified)
+        /// </summary>
+        public static Dictionary<string, int> GetGenreStatistics()
+        {
+            if (bookRepository == null) return new Dictionary<string, int>();
+
+            lock (navigationCacheLock)
+            {
+                ValidateNavigationCache();
+                if (cachedGenreStatistics != null) return cachedGenreStatistics;
+
+                var statistics = bookRepository.GetAllGenreStatistics();
+                // Empty result may be a query error, don't keep it
+                if (statistics.Count > 0) cachedGenreStatistics = statistics;
+                return statistics;
+            }
+        }
+
+        /// <summary>
+        /// Series with book counts, sorted for OPDS, optionally filtered by name prefix (case-insensitive)
+        /// </summary>
+        public static List<(string Name, int BookCount)> GetSequencesWithCount(string prefix)
+        {
+            if (bookRepository == null) return new List<(string Name, int BookCount)>();
+
+            List<(string Name, int BookCount)> sequences;
+            lock (navigationCacheLock)
+            {
+                ValidateNavigationCache();
+                sequences = cachedSequencesWithCount;
+                if (sequences == null)
+                {
+                    var comparer = new OPDSComparer(Properties.Settings.Default.SortOrder > 0);
+                    sequences = bookRepository.GetSequencesWithCount().OrderBy(s => s.Name, comparer).ToList();
+                    if (sequences.Count > 0) cachedSequencesWithCount = sequences;
+                }
+            }
+
+            if (string.IsNullOrEmpty(prefix)) return new List<(string Name, int BookCount)>(sequences);
+            return sequences.Where(s => s.Name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)).ToList();
         }
 
         /// <summary>
@@ -1726,10 +1832,18 @@ namespace TinyOPDS.Data
         /// <summary>
         /// Return list of books by selected genre
         /// </summary>
-        public static List<Book> GetBooksByGenre(string genre)
+        public static List<Book> GetBooksByGenre(string genre, bool loadRelations = true)
         {
             if (bookRepository == null) return new List<Book>();
-            return bookRepository.GetBooksByGenre(genre);
+            return bookRepository.GetBooksByGenre(genre, loadRelations);
+        }
+
+        /// <summary>
+        /// Load relations for books returned without them (see GetBooksByGenre)
+        /// </summary>
+        public static void LoadBooksRelations(IEnumerable<Book> books)
+        {
+            bookRepository?.LoadBooksRelations(books);
         }
 
         /// <summary>

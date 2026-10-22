@@ -433,6 +433,9 @@ namespace TinyOPDS.Data
                 ExecuteNonQuery(DatabaseSchema.CreateSequenceUpdateTrigger);
                 ExecuteNonQuery(DatabaseSchema.CreateSequenceDeleteTrigger);
 
+                // One-time data fixes for databases created by older versions
+                MigrateDatabase();
+
                 // Initialize genres from XML if table is empty
                 InitializeGenres();
 
@@ -445,6 +448,39 @@ namespace TinyOPDS.Data
             {
                 Log.WriteLine(LogLevel.Error, "Error initializing database schema: {0}", ex.Message);
                 throw;
+            }
+        }
+
+        /// <summary>
+        /// Apply one-time data fixes; applied version is stored in PRAGMA user_version
+        /// </summary>
+        private void MigrateDatabase()
+        {
+            int version = Convert.ToInt32(ExecuteScalar("PRAGMA user_version") ?? 0);
+
+            if (version < 1)
+            {
+                // Older versions saved books with INSERT OR REPLACE, which left orphaned BooksFTS rows
+                // (duplicate search hits, matches by outdated titles), so rebuild the books index
+                Log.WriteLine("Rebuilding books full-text index...");
+                IDbTransaction tx = BeginTransactionWithObject();
+                try
+                {
+                    ExecuteNonQueryInTransaction(DatabaseSchema.DeleteAllBooksFTS, tx);
+                    ExecuteNonQueryInTransaction("INSERT INTO BooksFTS(BookID, Title) SELECT ID, Title FROM Books", tx);
+                    tx.Commit();
+                }
+                catch
+                {
+                    tx.Rollback();
+                    throw;
+                }
+                finally
+                {
+                    tx.Dispose();
+                }
+                ExecuteNonQuery("PRAGMA user_version = 1");
+                Log.WriteLine("Books full-text index rebuilt");
             }
         }
 

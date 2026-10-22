@@ -56,11 +56,11 @@ namespace TinyOPDS.OPDS
             bool useCyrillic = Properties.Settings.Default.Language.Equals("ru") ||
                                Properties.Settings.Default.Language.Equals("uk");
 
-            // Get all genre statistics with single fast query
+            // Get all genre statistics (cached in Library)
             Dictionary<string, int> genreStatistics;
             try
             {
-                genreStatistics = Library.GetBookRepository()?.GetAllGenreStatistics() ?? new Dictionary<string, int>();
+                genreStatistics = Library.GetGenreStatistics();
             }
             catch (Exception ex)
             {

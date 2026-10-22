@@ -353,16 +353,34 @@ namespace TinyOPDS.Data
 
         #region Insert Queries
 
-        // MODIFIED: Removed Sequence and NumberInSequence from book insert
+        // Book row is saved as DeleteBookWithSameFileName + UpdateBook + InsertBook instead of
+        // INSERT OR REPLACE: REPLACE deletes the old row without firing the delete trigger
+        // (orphaned BooksFTS rows) and cascades to Downloads (lost history).
+        // UPSERT (ON CONFLICT DO UPDATE) is not used: it needs SQLite 3.24+, system libsqlite3 on Linux may be older
+
+        // The same file re-added with a new ID would violate FileName UNIQUE
+        public const string DeleteBookWithSameFileName = @"
+            DELETE FROM Books WHERE FileName = @FileName AND ID <> @ID";
+
+        public const string UpdateBook = @"
+            UPDATE Books SET
+                Version = @Version, FileName = @FileName, Title = @Title, Language = @Language,
+                BookDate = @BookDate, DocumentDate = @DocumentDate, Annotation = @Annotation,
+                DocumentSize = @DocumentSize, AddedDate = @AddedDate, DocumentIDTrusted = @DocumentIDTrusted,
+                DuplicateKey = @DuplicateKey, ReplacedByID = @ReplacedByID, ContentHash = @ContentHash
+            WHERE ID = @ID";
+
+        // Inserts only if UpdateBook found no row
         public const string InsertBook = @"
-            INSERT OR REPLACE INTO Books 
-            (ID, Version, FileName, Title, Language, BookDate, DocumentDate, 
-             Annotation, DocumentSize, AddedDate, DocumentIDTrusted, 
+            INSERT INTO Books
+            (ID, Version, FileName, Title, Language, BookDate, DocumentDate,
+             Annotation, DocumentSize, AddedDate, DocumentIDTrusted,
              DuplicateKey, ReplacedByID, ContentHash)
-            VALUES 
-            (@ID, @Version, @FileName, @Title, @Language, @BookDate, @DocumentDate,
-             @Annotation, @DocumentSize, @AddedDate, @DocumentIDTrusted, 
-             @DuplicateKey, @ReplacedByID, @ContentHash)";
+            SELECT
+             @ID, @Version, @FileName, @Title, @Language, @BookDate, @DocumentDate,
+             @Annotation, @DocumentSize, @AddedDate, @DocumentIDTrusted,
+             @DuplicateKey, @ReplacedByID, @ContentHash
+            WHERE NOT EXISTS (SELECT 1 FROM Books WHERE ID = @ID)";
 
         public const string InsertAuthor = @"
             INSERT OR IGNORE INTO Authors 
@@ -483,13 +501,15 @@ namespace TinyOPDS.Data
             WHERE s.Name = @SequenceName AND b.ReplacedByID IS NULL
             ORDER BY bs.NumberInSequence";
 
+        // Unary '+' on ReplacedByID keeps the planner from driving the join by idx_books_replacedby:
+        // almost all books have NULL there, so it would walk the whole library instead of one genre
         public const string SelectBooksByGenre = @"
             SELECT b.ID, b.Version, b.FileName, b.Title, b.Language, b.BookDate, b.DocumentDate,
                    b.Annotation, b.DocumentSize, b.AddedDate, b.DocumentIDTrusted, 
                    b.DuplicateKey, b.ReplacedByID, b.ContentHash
             FROM Books b
             INNER JOIN BookGenres bg ON b.ID = bg.BookID
-            WHERE bg.GenreTag = @GenreTag AND b.ReplacedByID IS NULL";
+            WHERE bg.GenreTag = @GenreTag AND +b.ReplacedByID IS NULL";
 
         // FTS5 search for books with wildcard support
         // FIXED: Now searches only in Title field
@@ -577,13 +597,14 @@ namespace TinyOPDS.Data
             WHERE s.Name LIKE @Pattern || '%' COLLATE NOCASE
             ORDER BY s.Name";
 
-        // Get sequences with book count
+        // Get sequences with book count.
+        // Replaced books are excluded by NOT IN: they are few, while joining all Books makes the planner
+        // walk the whole library by idx_books_replacedby (almost all values are NULL); ">= ''" lets it use that index
         public const string SelectSequencesWithCount = @"
-            SELECT s.Name, COUNT(bs.BookID) as BookCount
+            SELECT s.Name, COUNT(*) as BookCount
             FROM Sequences s
             INNER JOIN BookSequences bs ON s.ID = bs.SequenceID
-            INNER JOIN Books b ON bs.BookID = b.ID
-            WHERE b.ReplacedByID IS NULL
+            WHERE bs.BookID NOT IN (SELECT ID FROM Books WHERE ReplacedByID >= '')
             GROUP BY s.ID, s.Name
             ORDER BY s.Name";
 
@@ -745,10 +766,11 @@ namespace TinyOPDS.Data
 
         public const string CountNewBooks = @"SELECT COUNT(*) FROM Books WHERE AddedDate >= @FromDate AND ReplacedByID IS NULL";
 
+        // See SelectBooksByGenre about '+'
         public const string CountBooksByGenre = @"
             SELECT COUNT(*) FROM Books b 
             INNER JOIN BookGenres bg ON b.ID = bg.BookID 
-            WHERE bg.GenreTag = @GenreTag AND b.ReplacedByID IS NULL";
+            WHERE bg.GenreTag = @GenreTag AND +b.ReplacedByID IS NULL";
 
         public const string CountGenres = @"SELECT COUNT(*) FROM Genres";
 
@@ -763,13 +785,13 @@ namespace TinyOPDS.Data
             INNER JOIN Books b ON bg.BookID = b.ID
             WHERE b.ReplacedByID IS NULL";
 
+        // See SelectSequencesWithCount about NOT IN
         public const string SelectGenreStatistics = @"
-            SELECT bg.GenreTag, COUNT(*) as BookCount 
-            FROM BookGenres bg 
-            INNER JOIN Books b ON bg.BookID = b.ID
-            WHERE b.ReplacedByID IS NULL
-            GROUP BY bg.GenreTag
-            ORDER BY bg.GenreTag";
+            SELECT GenreTag, COUNT(*) as BookCount
+            FROM BookGenres
+            WHERE BookID NOT IN (SELECT ID FROM Books WHERE ReplacedByID >= '')
+            GROUP BY GenreTag
+            ORDER BY GenreTag";
 
         public const string SelectGenreStatisticsFull = @"
             SELECT g.Tag, g.ParentName, g.Name, g.Translation, 
@@ -803,6 +825,15 @@ namespace TinyOPDS.Data
             INNER JOIN BookSequences bs ON b.ID = bs.BookID
             INNER JOIN Sequences s ON bs.SequenceID = s.ID
             WHERE s.Name = @SequenceName AND b.ReplacedByID IS NULL";
+
+        // Books with at least one sequence and total books of the author
+        public const string SelectAuthorSeriesStructure = @"
+            SELECT COUNT(DISTINCT bs.BookID), COUNT(DISTINCT b.ID)
+            FROM Books b
+            INNER JOIN BookAuthors ba ON b.ID = ba.BookID
+            INNER JOIN Authors a ON ba.AuthorID = a.ID
+            LEFT JOIN BookSequences bs ON b.ID = bs.BookID
+            WHERE a.Name = @AuthorName AND b.ReplacedByID IS NULL";
 
         public const string SelectAuthorBookCount = @"
             SELECT COUNT(*) FROM Books b

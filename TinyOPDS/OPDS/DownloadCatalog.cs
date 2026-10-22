@@ -163,7 +163,6 @@ namespace TinyOPDS.OPDS
                 new XAttribute("type", "application/atom+xml;profile=opds-catalog")));
 
             bool useCyrillic = Properties.Settings.Default.SortOrder > 0;
-            var genres = Library.Genres;
 
             // Add book entries
             foreach (var book in books)
@@ -195,7 +194,7 @@ namespace TinyOPDS.OPDS
                 // Add genres as categories
                 foreach (string genreStr in fullBook.Genres)
                 {
-                    Genre genre = genres.Where(g => g.Tag.Equals(genreStr)).FirstOrDefault();
+                    Genre genre = Library.GetGenreByTag(genreStr);
                     if (genre != null)
                         entry.Add(new XElement("category",
                             new XAttribute("term", (useCyrillic ? genre.Translation : genre.Name)),

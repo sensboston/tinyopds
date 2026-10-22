@@ -236,26 +236,7 @@ namespace TinyOPDS.Data
                 // Use new transaction method
                 transaction = db.BeginTransactionWithObject();
 
-                // Insert book WITHOUT Sequence/NumberInSequence fields
-                var bookParams = new[]
-                {
-                    DatabaseManager.CreateParameter("@ID", book.ID),
-                    DatabaseManager.CreateParameter("@Version", book.Version),
-                    DatabaseManager.CreateParameter("@FileName", book.FileName),
-                    DatabaseManager.CreateParameter("@Title", book.Title),
-                    DatabaseManager.CreateParameter("@Language", book.Language),
-                    DatabaseManager.CreateParameter("@BookDate", book.BookDate.ToBinary()),
-                    DatabaseManager.CreateParameter("@DocumentDate", book.DocumentDate.ToBinary()),
-                    DatabaseManager.CreateParameter("@Annotation", book.Annotation),
-                    DatabaseManager.CreateParameter("@DocumentSize", (long)book.DocumentSize),
-                    DatabaseManager.CreateParameter("@AddedDate", book.AddedDate.ToBinary()),
-                    DatabaseManager.CreateParameter("@DocumentIDTrusted", book.DocumentIDTrusted),
-                    DatabaseManager.CreateParameter("@DuplicateKey", book.DuplicateKey),
-                    DatabaseManager.CreateParameter("@ReplacedByID", book.ReplacedByID),
-                    DatabaseManager.CreateParameter("@ContentHash", book.ContentHash)
-                };
-
-                db.ExecuteNonQueryInTransaction(DatabaseSchema.InsertBook, transaction, bookParams);
+                SaveBookRow(book, transaction);
 
                 // Clear existing relationships
                 db.ExecuteNonQueryInTransaction("DELETE FROM BookAuthors WHERE BookID = @BookID", transaction,
@@ -600,25 +581,12 @@ namespace TinyOPDS.Data
                         {
                             try
                             {
-                                // Insert book WITHOUT Sequence/NumberInSequence fields
-                                var bookParams = new[]
-                                {
-                                    DatabaseManager.CreateParameter("@ID", book.ID),
-                                    DatabaseManager.CreateParameter("@Version", book.Version),
-                                    DatabaseManager.CreateParameter("@FileName", book.FileName),
-                                    DatabaseManager.CreateParameter("@Title", book.Title),
-                                    DatabaseManager.CreateParameter("@Language", book.Language),
-                                    DatabaseManager.CreateParameter("@BookDate", book.BookDate.ToBinary()),
-                                    DatabaseManager.CreateParameter("@DocumentDate", book.DocumentDate.ToBinary()),
-                                    DatabaseManager.CreateParameter("@Annotation", book.Annotation),
-                                    DatabaseManager.CreateParameter("@DocumentSize", (long)book.DocumentSize),
-                                    DatabaseManager.CreateParameter("@AddedDate", book.AddedDate.ToBinary()),
-                                    DatabaseManager.CreateParameter("@DocumentIDTrusted", book.DocumentIDTrusted),
-                                    DatabaseManager.CreateParameter("@DuplicateKey", book.DuplicateKey),
-                                    DatabaseManager.CreateParameter("@ReplacedByID", book.ReplacedByID),
-                                    DatabaseManager.CreateParameter("@ContentHash", book.ContentHash)
-                                };
-                                db.ExecuteNonQueryInTransaction(DatabaseSchema.InsertBook, transaction, bookParams);
+                                SaveBookRow(book, transaction);
+
+                                // Update keeps the existing row, so clear its old relationships
+                                foreach (var table in new[] { "BookAuthors", "BookGenres", "BookTranslators", "BookSequences" })
+                                    db.ExecuteNonQueryInTransaction("DELETE FROM " + table + " WHERE BookID = @BookID", transaction,
+                                        DatabaseManager.CreateParameter("@BookID", book.ID));
 
                                 // Insert authors and relationships
                                 foreach (var authorName in book.Authors)
@@ -940,6 +908,27 @@ namespace TinyOPDS.Data
             return books;
         }
 
+        public int GetBooksByAuthorCount(string authorName)
+        {
+            string query = ApplyLanguageFilter(DatabaseSchema.SelectAuthorBookCount);
+            var result = db.ExecuteScalar(query,
+                AddLanguageParameter(DatabaseManager.CreateParameter("@AuthorName", authorName)));
+            return Convert.ToInt32(result ?? 0);
+        }
+
+        /// <summary>
+        /// Count author's books with and without series (without loading the books)
+        /// </summary>
+        public (int withSeries, int withoutSeries) GetAuthorSeriesStructure(string authorName)
+        {
+            string query = ApplyLanguageFilter(DatabaseSchema.SelectAuthorSeriesStructure);
+            var counts = db.ExecuteQuery<(int, int)>(query,
+                reader => (Convert.ToInt32(reader.GetValue(0)), Convert.ToInt32(reader.GetValue(1))),
+                AddLanguageParameter(DatabaseManager.CreateParameter("@AuthorName", authorName)));
+            if (counts.Count == 0) return (0, 0);
+            return (counts[0].Item1, counts[0].Item2 - counts[0].Item1);
+        }
+
         // Uses optimized query with JOIN and language filter
         public List<Book> GetBooksBySequence(string sequence)
         {
@@ -990,17 +979,33 @@ namespace TinyOPDS.Data
             return books;
         }
 
-        public List<Book> GetBooksByGenre(string genreTag)
+        /// <param name="loadRelations">False for large lists shown page by page: load relations later
+        /// only for the visible page with LoadBooksRelations</param>
+        public List<Book> GetBooksByGenre(string genreTag, bool loadRelations = true)
         {
             string query = ApplyLanguageFilter(DatabaseSchema.SelectBooksByGenre);
             var books = db.ExecuteQuery<Book>(query, MapBook,
                 AddLanguageParameter(DatabaseManager.CreateParameter("@GenreTag", genreTag)));
 
+            if (loadRelations)
+            {
+                foreach (var book in books)
+                {
+                    LoadBookRelations(book);
+                }
+            }
+            return books;
+        }
+
+        /// <summary>
+        /// Load authors, genres, translators and sequences for books loaded without relations
+        /// </summary>
+        public void LoadBooksRelations(IEnumerable<Book> books)
+        {
             foreach (var book in books)
             {
                 LoadBookRelations(book);
             }
-            return books;
         }
 
         public List<Book> GetBooksByTitle(string title)
@@ -1613,13 +1618,10 @@ namespace TinyOPDS.Data
         /// </summary>
         private List<string> SearchAuthorsFTS(string searchPattern, string languageFilter, bool exactMatch)
         {
-            // Escape the search pattern for FTS
-            string escapedPattern = EscapeForFTS(searchPattern);
-
             // Prepare FTS query
             string ftsQuery = exactMatch
-                ? $"\"{escapedPattern}\""  // Exact phrase in FTS
-                : $"{escapedPattern}*";     // Wildcard for prefix search
+                ? $"\"{EscapeForFTS(searchPattern)}\""     // Exact phrase in FTS
+                : PrepareSearchPatternForFTS(searchPattern);  // Wildcard for prefix search
 
             string sql = @"
                 SELECT DISTINCT a.Name
@@ -1995,7 +1997,7 @@ namespace TinyOPDS.Data
                         SELECT COUNT(*) FROM Books b
                         INNER JOIN BookGenres bg ON b.ID = bg.BookID
                         WHERE bg.GenreTag = @GenreTag 
-                          AND b.ReplacedByID IS NULL 
+                          AND +b.ReplacedByID IS NULL 
                           AND b.Language = @Language";
 
                     var result = db.ExecuteScalar(query,
@@ -2159,6 +2161,39 @@ namespace TinyOPDS.Data
         #endregion
 
         #region Helper Methods
+
+        /// <summary>
+        /// Insert or update book row (relationships are not touched)
+        /// </summary>
+        private void SaveBookRow(Book book, IDbTransaction transaction)
+        {
+            db.ExecuteNonQueryInTransaction(DatabaseSchema.DeleteBookWithSameFileName, transaction,
+                DatabaseManager.CreateParameter("@FileName", book.FileName),
+                DatabaseManager.CreateParameter("@ID", book.ID));
+            db.ExecuteNonQueryInTransaction(DatabaseSchema.UpdateBook, transaction, CreateBookParameters(book));
+            db.ExecuteNonQueryInTransaction(DatabaseSchema.InsertBook, transaction, CreateBookParameters(book));
+        }
+
+        private static IDbDataParameter[] CreateBookParameters(Book book)
+        {
+            return new[]
+            {
+                DatabaseManager.CreateParameter("@ID", book.ID),
+                DatabaseManager.CreateParameter("@Version", book.Version),
+                DatabaseManager.CreateParameter("@FileName", book.FileName),
+                DatabaseManager.CreateParameter("@Title", book.Title),
+                DatabaseManager.CreateParameter("@Language", book.Language),
+                DatabaseManager.CreateParameter("@BookDate", book.BookDate.ToBinary()),
+                DatabaseManager.CreateParameter("@DocumentDate", book.DocumentDate.ToBinary()),
+                DatabaseManager.CreateParameter("@Annotation", book.Annotation),
+                DatabaseManager.CreateParameter("@DocumentSize", (long)book.DocumentSize),
+                DatabaseManager.CreateParameter("@AddedDate", book.AddedDate.ToBinary()),
+                DatabaseManager.CreateParameter("@DocumentIDTrusted", book.DocumentIDTrusted),
+                DatabaseManager.CreateParameter("@DuplicateKey", book.DuplicateKey),
+                DatabaseManager.CreateParameter("@ReplacedByID", book.ReplacedByID),
+                DatabaseManager.CreateParameter("@ContentHash", book.ContentHash)
+            };
+        }
 
         // MapBook no longer tries to read Sequence/NumberInSequence from database
         private Book MapBook(IDataReader reader)
@@ -2329,9 +2364,10 @@ namespace TinyOPDS.Data
             // First escape special characters
             pattern = EscapeForFTS(pattern);
 
-            // Split into words and add wildcards
+            // Split into words and add wildcards; each word is quoted, otherwise
+            // punctuation ("Mr.", "C++", "?") is an FTS5 syntax error and the search returns nothing
             var words = pattern.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-            var ftsWords = words.Select(w => $"{w}*").ToArray();
+            var ftsWords = words.Select(w => $"\"{w}\"*").ToArray();
 
             // Join with spaces for FTS5
             return string.Join(" ", ftsWords);

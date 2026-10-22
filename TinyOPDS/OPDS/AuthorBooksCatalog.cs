@@ -242,7 +242,6 @@ namespace TinyOPDS.OPDS
             }
 
             bool useCyrillic = Properties.Settings.Default.SortOrder > 0;
-            List<Genre> genres = Library.Genres;
 
             // Add book entries
             for (int i = startIndex; i < endIndex; i++)
@@ -267,7 +266,7 @@ namespace TinyOPDS.OPDS
 
                 foreach (string genreStr in book.Genres)
                 {
-                    Genre genre = genres.Where(g => g.Tag.Equals(genreStr)).FirstOrDefault();
+                    Genre genre = Library.GetGenreByTag(genreStr);
                     if (genre != null)
                         entry.Add(new XElement("category",
                             new XAttribute("term", (useCyrillic ? genre.Translation : genre.Name)),

@@ -54,7 +54,8 @@ namespace TinyOPDS.OPDS
             try
             {
                 // Get sequences with book count from database - already filtered by prefix
-                var sequencesWithCount = bookRepository.GetSequencesWithCount(searchPattern);
+                // Cached and already sorted for OPDS
+                var sequencesWithCount = Library.GetSequencesWithCount(searchPattern);
 
                 // Filter out sequences that don't have enough length for navigation
                 if (!string.IsNullOrEmpty(searchPattern))
@@ -64,11 +65,6 @@ namespace TinyOPDS.OPDS
                         .ToList();
                 }
 
-                // Apply sorting
-                var comparer = new OPDSComparer(Properties.Settings.Default.SortOrder > 0);
-                sequencesWithCount = sequencesWithCount
-                    .OrderBy(s => s.Name, comparer)
-                    .ToList();
 
                 // If too many sequences, create navigation groups
                 if (sequencesWithCount.Count > threshold)

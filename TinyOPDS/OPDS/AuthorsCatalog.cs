@@ -39,13 +39,11 @@ namespace TinyOPDS.OPDS
                 return GetDirectAuthorRoute(author, opdsSettings);
             }
 
-            // Get author's books to analyze structure - database now contains canonical names
-            var authorBooks = Library.GetBooksByAuthor(author);
-            var booksWithSeries = authorBooks.Where(b => !string.IsNullOrEmpty(b.Sequence)).ToList();
-            var booksWithoutSeries = authorBooks.Where(b => string.IsNullOrEmpty(b.Sequence)).ToList();
+            // Analyze author's books structure - database now contains canonical names
+            var (booksWithSeries, booksWithoutSeries) = Library.GetAuthorSeriesStructure(author);
 
             // If author has both series and non-series books, show intermediate page
-            if (booksWithSeries.Count > 0 && booksWithoutSeries.Count > 0)
+            if (booksWithSeries > 0 && booksWithoutSeries > 0)
             {
                 return "/author-details/" + Uri.EscapeDataString(author);
             }
@@ -169,8 +167,7 @@ namespace TinyOPDS.OPDS
                 authors = Library.GetAuthorsByName(searchPattern, isOpenSearch);
             }
 
-            // Remove duplicates and sort - authors are already canonical from database
-            authors = authors.Distinct().OrderBy(a => a, new OPDSComparer(Properties.Settings.Default.SortOrder > 0)).ToList();
+            // Authors are already canonical, distinct and sorted by Library.GetAuthorsByName
 
             Log.WriteLine(LogLevel.Info, "Found {0} authors for pattern '{1}', isOpenSearch: {2}", authors.Count, searchPattern ?? "", isOpenSearch);
 
@@ -197,24 +194,15 @@ namespace TinyOPDS.OPDS
                     );
                 }
 
-                // Filter out authors covered by groups
-                var groupKeys = navigationGroups.Keys.ToList();
-
-                // Keep only authors that don't start with any group prefix
-                var remainingAuthors = authors.Where(author =>
+                // Keep only authors that don't start with any group prefix.
+                // All group keys have the same length, so a hash lookup of the author's prefix replaces
+                // StartsWith against every group (that was authors x groups culture comparisons)
+                if (navigationGroups.Count > 0)
                 {
-                    // Check if author starts with any of the group prefixes
-                    foreach (var groupKey in groupKeys)
-                    {
-                        if (author.StartsWith(groupKey, StringComparison.InvariantCultureIgnoreCase))
-                        {
-                            return false; // Author belongs to a group
-                        }
-                    }
-                    return true; // Author doesn't belong to any group
-                }).ToList();
-
-                authors = remainingAuthors;
+                    int keyLength = navigationGroups.Keys.First().Length;
+                    var groupKeys = new HashSet<string>(navigationGroups.Keys, StringComparer.InvariantCultureIgnoreCase);
+                    authors = authors.Where(author => author.Length < keyLength || !groupKeys.Contains(author.Substring(0, keyLength))).ToList();
+                }
             }
 
             // Add individual author entries
@@ -281,43 +269,27 @@ namespace TinyOPDS.OPDS
                     .ToList();
 
                 // Create groups for the next character position
-                // Only group by letters, skip special characters
+                // Only group by letters, skip special characters.
+                // Case-insensitive grouping gives the count of all authors starting with the group prefix
                 var potentialGroups = filteredAuthors
                     .Where(a => a.Length > nextCharPos)
                     .Where(a => char.IsLetter(a[nextCharPos])) // Only process if next character is a letter
-                    .GroupBy(a => {
-                        // Get substring up to the next character
-                        string prefix = a.Substring(0, nextCharPos + 1);
-                        // Properly handle case for Cyrillic and other alphabets
-                        if (prefix.Length > 0)
-                        {
-                            // First character uppercase, rest lowercase
-                            char[] chars = prefix.ToCharArray();
-                            chars[0] = char.ToUpperInvariant(chars[0]);
-                            for (int i = 1; i < chars.Length; i++)
-                            {
-                                chars[i] = char.ToLowerInvariant(chars[i]);
-                            }
-                            return new string(chars);
-                        }
-                        return prefix;
-                    })
-                    .ToList();
+                    .GroupBy(a => a.Substring(0, nextCharPos + 1), StringComparer.InvariantCultureIgnoreCase);
 
                 // Create groups only if we have multiple authors with the same prefix
                 foreach (var group in potentialGroups)
                 {
-                    var groupKey = group.Key;
-
-                    // Count all authors that would belong to this group
-                    // This includes authors with both Cyrillic and Latin characters
-                    var totalAuthorsForGroup = filteredAuthors
-                        .Count(a => a.StartsWith(groupKey, StringComparison.InvariantCultureIgnoreCase));
-
-                    // Only create group if we have multiple authors
+                    int totalAuthorsForGroup = group.Count();
                     if (totalAuthorsForGroup > 1)
                     {
-                        groups[groupKey] = totalAuthorsForGroup;
+                        // Properly handle case for Cyrillic and other alphabets: first character uppercase, rest lowercase
+                        char[] chars = group.Key.ToCharArray();
+                        chars[0] = char.ToUpperInvariant(chars[0]);
+                        for (int i = 1; i < chars.Length; i++)
+                        {
+                            chars[i] = char.ToLowerInvariant(chars[i]);
+                        }
+                        groups[new string(chars)] = totalAuthorsForGroup;
                     }
                 }
 

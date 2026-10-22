@@ -144,22 +144,13 @@ namespace TinyOPDS.OPDS
                     catalogType = "/sequence/" + Uri.EscapeDataString(searchPattern);
                     break;
                 case SearchFor.Genre:
-                    books = Library.GetBooksByGenre(searchPattern);
+                    // Genre may contain tens of thousands of books: relations are loaded below for the current page only
+                    books = Library.GetBooksByGenre(searchPattern, false);
                     catalogType = "/genre/" + Uri.EscapeDataString(searchPattern);
                     break;
                 case SearchFor.Title:
-                    // Use OpenSearch flag for enhanced search with Soundex
+                    // Transliteration fallback (only when nothing found) is handled by the repository
                     books = Library.GetBooksByTitle(searchPattern, isOpenSearch);
-                    // For search, also return books by transliterated titles
-                    if (threshold > 50)
-                    {
-                        string translit = Transliteration.Back(searchPattern, TransliterationType.GOST);
-                        if (!string.IsNullOrEmpty(translit))
-                        {
-                            List<Book> transTitles = Library.GetBooksByTitle(translit, isOpenSearch);
-                            if (transTitles.Count > 0) books.AddRange(transTitles);
-                        }
-                    }
                     break;
             }
 
@@ -199,6 +190,9 @@ namespace TinyOPDS.OPDS
             int startIndex = pageNumber * threshold;
             int endIndex = startIndex + ((books.Count / threshold == 0) ? books.Count : Math.Min(threshold, books.Count - startIndex));
 
+            if (searchFor == SearchFor.Genre && startIndex < books.Count)
+                Library.LoadBooksRelations(books.GetRange(startIndex, Math.Min(endIndex, books.Count) - startIndex));
+
             if (searchFor == SearchFor.Title)
             {
                 if ((pageNumber + 1) * threshold < books.Count)
@@ -222,7 +216,6 @@ namespace TinyOPDS.OPDS
 
             bool useCyrillic = Properties.Settings.Default.SortOrder > 0;
 
-            List<Genre> genres = Library.Genres;
 
             // Add catalog entries
             for (int i = startIndex; i < endIndex; i++)
@@ -248,7 +241,7 @@ namespace TinyOPDS.OPDS
 
                 foreach (string genreStr in book.Genres)
                 {
-                    Genre genre = genres.Where(g => g.Tag.Equals(genreStr)).FirstOrDefault();
+                    Genre genre = Library.GetGenreByTag(genreStr);
                     if (genre != null)
                         entry.Add(new XElement("category", new XAttribute("term", (useCyrillic ? genre.Translation : genre.Name)), new XAttribute("label", (useCyrillic ? genre.Translation : genre.Name))));
                 }
@@ -426,7 +419,6 @@ namespace TinyOPDS.OPDS
 
             // Prepare for entry creation
             bool useCyrillic = Properties.Settings.Default.SortOrder > 0;
-            List<Genre> genres = Library.Genres;
 
             // Add book entries
             foreach (Book book in books)
@@ -450,7 +442,7 @@ namespace TinyOPDS.OPDS
                 // Add genres
                 foreach (string genreStr in book.Genres)
                 {
-                    Genre genre = genres.Where(g => g.Tag.Equals(genreStr)).FirstOrDefault();
+                    Genre genre = Library.GetGenreByTag(genreStr);
                     if (genre != null)
                         entry.Add(new XElement("category",
                             new XAttribute("term", (useCyrillic ? genre.Translation : genre.Name)),

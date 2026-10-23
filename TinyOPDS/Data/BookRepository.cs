@@ -170,6 +170,9 @@ namespace TinyOPDS.Data
             public int Errors { get; set; }
             public int FB2Count { get; set; }
             public int EPUBCount { get; set; }
+            // Saved books that replaced a book already in the database (included in FB2Count/EPUBCount)
+            public int FB2Replaced { get; set; }
+            public int EPUBReplaced { get; set; }
             public int InvalidGenresSkipped { get; set; }
             public TimeSpan ProcessingTime { get; set; }
             public List<string> ErrorMessages { get; set; } = new List<string>();
@@ -394,6 +397,7 @@ namespace TinyOPDS.Data
                     // Track which books to actually add (some may be skipped due to in-batch duplicates)
                     var booksToAdd = new List<Book>();
                     var inBatchReplacements = new Dictionary<string, string>(); // old_id -> new_id mappings
+                    var databaseReplacements = new HashSet<Book>(); // books replacing a book already in the database
 
                     // FIRST PASS: Analyze batch for internal duplicates
                     Log.WriteLine(LogLevel.Info, "Analyzing batch of {0} books for duplicates...", books.Count);
@@ -445,6 +449,7 @@ namespace TinyOPDS.Data
 
                                             // Track the replacement
                                             inBatchReplacements[existingInBatch.ID] = book.ID;
+                                            if (databaseReplacements.Remove(existingInBatch)) databaseReplacements.Add(book);
                                             replacedBook = existingInBatch;
                                             foundInBatch = false; // Allow this book to be added
                                             // The replaced book is not saved, so it counts as a duplicate (same as for database matches)
@@ -501,6 +506,7 @@ namespace TinyOPDS.Data
                                                     // Remove old book
                                                     RemoveFromBatchIndices(existingInBatch, batchByDocumentID, batchByContentHash, batchByDuplicateKey);
                                                     booksToAdd.Remove(existingInBatch);
+                                                    if (databaseReplacements.Remove(existingInBatch)) databaseReplacements.Add(book);
 
                                                     replacedBook = existingInBatch;
                                                     result.Replaced++;
@@ -540,6 +546,7 @@ namespace TinyOPDS.Data
                                             result.Replaced++;
                                             result.Duplicates++;
                                             result.ReplacedBooks.Add($"{duplicateResult.ExistingBook.FileName} -> {book.FileName}");
+                                            databaseReplacements.Add(book);
                                         }
                                         else
                                         {
@@ -666,10 +673,17 @@ namespace TinyOPDS.Data
                                 result.Added++;
 
                                 // Count by type for statistics
+                                bool replacesSaved = databaseReplacements.Contains(book);
                                 if (book.BookType == BookType.FB2)
+                                {
                                     result.FB2Count++;
+                                    if (replacesSaved) result.FB2Replaced++;
+                                }
                                 else
+                                {
                                     result.EPUBCount++;
+                                    if (replacesSaved) result.EPUBReplaced++;
+                                }
                             }
                             catch (Exception ex)
                             {

@@ -689,9 +689,10 @@ namespace TinyOPDSCLI
                 var batchResult = await Library.AddBatchAsync(booksToProcess);
 
                 // Update counters based on actual results: found books were counted by type when scanned,
-                // the ones not saved are duplicates (or failed), so move them from found to duplicates
-                int fb2NotAdded = booksToProcess.Count(b => b.BookType == BookType.FB2) - batchResult.FB2Count;
-                int epubNotAdded = booksToProcess.Count(b => b.BookType != BookType.FB2) - batchResult.EPUBCount;
+                // the ones not saved are duplicates (or failed), so move them from found to duplicates.
+                // A saved book that replaced a book already in the database doesn't add a book either
+                int fb2NotAdded = booksToProcess.Count(b => b.BookType == BookType.FB2) - batchResult.FB2Count + batchResult.FB2Replaced;
+                int epubNotAdded = booksToProcess.Count(b => b.BookType != BookType.FB2) - batchResult.EPUBCount + batchResult.EPUBReplaced;
 
                 // Counters are also changed by the scanner thread
                 lock (batchLock)

@@ -41,6 +41,9 @@ namespace TinyOPDS
         readonly NotifyIcon notifyIcon = new NotifyIcon();
         readonly BindingSource bs = new BindingSource();
         readonly System.Windows.Forms.Timer updateCheckerTimer = new System.Windows.Forms.Timer();
+        // Keeps elapsed time and status alive while no books are found (big archives, saving the last batches)
+        readonly System.Windows.Forms.Timer scanInfoTimer = new System.Windows.Forms.Timer { Interval = 1000 };
+        volatile bool savingBooks;
         readonly UpdateChecker updateChecker = new UpdateChecker();
         string updateUrl = string.Empty;
 
@@ -111,6 +114,7 @@ namespace TinyOPDS
 
             updateCheckerTimer.Interval = 1000 * 60;
             updateCheckerTimer.Tick += UpdateChecker_Tick;
+            scanInfoTimer.Tick += (_, __) => InternalUpdateInfo(false);
             updateChecker.CheckCompleted += UpdateChecker_CheckCompleted;
             if (Settings.Default.UpdatesCheck > 0) updateChecker.CheckAsync();
 
@@ -175,7 +179,11 @@ namespace TinyOPDS
             scanner.OnScanCompleted += async (_, __) =>
             {
                 await FlushRemainingBooksAsync();
-                UpdateInfo(true);
+                BeginInvoke((MethodInvoker)delegate
+                {
+                    scanInfoTimer.Stop();
+                    InternalUpdateInfo(true);
+                });
                 Log.WriteLine("Directory scanner completed");
             };
 
@@ -343,9 +351,10 @@ namespace TinyOPDS
                 var batchResult = await Library.AddBatchAsync(booksToProcess);
 
                 // Found books were counted by type when scanned: the ones not saved are duplicates
-                // (or failed), so move them from found to duplicates
-                int fb2NotAdded = booksToProcess.Count(b => b.BookType == BookType.FB2) - batchResult.FB2Count;
-                int epubNotAdded = booksToProcess.Count(b => b.BookType != BookType.FB2) - batchResult.EPUBCount;
+                // (or failed), so move them from found to duplicates. A saved book that replaced a book
+                // already in the database doesn't add a book either
+                int fb2NotAdded = booksToProcess.Count(b => b.BookType == BookType.FB2) - batchResult.FB2Count + batchResult.FB2Replaced;
+                int epubNotAdded = booksToProcess.Count(b => b.BookType != BookType.FB2) - batchResult.EPUBCount + batchResult.EPUBReplaced;
 
                 // Counters are also changed by the scanner thread
                 lock (batchLock)
@@ -402,7 +411,15 @@ namespace TinyOPDS
             }
 
             // Wait for the batches still being saved, then save the rest
-            await FlushPendingBooksAsync();
+            savingBooks = true;
+            try
+            {
+                await FlushPendingBooksAsync();
+            }
+            finally
+            {
+                savingBooks = false;
+            }
 
             TimeSpan dt = DateTime.Now.Subtract(scanStartTime);
             Log.WriteLine($"Scan completed, elapsed time {dt:hh\\:mm\\:ss}");
@@ -611,6 +628,7 @@ namespace TinyOPDS
                 scanStartTime = DateTime.Now;
                 startTime.Text = scanStartTime.ToString(@"HH\:mm\:ss");
                 scanner.Start(libraryPath.Text.SanitizePathName());
+                scanInfoTimer.Start();
                 scannerButton.Text = Localizer.Text("Stop scanning");
 
                 Log.WriteLine("Directory scanner started with batch size: {0}", Settings.Default.BatchSize);
@@ -623,6 +641,7 @@ namespace TinyOPDS
                     await FlushRemainingBooksAsync();
                     BeginInvoke((MethodInvoker)delegate
                     {
+                        scanInfoTimer.Stop();
                         UpdateInfo(true);
                         scannerButton.Text = Localizer.Text("Start scanning");
                         Log.WriteLine("Directory scanner stopped");
@@ -677,7 +696,8 @@ namespace TinyOPDS
             rate.Text = (dt.TotalSeconds) > 0 ? string.Format(Localizer.Text("{0} books/min"), (int)(totalProcessed / dt.TotalSeconds * 60)) : "---";
             if (scannerButton.Enabled)
             {
-                status.Text = IsScanFinished ? Localizer.Text("FINISHED") : (scanner.Status == FileScannerStatus.SCANNING ? Localizer.Text("SCANNING") : Localizer.Text("STOPPED"));
+                status.Text = IsScanFinished ? Localizer.Text("FINISHED") : savingBooks ? Localizer.Text("SAVING")
+                    : (scanner.Status == FileScannerStatus.SCANNING ? Localizer.Text("SCANNING") : Localizer.Text("STOPPED"));
                 scannerButton.Text = (scanner.Status == FileScannerStatus.SCANNING) ? Localizer.Text("Stop scanning") : Localizer.Text("Start scanning");
             }
         }

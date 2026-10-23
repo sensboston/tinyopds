@@ -447,7 +447,9 @@ namespace TinyOPDS.Data
                                             inBatchReplacements[existingInBatch.ID] = book.ID;
                                             replacedBook = existingInBatch;
                                             foundInBatch = false; // Allow this book to be added
+                                            // The replaced book is not saved, so it counts as a duplicate (same as for database matches)
                                             result.Replaced++;
+                                            result.Duplicates++;
                                         }
                                         else
                                         {
@@ -502,6 +504,7 @@ namespace TinyOPDS.Data
 
                                                     replacedBook = existingInBatch;
                                                     result.Replaced++;
+                                                    result.Duplicates++;
                                                 }
                                                 else
                                                 {

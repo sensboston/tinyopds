@@ -189,6 +189,17 @@ namespace TinyOPDS.Data
                 }
             }
 
+            // Trusted document ID is stored as the book ID, so another version of the same document
+            // must be compared by version even if its title (and so the duplicate key) differs
+            if (newBook.DocumentIDTrusted && !string.IsNullOrEmpty(newBook.ID))
+            {
+                var existingBook = FindByID(newBook.ID);
+                if (existingBook != null)
+                {
+                    return ProcessTrustedIDMatch(newBook, existingBook, false);
+                }
+            }
+
             // Step 2: Check by duplicate key (Title + Author + Language)
             if (!string.IsNullOrEmpty(newBook.DuplicateKey))
             {
@@ -225,41 +236,13 @@ namespace TinyOPDS.Data
 
             string source = fromBatch ? " in batch" : "";
 
-            // Compare versions
-            if (newBook.Version > existingBook.Version)
-            {
-                result.ShouldReplace = true;
-                result.ComparisonScore = (int)((newBook.Version - existingBook.Version) * 100);
-                result.Reason = $"Newer version{source} (v{existingBook.Version:F1} → v{newBook.Version:F1})";
-            }
-            else if (Math.Abs(newBook.Version - existingBook.Version) < 0.01f)
-            {
-                // Same version - check dates and size
-                if (newBook.DocumentDate > existingBook.DocumentDate)
-                {
-                    result.ShouldReplace = true;
-                    result.ComparisonScore = 10;
-                    result.Reason = $"Same version but newer date{source}";
-                }
-                else if (newBook.DocumentDate == existingBook.DocumentDate &&
-                         newBook.DocumentSize > existingBook.DocumentSize)
-                {
-                    result.ShouldReplace = true;
-                    result.ComparisonScore = 5;
-                    result.Reason = $"Same version but larger size{source}";
-                }
-                else
-                {
-                    result.ShouldReplace = false;
-                    result.Reason = $"Same version already exists{source}";
-                }
-            }
-            else
-            {
-                result.ShouldReplace = false;
-                result.ComparisonScore = (int)((newBook.Version - existingBook.Version) * 100);
-                result.Reason = $"Older version{source} (v{newBook.Version:F1} < v{existingBook.Version:F1})";
-            }
+            // Use the same rules as the in-batch comparison (archive priority, version, date),
+            // otherwise every rescan could pick another copy of the book than the previous scan did
+            result.ComparisonScore = newBook.CompareTo(existingBook);
+            result.ShouldReplace = result.ComparisonScore > 0;
+            result.Reason = result.ShouldReplace
+                ? $"Newer copy{source} (v{existingBook.Version:0.##} → v{newBook.Version:0.##})"
+                : $"Same or newer copy already exists{source} (v{existingBook.Version:0.##}, new v{newBook.Version:0.##})";
 
             return result;
         }
@@ -381,7 +364,8 @@ namespace TinyOPDS.Data
             try
             {
                 // Only mark as replaced in DB if it's from DB, not from batch context
-                if (checkResult.ExistingBook != null &&
+                // (a book with the same ID is overwritten in place, nothing to mark)
+                if (checkResult.ExistingBook != null && checkResult.ExistingBook.ID != newBook.ID &&
                     (batchContextBooks == null || !batchContextBooks.Contains(checkResult.ExistingBook)))
                 {
                     MarkAsReplaced(checkResult.ExistingBook.ID, newBook.ID);
@@ -421,6 +405,28 @@ namespace TinyOPDS.Data
             {
                 Log.WriteLine(LogLevel.Error, "FindByDocumentID error: {0}", ex.Message);
                 return new List<Book>();
+            }
+        }
+
+        private Book FindByID(string id)
+        {
+            try
+            {
+                var books = db.ExecuteQuery<Book>(
+                    @"SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
+                     Annotation, DocumentSize, AddedDate, DocumentIDTrusted,
+                     DuplicateKey, ReplacedByID, ContentHash
+                     FROM Books
+                     WHERE ID = @ID AND ReplacedByID IS NULL",
+                    MapBook,
+                    DatabaseManager.CreateParameter("@ID", id));
+
+                return books.FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "FindByID error: {0}", ex.Message);
+                return null;
             }
         }
 

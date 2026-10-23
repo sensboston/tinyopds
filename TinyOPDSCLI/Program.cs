@@ -52,6 +52,7 @@ namespace TinyOPDSCLI
 
         private static readonly List<Book> pendingBooks = new List<Book>();
         private static readonly object batchLock = new object();
+        private static readonly SemaphoreSlim flushSemaphore = new SemaphoreSlim(1, 1);
         private static int batchSize = 1000;
 
         #region Startup, command line processing and service overrides
@@ -404,7 +405,7 @@ namespace TinyOPDSCLI
 
                             case "scan":
                                 {
-                                    ScanFolder();
+                                    ScanFolder().GetAwaiter().GetResult();
                                     CleanupAndExit(0);
                                 }
                                 break;
@@ -588,11 +589,9 @@ namespace TinyOPDSCLI
         {
             try
             {
-                Task.Run(async () =>
-                {
-                    await FlushRemainingBooksAsync();
-                    Log.WriteLine("Application cleanup completed");
-                });
+                // Wait for the pending books to be saved: Environment.Exit below kills any running task
+                FlushRemainingBooksAsync().GetAwaiter().GetResult();
+                Log.WriteLine("Application cleanup completed");
             }
             catch (Exception ex)
             {
@@ -655,9 +654,23 @@ namespace TinyOPDSCLI
         }
 
         /// <summary>
-        /// Flush pending books to database using batch insert asynchronously
+        /// Flush pending books to database using batch insert asynchronously.
+        /// Flushes are serialized, so a flush also waits for the ones still running
         /// </summary>
         private static async Task FlushPendingBooksAsync()
+        {
+            await flushSemaphore.WaitAsync();
+            try
+            {
+                await FlushPendingBooksCoreAsync();
+            }
+            finally
+            {
+                flushSemaphore.Release();
+            }
+        }
+
+        private static async Task FlushPendingBooksCoreAsync()
         {
             List<Book> booksToProcess;
 
@@ -735,13 +748,9 @@ namespace TinyOPDSCLI
                 {
                     Log.WriteLine("Flushing {0} remaining books at scan completion", pendingBooks.Count);
                 }
-                else
-                {
-                    return; // Nothing to flush
-                }
             }
 
-            // Wait for the last batch to complete
+            // Wait for the batches still being saved, then save the rest
             await FlushPendingBooksAsync();
 
             TimeSpan dt = DateTime.Now.Subtract(scanStartTime);
@@ -986,7 +995,7 @@ namespace TinyOPDSCLI
             }
         }
 
-        private static async void ScanFolder()
+        private static async Task ScanFolder()
         {
             // Init log file settings
             Log.SaveToFile = Settings.Default.SaveLogToDisk;
@@ -1009,15 +1018,10 @@ namespace TinyOPDSCLI
                 skippedFiles = _e.Count;
                 UpdateInfo();
             };
-            scanner.OnScanCompleted += async (_, __) =>
+            scanner.OnScanCompleted += (_, __) =>
             {
-                // Flush any remaining books at scan completion
-                await FlushRemainingBooksAsync();
-                UpdateInfo();
-
+                // Remaining books are flushed by ScanFolder after the scanner stops
                 Log.WriteLine("Directory scanner completed");
-                Console.WriteLine("\nScan completed. Press any key to exit...");
-                Console.ReadKey();
             };
 
             // Optional pre-scan database cleaning

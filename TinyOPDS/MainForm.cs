@@ -163,6 +163,21 @@ namespace TinyOPDS
             };
             watcher.IsEnabled = false;
 
+            // Subscribe once: subscribing on every scan start multiplied the counters on each next scan
+            scanner.OnBookFound += Scanner_OnBookFound;
+            scanner.OnInvalidBook += (_, __) => { invalidFiles++; };
+            scanner.OnFileSkipped += (object _sender, FileSkippedEventArgs _e) =>
+            {
+                skippedFiles = _e.Count;
+                UpdateInfo();
+            };
+            scanner.OnScanCompleted += async (_, __) =>
+            {
+                await FlushRemainingBooksAsync();
+                UpdateInfo(true);
+                Log.WriteLine("Directory scanner completed");
+            };
+
             intLink.Text = string.Format(urlTemplate, upnpController.LocalIP.ToString(), Settings.Default.ServerPort, rootPrefix.Text);
             intWebLink.Text = string.Format(urlTemplate, upnpController.LocalIP.ToString(), Settings.Default.ServerPort, string.Empty);
 
@@ -550,20 +565,6 @@ namespace TinyOPDS
         {
             if (scanner.Status != FileScannerStatus.SCANNING)
             {
-                scanner.OnBookFound += Scanner_OnBookFound;
-                scanner.OnInvalidBook += (_, __) => { invalidFiles++; };
-                scanner.OnFileSkipped += (object _sender, FileSkippedEventArgs _e) =>
-                {
-                    skippedFiles = _e.Count;
-                    UpdateInfo();
-                };
-                scanner.OnScanCompleted += async (_, __) =>
-                {
-                    await FlushRemainingBooksAsync();
-                    UpdateInfo(true);
-                    Log.WriteLine("Directory scanner completed");
-                };
-
                 if (Settings.Default.ClearDBOnScan)
                 {
                     try

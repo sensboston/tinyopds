@@ -262,7 +262,7 @@ namespace TinyOPDS.Data
             return CreateDuplicateKey(Title, Authors, Language, Translators, Sequences);
         }
 
-        // Volume written in the title: "Том 2", "часть III", "Книга вторая", "Вторая часть"
+        // Volume written in the title: "Том 2", "часть III", "Вторая часть" ("Часть вторая" stays as words)
         private const string VolumeWords = @"(том|книга|часть|volume|book|part|vol|кн|ч)";
         private static readonly Regex VolumeAfterWordRegex = new Regex(
             @"\b" + VolumeWords + @"\.?\s*[:.\s]*(\d+|[ivx]+)\b", RegexOptions.Compiled);

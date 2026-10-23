@@ -259,444 +259,163 @@ namespace TinyOPDS.Data
             if (string.IsNullOrEmpty(Title) || Authors == null || Authors.Count == 0)
                 return string.Empty;
 
-            // Extract volume info
-            var (original, normalized) = ExtractVolumeInfo(Title);
+            return CreateDuplicateKey(Title, Authors, Language, Translators, Sequences);
+        }
 
-            string normalizedTitle = NormalizeForDuplicateKey(Title);
-            string firstAuthor = Authors.First();
-            string normalizedAuthor = NormalizeAuthorForDuplicateKey(firstAuthor);
-            string lang = string.IsNullOrEmpty(Language) ? "unknown" : Language.ToLowerInvariant();
+        // Volume written in the title: "Том 2", "часть III", "Книга вторая", "Вторая часть"
+        private const string VolumeWords = @"(том|книга|часть|volume|book|part|vol|кн|ч)";
+        private static readonly Regex VolumeAfterWordRegex = new Regex(
+            @"\b" + VolumeWords + @"\.?\s*[:.\s]*(\d+|[ivx]+)\b", RegexOptions.Compiled);
+        private static readonly Regex VolumeBeforeWordRegex = new Regex(
+            @"\b(\d+|перв\w*|втор\w*|трет\w*|четверт\w*|пят\w*|шест\w*|седьм\w*|восьм\w*|девят\w*|десят\w*|first|second|third|fourth|fifth)[\s-]*(й|я|е|ая|ый|ое)?\s+" + VolumeWords + @"\b",
+            RegexOptions.Compiled);
+        private static readonly Regex BracketedNumberRegex = new Regex(@"\((\s*\d+\s*)\)|\[(\s*\d+\s*)\]", RegexOptions.Compiled);
+        private static readonly Regex BracketsRegex = new Regex(@"\([^)]*\)|\[[^\]]*\]", RegexOptions.Compiled);
+        private static readonly Regex NonWordRegex = new Regex(@"[^\w]+", RegexOptions.Compiled);
+        private static readonly Regex NonNameRegex = new Regex(@"[^\w\s]", RegexOptions.Compiled);
 
-            // Include translator info
-            string translatorInfo = "";
-            if (Translators != null && Translators.Count > 0)
+        private static readonly Dictionary<string, int> RomanNumbers = new Dictionary<string, int>
+        {
+            {"i", 1}, {"ii", 2}, {"iii", 3}, {"iv", 4}, {"v", 5}, {"vi", 6}, {"vii", 7}, {"viii", 8},
+            {"ix", 9}, {"x", 10}, {"xi", 11}, {"xii", 12}, {"xiii", 13}, {"xiv", 14}, {"xv", 15}
+        };
+
+        // Ordinal word stems, checked in this order
+        private static readonly (string stem, int number)[] OrdinalStems =
+        {
+            ("перв", 1), ("втор", 2), ("трет", 3), ("четверт", 4), ("пят", 5), ("шест", 6), ("седьм", 7),
+            ("восьм", 8), ("девят", 9), ("десят", 10), ("first", 1), ("second", 2), ("third", 3), ("fourth", 4), ("fifth", 5)
+        };
+
+        /// <summary>
+        /// Key of the copies of the same book: title (with volume number), authors, language and translators.
+        /// Series are not used: the same book is often listed in different series or with different numbers.
+        /// Names are normalized to survive the usual differences between copies (patronymic, ё/е, initials of translators)
+        /// </summary>
+        public static string CreateDuplicateKey(string title, IEnumerable<string> authors, string language,
+            IEnumerable<string> translators, IEnumerable<BookSequenceInfo> sequences)
+        {
+            string normalizedTitle = NormalizeTitleForDuplicateKey(title);
+
+            // Series number matters only when the series is named as the book (volumes of one long title)
+            string volume = string.Empty;
+            if (sequences != null)
             {
-                var translatorNames = Translators.Select(t => NormalizeAuthorForDuplicateKey(t)).OrderBy(t => t);
-                translatorInfo = "trans_" + string.Join("_", translatorNames);
-            }
-
-            // Include sequence info
-            string sequenceInfo = "";
-            if (Sequences != null && Sequences.Count > 0)
-            {
-                var firstSequence = Sequences.First();
-                if (!string.IsNullOrEmpty(firstSequence.Name))
+                foreach (var sequence in sequences)
                 {
-                    sequenceInfo = NormalizeForDuplicateKey(firstSequence.Name);
-                    if (firstSequence.NumberInSequence > 0)
-                        sequenceInfo += "_" + firstSequence.NumberInSequence.ToString();
+                    if (sequence.NumberInSequence > 0 && !string.IsNullOrEmpty(sequence.Name) &&
+                        NormalizeText(sequence.Name.ToLowerInvariant().Replace('ё', 'е')) == normalizedTitle)
+                        volume = sequence.NumberInSequence.ToString();
                 }
             }
 
-            if (!string.IsNullOrEmpty(normalized))
-            {
-                normalizedTitle += " " + normalized;
-            }
+            string lang = string.IsNullOrEmpty(language) ? "unknown" : language.ToLowerInvariant();
+            if (lang.Length > 2) lang = lang.Substring(0, 2);
 
-            if (!string.IsNullOrEmpty(translatorInfo))
-            {
-                normalizedTitle += " " + translatorInfo;
-            }
+            string keySource = string.Join("|",
+                normalizedTitle,
+                string.Join(",", NormalizeNames(authors, AuthorForDuplicateKey)),
+                lang,
+                string.Join(",", NormalizeNames(translators, TranslatorForDuplicateKey)),
+                volume);
 
-            // Build the key
-            string keySource = $"{normalizedTitle}|{normalizedAuthor}|{lang}|{sequenceInfo}";
-
-            // Generate MD5 hash
             using (var md5 = System.Security.Cryptography.MD5.Create())
             {
-                byte[] bytes = System.Text.Encoding.UTF8.GetBytes(keySource);
-                byte[] hash = md5.ComputeHash(bytes);
+                byte[] hash = md5.ComputeHash(System.Text.Encoding.UTF8.GetBytes(keySource));
                 return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
             }
         }
 
-        // Compiled regex patterns for better performance
-        private static readonly Regex DashesRegex = new Regex(@"[‐‑‒–—―−⸺⸻﹘﹣－ｰ─━]", RegexOptions.Compiled);
-        private static readonly Regex QuotesRegex = new Regex(@"[\u0022\u0027\u2018\u2019\u201C\u201D\u00AB\u00BB\u201E\u201A\u0060\u00B4\u2032\u2033\u2039\u203A]", RegexOptions.Compiled);
-        private static readonly Regex ParenthesesRegex = new Regex(@"\([^)]*\)|\[[^\]]*\]", RegexOptions.Compiled);
-        private static readonly Regex PunctuationRegex = new Regex(@"[^\w\s'-]", RegexOptions.Compiled);
-        private static readonly Regex EdgePunctuationRegex = new Regex(@"(\s|^)[-']|[-'](\s|$)", RegexOptions.Compiled);
-        private static readonly Regex MultiSpaceRegex = new Regex(@"\s+", RegexOptions.Compiled);
-
-        /// <summary>
-        /// Normalize string for duplicate key generation
-        /// </summary>
-        private string NormalizeForDuplicateKey(string text)
+        private static IEnumerable<string> NormalizeNames(IEnumerable<string> names, Func<string, string> normalize)
         {
-            if (string.IsNullOrEmpty(text)) return string.Empty;
+            if (names == null) return Enumerable.Empty<string>();
+            return names.Select(normalize).Distinct().OrderBy(n => n, StringComparer.Ordinal);
+        }
 
-            string originalText = text;
-            text = text.ToLowerInvariant();
+        private static string[] NameWords(string name)
+        {
+            return NonNameRegex.Replace((name ?? string.Empty).ToLowerInvariant().Replace('ё', 'е'), " ")
+                .Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+        }
 
-            // Check if entire title is in brackets
-            bool wholeTitleInBrackets = false;
-            string textWithoutOuterBrackets = text.Trim();
+        // Last and first name: patronymic is often missing in one of the copies
+        private static string AuthorForDuplicateKey(string author)
+        {
+            return string.Join(" ", NameWords(author).Take(2));
+        }
 
-            if ((textWithoutOuterBrackets.StartsWith("[") && textWithoutOuterBrackets.EndsWith("]")) ||
-                (textWithoutOuterBrackets.StartsWith("(") && textWithoutOuterBrackets.EndsWith(")")))
-            {
-                wholeTitleInBrackets = true;
-                textWithoutOuterBrackets = textWithoutOuterBrackets.Substring(1, textWithoutOuterBrackets.Length - 2).Trim();
-                text = textWithoutOuterBrackets;
-            }
+        // Last name and initial: translators are often listed by initials
+        private static string TranslatorForDuplicateKey(string translator)
+        {
+            var words = NameWords(translator);
+            if (words.Length == 0) return string.Empty;
+            return words.Length > 1 ? words[0] + " " + words[1][0] : words[0];
+        }
 
-            string volumeNormalized = "";
-            string translatorNormalized = "";
-            string editionNormalized = "";
-            bool collectionMarker = false;
+        private static string NormalizeText(string text)
+        {
+            return NonWordRegex.Replace(text, " ").Trim();
+        }
 
-            // Process inner brackets if whole title wasn't in brackets
-            if (!wholeTitleInBrackets && (text.Contains('(') || text.Contains('[')))
-            {
-                var (original, normalized) = ExtractVolumeInfo(text);
-                if (!string.IsNullOrEmpty(original))
-                {
-                    text = text.Replace(original.ToLowerInvariant(), "");
-                    volumeNormalized = normalized;
-                }
+        private static string VolumeNumber(string text)
+        {
+            if (text.All(char.IsDigit)) return int.TryParse(text, out int n) ? n.ToString() : text.TrimStart('0');
+            if (RomanNumbers.TryGetValue(text, out int roman)) return roman.ToString();
+            foreach (var (stem, number) in OrdinalStems)
+                if (text.StartsWith(stem, StringComparison.Ordinal)) return number.ToString();
+            return text;
+        }
 
-                var translatorInfo = ExtractTranslatorInfo(text);
-                if (!string.IsNullOrEmpty(translatorInfo.original))
-                {
-                    text = text.Replace(translatorInfo.original.ToLowerInvariant(), "");
-                    translatorNormalized = translatorInfo.normalized;
-                }
+        private static string NormalizeTitleForDuplicateKey(string title)
+        {
+            string text = (title ?? string.Empty).ToLowerInvariant().Replace('ё', 'е');
 
-                var editionInfo = ExtractEditionInfo(text);
-                if (!string.IsNullOrEmpty(editionInfo.original))
-                {
-                    text = text.Replace(editionInfo.original.ToLowerInvariant(), "");
-                    editionNormalized = editionInfo.normalized;
-                }
+            var volumes = VolumeAfterWordRegex.Matches(text).Cast<Match>().Select(m => VolumeNumber(m.Groups[2].Value))
+                .Concat(VolumeBeforeWordRegex.Matches(text).Cast<Match>().Select(m => VolumeNumber(m.Groups[1].Value)))
+                .ToList();
+            text = VolumeAfterWordRegex.Replace(VolumeBeforeWordRegex.Replace(text, " "), " ");
 
-                // Remove remaining parentheses only if substantial content remains
-                string testRemoval = ParenthesesRegex.Replace(text, " ").Trim();
-                if (testRemoval.Length > 5)
-                {
-                    text = testRemoval;
-                }
-            }
+            // Numbers in brackets are kept ("Стихи (2)"), other notes in brackets ("(СИ)", "(сборник)") are dropped
+            text = BracketedNumberRegex.Replace(text, m => " " + (m.Groups[1].Success ? m.Groups[1].Value : m.Groups[2].Value) + " ");
+            string withoutNotes = BracketsRegex.Replace(text, " ");
+            if (NormalizeText(withoutNotes).Length >= 3) text = withoutNotes;
 
-            // Optimize special char replacements
-            bool hasSpecialChars = text.IndexOfAny(new[] { '«', '"', '–', '—', '…' }) >= 0;
-
-            if (hasSpecialChars)
-            {
-                text = DashesRegex.Replace(text, "-");
-                text = QuotesRegex.Replace(text, " ");
-                text = text.Replace("…", "...");
-                text = text.Replace("№", " ").Replace("#", " ").Replace("§", " ");
-            }
-
-            text = PunctuationRegex.Replace(text, " ");
-            text = EdgePunctuationRegex.Replace(text, " ");
-            text = MultiSpaceRegex.Replace(text, " ").Trim();
-
-            // Check for collection keywords
-            if (text.Contains("сбор") || text.Contains("собр") || text.Contains("избр") ||
-                text.Contains("антол") || text.Contains("collect") || text.Contains("anthol"))
-            {
-                collectionMarker = DetectCollection(text);
-            }
-
-            // Build result
-            var result = text;
-            if (!string.IsNullOrEmpty(volumeNormalized))
-                result += " " + volumeNormalized;
-            if (!string.IsNullOrEmpty(translatorNormalized))
-                result += " " + translatorNormalized;
-            if (!string.IsNullOrEmpty(editionNormalized))
-                result += " " + editionNormalized;
-            if (collectionMarker)
-                result += " _collection_";
-
-            // Ensure meaningful content
-            if (string.IsNullOrWhiteSpace(result) || result.Length < 3)
-            {
-                result = originalText.ToLowerInvariant().Replace("[", "").Replace("]", "").Replace("(", "").Replace(")", "").Trim();
-                Log.WriteLine(LogLevel.Warning, "NormalizeForDuplicateKey produced short result for '{0}', using fallback", originalText);
-            }
-
-            return result.Trim();
+            text = NormalizeText(text);
+            if (volumes.Count > 0) text += " vol" + string.Join(".", volumes);
+            return text;
         }
 
         /// <summary>
-        /// Extract volume/tome/book/part information
+        /// Number of the book in the archive entry name (numbered archive "fb2-NNNNNN-NNNNNN.zip@NNNNNN.fb2")
         /// </summary>
-        private (string original, string normalized) ExtractVolumeInfo(string text)
+        public long GetArchiveEntryNumber()
         {
-            // Text-to-number conversion
-            var textNumbers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-            {
-                {"первая", "1"}, {"первый", "1"}, {"первое", "1"},
-                {"вторая", "2"}, {"второй", "2"}, {"второе", "2"},
-                {"третья", "3"}, {"третий", "3"}, {"третье", "3"},
-                {"четвертая", "4"}, {"четвертый", "4"}, {"четвертое", "4"},
-                {"пятая", "5"}, {"пятый", "5"}, {"пятое", "5"},
-                {"шестая", "6"}, {"шестой", "6"}, {"шестое", "6"},
-                {"седьмая", "7"}, {"седьмой", "7"}, {"седьмое", "7"},
-                {"восьмая", "8"}, {"восьмой", "8"}, {"восьмое", "8"},
-                {"девятая", "9"}, {"девятый", "9"}, {"девятое", "9"},
-                {"десятая", "10"}, {"десятый", "10"}, {"десятое", "10"},
-                {"one", "1"}, {"first", "1"},
-                {"two", "2"}, {"second", "2"},
-                {"three", "3"}, {"third", "3"},
-                {"four", "4"}, {"fourth", "4"},
-                {"five", "5"}, {"fifth", "5"},
-                {"six", "6"}, {"sixth", "6"},
-                {"seven", "7"}, {"seventh", "7"},
-                {"eight", "8"}, {"eighth", "8"},
-                {"nine", "9"}, {"ninth", "9"},
-                {"ten", "10"}, {"tenth", "10"}
-            };
-
-            // Roman numerals
-            var romanNumerals = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-            {
-                {"i", "1"}, {"ii", "2"}, {"iii", "3"}, {"iv", "4"}, {"v", "5"},
-                {"vi", "6"}, {"vii", "7"}, {"viii", "8"}, {"ix", "9"}, {"x", "10"},
-                {"xi", "11"}, {"xii", "12"}, {"xiii", "13"}, {"xiv", "14"}, {"xv", "15"}
-            };
-
-            // Patterns for volume/book/part/tome
-            var patterns = new[]
-            {
-                @"\((том|книга|часть|volume|book|part|vol|кн|ч)\s*[:\.\s]*(\d+)[^)]*\)",
-                @"\[(том|книга|часть|volume|book|part|vol|кн|ч)\s*[:\.\s]*(\d+)[^\]]*\]",
-                @"(том|книга|часть|volume|book|part|vol|кн|ч)\s*[:\.\s]*(\d+)\b",
-                @"\((\d+)\s*(том|книга|часть|volume|book|part|vol|кн|ч)[^)]*\)",
-                @"\[(\d+)\s*(том|книга|часть|volume|book|part|vol|кн|ч)[^\]]*\]",
-                @"\((том|книга|часть|volume|book|part)\s+([а-яё]+|[a-z]+)[^)]*\)",
-                @"\[(том|книга|часть|volume|book|part)\s+([а-яё]+|[a-z]+)[^\]]*\]",
-                @"(том|книга|часть|volume|book|part)\s+([а-яё]+|[a-z]+)\b",
-                @"\((том|книга|часть|volume|book|part|vol)\s*[:\.\s]*([ivxlcdm]+)[^)]*\)",
-                @"\[(том|книга|часть|volume|book|part|vol)\s*[:\.\s]*([ivxlcdm]+)[^\]]*\]",
-                @"(том|книга|часть|volume|book|part|vol)\s*[:\.\s]*([ivxlcdm]+)\b"
-            };
-
-            foreach (var pattern in patterns)
-            {
-                var match = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
-                if (match.Success)
-                {
-                    var original = match.Value;
-                    string numberStr = "";
-
-                    for (int i = 1; i <= match.Groups.Count - 1; i++)
-                    {
-                        var groupValue = match.Groups[i].Value.Trim();
-
-                        if (Regex.IsMatch(groupValue, @"^\d+$"))
-                        {
-                            numberStr = groupValue;
-                            break;
-                        }
-
-                        if (textNumbers.ContainsKey(groupValue))
-                        {
-                            numberStr = textNumbers[groupValue];
-                            break;
-                        }
-
-                        if (romanNumerals.ContainsKey(groupValue.ToLowerInvariant()))
-                        {
-                            numberStr = romanNumerals[groupValue.ToLowerInvariant()];
-                            break;
-                        }
-                    }
-
-                    if (!string.IsNullOrEmpty(numberStr))
-                    {
-                        return (original, $"vol{numberStr}");
-                    }
-                }
-            }
-
-            return ("", "");
+            if (string.IsNullOrEmpty(FileName)) return 0;
+            int atIndex = FileName.IndexOf('@');
+            if (atIndex < 0) return 0;
+            string entry = Path.GetFileNameWithoutExtension(FileName.Substring(atIndex + 1));
+            return long.TryParse(entry, out long number) ? number : 0;
         }
 
         /// <summary>
-        /// Extract translator information
-        /// </summary>
-        private (string original, string normalized) ExtractTranslatorInfo(string text)
-        {
-            var patterns = new[]
-            {
-                @"\((перевод|пер\.?|переводчик|translation|trans\.?|translator)\s*[:.]?\s*([^)]+)\)",
-                @"\[(перевод|пер\.?|переводчик|translation|trans\.?|translator)\s*[:.]?\s*([^]]+)\]",
-                @"(перевод|пер\.?|переводчик|translation|trans\.?|translator)\s*[:.]?\s*([а-яёa-z\s\.]+)",
-            };
-
-            foreach (var pattern in patterns)
-            {
-                var match = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
-                if (match.Success)
-                {
-                    var original = match.Value;
-                    var translatorName = match.Groups[2].Value.Trim();
-
-                    translatorName = Regex.Replace(translatorName, @"\s+", "");
-                    translatorName = Regex.Replace(translatorName, @"[^\w]", "");
-
-                    if (!string.IsNullOrEmpty(translatorName))
-                    {
-                        return (original, $"trans_{translatorName.ToLowerInvariant()}");
-                    }
-                }
-            }
-
-            return ("", "");
-        }
-
-        /// <summary>
-        /// Extract edition information
-        /// </summary>
-        private (string original, string normalized) ExtractEditionInfo(string text)
-        {
-            var patterns = new[]
-            {
-                @"\((издание|изд\.?|редакция|ред\.?|edition|ed\.?|revision|rev\.?)\s*[:.]?\s*([^)]+)\)",
-                @"\[(издание|изд\.?|редакция|ред\.?|edition|ed\.?|revision|rev\.?)\s*[:.]?\s*([^]]+)\]",
-                @"(издание|изд\.?|редакция|ред\.?|edition|ed\.?|revision|rev\.?)\s*[:.]?\s*(\d+)",
-            };
-
-            foreach (var pattern in patterns)
-            {
-                var match = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
-                if (match.Success)
-                {
-                    var original = match.Value;
-                    var editionInfo = match.Groups[2].Value.Trim();
-
-                    var numberMatch = Regex.Match(editionInfo, @"\d+");
-                    if (numberMatch.Success)
-                    {
-                        return (original, $"ed{numberMatch.Value}");
-                    }
-                }
-            }
-
-            return ("", "");
-        }
-
-        /// <summary>
-        /// Detect if this is a collection/anthology
-        /// </summary>
-        private bool DetectCollection(string text)
-        {
-            var collectionMarkers = new[]
-            {
-                "сборник", "собрание", "избранное", "антология", "хрестоматия",
-                "collection", "collected", "anthology", "selected", "complete works",
-                "omnibus", "compilation"
-            };
-
-            text = text.ToLowerInvariant();
-            return collectionMarkers.Any(marker => text.Contains(marker));
-        }
-
-        /// <summary>
-        /// Normalize author name for duplicate key
-        /// </summary>
-        private string NormalizeAuthorForDuplicateKey(string author)
-        {
-            if (string.IsNullOrEmpty(author)) return "";
-
-            author = author.ToLowerInvariant();
-            author = Regex.Replace(author, @"[^\w\s]", " ");
-            author = Regex.Replace(author, @"\s+", " ").Trim();
-
-            return author;
-        }
-
-        /// <summary>
-        /// Compare two books to determine which is better/newer
+        /// Strict order of the copies of the same book, the greatest copy is kept.
+        /// Criteria are compared one by one (not summed up), so the order is transitive and
+        /// the kept copy doesn't depend on the order the books were scanned in
         /// </summary>
         public int CompareTo(Book other)
         {
             if (other == null) return 1;
 
-            int score = 0;
-
-            // Check archive priority for numbered FB2 archives
-            int thisPriority = GetArchivePriority();
-            int otherPriority = other.GetArchivePriority();
-
-            if (thisPriority > 0 && otherPriority > 0)
-            {
-                if (thisPriority > otherPriority)
-                    return 10;
-                else if (thisPriority < otherPriority)
-                    return -10;
-            }
-
-            // For books with same trusted IDs
-            if (DocumentIDTrusted && other.DocumentIDTrusted && ID == other.ID)
-            {
-                if (Version > other.Version) score += 5;
-                else if (Version < other.Version) score -= 5;
-
-                if (DocumentDate > other.DocumentDate.AddDays(1)) score += 2;
-                else if (DocumentDate < other.DocumentDate.AddDays(-1)) score -= 2;
-            }
-            else
-            {
-                // Prefer FB2 over EPUB
-                if (BookType == BookType.FB2 && other.BookType == BookType.EPUB) score += 2;
-                else if (BookType == BookType.EPUB && other.BookType == BookType.FB2) score -= 2;
-
-                // Compare dates
-                if (DocumentDate > other.DocumentDate.AddDays(1)) score += 3;
-                else if (DocumentDate < other.DocumentDate.AddDays(-1)) score -= 3;
-
-                // Compare sizes
-                if (DocumentSize > other.DocumentSize * 1.2) score += 1;
-                else if (DocumentSize < other.DocumentSize * 0.8) score -= 1;
-            }
-
-            // Prefer trusted IDs
-            if (DocumentIDTrusted && !other.DocumentIDTrusted) score += 1;
-            else if (!DocumentIDTrusted && other.DocumentIDTrusted) score -= 1;
-
-            return score;
-        }
-
-        /// <summary>
-        /// Check if this book is likely a duplicate of another
-        /// </summary>
-        public bool IsDuplicateOf(Book other)
-        {
-            if (other == null) return false;
-
-            // Same trusted ID = definite duplicate
-            if (DocumentIDTrusted && other.DocumentIDTrusted && ID == other.ID)
-                return true;
-
-            // Same content hash (document ID) = exact duplicate
-            if (!string.IsNullOrEmpty(ContentHash) && ContentHash == other.ContentHash)
-                return true;
-
-            // Same duplicate key = likely duplicate
-            if (!string.IsNullOrEmpty(DuplicateKey) && DuplicateKey == other.DuplicateKey)
-            {
-                // Check translators
-                if (Translators?.Count > 0 && other.Translators?.Count > 0)
-                {
-                    var thisTranslators = new HashSet<string>(Translators.Select(t => t.ToLowerInvariant()));
-                    var otherTranslators = new HashSet<string>(other.Translators.Select(t => t.ToLowerInvariant()));
-                    return thisTranslators.SetEquals(otherTranslators);
-                }
-
-                if ((Translators == null || Translators.Count == 0) &&
-                    (other.Translators == null || other.Translators.Count == 0))
-                {
-                    return true;
-                }
-
-                return false;
-            }
-
-            return false;
+            // Newer numbered archive, then newer book in it
+            int result = GetArchivePriority().CompareTo(other.GetArchivePriority());
+            if (result == 0) result = GetArchiveEntryNumber().CompareTo(other.GetArchiveEntryNumber());
+            // FB2 over EPUB
+            if (result == 0) result = (BookType == BookType.FB2).CompareTo(other.BookType == BookType.FB2);
+            if (result == 0) result = Version.CompareTo(other.Version);
+            if (result == 0) result = DocumentDate.Date.CompareTo(other.DocumentDate.Date);
+            if (result == 0) result = DocumentSize.CompareTo(other.DocumentSize);
+            if (result == 0) result = string.CompareOrdinal(FileName, other.FileName);
+            return Math.Sign(result);
         }
     }
 }

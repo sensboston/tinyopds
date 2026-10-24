@@ -633,6 +633,38 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
+        /// Refresh all cached statistics and save them to the database, called when the books are saved
+        /// </summary>
+        public static void RefreshStatistics()
+        {
+            lock (cacheLock)
+            {
+                RefreshCacheInternal();
+            }
+        }
+
+        /// <summary>
+        /// Refresh books counts only (must be called under lock)
+        /// </summary>
+        private static void RefreshBooksCountsInternal()
+        {
+            if (bookRepository == null) return;
+
+            try
+            {
+                cachedTotalCount = bookRepository.GetTotalBooksCount();
+                cachedFB2Count = bookRepository.GetFB2BooksCount();
+                cachedEPUBCount = bookRepository.GetEPUBBooksCount();
+
+                lastStatsUpdate = DateTime.Now;
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error refreshing books counts: {0}", ex.Message);
+            }
+        }
+
+        /// <summary>
         /// Refresh cache synchronously (must be called under lock)
         /// </summary>
         private static void RefreshCacheInternal()
@@ -1081,10 +1113,12 @@ namespace TinyOPDS.Data
                 {
                     IsChanged = true;
 
-                    // Force immediate synchronous cache refresh for batch operations
+                    // Books counts are refreshed right away to show them after each batch. Authors, series
+                    // and new books counts take seconds on a big library, they are refreshed by
+                    // RefreshStatistics when the scan is over
                     lock (cacheLock)
                     {
-                        RefreshCacheInternal();
+                        RefreshBooksCountsInternal();
                     }
                 }
 

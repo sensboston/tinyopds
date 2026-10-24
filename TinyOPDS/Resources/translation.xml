@@ -263,6 +263,15 @@
 			<text lang="pl">ZAKOŃCZONO</text>
 		</property>
 		<property>
+			<text lang="en">SAVING</text>
+			<text lang="ru">СОХРАНЯЮ</text>
+			<text lang="uk">ЗБЕРІГАЮ</text>
+			<text lang="de">SPEICHERN</text>
+			<text lang="es">GUARDANDO</text>
+			<text lang="fr">ENREGISTREMENT</text>
+			<text lang="pl">ZAPISYWANIE</text>
+		</property>
+		<property>
 			<text lang="en">Cleaning database...</text>
 			<text lang="ru">Очистка базы данных...</text>
 			<text lang="uk">Очищення бази даних...</text>

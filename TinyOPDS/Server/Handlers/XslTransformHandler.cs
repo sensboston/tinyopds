@@ -153,6 +153,7 @@ namespace TinyOPDS.Server
         /// </summary>
         private void AddWebInterfaceParameters(XsltArgumentList args)
         {
+            args.AddParam("uiLanguage", "", Localizer.Language);
             args.AddParam("searchPlaceholder", "", Localizer.Text("Search authors or books..."));
             args.AddParam("searchButtonText", "", Localizer.Text("Search"));
             args.AddParam("formatText", "", Localizer.Text("Format:"));

@@ -93,6 +93,9 @@
     <Compile Include="..\TinyOPDS\Data\Book.cs">
       <Link>Data\Book.cs</Link>
     </Compile>
+    <Compile Include="..\TinyOPDS\Data\BookBatchWriter.cs">
+      <Link>Data\BookBatchWriter.cs</Link>
+    </Compile>
     <Compile Include="..\TinyOPDS\Data\BookRepository.cs">
       <Link>Data\BookRepository.cs</Link>
     </Compile>

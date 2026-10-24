@@ -87,6 +87,7 @@
     <!-- Data Layer -->
     <Compile Include="Data\AuthorSearchMethod.cs" />
     <Compile Include="Data\Book.cs" />
+    <Compile Include="Data\BookBatchWriter.cs" />
     <Compile Include="Data\BookRepository.cs" />
     <Compile Include="Data\CoverImage.cs" />
     <Compile Include="Data\DatabaseManager.cs" />

@@ -31,17 +31,11 @@ namespace TinyOPDS.Scanner
         public int SkippedFiles { get; set; }
         public FileScannerStatus Status { get; set; }
 
+        // Subscribers are expected to subscribe once per scanner instance, Stop() keeps the subscriptions
         public event BookFoundEventHandler OnBookFound;
-        private IEnumerable<BookFoundEventHandler> BookFoundEventHandlers() { return from d in OnBookFound.GetInvocationList() select (BookFoundEventHandler)d; }
-
         public event InvalidBookEventHandler OnInvalidBook;
-        private IEnumerable<InvalidBookEventHandler> InvalidBookEventHandlers() { return from d in OnInvalidBook.GetInvocationList() select (InvalidBookEventHandler)d; }
-
         public event FileSkippedEventHandler OnFileSkipped;
-        private IEnumerable<FileSkippedEventHandler> FileSkippedEventHandlers() { return from d in OnFileSkipped.GetInvocationList() select (FileSkippedEventHandler)d; }
-
         public event ScanCompletedEventHandler OnScanCompleted;
-        private IEnumerable<ScanCompletedEventHandler> ScanCompletedEventHandlers() { return from d in OnScanCompleted.GetInvocationList() select (ScanCompletedEventHandler)d; }
 
         private ZipScanner zipScanner = null;
         private readonly bool isRecursive;
@@ -56,11 +50,6 @@ namespace TinyOPDS.Scanner
         {
             Status = FileScannerStatus.STOPPED;
             if (zipScanner != null) zipScanner.Status = FileScannerStatus.STOPPED;
-
-            if (OnBookFound != null) OnBookFound -= BookFoundEventHandlers().Last();
-            if (OnInvalidBook != null) OnInvalidBook -= InvalidBookEventHandlers().Last();
-            if (OnFileSkipped != null) OnFileSkipped -= FileSkippedEventHandlers().Last();
-            if (OnScanCompleted != null) OnScanCompleted -= ScanCompletedEventHandlers().Last();
         }
 
         /// <summary>

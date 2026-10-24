@@ -68,6 +68,11 @@ for f in books.sqlite TinyOPDS.config; do
 done
 echo "Data folder OK"
 
+# Encrypted credentials for password protection, as the image description explains
+CREDENTIALS="$(docker run --rm "$IMAGE" encred user1 password1 | tail -n 1)"
+[[ "$CREDENTIALS" =~ ^[A-Za-z0-9+/=]{16,}$ ]] || { echo "FAILED: encred printed '$CREDENTIALS'"; exit 1; }
+echo "Credentials encryption OK"
+
 docker stop -t 30 "$NAME" > /dev/null
 echo "Stopped with exit code $(docker inspect -f '{{.State.ExitCode}}' "$NAME")"
 

@@ -86,7 +86,9 @@ jobs:
       - name: Get version
         id: version
         run: |
-          version=$(grep -oP 'AssemblyVersion\("\K[0-9]+\.[0-9]+' TinyOPDSCLI/Properties/AssemblyInfo.cs)
+          # Major.minor from the AssemblyVersion attribute (not from the commented out example above it)
+          version=$(grep -oP '^\[assembly: AssemblyVersion\("\K[0-9]+\.[0-9]+' TinyOPDSCLI/Properties/AssemblyInfo.cs)
+          [ -n "$version" ] || { echo "Version not found"; exit 1; }
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "Version $version"
 

@@ -40,10 +40,18 @@ namespace TinyOPDS.Scanner
     {
         public string BookPath;
         public BookType BookType;
+        // Number of books added from the file (an archive) or folder
+        public int Count = 1;
         public BookAddedEventArgs(string bookPath) 
         { 
             BookPath = bookPath;
             BookType = BookPath.ToLower().Contains(".epub") ? BookType.EPUB : BookType.FB2;
+        }
+        public BookAddedEventArgs(string bookPath, BookType bookType, int count)
+        {
+            BookPath = bookPath;
+            BookType = bookType;
+            Count = count;
         }
     }
 

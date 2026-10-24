@@ -71,13 +71,13 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
-        /// Counts the book saved without the batches (by the folder watcher)
+        /// Counts the books saved by another writer (the folder watcher)
         /// </summary>
-        public void CountFound(BookType bookType)
+        public void CountFound(BookType bookType, int count = 1)
         {
             lock (sync)
             {
-                if (bookType == BookType.FB2) fb2Found++; else epubFound++;
+                if (bookType == BookType.FB2) fb2Found += count; else epubFound += count;
             }
         }
 

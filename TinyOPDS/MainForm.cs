@@ -144,7 +144,7 @@ namespace TinyOPDS
             watcher = new Watcher(Library.LibraryPath);
             watcher.OnBookAdded += (object sender, BookAddedEventArgs e) =>
             {
-                bookWriter.CountFound(e.BookType);
+                bookWriter.CountFound(e.BookType, e.Count);
                 UpdateInfo();
                 Log.WriteLine(LogLevel.Info, "Added: \"{0}\"", e.BookPath);
             };

@@ -768,7 +768,7 @@ namespace TinyOPDSCLI
             watcher = new Watcher(Library.LibraryPath);
             watcher.OnBookAdded += (object sender, BookAddedEventArgs e) =>
             {
-                bookWriter.CountFound(e.BookType);
+                bookWriter.CountFound(e.BookType, e.Count);
                 Log.WriteLine(LogLevel.Info, "Added: \"{0}\"", e.BookPath);
             };
             watcher.OnInvalidBook += (_, __) =>

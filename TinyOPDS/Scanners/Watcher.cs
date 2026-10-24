@@ -1,4 +1,4 @@
-﻿/*
+﻿﻿/*
  * This file is part of TinyOPDS server project
  * https://github.com/sensboston/tinyopds
  *
@@ -6,7 +6,7 @@
  * SPDX-License-Identifier: MIT
  *
  * This is a file watcher class
- * 
+ *
  * TODO: should disable UI "scan" button during Watcher's operations
  */
 
@@ -28,15 +28,42 @@ namespace TinyOPDS.Scanner
         private bool disposed = false;
         private readonly string[] extensions = { ".zip", ".fb2", ".epub" };
 
-        private readonly List<string> addedBooks = new List<string>();
-        private readonly List<string> deletedBooks = new List<string>();
+        // Added files wait until they are completely written (copied): file -> its size, time and when they changed last
+        private readonly Dictionary<string, PendingFile> addedBooks = new Dictionary<string, PendingFile>();
+        private readonly HashSet<string> deletedBooks = new HashSet<string>();
+        private readonly object sync = new object();
         private readonly BackgroundWorker booksManager;
         private readonly FileScanner scanner;
+        private BookBatchWriter bookWriter;
+
+        private class PendingFile
+        {
+            public long Size = -1;
+            public DateTime LastWriteTime;
+            public DateTime ChangedAt = DateTime.Now;
+        }
 
         public event BookAddedEventHandler OnBookAdded;
         public event BookDeletedEventHandler OnBookDeleted;
         public event InvalidBookEventHandler OnInvalidBook;
         public event FileSkippedEventHandler OnFileSkipped;
+
+        /// <summary>
+        /// A file is scanned when it hasn't changed for this time. Windows locks a file being copied, so a short
+        /// time is enough there; on Linux a file can be read while it's written, so its size has to stay the same
+        /// for a while (a slow network copy may pause)
+        /// </summary>
+        public TimeSpan QuietPeriod { get; set; } = Utils.IsWindows ? TimeSpan.FromSeconds(2) : TimeSpan.FromSeconds(30);
+
+        /// <summary>
+        /// While paused (a library scan is running) the changes are collected, but not processed
+        /// </summary>
+        public bool IsPaused
+        {
+            get { return Volatile.Read(ref isPaused); }
+            set { Volatile.Write(ref isPaused, value); }
+        }
+        private bool isPaused;
 
         [PermissionSetAttribute(SecurityAction.LinkDemand, Unrestricted = true)]
         public Watcher(string path = "")
@@ -45,14 +72,7 @@ namespace TinyOPDS.Scanner
             booksManager = new BackgroundWorker();
             booksManager.DoWork += BooksManager_DoWork;
             scanner = new FileScanner(false);
-            scanner.OnBookFound += (object s, BookFoundEventArgs be) =>
-            {
-                if (Library.Add(be.Book))
-                {
-                    //Library.Append(be.Book);
-                    OnBookAdded?.Invoke(this, new BookAddedEventArgs(be.Book.FileName));
-                }
-            };
+            scanner.OnBookFound += (object s, BookFoundEventArgs be) => { bookWriter.Add(be.Book); };
             scanner.OnInvalidBook += (object _sender, InvalidBookEventArgs _e) => { OnInvalidBook?.Invoke(_sender, _e); };
             scanner.OnFileSkipped += (object _sender, FileSkippedEventArgs _e) => { OnFileSkipped?.Invoke(_sender, _e); };
         }
@@ -84,13 +104,13 @@ namespace TinyOPDS.Scanner
         public string DirectoryToWatch
         {
             [PermissionSetAttribute(SecurityAction.LinkDemand, Unrestricted=true)]
-            get 
-            { 
-                return (fileWatcher == null) ? string.Empty : fileWatcher.Path; 
+            get
+            {
+                return (fileWatcher == null) ? string.Empty : fileWatcher.Path;
             }
 
             [PermissionSetAttribute(SecurityAction.LinkDemand, Unrestricted = true)]
-            set 
+            set
             {
                 if (!string.IsNullOrEmpty(value) && Directory.Exists(value))
                 {
@@ -109,7 +129,8 @@ namespace TinyOPDS.Scanner
                     fileWatcher.Deleted += new FileSystemEventHandler(FileWatcher_Deleted);
                     fileWatcher.Renamed += new RenamedEventHandler(FileWatcher_Renamed);
                     fileWatcher.IncludeSubdirectories = true;
-                    fileWatcher.NotifyFilter = NotifyFilters.FileName;
+                    // Folders too: a folder of books moved into the library gives no events for its files
+                    fileWatcher.NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName;
                     fileWatcher.EnableRaisingEvents = _isEnabled;
                 }
             }
@@ -119,7 +140,7 @@ namespace TinyOPDS.Scanner
         public bool IsEnabled
         {
             get { return _isEnabled; }
-            set 
+            set
             {
                 if (fileWatcher != null)
                 {
@@ -130,8 +151,11 @@ namespace TinyOPDS.Scanner
                     }
                     else
                     {
-                        addedBooks.Clear();
-                        deletedBooks.Clear();
+                        lock (sync)
+                        {
+                            addedBooks.Clear();
+                            deletedBooks.Clear();
+                        }
                     }
                 }
             }
@@ -144,74 +168,173 @@ namespace TinyOPDS.Scanner
         /// <param name="e"></param>
         void BooksManager_DoWork(object sender, DoWorkEventArgs e)
         {
-            string fileName;
             while (_isEnabled && !disposed)
             {
-                // First, check added books
-                if (addedBooks.Count > 0)
+                try
                 {
-                    fileName = addedBooks.First();
-                    // If book scheduled for deletion, do not add it
-                    if (deletedBooks.Contains(fileName))
+                    if (IsPaused)
                     {
-                        deletedBooks.Remove(fileName);
-                        addedBooks.Remove(fileName);
+                        Thread.Sleep(500);
+                        continue;
                     }
-                    else
+
+                    // First, add the books which are completely written
+                    var readyFiles = TakeReadyFiles();
+                    if (readyFiles.Count > 0)
                     {
-                        if (!IsFileInUse(fileName))
+                        AddBooks(readyFiles);
+                        continue;
+                    }
+
+                    // Delete book from library (we don't care about actual file existence)
+                    string fileName = null;
+                    lock (sync)
+                    {
+                        if (deletedBooks.Count > 0)
                         {
-                            scanner.ScanFile(fileName);
-                            addedBooks.Remove(fileName);
-                        }
-                        else
-                        {
-                            addedBooks.Remove(fileName);
-                            addedBooks.Add(fileName);
+                            fileName = deletedBooks.First();
+                            deletedBooks.Remove(fileName);
                         }
                     }
-                }
-                // Delete book from library (we don't care about actual file existence)
-                else if (deletedBooks.Count > 0)
-                {
-                    fileName = deletedBooks.First();
-                    if (Library.Delete(fileName))
+                    if (fileName != null)
                     {
-                        OnBookDeleted?.Invoke(this, new BookDeletedEventArgs(fileName));
+                        DeleteBook(fileName);
+                        continue;
                     }
-                    deletedBooks.Remove(fileName);
+
+                    // Get some rest
+                    Thread.Sleep(500);
                 }
-                // Get some rest for UI
-                else
+                catch (Exception ex)
                 {
-                    Thread.Sleep(100);
+                    Log.WriteLine(LogLevel.Error, "Watcher: {0}", ex.Message);
+                    Thread.Sleep(500);
                 }
             }
         }
 
         /// <summary>
-        /// New file (book or zip archive) added to the library
+        /// Takes the added files which haven't changed for the quiet period
+        /// </summary>
+        private List<string> TakeReadyFiles()
+        {
+            var ready = new List<string>();
+            lock (sync)
+            {
+                foreach (var pending in addedBooks.ToList())
+                {
+                    var info = new FileInfo(pending.Key);
+                    if (!info.Exists)
+                    {
+                        addedBooks.Remove(pending.Key);
+                    }
+                    else if (info.Length != pending.Value.Size || info.LastWriteTimeUtc != pending.Value.LastWriteTime)
+                    {
+                        pending.Value.Size = info.Length;
+                        pending.Value.LastWriteTime = info.LastWriteTimeUtc;
+                        pending.Value.ChangedAt = DateTime.Now;
+                    }
+                    else if (DateTime.Now - pending.Value.ChangedAt >= QuietPeriod && !IsFileInUse(pending.Key))
+                    {
+                        ready.Add(pending.Key);
+                        addedBooks.Remove(pending.Key);
+                    }
+                }
+            }
+            return ready;
+        }
+
+        /// <summary>
+        /// Scans the files and saves their books as a batch, the same way the library scan does
+        /// </summary>
+        private void AddBooks(List<string> files)
+        {
+            bookWriter = new BookBatchWriter(Properties.Settings.Default.BatchSize);
+            foreach (var fileName in files)
+            {
+                // A file written again with the same name: its old books go first, otherwise it's skipped as known
+                bool replaced;
+                lock (sync) replaced = deletedBooks.Remove(fileName);
+                if (replaced) DeleteBook(fileName);
+
+                scanner.ScanFile(fileName);
+            }
+            bookWriter.FlushAsync().GetAwaiter().GetResult();
+
+            var (fb2Count, epubCount, _) = bookWriter.GetCounters();
+            string source = files.Count == 1 ? files[0] : Path.GetDirectoryName(files[0]);
+            if (fb2Count > 0) OnBookAdded?.Invoke(this, new BookAddedEventArgs(source, BookType.FB2, fb2Count));
+            if (epubCount > 0) OnBookAdded?.Invoke(this, new BookAddedEventArgs(source, BookType.EPUB, epubCount));
+        }
+
+        private void DeleteBook(string fileName)
+        {
+            if (Library.Delete(fileName))
+            {
+                OnBookDeleted?.Invoke(this, new BookDeletedEventArgs(fileName));
+            }
+        }
+
+        private bool IsBookFile(string path)
+        {
+            return extensions.Contains(Path.GetExtension(path).ToLower());
+        }
+
+        // Called under sync
+        private void AddFile(string path)
+        {
+            if (IsBookFile(path) && !addedBooks.ContainsKey(path)) addedBooks.Add(path, new PendingFile());
+        }
+
+        // Called under sync
+        private void AddFolder(string path)
+        {
+            try
+            {
+                foreach (var file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories)) AddFile(file);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Watcher: can't read folder {0}: {1}", path, ex.Message);
+            }
+        }
+
+        // Called under sync
+        private void RemoveFile(string path)
+        {
+            if (!IsBookFile(path)) return;
+            // Not added yet, but an older file with this name may be in the library
+            addedBooks.Remove(path);
+            deletedBooks.Add(path);
+        }
+
+        /// <summary>
+        /// New file (book or zip archive) or folder added to the library
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
         private void FileWatcher_Created(object sender, FileSystemEventArgs e)
         {
-            if (extensions.Contains(Path.GetExtension(e.FullPath).ToLower()))
+            lock (sync)
             {
-                lock (addedBooks) addedBooks.Add(e.FullPath);
+                if (Directory.Exists(e.FullPath)) AddFolder(e.FullPath);
+                else AddFile(e.FullPath);
             }
         }
 
         /// <summary>
-        /// Library file (book or zip archive) is renamed
+        /// Library file or folder is renamed: books of the old name are deleted, the new name is added
+        /// (copying programs often write to a temporary file and rename it when done)
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
         private void FileWatcher_Renamed(object sender, RenamedEventArgs e)
         {
-            if (extensions.Contains(Path.GetExtension(e.FullPath).ToLower()))
+            lock (sync)
             {
-                lock (deletedBooks) deletedBooks.Add(e.FullPath);
+                RemoveFile(e.OldFullPath);
+                if (Directory.Exists(e.FullPath)) AddFolder(e.FullPath);
+                else AddFile(e.FullPath);
             }
         }
 
@@ -222,10 +345,7 @@ namespace TinyOPDS.Scanner
         /// <param name="e"></param>
         private void FileWatcher_Deleted(object sender, FileSystemEventArgs e)
         {
-            if (extensions.Contains(Path.GetExtension(e.FullPath).ToLower()))
-            {
-                lock (deletedBooks) deletedBooks.Add(e.FullPath);
-            }
+            lock (sync) RemoveFile(e.FullPath);
         }
 
         private bool IsFileInUse(string path)

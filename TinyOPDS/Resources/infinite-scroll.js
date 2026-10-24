@@ -177,6 +177,7 @@
         const authorUri = getTextContent(entry, 'author > uri');
         const content = getTextContent(entry, 'content');
         const format = getTextContent(entry, 'format');
+        const language = getTextContent(entry, 'language').trim() || 'ru';
         const size = getTextContent(entry, 'size');
         const lastDownload = getTextContent(entry, 'lastDownload');
 
@@ -249,7 +250,7 @@
 
         // Description
         if (content) {
-            html += `<div class="book-descr" lang="ru">${escapeHtml(content)}</div>`;
+            html += `<div class="book-descr" lang="${escapeHtml(language)}">${escapeHtml(content)}</div>`;
         }
 
         html += '</div>'; // book-details

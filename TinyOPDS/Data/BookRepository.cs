@@ -1268,9 +1268,10 @@ namespace TinyOPDS.Data
                 }
 
                 // STEP 3: Soundex search (last resort)
-                // Use appropriate Soundex based on input language
+                // Use appropriate Soundex based on input language. Only for one or two words (a misspelled name):
+                // for a longer phrase (a book title) authors sounding like its last word are just noise
                 string soundexPattern = words.Length == 1 ? words[0] : words[words.Length - 1];
-                string soundex = StringUtils.Soundex(soundexPattern);
+                string soundex = words.Length <= 2 ? StringUtils.Soundex(soundexPattern) : string.Empty;
 
                 if (!string.IsNullOrEmpty(soundex))
                 {

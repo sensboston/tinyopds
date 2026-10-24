@@ -672,7 +672,9 @@ namespace TinyOPDS.Data
             SELECT DISTINCT a.Name
             FROM Authors a
             INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
+            INNER JOIN Books b ON ba.BookID = b.ID
             WHERE a.LastNameSoundex = @Soundex
+              AND b.ReplacedByID IS NULL
             ORDER BY a.Name";
 
         public const string SelectAuthorsByPrefix = @"

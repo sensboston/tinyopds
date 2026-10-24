@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
-xmlns:x="http://www.w3.org/2005/Atom">
+xmlns:x="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/terms/">
 	<xsl:param name="serverVersion" select="'TinyOPDS server'"/>
+	<xsl:param name="uiLanguage" select="'en'"/>
 	<xsl:param name="libName" select="''"/>
 	<xsl:param name="darkTheme" select="''"/>
 	<xsl:param name="searchPlaceholder" select="'Search authors or books...'"/>
@@ -42,7 +43,9 @@ xmlns:x="http://www.w3.org/2005/Atom">
 			<xsl:value-of select="x:feed/x:icon"/>
 		</xsl:variable>
 
-		<html>
+		<!-- Page language is the interface one (browsers guess it wrong from mixed text), and translation is not offered:
+		     a library has books in many languages -->
+		<html lang="{$uiLanguage}" translate="no">
 			<xsl:if test="$darkTheme">
 				<xsl:attribute name="class">
 					<xsl:value-of select="$darkTheme"/>
@@ -50,6 +53,7 @@ xmlns:x="http://www.w3.org/2005/Atom">
 			</xsl:if>
 			<head>
 				<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+				<meta name="google" content="notranslate" />
 				<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 				<link rel="icon" type="image/x-icon" href="{$faviconIco}?v=1"/>
 				<style>
@@ -1004,20 +1008,29 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					var left = item.querySelector('.download-section');
 					if(!wrap || !descr || !toggle || !left) return;
 
-					var h = left.getBoundingClientRect().height / 2;
+					// Collapsed description ends at the bottom of the last button, in whole lines.
+					// No comparison operators here: the transform escapes them and breaks the script
+					function collapsedHeight(){
+					var buttons = left.querySelectorAll('.read-button, .download-link');
+					var bottom = (buttons.length ? buttons[buttons.length - 1] : left).getBoundingClientRect().bottom;
+					var h = bottom - descr.getBoundingClientRect().top;
+					var lineHeight = parseFloat(window.getComputedStyle(descr).lineHeight) || 0;
+					if(lineHeight) h = Math.floor(h / lineHeight) * lineHeight;
+					return Math.max(0, Math.round(h));
+					}
 
 					// Check if this item was already initialized
 					var alreadyInitialized = toggle.hasAttribute('data-initialized');
 
 					if(!alreadyInitialized){
 					// First time initialization - set as collapsed
-					descr.style.maxHeight = Math.max(0, Math.round(h)) + 'px';
+					descr.style.maxHeight = collapsedHeight() + 'px';
 					descr.classList.add('collapsed');
 					toggle.setAttribute('aria-expanded','false');
 					} else {
 					// Already initialized - only update height if collapsed
 					if(descr.classList.contains('collapsed')){
-					descr.style.maxHeight = Math.max(0, Math.round(h)) + 'px';
+					descr.style.maxHeight = collapsedHeight() + 'px';
 					}
 					// If expanded, don't touch it to avoid collapsing during scroll
 					}
@@ -1035,8 +1048,7 @@ xmlns:x="http://www.w3.org/2005/Atom">
 					toggle.setAttribute('aria-expanded','true');
 					toggle.title = '-';
 					} else {
-					var h2 = left.getBoundingClientRect().height / 2;
-					descr.style.maxHeight = Math.max(0, Math.round(h2)) + 'px';
+					descr.style.maxHeight = collapsedHeight() + 'px';
 					descr.classList.remove('expanded');
 					descr.classList.add('collapsed');
 					toggle.textContent = '+';
@@ -1287,7 +1299,16 @@ xmlns:x="http://www.w3.org/2005/Atom">
 											</a>
 
 											<div class="book-descr-wrap">
-												<div class="book-descr" lang="ru">
+												<div class="book-descr">
+													<!-- Book language for hyphenation -->
+													<xsl:attribute name="lang">
+														<xsl:choose>
+															<xsl:when test="normalize-space(dc:language)">
+																<xsl:value-of select="normalize-space(dc:language)"/>
+															</xsl:when>
+															<xsl:otherwise>ru</xsl:otherwise>
+														</xsl:choose>
+													</xsl:attribute>
 													<xsl:value-of select="x:content"/>
 												</div>
 												<button class="descr-toggle" type="button" aria-expanded="false" title="+">+</button>

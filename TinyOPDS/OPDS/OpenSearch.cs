@@ -63,6 +63,13 @@ namespace TinyOPDS.OPDS
                 authors = authorResult.authors;
                 authorMethod = authorResult.method;
 
+                // Phonetic match is for misspelled author names: next to the books found by title it is noise
+                if (authorMethod == AuthorSearchMethod.Soundex && titles.Count > 0)
+                {
+                    authors.Clear();
+                    authorMethod = AuthorSearchMethod.NotFound;
+                }
+
                 Log.WriteLine(LogLevel.Info, "OpenSearch found {0} authors using method: {1}", authors.Count, authorMethod);
             }
 

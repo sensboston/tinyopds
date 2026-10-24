@@ -49,12 +49,11 @@ namespace TinyOPDSCLI
         private static Timer upnpRefreshTimer = null;
 
         private static readonly Mutex mutex = new Mutex(false, "tiny_opds_cli_mutex");
-        private static int fb2Count, epubCount, skippedFiles, invalidFiles, dups;
-
-        private static readonly List<Book> pendingBooks = new List<Book>();
-        private static readonly object batchLock = new object();
-        private static readonly SemaphoreSlim flushSemaphore = new SemaphoreSlim(1, 1);
+        private static int skippedFiles, invalidFiles;
         private static int batchSize = 1000;
+
+        // Saves the found books and counts found books and duplicates, a new one for each scan
+        private static BookBatchWriter bookWriter = new BookBatchWriter(batchSize);
 
         #region Startup, command line processing and service overrides
 
@@ -634,127 +633,12 @@ namespace TinyOPDSCLI
         #region Batch processing methods
 
         /// <summary>
-        /// Add book to pending batch - console shows progress, actual writing is deferred
-        /// </summary>
-        /// <param name="book"></param>
-        /// <returns></returns>
-        private static bool AddBookToBatch(Book book)
-        {
-            lock (batchLock)
-            {
-                pendingBooks.Add(book);
-
-                // Check if we need to flush the batch
-                if (pendingBooks.Count >= batchSize)
-                {
-                    _ = FlushPendingBooksAsync();
-                }
-
-                return true; // For console counting purposes, always return true here
-            }
-        }
-
-        /// <summary>
-        /// Flush pending books to database using batch insert asynchronously.
-        /// Flushes are serialized, so a flush also waits for the ones still running
-        /// </summary>
-        private static async Task FlushPendingBooksAsync()
-        {
-            await flushSemaphore.WaitAsync();
-            try
-            {
-                await FlushPendingBooksCoreAsync();
-            }
-            finally
-            {
-                flushSemaphore.Release();
-            }
-        }
-
-        private static async Task FlushPendingBooksCoreAsync()
-        {
-            List<Book> booksToProcess;
-
-            lock (batchLock)
-            {
-                if (pendingBooks.Count == 0) return;
-
-                booksToProcess = new List<Book>(pendingBooks);
-                pendingBooks.Clear();
-            }
-
-            try
-            {
-                // Process batch asynchronously to avoid blocking
-                var batchResult = await Library.AddBatchAsync(booksToProcess);
-
-                // Update counters based on actual results: found books were counted by type when scanned,
-                // the ones not saved are duplicates (or failed), so move them from found to duplicates.
-                // A saved book that replaced a book already in the database doesn't add a book either
-                int fb2NotAdded = booksToProcess.Count(b => b.BookType == BookType.FB2) - batchResult.FB2Count + batchResult.FB2Replaced;
-                int epubNotAdded = booksToProcess.Count(b => b.BookType != BookType.FB2) - batchResult.EPUBCount + batchResult.EPUBReplaced;
-
-                // Counters are also changed by the scanner thread
-                lock (batchLock)
-                {
-                    dups += fb2NotAdded + epubNotAdded;
-                    fb2Count -= fb2NotAdded;
-                    epubCount -= epubNotAdded;
-                }
-
-                if (batchResult.Duplicates > 0 || batchResult.Errors > 0)
-                {
-                    Log.WriteLine("Batch flush completed: {0} processed, {1} added, {2} duplicates, {3} errors",
-                        batchResult.TotalProcessed, batchResult.Added, batchResult.Duplicates, batchResult.Errors);
-                }
-                else
-                {
-                    Log.WriteLine("Batch flush completed: {0} books successfully added", batchResult.Added);
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.WriteLine(LogLevel.Error, "Error flushing books batch: {0}", ex.Message);
-
-                // Fallback: try to add books individually
-                foreach (var book in booksToProcess)
-                {
-                    try
-                    {
-                        if (!Library.Add(book))
-                        {
-                            lock (batchLock)
-                            {
-                                dups++;
-                                // Adjust counters for the duplicate
-                                if (book.BookType == BookType.FB2) fb2Count = Math.Max(0, fb2Count - 1);
-                                else epubCount = Math.Max(0, epubCount - 1);
-                            }
-                        }
-                    }
-                    catch (Exception ex2)
-                    {
-                        Log.WriteLine(LogLevel.Error, "Error adding book {0}: {1}", book.FileName, ex2.Message);
-                    }
-                }
-            }
-        }
-
-        /// <summary>
         /// Flush any remaining pending books asynchronously (call at scan completion)
         /// </summary>
         private static async Task FlushRemainingBooksAsync()
         {
-            lock (batchLock)
-            {
-                if (pendingBooks.Count > 0)
-                {
-                    Log.WriteLine("Flushing {0} remaining books at scan completion", pendingBooks.Count);
-                }
-            }
-
-            // Wait for the batches still being saved, then save the rest
-            await FlushPendingBooksAsync();
+            // Wait for the batches still being saved and the rest
+            await bookWriter.FlushAsync();
 
             TimeSpan dt = DateTime.Now.Subtract(scanStartTime);
             Log.WriteLine($"Scan completed, elapsed time {dt:hh\\:mm\\:ss}");
@@ -842,7 +726,7 @@ namespace TinyOPDSCLI
             watcher = new Watcher(Library.LibraryPath);
             watcher.OnBookAdded += (object sender, BookAddedEventArgs e) =>
             {
-                if (e.BookType == BookType.FB2) fb2Count++; else epubCount++;
+                bookWriter.CountFound(e.BookType);
                 Log.WriteLine(LogLevel.Info, "Added: \"{0}\"", e.BookPath);
             };
             watcher.OnInvalidBook += (_, __) =>
@@ -1041,7 +925,8 @@ namespace TinyOPDSCLI
                 }
             }
 
-            fb2Count = epubCount = skippedFiles = invalidFiles = dups = 0;
+            skippedFiles = invalidFiles = 0;
+            bookWriter = new BookBatchWriter(batchSize);
             scanStartTime = DateTime.Now;
             scanner.Start(Library.LibraryPath);
             Console.WriteLine("Scanning directory {0}", Library.LibraryPath);
@@ -1062,28 +947,8 @@ namespace TinyOPDSCLI
         /// </summary>
         static void Scanner_OnBookFound(object sender, BookFoundEventArgs e)
         {
-            int totalProcessed;
-
-            // Count for console display - duplicates will be corrected during flush.
-            // Count the book before it can be flushed: the flush corrects these counters from another thread
-            lock (batchLock)
-            {
-                if (e.Book.BookType == BookType.FB2)
-                    fb2Count++;
-                else
-                    epubCount++;
-                totalProcessed = fb2Count + epubCount + dups;
-            }
-
-            // Add book to batch, the actual duplicate detection happens in FlushPendingBooks()
-            AddBookToBatch(e.Book);
-
-            // Force flush every 1000 books to prevent "freezing"
-            if (totalProcessed % 1000 == 0)
-            {
-                _ = FlushPendingBooksAsync(); // Async flush every 1000 books
-                Log.WriteLine("Forced flush at {0} books processed", totalProcessed);
-            }
+            // Add book to batch, the actual duplicate detection happens when the batch is saved
+            int totalProcessed = bookWriter.Add(e.Book);
 
             // Update console every 10 books for better responsiveness
             if (totalProcessed % 10 == 0)
@@ -1102,6 +967,7 @@ namespace TinyOPDSCLI
         {
             try
             {
+                var (fb2Count, epubCount, dups) = bookWriter.GetCounters();
                 int totalProcessed = fb2Count + epubCount + skippedFiles + invalidFiles + dups;
 
                 // Always show info - no additional checks
@@ -1131,6 +997,7 @@ namespace TinyOPDSCLI
             catch (Exception ex)
             {
                 Log.WriteLine(LogLevel.Error, "Error in UpdateInfo: {0}", ex.Message);
+                var (fb2Count, epubCount, dups) = bookWriter.GetCounters();
                 Console.WriteLine("Books processed: {0}", fb2Count + epubCount + dups);
             }
         }

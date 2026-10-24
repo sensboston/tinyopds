@@ -482,6 +482,37 @@ namespace TinyOPDS.Data
                 ExecuteNonQuery("PRAGMA user_version = 1");
                 Log.WriteLine("Books full-text index rebuilt");
             }
+
+            if (version < 2)
+            {
+                // Older versions updated the books index on any book update (it takes ~0.3 s on a big library),
+                // the trigger is replaced to update it on title changes only. On failure the old trigger
+                // is kept: it is slower but correct, so it is retried on the next start
+                bool updated = false;
+                IDbTransaction tx = BeginTransactionWithObject();
+                try
+                {
+                    ExecuteNonQueryInTransaction("DROP TRIGGER IF EXISTS books_au", tx);
+                    ExecuteNonQueryInTransaction(DatabaseSchema.CreateBookUpdateTrigger, tx);
+                    tx.Commit();
+                    updated = true;
+                }
+                catch (Exception ex)
+                {
+                    tx.Rollback();
+                    Log.WriteLine(LogLevel.Error, "Error updating books full-text index trigger: {0}", ex.Message);
+                }
+                finally
+                {
+                    tx.Dispose();
+                }
+
+                if (updated)
+                {
+                    ExecuteNonQuery("PRAGMA user_version = 2");
+                    Log.WriteLine("Books full-text index trigger updated");
+                }
+            }
         }
 
         /// <summary>

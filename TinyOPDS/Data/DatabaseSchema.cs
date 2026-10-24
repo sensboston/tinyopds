@@ -276,8 +276,10 @@ namespace TinyOPDS.Data
                 VALUES (new.ID, new.Title);
             END";
 
+        // Only title is indexed: other updates (marking a book as replaced) don't touch the index.
+        // BookID is not indexed in BooksFTS, so each run of this trigger scans the whole index
         public const string CreateBookUpdateTrigger = @"
-            CREATE TRIGGER IF NOT EXISTS books_au AFTER UPDATE ON Books BEGIN
+            CREATE TRIGGER IF NOT EXISTS books_au AFTER UPDATE OF Title ON Books BEGIN
                 UPDATE BooksFTS 
                 SET Title = new.Title
                 WHERE BookID = new.ID;

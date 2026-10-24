@@ -1,0 +1,122 @@
+name: Docker image
+
+# Every push touching the image or the code builds and tests the image on amd64 and arm64.
+# A published release (or a manual run with "publish") also pushes it to Docker Hub and GHCR
+on:
+  push:
+    paths:
+      - 'docker/**'
+      - '.github/workflows/docker.yml'
+      - 'TinyOPDS/**'
+      - 'TinyOPDSCLI/**'
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish the image to Docker Hub and GHCR'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-cli:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v3
+
+      - name: Build solution
+        run: |
+          nuget restore TinyOPDS.sln
+          msbuild TinyOPDS.sln /p:Configuration=Release /p:Platform="Any CPU" /m
+
+      - name: Upload TinyOPDSCLI.exe
+        uses: actions/upload-artifact@v7
+        with:
+          name: cli
+          path: TinyOPDSCLI/bin/Release/TinyOPDSCLI.exe
+
+  test:
+    needs: build-cli
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Download TinyOPDSCLI.exe
+        uses: actions/download-artifact@v8
+        with:
+          name: cli
+          path: docker/app
+
+      - name: Build image
+        run: docker build -t tinyopds:test docker
+
+      - name: Smoke test
+        run: bash docker/smoke_test.sh tinyopds:test
+
+  publish:
+    needs: test
+    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.publish)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Download TinyOPDSCLI.exe
+        uses: actions/download-artifact@v8
+        with:
+          name: cli
+          path: docker/app
+
+      - name: Get version
+        id: version
+        run: |
+          version=$(grep -oP 'AssemblyVersion\("\K[0-9]+\.[0-9]+' TinyOPDSCLI/Properties/AssemblyInfo.cs)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Version $version"
+
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: docker
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/tinyopds:${{ steps.version.outputs.version }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/tinyopds:latest
+            ghcr.io/sensboston/tinyopds:${{ steps.version.outputs.version }}
+            ghcr.io/sensboston/tinyopds:latest

@@ -1,0 +1,18 @@
+# TinyOPDS on NAS: change the two folders on the left side of "volumes" and PUID/PGID to your user
+services:
+  tinyopds:
+    image: sensboston/tinyopds:latest
+    container_name: tinyopds
+    ports:
+      - "8080:8080"
+    volumes:
+      # Book library (FB2/EPUB files and ZIP archives)
+      - /volume1/books:/books:ro
+      # TinyOPDS config, database and log
+      - /volume1/docker/tinyopds:/data
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Moscow
+      - TINYOPDS_LANGUAGE=ru
+    restart: unless-stopped

@@ -219,7 +219,7 @@ namespace TinyOPDSCLI
                     };
 
                     // On Linux, we need clear console (terminal) window first
-                    if (!Utils.IsWindows) Console.Write("\u001b[1J\u001b[0;0H");
+                    if (!Utils.IsWindows && !Console.IsOutputRedirected) Console.Write("\u001b[1J\u001b[0;0H");
                     Console.WriteLine("TinyOPDS Command Line Interface, {0}, copyright (c) 2013-2025 SeNSSoFT",
                         string.Format(Localizer.Text("version {0}.{1} {2}"), Utils.Version.Major, Utils.Version.Minor,
                         Utils.Version.Major == 0 ? " (beta)" : ""));

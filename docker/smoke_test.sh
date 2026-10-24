@@ -31,6 +31,10 @@ done
 docker logs "$NAME" 2>&1 | grep -q "$DONE" || { echo "FAILED: the scan didn't finish as expected"; exit 1; }
 echo "Scan finished"
 
+# The log is read in NAS web interfaces: plain lines only, no terminal control sequences
+docker logs "$NAME" 2>&1 | grep -q $'\e' && { echo "FAILED: terminal control sequences in the log"; exit 1; }
+echo "Log OK"
+
 search() { curl -fsS "http://127.0.0.1:$PORT/opds/search?searchTerm=$1"; }
 
 # "каштанка"

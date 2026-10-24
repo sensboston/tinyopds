@@ -140,3 +140,12 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/tinyopds:latest
             ghcr.io/sensboston/tinyopds:${{ steps.version.outputs.version }}
             ghcr.io/sensboston/tinyopds:latest
+
+      - name: Update Docker Hub description
+        uses: peter-evans/dockerhub-description@v5
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: ${{ secrets.DOCKERHUB_USERNAME }}/tinyopds
+          short-description: 'OPDS and web server for a home e-book library (FB2, EPUB, ZIP), for NAS'
+          readme-filepath: docker/README.md

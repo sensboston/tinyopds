@@ -306,9 +306,10 @@ namespace TinyOPDS
             }
         }
 
-        // Default path to service files: databases, log, settings
+        // Default path to service files: databases, log, settings. Can be set to a given folder (Docker volume)
         public static string ServiceFilesLocation
         {
+            set { serviceFilesLocation = value; }
             get
             {
                 if (string.IsNullOrEmpty(serviceFilesLocation))

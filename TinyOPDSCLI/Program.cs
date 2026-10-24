@@ -19,6 +19,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Configuration;
 using System.Linq;
 
 using UPnP;
@@ -45,6 +47,10 @@ namespace TinyOPDSCLI
         private static FileScanner scanner;
         private static Watcher watcher;
         private static DateTime scanStartTime;
+
+        // Without a terminal (service, container log) the scan progress is printed as a line at this interval
+        private static readonly TimeSpan ProgressLineInterval = TimeSpan.FromSeconds(30);
+        private static DateTime lastProgressLine = DateTime.MinValue;
         private static readonly UPnPController upnpController = new UPnPController();
         private static Timer upnpRefreshTimer = null;
 
@@ -157,6 +163,7 @@ namespace TinyOPDSCLI
 
             // Configure settings provider with proper path based on write permissions
             ConfigureSettingsProvider();
+            ApplyEnvironmentSettings();
 
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
             Log.SaveToFile = Settings.Default.SaveLogToDisk;
@@ -472,6 +479,18 @@ namespace TinyOPDSCLI
         {
             try
             {
+                // Data folder given by the environment (Docker volume): config, database and log are kept there
+                string dataDir = Environment.GetEnvironmentVariable("TINYOPDS_DATA_DIR");
+                if (!string.IsNullOrEmpty(dataDir))
+                {
+                    Directory.CreateDirectory(dataDir);
+                    Utils.ServiceFilesLocation = dataDir;
+                    PortableSettingsProvider.SettingsFileName = Path.Combine(dataDir, "TinyOPDS.config");
+                    PortableSettingsProvider.ApplyProvider(Settings.Default);
+                    Console.WriteLine("Using data folder: {0}", dataDir);
+                    return;
+                }
+
                 string exeDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 
                 // Test if we can write to exe directory (portable mode)
@@ -517,6 +536,29 @@ namespace TinyOPDSCLI
                 Console.WriteLine("Error configuring settings provider: {0}", ex.Message);
                 PortableSettingsProvider.SettingsFileName = "TinyOPDS.config";
                 PortableSettingsProvider.ApplyProvider(Settings.Default);
+            }
+        }
+
+        /// <summary>
+        /// Settings given by the environment (Docker) override the config file: TINYOPDS_ and the setting name
+        /// in upper case, e.g. TINYOPDS_LIBRARYPATH=/books or TINYOPDS_LANGUAGE=ru
+        /// </summary>
+        private static void ApplyEnvironmentSettings()
+        {
+            foreach (SettingsProperty property in Settings.Default.Properties)
+            {
+                string value = Environment.GetEnvironmentVariable("TINYOPDS_" + property.Name.ToUpperInvariant());
+                if (value == null) continue;
+
+                try
+                {
+                    Settings.Default[property.Name] = TypeDescriptor.GetConverter(property.PropertyType).ConvertFromInvariantString(value);
+                    Console.WriteLine("Setting {0} is set by the environment", property.Name);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Invalid value of TINYOPDS_{0}: {1}", property.Name.ToUpperInvariant(), ex.Message);
+                }
             }
         }
 
@@ -808,6 +850,23 @@ namespace TinyOPDSCLI
             else
             {
                 Log.WriteLine("HTTP server started");
+
+                // Library scan while the server is running (Docker): new books are added, known ones are skipped
+                if (string.Equals(Environment.GetEnvironmentVariable("TINYOPDS_SCAN_ON_START"), "true", StringComparison.OrdinalIgnoreCase))
+                {
+                    Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await ScanLibraryAsync();
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.WriteLine(LogLevel.Error, "Library scan failed: {0}", ex.Message);
+                        }
+                    });
+                }
+
                 if (Utils.IsLinux || Utils.IsMacOS || Environment.UserInteractive)
                 {
                     Console.WriteLine("Server is running... Press <Ctrl+c> to shutdown server.");
@@ -897,20 +956,6 @@ namespace TinyOPDSCLI
             // Load existing library
             Library.Load();
 
-            scanner = new FileScanner();
-            scanner.OnBookFound += Scanner_OnBookFound;
-            scanner.OnInvalidBook += (_, __) => { invalidFiles++; };
-            scanner.OnFileSkipped += (object _sender, FileSkippedEventArgs _e) =>
-            {
-                skippedFiles = _e.Count;
-                UpdateInfo();
-            };
-            scanner.OnScanCompleted += (_, __) =>
-            {
-                // Remaining books are flushed by ScanFolder after the scanner stops
-                Log.WriteLine("Directory scanner completed");
-            };
-
             // Optional pre-scan database cleaning
             if (Settings.Default.ClearDBOnScan)
             {
@@ -925,6 +970,28 @@ namespace TinyOPDSCLI
                 }
             }
 
+            await ScanLibraryAsync();
+        }
+
+        /// <summary>
+        /// Scan the library folder and save the found books (the database is initialized and the library is loaded)
+        /// </summary>
+        private static async Task ScanLibraryAsync()
+        {
+            scanner = new FileScanner();
+            scanner.OnBookFound += Scanner_OnBookFound;
+            scanner.OnInvalidBook += (_, __) => { invalidFiles++; };
+            scanner.OnFileSkipped += (object _sender, FileSkippedEventArgs _e) =>
+            {
+                skippedFiles = _e.Count;
+                UpdateInfo();
+            };
+            scanner.OnScanCompleted += (_, __) =>
+            {
+                // Remaining books are flushed by ScanLibraryAsync after the scanner stops
+                Log.WriteLine("Directory scanner completed");
+            };
+
             skippedFiles = invalidFiles = 0;
             bookWriter = new BookBatchWriter(batchSize);
             scanStartTime = DateTime.Now;
@@ -938,7 +1005,7 @@ namespace TinyOPDSCLI
             await FlushRemainingBooksAsync();
 
             // Show the final counters, corrected by the flushes
-            UpdateInfo();
+            UpdateInfo(true);
             Console.WriteLine();
         }
 
@@ -963,7 +1030,7 @@ namespace TinyOPDSCLI
             }
         }
 
-        private static void UpdateInfo()
+        private static void UpdateInfo(bool final = false)
         {
             try
             {
@@ -978,7 +1045,14 @@ namespace TinyOPDSCLI
                 string info = string.Format("Elapsed: {0}, rate: {1}, found fb2: {2}, epub: {3}, skipped: {4}, dups: {5}, invalid: {6}, total: {7}, in DB: {8}     ",
                     dt.ToString(@"hh\:mm\:ss"), rate, fb2Count, epubCount, skippedFiles, dups, invalidFiles, totalProcessed, TotalBooks);
 
-                if (Utils.IsWindows)
+                if (Console.IsOutputRedirected)
+                {
+                    // No terminal to redraw the line in: a progress line at an interval and the final one
+                    if (!final && DateTime.Now - lastProgressLine < ProgressLineInterval) return;
+                    lastProgressLine = DateTime.Now;
+                    Console.WriteLine(info.TrimEnd());
+                }
+                else if (Utils.IsWindows)
                 {
                     Console.Write(info + "\r");
                     Console.SetCursorPosition(0, Console.CursorTop - info.Length / Console.WindowWidth);

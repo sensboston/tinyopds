@@ -1,17 +1,17 @@
-# TinyOPDS 3.12
+# TinyOPDS 3.18
 Lightweight and powerful OPDS server for home libraries
 
 ![](https://github.com/sensboston/tinyopds/blob/master/wiki/ss1.png?raw=true)
 
 TinyOPDS is a simple and lightweight OPDS server written in C#. Works on Windows, Linux and macOS via .NET or Mono.
 
-## TinyOPDS 3.12 - Revolutionary Update!
+## TinyOPDS 3.18 - Revolutionary Update!
 
-After installing this release (3.12), I strongly recommend deleting the database file (books.sqlite) and rescanning the library from scratch.
+After installing this release (3.18), I strongly recommend deleting the database file (books.sqlite) and rescanning the library from scratch.
 
-**TinyOPDS 3.12** - the result of intensive development with **over 85% of code rewritten**. The main change is the transition from in-memory storage to using a **standard SQL engine**, paving the way for porting to any server platform.
+**TinyOPDS 3.18** - the result of intensive development with **over 85% of code rewritten**. The main change is the transition from in-memory storage to using a **standard SQL engine**, paving the way for porting to any server platform.
 
-### Key changes in version 3.12:
+### Key changes in version 3.18:
 
 - **SQLite database** - instead of loading the entire library into memory, now uses a standard SQL engine with FTS5 full-text search
 - **Modern web interface** - fully functional embedded website with beautiful design, responsive layout, and pagination support for large collections
@@ -54,18 +54,18 @@ If TinyOPDS helped organize your library, you can support development - donation
 
 ---
 
-## TinyOPDS 3.12
+## TinyOPDS 3.18
 Легкий та потужний OPDS сервер для домашніх бібліотек
 
 TinyOPDS - це простий та легкий OPDS сервер, написаний на C#. Працює на Windows, Linux та macOS через .NET або Mono.
 
 ## TinyOPDS отримав революційне оновлення!
 
-Після встановлення цього релізу (3.12) я наполегливо рекомендую видалити файл бази даних (books.sqlite) і просканувати бібліотеку заново.
+Після встановлення цього релізу (3.18) я наполегливо рекомендую видалити файл бази даних (books.sqlite) і просканувати бібліотеку заново.
 
-**TinyOPDS 3.12** - результат інтенсивної розробки, в ході якої **переписано понад 85% коду**. Головна зміна - перехід від зберігання даних в пам'яті до використання **стандартного SQL рушія**, що відкриває шлях до портування на будь-які серверні платформи.
+**TinyOPDS 3.18** - результат інтенсивної розробки, в ході якої **переписано понад 85% коду**. Головна зміна - перехід від зберігання даних в пам'яті до використання **стандартного SQL рушія**, що відкриває шлях до портування на будь-які серверні платформи.
 
-### Ключові зміни версії 3.12:
+### Ключові зміни версії 3.18:
 
 - **SQLite база даних** - замість завантаження всієї бібліотеки в пам'ять тепер використовується стандартний SQL рушій з повнотекстовим пошуком FTS5
 - **Сучасний веб-інтерфейс** - повноцінний вбудований веб-сайт з красивим дизайном, адаптивною версткою та підтримкою пагінації для великих колекцій
@@ -108,18 +108,18 @@ TinyOPDS - це простий та легкий OPDS сервер, написа
 
 ---
 
-## TinyOPDS 3.12
+## TinyOPDS 3.18
 Легкий, но мощный OPDS сервер для домашних библиотек
 
 TinyOPDS - это простой OPDS сервер, написанный на C#. Работает на Windows, Linux и macOS через .NET или Mono.
 
 ## TinyOPDS получил революционное обновление!
 
-После установки этого релиза (3.12) я настоятельно рекомендую удалить файл базы данных (books.sqlite) и просканировать базу заново
+После установки этого релиза (3.18) я настоятельно рекомендую удалить файл базы данных (books.sqlite) и просканировать базу заново
 
-**TinyOPDS 3.12** - результат интенсивной разработки, в ходе которой **переписано более 85% кода**. Главное изменение - переход от хранения данных в памяти к использованию **стандартного SQL движка**, что открывает путь к портированию на любые серверные платформы.
+**TinyOPDS 3.18** - результат интенсивной разработки, в ходе которой **переписано более 85% кода**. Главное изменение - переход от хранения данных в памяти к использованию **стандартного SQL движка**, что открывает путь к портированию на любые серверные платформы.
 
-### Ключевые изменения версии 3.12:
+### Ключевые изменения версии 3.18:
 
 - **SQLite база данных** - вместо загрузки всей библиотеки в память теперь используется стандартный SQL движок с полнотекстовым поиском FTS5
 - **Современный веб-интерфейс** - полноценный встроенный веб-сайт с красивым дизайном, адаптивной вёрсткой и поддержкой пагинации для больших коллекций

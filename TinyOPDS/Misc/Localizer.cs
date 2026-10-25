@@ -64,7 +64,7 @@ namespace TinyOPDS
                     }
                     else
                     {
-                        Log.WriteLine(LogLevel.Error, "Localizer.Init() error: {0} resource not found", translationXml);
+                        Log.WriteLine(LogLevel.Error, "Localizer.Init() error: {0} resource not found", pluralizationXml);
                     }
                 }
 

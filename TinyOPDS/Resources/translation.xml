@@ -987,7 +987,7 @@
 			<text lang="de">{0} Bücher in {1} Serien</text>
 			<text lang="es">{0} libros en {1} series</text>
 			<text lang="fr">{0} livres en {1} séries</text>
-			<text lang="pl">{0} książek w {1} cyklu/ach</text>
+			<text lang="pl">{0} książek w {1} cyklach</text>
 		</property>
 		<property>
 			<text lang="en">By genres</text>
@@ -1584,7 +1584,7 @@
 			<text lang="de">{0} Bücher in {1} Serien</text>
 			<text lang="es">{0} libros en {1} series</text>
 			<text lang="fr">{0} livres dans {1} séries</text>
-			<text lang="pl">{0} książka w {1} cyklu/ach</text>
+			<text lang="pl">{0} książka w {1} cykl</text>
 		</property>
 
 		<property>

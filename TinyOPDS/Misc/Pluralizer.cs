@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
@@ -32,6 +33,8 @@ namespace TinyOPDS
         {
             public Dictionary<string, string[]> Words { get; set; }
             public Dictionary<string, char> WordGenders { get; set; } // Store gender for each word
+            // Optional forms after prepositions: genitive singular (after "от/від/od"), prepositional singular and plural (after "в/у/w")
+            public Dictionary<string, string[]> PrepositionForms { get; set; }
             public Dictionary<string, string[]> Phrases { get; set; }
             public Dictionary<string, string[]> Participles { get; set; }
 
@@ -44,6 +47,7 @@ namespace TinyOPDS
             {
                 Words = new Dictionary<string, string[]>();
                 WordGenders = new Dictionary<string, char>();
+                PrepositionForms = new Dictionary<string, string[]>();
                 Phrases = new Dictionary<string, string[]>();
                 Participles = new Dictionary<string, string[]>();
                 WordReverseLookup = new Dictionary<string, string>();
@@ -73,7 +77,8 @@ namespace TinyOPDS
 
                     var data = new PluralizationData();
 
-                    // Load words (format: base|gender|singular|genitive-sing|genitive-plural)
+                    // Load words (format: base|gender|singular|genitive-sing|genitive-plural, optionally followed by
+                    // |genitive-sing after "от/від/od"|prepositional-sing|prepositional-plural after "в/у/w")
                     var words = langElement.Descendants("word");
                     foreach (var wordElement in words)
                     {
@@ -86,9 +91,13 @@ namespace TinyOPDS
 
                             data.Words[baseForm] = forms;
                             data.WordGenders[baseForm] = gender;
+                            var prepositionForms = new string[3];
+                            for (int i = 0; i < 3 && 5 + i < parts.Length; i++)
+                                prepositionForms[i] = parts[5 + i].Length > 0 ? parts[5 + i] : null;
+                            data.PrepositionForms[baseForm] = prepositionForms;
 
                             // Build reverse lookup
-                            foreach (var form in forms)
+                            foreach (var form in forms.Concat(prepositionForms.Where(f => f != null)))
                             {
                                 var formLower = form.ToLower();
                                 if (!data.WordReverseLookup.ContainsKey(formLower))
@@ -158,7 +167,7 @@ namespace TinyOPDS
         /// Apply pluralization rules to text
         /// </summary>
         /// <param name="count">Number to use for pluralization (unused but kept for compatibility)</param>
-        /// <param name="languageCode">Language code (ru, uk, pl)</param>
+        /// <param name="languageCode">Language code (ru, uk, pl, en, de, fr, es)</param>
         /// <param name="text">Text containing number+word pairs to pluralize</param>
         /// <returns>Text with correct plural forms</returns>
         public static string Apply(int count, string languageCode, string text)
@@ -184,8 +193,8 @@ namespace TinyOPDS
         /// </summary>
         private static string ApplyPluralization(string text, PluralizationData data, string languageCode)
         {
-            // Special pattern for two numbers with preposition
-            var twoNumbersPattern = @"(\d+)\s+(\S+)\s+(от|від|od)\s+(\d+)\s+(\S+)";
+            // Special pattern for two numbers with preposition ("3 книги от 2 авторов", "3 книги в 2 сериях")
+            var twoNumbersPattern = @"(\d+)\s+(\S+)\s+(от|від|od|в|у|w)\s+(\d+)\s+(\S+)";
             var twoNumbersMatch = Regex.Match(text, twoNumbersPattern);
 
             if (twoNumbersMatch.Success)
@@ -328,7 +337,7 @@ namespace TinyOPDS
             if (processedFirst == null) processedFirst = firstWord;
 
             // Process second word with special rule for prepositions
-            string processedSecond = ProcessWordAfterPreposition(secondWord, secondNumber, data, languageCode);
+            string processedSecond = ProcessWordAfterPreposition(secondWord, preposition, secondNumber, data, languageCode);
             if (processedSecond == null) processedSecond = secondWord;
 
             return string.Format("{0} {1} {2} {3} {4}",
@@ -338,7 +347,7 @@ namespace TinyOPDS
         /// <summary>
         /// Process word after preposition with special rules
         /// </summary>
-        private static string ProcessWordAfterPreposition(string word, int number, PluralizationData data, string languageCode)
+        private static string ProcessWordAfterPreposition(string word, string preposition, int number, PluralizationData data, string languageCode)
         {
             var wordLower = word.ToLower();
 
@@ -356,10 +365,23 @@ namespace TinyOPDS
             if (baseForm != null && data.Words.ContainsKey(baseForm))
             {
                 var forms = data.Words[baseForm];
+                data.PrepositionForms.TryGetValue(baseForm, out var prepositionForms);
+                // Singular: 1 in Polish; 1, 21, 31... in Russian and Ukrainian
+                bool singular = languageCode == "pl" ? number == 1 : number % 10 == 1 && number % 100 != 11 && number < 1000;
+
+                // "в/у/w": prepositional case ("в 1 серии", "в 5 сериях")
+                if (preposition == "в" || preposition == "у" || preposition == "w")
+                {
+                    var prepositional = prepositionForms?[singular ? 1 : 2];
+                    return prepositional == null ? null : PreserveCase(word, prepositional);
+                }
 
                 // Special rule for numbers 2-4 after prepositions in Slavic languages
                 int formIndex = GetFormIndexAfterPreposition(number, languageCode);
                 var newForm = forms[formIndex];
+
+                // Genitive singular, when its form differs from the second one ("od 1 autora")
+                if (singular && prepositionForms?[0] != null) newForm = prepositionForms[0];
 
                 // Preserve case pattern
                 return PreserveCase(word, newForm);
@@ -648,6 +670,16 @@ namespace TinyOPDS
 
                 // 0, 5-9 and others - genitive plural
                 return 2; // genitive plural
+            }
+            else if (languageCode == "en" || languageCode == "de" || languageCode == "es")
+            {
+                // Singular for 1 only
+                return number == 1 ? 0 : 2;
+            }
+            else if (languageCode == "fr")
+            {
+                // Singular for 0 and 1
+                return number <= 1 ? 0 : 2;
             }
 
             // Default to first form

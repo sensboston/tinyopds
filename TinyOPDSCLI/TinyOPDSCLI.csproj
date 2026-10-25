@@ -294,6 +294,9 @@
     <EmbeddedResource Include="..\TinyOPDS\Resources\fb2.dtd">
       <Link>Resources\fb2.dtd</Link>
     </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\Resources\pluralization.xml">
+      <Link>Resources\pluralization.xml</Link>
+    </EmbeddedResource>
     <EmbeddedResource Include="..\TinyOPDS\Resources\translation.xml">
       <Link>Resources\translation.xml</Link>
     </EmbeddedResource>
@@ -344,9 +347,6 @@
   <ItemGroup>
     <Content Include="..\TinyOPDS\Resources\library.ico">
       <Link>Resources\library.ico</Link>
-    </Content>
-    <Content Include="..\TinyOPDS\Resources\pluralization.xml">
-      <Link>Resources\pluralization.xml</Link>
     </Content>
     <Content Include="TinyOPDS.ico" />
   </ItemGroup>

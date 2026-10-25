@@ -4,8 +4,8 @@
 	<language code="ru" name="Russian">
 		<words>
 			<word>книга|f|книга|книги|книг</word>
-			<word>автор|m|автор|автора|авторов</word>
-			<word>серия|f|серия|серии|серий</word>
+			<word>автор|m|автор|автора|авторов|автора</word>
+			<word>серия|f|серия|серии|серий|серии|серии|сериях</word>
 			<word>результат|m|результат|результата|результатов</word>
 		</words>
 		<participles>
@@ -24,8 +24,8 @@
 	<language code="uk" name="Ukrainian">
 		<words>
 			<word>книга|f|книга|книги|книг</word>
-			<word>автор|m|автор|автора|авторів</word>
-			<word>серія|f|серія|серії|серій</word>
+			<word>автор|m|автор|автора|авторів|автора</word>
+			<word>серія|f|серія|серії|серій|серії|серії|серіях</word>
 			<word>результат|m|результат|результату|результатів</word>
 		</words>
 		<participles>
@@ -44,8 +44,8 @@
 	<language code="pl" name="Polish">
 		<words>
 			<word>książka|f|książka|książki|książek</word>
-			<word>autor|m|autor|autorów|autorów</word>
-			<word>cykl|m|cykl|cykle|cykli</word>
+			<word>autor|m|autor|autorów|autorów|autora</word>
+			<word>cykl|m|cykl|cykle|cykli|cyklu|cyklu|cyklach</word>
 			<word>wynik|m|wynik|wyniki|wyników</word>
 		</words>
 		<participles>
@@ -57,6 +57,57 @@
 		<phrases>
 			<phrase>nowa książka|nowa książka|nowe książki|nowych książek</phrase>
 			<phrase>pobrana książka|pobrana książka|pobrane książki|pobranych książek</phrase>
+		</phrases>
+	</language>
+	<!-- English language: singular for 1 -->
+	<language code="en" name="English">
+		<words>
+			<word>book|n|book|books|books</word>
+			<word>author|m|author|authors|authors</word>
+			<word>result|m|result|results|results</word>
+		</words>
+		<phrases>
+			<phrase>new book|new book|new books|new books</phrase>
+			<phrase>downloaded book|downloaded book|downloaded books|downloaded books</phrase>
+		</phrases>
+	</language>
+
+	<!-- German language: singular for 1 -->
+	<language code="de" name="German">
+		<words>
+			<word>buch|n|Buch|Bücher|Bücher</word>
+			<word>autor|m|Autor|Autoren|Autoren</word>
+			<word>serie|f|Serie|Serien|Serien</word>
+		</words>
+		<phrases>
+			<phrase>neues buch|neues Buch|neue Bücher|neue Bücher</phrase>
+			<phrase>heruntergeladenes buch|heruntergeladenes Buch|heruntergeladene Bücher|heruntergeladene Bücher</phrase>
+		</phrases>
+	</language>
+
+	<!-- French language: singular for 0 and 1 -->
+	<language code="fr" name="French">
+		<words>
+			<word>livre|m|livre|livres|livres</word>
+			<word>auteur|m|auteur|auteurs|auteurs</word>
+			<word>série|f|série|séries|séries</word>
+		</words>
+		<phrases>
+			<phrase>nouveau livre|nouveau livre|nouveaux livres|nouveaux livres</phrase>
+			<phrase>livre téléchargé|livre téléchargé|livres téléchargés|livres téléchargés</phrase>
+		</phrases>
+	</language>
+
+	<!-- Spanish language: singular for 1 -->
+	<language code="es" name="Spanish">
+		<words>
+			<word>libro|m|libro|libros|libros</word>
+			<word>autor|m|autor|autores|autores</word>
+			<word>serie|f|serie|series|series</word>
+		</words>
+		<phrases>
+			<phrase>libro nuevo|libro nuevo|libros nuevos|libros nuevos</phrase>
+			<phrase>libro descargado|libro descargado|libros descargados|libros descargados</phrase>
 		</phrases>
 	</language>
 </pluralization>

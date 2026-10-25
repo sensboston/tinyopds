@@ -110,10 +110,15 @@ namespace TinyOPDS.Server
                 if (ext == ".pdf")
                 {
                     string fb2Path = tempPath + ".fb2.part";
-                    if (!ConvertPdf(tempPath, fb2Path, Path.GetFileNameWithoutExtension(fileName)))
+                    var result = ConvertPdf(tempPath, fb2Path, Path.GetFileNameWithoutExtension(fileName));
+                    if (result != PdfFb2Converter.Result.Converted)
                     {
                         try { File.Delete(fb2Path); } catch { }
-                        WriteResult(processor, false, Localizer.Text("No text found in the PDF (scanned pages can't be converted)"));
+                        WriteResult(processor, false, result == PdfFb2Converter.Result.NotReadable
+                            ? Localizer.Text("The text of this PDF is encoded and can't be extracted")
+                            : result == PdfFb2Converter.Result.NoText
+                                ? Localizer.Text("No text found in the PDF (scanned pages can't be converted)")
+                                : Localizer.Text("The file is damaged or is not a PDF"));
                         return;
                     }
                     File.Delete(tempPath);
@@ -278,21 +283,23 @@ namespace TinyOPDS.Server
             }
         }
 
-        private static bool ConvertPdf(string pdfPath, string fb2Path, string title)
+        /// <returns>Converted, or why not; null if the file can't be read as PDF</returns>
+        private static PdfFb2Converter.Result? ConvertPdf(string pdfPath, string fb2Path, string title)
         {
             try
             {
                 var started = DateTime.Now;
-                var fb2 = new PdfFb2Converter().Convert(pdfPath, title);
-                if (fb2 == null) return false;
+                var converter = new PdfFb2Converter();
+                var fb2 = converter.Convert(pdfPath, title);
+                if (fb2 == null) return converter.LastResult;
                 fb2.Save(fb2Path);
                 Log.WriteLine("Upload: PDF converted to FB2 in {0:0.0} s", (DateTime.Now - started).TotalSeconds);
-                return true;
+                return PdfFb2Converter.Result.Converted;
             }
             catch (Exception ex)
             {
                 Log.WriteLine(LogLevel.Warning, "Upload: PDF conversion failed: {0}", ex.Message);
-                return false;
+                return null;
             }
         }
 

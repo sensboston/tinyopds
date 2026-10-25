@@ -2107,5 +2107,23 @@
 			<text lang="fr">Aucun texte trouvé dans le PDF (les pages numérisées ne peuvent pas être converties)</text>
 			<text lang="pl">W pliku PDF nie znaleziono tekstu (zeskanowanych stron nie można przekonwertować)</text>
 		</property>
+		<property>
+			<text lang="en">The text of this PDF is encoded and can't be extracted</text>
+			<text lang="ru">Текст этого PDF закодирован и не может быть извлечён</text>
+			<text lang="uk">Текст цього PDF закодований і не може бути вилучений</text>
+			<text lang="de">Der Text dieser PDF ist kodiert und kann nicht extrahiert werden</text>
+			<text lang="es">El texto de este PDF está codificado y no se puede extraer</text>
+			<text lang="fr">Le texte de ce PDF est codé et ne peut pas être extrait</text>
+			<text lang="pl">Tekst tego pliku PDF jest zakodowany i nie można go wyodrębnić</text>
+		</property>
+		<property>
+			<text lang="en">The file is damaged or is not a PDF</text>
+			<text lang="ru">Файл повреждён или не является PDF</text>
+			<text lang="uk">Файл пошкоджений або не є PDF</text>
+			<text lang="de">Die Datei ist beschädigt oder keine PDF</text>
+			<text lang="es">El archivo está dañado o no es un PDF</text>
+			<text lang="fr">Le fichier est endommagé ou n'est pas un PDF</text>
+			<text lang="pl">Plik jest uszkodzony lub nie jest plikiem PDF</text>
+		</property>
 	</properties>
 </root>

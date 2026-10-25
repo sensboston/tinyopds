@@ -26,6 +26,22 @@ namespace TinyOPDS
     {
         public const int MaxPages = 3000;
 
+        public enum Result { Converted, NoText, NotReadable }
+
+        /// <summary>
+        /// Why the last conversion returned no document
+        /// </summary>
+        public Result LastResult { get; private set; }
+
+        // Frequent words: a text without them is not a text, but character codes of a font without
+        // the Unicode map (some PDFs are made so on purpose to prevent copying)
+        private static readonly HashSet<string> frequentWords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "the", "and", "of", "to", "a", "in", "is", "was", "he", "she", "it", "that", "for", "you", "with", "his", "her",
+            "и", "в", "не", "на", "что", "он", "она", "с", "я", "как", "а", "то", "но", "по",
+            "der", "die", "und", "das", "le", "la", "et", "les", "de", "el", "y", "que", "en", "w", "się", "nie", "та", "що", "і"
+        };
+
         private static readonly XNamespace fb2 = "http://www.gribuser.ru/xml/fictionbook/2.0";
         // "Chapter 12", "PART TWO", "Глава первая": a capitalized word and a few words more, no punctuation
         private static readonly Regex chapterTitle = new Regex(
@@ -68,11 +84,21 @@ namespace TinyOPDS
                 {
                     lines.AddRange(ReadPage(pdf, n));
                 }
+                LastResult = Result.NoText;
                 if (lines.Count == 0) return null;
+
+                if (!IsReadable(lines))
+                {
+                    LastResult = Result.NotReadable;
+                    Log.WriteLine(LogLevel.Warning, "PDF text is not readable (fonts without the Unicode map)");
+                    return null;
+                }
 
                 RemoveRunningHeaders(lines, pdf.NumberOfPages);
                 var paragraphs = BuildParagraphs(lines);
                 if (paragraphs.Count == 0) return null;
+
+                LastResult = Result.Converted;
 
                 string title = Clean(pdf.Information.Title);
                 if (string.IsNullOrEmpty(title)) title = fallbackTitle;
@@ -142,6 +168,16 @@ namespace TinyOPDS
             return result;
         }
 
+        private static bool IsReadable(List<Line> lines)
+        {
+            var words = lines.Skip(lines.Count / 10).Take(2000)
+                .SelectMany(l => l.Text.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries))
+                .Select(w => w.Trim(".,;:!?\"'“”‘’()«»—-".ToCharArray()))
+                .Where(w => w.Length > 0).ToList();
+            if (words.Count < 50) return true;
+            return words.Count(w => frequentWords.Contains(w)) >= words.Count / 50;
+        }
+
         // The most frequent coordinate, rounded to 2 points
         private static double Mode(IEnumerable<double> values)
         {
@@ -150,6 +186,7 @@ namespace TinyOPDS
 
         private static string NormalizeText(string text)
         {
+            text = RemoveInvalidXmlChars(text);
             return text.Replace("ﬀ", "ff").Replace("ﬁ", "fi").Replace("ﬂ", "fl")
                        .Replace("ﬃ", "ffi").Replace("ﬄ", "ffl").Replace(' ', ' ').Trim();
         }
@@ -309,7 +346,32 @@ namespace TinyOPDS
         private static string Clean(string value)
         {
             if (string.IsNullOrWhiteSpace(value)) return null;
-            return new string(value.Where(c => !char.IsControl(c)).ToArray()).Trim();
+            return RemoveInvalidXmlChars(value).Trim();
+        }
+
+        /// <summary>
+        /// PDF text may have control characters and broken surrogate pairs that can't be written to XML
+        /// </summary>
+        private static string RemoveInvalidXmlChars(string text)
+        {
+            var result = new StringBuilder(text.Length);
+            for (int i = 0; i < text.Length; i++)
+            {
+                char c = text[i];
+                if (char.IsHighSurrogate(c) && i + 1 < text.Length && char.IsLowSurrogate(text[i + 1]))
+                {
+                    result.Append(c).Append(text[++i]);
+                }
+                else if (c == '	')
+                {
+                    result.Append(' ');
+                }
+                else if (System.Xml.XmlConvert.IsXmlChar(c) && !char.IsControl(c))
+                {
+                    result.Append(c);
+                }
+            }
+            return result.ToString();
         }
     }
 }

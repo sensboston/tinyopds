@@ -48,7 +48,7 @@ namespace TinyOPDS.Server
                     return;
                 }
 
-                var imageObject = GetOrCreateCoverImage(bookID, book);
+                var imageObject = GetOrCreateCoverImage(bookID, book, getCover);
 
                 if (imageObject != null)
                 {
@@ -129,13 +129,17 @@ namespace TinyOPDS.Server
         /// <summary>
         /// Gets or creates cover image without cancellation support (legacy)
         /// </summary>
-        private object GetOrCreateCoverImage(string bookID, Book book)
+        private object GetOrCreateCoverImage(string bookID, Book book, bool getCover)
         {
             try
             {
                 if (ImagesCache.HasImage(bookID))
                 {
-                    return ImagesCache.GetImage(bookID);
+                    // A cached thumbnail doesn't mean the cover is cached too: covers are dropped from the RAM cache
+                    // when it's full, or may fail to save on disk, so the missing image is extracted from the book again
+                    var cached = ImagesCache.GetImage(bookID);
+                    if (cached != null && (getCover ? cached.HasCover : cached.HasThumbnail))
+                        return cached;
                 }
 
                 var image = new CoverImage(book);

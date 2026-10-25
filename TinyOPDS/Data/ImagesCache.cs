@@ -376,5 +376,7 @@ namespace TinyOPDS.Data
         }
 
         public bool HasImages => _coverData != null || _thumbnailData != null;
+        public bool HasCover => _coverData != null;
+        public bool HasThumbnail => _thumbnailData != null;
     }
 }

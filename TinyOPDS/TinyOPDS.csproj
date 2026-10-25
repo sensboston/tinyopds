@@ -57,22 +57,6 @@
       <HintPath>Libs\SharpCompress.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="UglyToad.PdfPig">
-      <HintPath>Libs\UglyToad.PdfPig.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="UglyToad.PdfPig.Core">
-      <HintPath>Libs\UglyToad.PdfPig.Core.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="UglyToad.PdfPig.DocumentLayoutAnalysis">
-      <HintPath>Libs\UglyToad.PdfPig.DocumentLayoutAnalysis.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Memory">
-      <HintPath>Libs\System.Memory.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
   </ItemGroup>
   <!-- ============== SOURCE CODE FILES ============== -->
   <ItemGroup>
@@ -149,7 +133,6 @@
     <Compile Include="Scanners\ZipScanner.cs" />
     <!-- Converters -->
     <Compile Include="Converters\FB2EpubConverter.cs" />
-    <Compile Include="Converters\PdfFb2Converter.cs" />
     <!-- Utilities -->
     <Compile Include="Misc\Crypt.cs" />
     <Compile Include="Misc\EmbeddedDllLoader.cs" />
@@ -217,17 +200,6 @@
     <!-- Embedded Libraries -->
     <EmbeddedResource Include="Libs\System.Data.SQLite.dll" />
     <EmbeddedResource Include="Libs\SharpCompress.dll" />
-    <EmbeddedResource Include="Libs\UglyToad.PdfPig.dll" />
-    <EmbeddedResource Include="Libs\UglyToad.PdfPig.Core.dll" />
-    <EmbeddedResource Include="Libs\UglyToad.PdfPig.DocumentLayoutAnalysis.dll" />
-    <EmbeddedResource Include="Libs\UglyToad.PdfPig.Fonts.dll" />
-    <EmbeddedResource Include="Libs\UglyToad.PdfPig.Tokenization.dll" />
-    <EmbeddedResource Include="Libs\UglyToad.PdfPig.Tokens.dll" />
-    <EmbeddedResource Include="Libs\System.Memory.dll" />
-    <EmbeddedResource Include="Libs\System.Buffers.dll" />
-    <EmbeddedResource Include="Libs\System.Numerics.Vectors.dll" />
-    <EmbeddedResource Include="Libs\System.Runtime.CompilerServices.Unsafe.dll" />
-    <EmbeddedResource Include="Libs\Microsoft.Bcl.HashCode.dll" />
     <EmbeddedResource Include="Libs\x64\SQLite.Interop.dll" />
     <EmbeddedResource Include="Libs\x86\SQLite.Interop.dll" />
   </ItemGroup>

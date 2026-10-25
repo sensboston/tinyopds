@@ -75,10 +75,10 @@ namespace TinyOPDS.Server
 
                 string fileName = GetFileName(processor.HttpUrl);
                 string ext = Path.GetExtension(fileName ?? "").ToLowerInvariant();
-                if (fileName == null || !(bookExtensions.Contains(ext) || ext == ".zip" || ext == ".pdf"))
+                if (fileName == null || !(bookExtensions.Contains(ext) || ext == ".zip"))
                 {
                     SkipBody(input, length);
-                    WriteResult(processor, false, Localizer.Text("Only FB2, EPUB, ZIP and PDF files can be uploaded"));
+                    WriteResult(processor, false, Localizer.Text("Only FB2, EPUB and ZIP files can be uploaded"));
                     return;
                 }
 
@@ -100,30 +100,10 @@ namespace TinyOPDS.Server
                     return;
                 }
 
-                if ((ext == ".zip" || ext == ".epub") && !CheckArchive(tempPath, ext == ".zip"))
+                if (ext != ".fb2" && !CheckArchive(tempPath, ext == ".zip"))
                 {
                     WriteResult(processor, false, Localizer.Text("The file is damaged or is not a book archive"));
                     return;
-                }
-
-                // PDF is converted to FB2: its text is rebuilt into paragraphs, the PDF itself isn't kept
-                if (ext == ".pdf")
-                {
-                    string fb2Path = tempPath + ".fb2.part";
-                    var result = ConvertPdf(tempPath, fb2Path, Path.GetFileNameWithoutExtension(fileName));
-                    if (result != PdfFb2Converter.Result.Converted)
-                    {
-                        try { File.Delete(fb2Path); } catch { }
-                        WriteResult(processor, false, result == PdfFb2Converter.Result.NotReadable
-                            ? Localizer.Text("The text of this PDF is encoded and can't be extracted")
-                            : result == PdfFb2Converter.Result.NoText
-                                ? Localizer.Text("No text found in the PDF (scanned pages can't be converted)")
-                                : Localizer.Text("The file is damaged or is not a PDF"));
-                        return;
-                    }
-                    File.Delete(tempPath);
-                    tempPath = fb2Path;
-                    fileName = Path.GetFileNameWithoutExtension(fileName) + ".fb2";
                 }
 
                 string bookPath = GetUniquePath(fileName);
@@ -282,26 +262,6 @@ namespace TinyOPDS.Server
             {
                 Log.WriteLine(LogLevel.Warning, "Upload: bad archive: {0}", ex.Message);
                 return false;
-            }
-        }
-
-        /// <returns>Converted, or why not; null if the file can't be read as PDF</returns>
-        private static PdfFb2Converter.Result? ConvertPdf(string pdfPath, string fb2Path, string title)
-        {
-            try
-            {
-                var started = DateTime.Now;
-                var converter = new PdfFb2Converter();
-                var fb2 = converter.Convert(pdfPath, title);
-                if (fb2 == null) return converter.LastResult;
-                fb2.Save(fb2Path);
-                Log.WriteLine("Upload: PDF converted to FB2 in {0:0.0} s", (DateTime.Now - started).TotalSeconds);
-                return PdfFb2Converter.Result.Converted;
-            }
-            catch (Exception ex)
-            {
-                Log.WriteLine(LogLevel.Warning, "Upload: PDF conversion failed: {0}", ex.Message);
-                return null;
             }
         }
 

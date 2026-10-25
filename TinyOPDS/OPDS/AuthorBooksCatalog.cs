@@ -182,7 +182,7 @@ namespace TinyOPDS.OPDS
                     books = books.OrderBy(b => b.Title, new OPDSComparer(Properties.Settings.Default.SortOrder > 0)).ToList();
                     break;
                 case ViewType.ByDate:
-                    books = books.OrderByDescending(b => b.BookDate).ThenBy(b => b.Title).ToList();
+                    books = books.OrderByDescending(b => b.PublicationYear).ThenBy(b => b.Title).ToList();
                     break;
             }
 
@@ -290,10 +290,10 @@ namespace TinyOPDS.OPDS
                 }
 
                 // Add year on new line
-                if (book.BookDate != DateTime.MinValue)
+                if (book.PublicationYear > 0)
                 {
                     if (!string.IsNullOrEmpty(plainText)) plainText += "\n";
-                    plainText += Localizer.Text("Year of publication:") + " " + book.BookDate.Year;
+                    plainText += Localizer.Text("Year of publication:") + " " + book.PublicationYear;
                 }
 
                 // Add series on new line

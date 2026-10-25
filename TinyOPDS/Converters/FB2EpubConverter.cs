@@ -326,9 +326,9 @@ namespace TinyOPDS
             AddAuthors(metadata, book);
 
             // Publication date
-            if (book.BookDate != DateTime.MinValue && book.BookDate.Year > 1)
+            if (book.PublicationYear > 0)
             {
-                metadata.Add(new XElement(dcNs + "date", book.BookDate.Year.ToString()));
+                metadata.Add(new XElement(dcNs + "date", book.PublicationYear.ToString()));
             }
 
             return metadata;

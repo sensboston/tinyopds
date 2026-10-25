@@ -127,7 +127,7 @@ namespace TinyOPDS.OPDS
                     new XElement("updated", book.DocumentDate != DateTime.MinValue ? book.DocumentDate.ToUniversalTime() : book.AddedDate.ToUniversalTime()),
                     new XElement("id", id),
                     new XElement("title", bookTitle),
-                    new XElement(Namespaces.dc + "issued", book.BookDate != DateTime.MinValue ? book.BookDate.Year.ToString() : book.AddedDate.Year.ToString()));
+                    book.PublicationYear > 0 ? new XElement(Namespaces.dc + "issued", book.PublicationYear.ToString()) : null);
 
                 // Add authors with links
                 foreach (string authorName in book.Authors)
@@ -171,10 +171,10 @@ namespace TinyOPDS.OPDS
                 }
 
                 // Add year on new line
-                if (book.BookDate != DateTime.MinValue)
+                if (book.PublicationYear > 0)
                 {
                     if (!string.IsNullOrEmpty(plainText)) plainText += "\n";
-                    plainText += Localizer.Text("Year of publication:") + " " + book.BookDate.Year;
+                    plainText += Localizer.Text("Year of publication:") + " " + book.PublicationYear;
                 }
 
                 // Add series on new line

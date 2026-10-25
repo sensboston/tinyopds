@@ -263,10 +263,10 @@ namespace TinyOPDS.OPDS
                 }
 
                 // Add year on new line
-                if (book.BookDate.Year > 1800 && book.BookDate.Year <= DateTime.Now.Year)
+                if (book.PublicationYear > 0)
                 {
                     if (!string.IsNullOrEmpty(plainText)) plainText += "\n";
-                    plainText += Localizer.Text("Year of publication:") + " " + book.BookDate.Year;
+                    plainText += Localizer.Text("Year of publication:") + " " + book.PublicationYear;
                 }
 
                 // Add series on new line
@@ -463,10 +463,10 @@ namespace TinyOPDS.OPDS
                     plainText += Localizer.Text("Translation:") + " " + string.Join(", ", book.Translators);
                 }
 
-                if (book.BookDate.Year > 1800 && book.BookDate.Year <= DateTime.Now.Year)
+                if (book.PublicationYear > 0)
                 {
                     if (!string.IsNullOrEmpty(plainText)) plainText += "\n";
-                    plainText += Localizer.Text("Year of publication:") + " " + book.BookDate.Year;
+                    plainText += Localizer.Text("Year of publication:") + " " + book.PublicationYear;
                 }
 
                 // Add series info - show the correct number for this specific sequence

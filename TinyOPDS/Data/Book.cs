@@ -116,6 +116,13 @@ namespace TinyOPDS.Data
         public DateTime BookDate { get; set; }
         public DateTime DocumentDate { get; set; }
 
+        /// <summary>
+        /// Year of publication, or 0 if the book has no date of its own: then the parsers set BookDate
+        /// to the file (or archive) date, and only such dates have a time of day
+        /// </summary>
+        public int PublicationYear =>
+            BookDate.Year > 1800 && BookDate.Year <= DateTime.Now.Year && BookDate.TimeOfDay == TimeSpan.Zero ? BookDate.Year : 0;
+
         // List of sequences for multi-series books
         public List<BookSequenceInfo> Sequences { get; set; }
 

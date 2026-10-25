@@ -68,7 +68,7 @@
         var input = document.createElement('input');
         input.type = 'file';
         input.multiple = true;
-        input.accept = '.fb2,.epub,.zip';
+        input.accept = '.fb2,.epub,.zip,.pdf';
         input.style.display = 'none';
         input.addEventListener('change', function () {
             var files = Array.prototype.slice.call(input.files);

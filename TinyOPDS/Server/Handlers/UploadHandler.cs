@@ -75,10 +75,10 @@ namespace TinyOPDS.Server
 
                 string fileName = GetFileName(processor.HttpUrl);
                 string ext = Path.GetExtension(fileName ?? "").ToLowerInvariant();
-                if (fileName == null || !(bookExtensions.Contains(ext) || ext == ".zip"))
+                if (fileName == null || !(bookExtensions.Contains(ext) || ext == ".zip" || ext == ".pdf"))
                 {
                     SkipBody(input, length);
-                    WriteResult(processor, false, Localizer.Text("Only FB2, EPUB and ZIP files can be uploaded"));
+                    WriteResult(processor, false, Localizer.Text("Only FB2, EPUB, ZIP and PDF files can be uploaded"));
                     return;
                 }
 
@@ -100,10 +100,25 @@ namespace TinyOPDS.Server
                     return;
                 }
 
-                if (ext != ".fb2" && !CheckArchive(tempPath, ext == ".zip"))
+                if ((ext == ".zip" || ext == ".epub") && !CheckArchive(tempPath, ext == ".zip"))
                 {
                     WriteResult(processor, false, Localizer.Text("The file is damaged or is not a book archive"));
                     return;
+                }
+
+                // PDF is converted to FB2: its text is rebuilt into paragraphs, the PDF itself isn't kept
+                if (ext == ".pdf")
+                {
+                    string fb2Path = tempPath + ".fb2.part";
+                    if (!ConvertPdf(tempPath, fb2Path, Path.GetFileNameWithoutExtension(fileName)))
+                    {
+                        try { File.Delete(fb2Path); } catch { }
+                        WriteResult(processor, false, Localizer.Text("No text found in the PDF (scanned pages can't be converted)"));
+                        return;
+                    }
+                    File.Delete(tempPath);
+                    tempPath = fb2Path;
+                    fileName = Path.GetFileNameWithoutExtension(fileName) + ".fb2";
                 }
 
                 string bookPath = GetUniquePath(fileName);
@@ -259,6 +274,24 @@ namespace TinyOPDS.Server
             catch (Exception ex)
             {
                 Log.WriteLine(LogLevel.Warning, "Upload: bad archive: {0}", ex.Message);
+                return false;
+            }
+        }
+
+        private static bool ConvertPdf(string pdfPath, string fb2Path, string title)
+        {
+            try
+            {
+                var started = DateTime.Now;
+                var fb2 = new PdfFb2Converter().Convert(pdfPath, title);
+                if (fb2 == null) return false;
+                fb2.Save(fb2Path);
+                Log.WriteLine("Upload: PDF converted to FB2 in {0:0.0} s", (DateTime.Now - started).TotalSeconds);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Warning, "Upload: PDF conversion failed: {0}", ex.Message);
                 return false;
             }
         }

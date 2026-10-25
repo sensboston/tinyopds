@@ -59,6 +59,22 @@
       <HintPath>..\TinyOPDS\Libs\SharpCompress.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="UglyToad.PdfPig">
+      <HintPath>..\TinyOPDS\Libs\UglyToad.PdfPig.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UglyToad.PdfPig.Core">
+      <HintPath>..\TinyOPDS\Libs\UglyToad.PdfPig.Core.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UglyToad.PdfPig.DocumentLayoutAnalysis">
+      <HintPath>..\TinyOPDS\Libs\UglyToad.PdfPig.DocumentLayoutAnalysis.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System.Memory">
+      <HintPath>..\TinyOPDS\Libs\System.Memory.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
   <!-- ============== CLI SPECIFIC FILES ============== -->
   <ItemGroup>
@@ -221,6 +237,9 @@
     <Compile Include="..\TinyOPDS\Converters\FB2EpubConverter.cs">
       <Link>Converters\FB2EpubConverter.cs</Link>
     </Compile>
+    <Compile Include="..\TinyOPDS\Converters\PdfFb2Converter.cs">
+      <Link>Converters\PdfFb2Converter.cs</Link>
+    </Compile>
     <!-- Utilities -->
     <Compile Include="..\TinyOPDS\Misc\Crypt.cs">
       <Link>Misc\Crypt.cs</Link>
@@ -282,6 +301,39 @@
     </EmbeddedResource>
     <EmbeddedResource Include="..\TinyOPDS\Libs\SharpCompress.dll">
       <Link>Libs\SharpCompress.dll</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\Libs\UglyToad.PdfPig.dll">
+      <Link>Libs\UglyToad.PdfPig.dll</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\Libs\UglyToad.PdfPig.Core.dll">
+      <Link>Libs\UglyToad.PdfPig.Core.dll</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\Libs\UglyToad.PdfPig.DocumentLayoutAnalysis.dll">
+      <Link>Libs\UglyToad.PdfPig.DocumentLayoutAnalysis.dll</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\Libs\UglyToad.PdfPig.Fonts.dll">
+      <Link>Libs\UglyToad.PdfPig.Fonts.dll</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\Libs\UglyToad.PdfPig.Tokenization.dll">
+      <Link>Libs\UglyToad.PdfPig.Tokenization.dll</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\Libs\UglyToad.PdfPig.Tokens.dll">
+      <Link>Libs\UglyToad.PdfPig.Tokens.dll</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\Libs\System.Memory.dll">
+      <Link>Libs\System.Memory.dll</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\Libs\System.Buffers.dll">
+      <Link>Libs\System.Buffers.dll</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\Libs\System.Numerics.Vectors.dll">
+      <Link>Libs\System.Numerics.Vectors.dll</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\Libs\System.Runtime.CompilerServices.Unsafe.dll">
+      <Link>Libs\System.Runtime.CompilerServices.Unsafe.dll</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\Libs\Microsoft.Bcl.HashCode.dll">
+      <Link>Libs\Microsoft.Bcl.HashCode.dll</Link>
     </EmbeddedResource>
     <EmbeddedResource Include="..\TinyOPDS\Libs\x86\SQLite.Interop.dll">
       <Link>Libs\x86\SQLite.Interop.dll</Link>

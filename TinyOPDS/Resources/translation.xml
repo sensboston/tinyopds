@@ -2045,13 +2045,13 @@
 			<text lang="pl">Plik jest za duży, maksymalnie {0} MB</text>
 		</property>
 		<property>
-			<text lang="en">Only FB2, EPUB and ZIP files can be uploaded</text>
-			<text lang="ru">Можно загружать только файлы FB2, EPUB и ZIP</text>
-			<text lang="uk">Можна надсилати лише файли FB2, EPUB і ZIP</text>
-			<text lang="de">Nur FB2-, EPUB- und ZIP-Dateien können hochgeladen werden</text>
-			<text lang="es">Solo se pueden subir archivos FB2, EPUB y ZIP</text>
-			<text lang="fr">Seuls les fichiers FB2, EPUB et ZIP peuvent être envoyés</text>
-			<text lang="pl">Można przesyłać tylko pliki FB2, EPUB i ZIP</text>
+			<text lang="en">Only FB2, EPUB, ZIP and PDF files can be uploaded</text>
+			<text lang="ru">Можно загружать только файлы FB2, EPUB, ZIP и PDF</text>
+			<text lang="uk">Можна надсилати лише файли FB2, EPUB, ZIP і PDF</text>
+			<text lang="de">Nur FB2-, EPUB-, ZIP- und PDF-Dateien können hochgeladen werden</text>
+			<text lang="es">Solo se pueden subir archivos FB2, EPUB, ZIP y PDF</text>
+			<text lang="fr">Seuls les fichiers FB2, EPUB, ZIP et PDF peuvent être envoyés</text>
+			<text lang="pl">Można przesyłać tylko pliki FB2, EPUB, ZIP i PDF</text>
 		</property>
 		<property>
 			<text lang="en">Too many uploads, please try again later</text>
@@ -2097,6 +2097,15 @@
 			<text lang="es">Añadido a la biblioteca: {0}</text>
 			<text lang="fr">Ajouté à la bibliothèque : {0}</text>
 			<text lang="pl">Dodano do biblioteki: {0}</text>
+		</property>
+		<property>
+			<text lang="en">No text found in the PDF (scanned pages can't be converted)</text>
+			<text lang="ru">В PDF не найден текст (сканированные страницы не конвертируются)</text>
+			<text lang="uk">У PDF не знайдено тексту (скановані сторінки не конвертуються)</text>
+			<text lang="de">Im PDF wurde kein Text gefunden (gescannte Seiten können nicht konvertiert werden)</text>
+			<text lang="es">No se encontró texto en el PDF (las páginas escaneadas no se pueden convertir)</text>
+			<text lang="fr">Aucun texte trouvé dans le PDF (les pages numérisées ne peuvent pas être converties)</text>
+			<text lang="pl">W pliku PDF nie znaleziono tekstu (zeskanowanych stron nie można przekonwertować)</text>
 		</property>
 	</properties>
 </root>

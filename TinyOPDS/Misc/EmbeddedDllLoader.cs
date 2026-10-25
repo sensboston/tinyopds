@@ -248,11 +248,13 @@ namespace TinyOPDS
                     return null;
                 }
 
-                // Skip system assemblies but allow System.Data.SQLite on Windows only
-                if ((assemblyName.StartsWith("System.", StringComparison.OrdinalIgnoreCase) &&
-                     !assemblyName.Equals("System.Data.SQLite", StringComparison.OrdinalIgnoreCase)) ||
-                    assemblyName.StartsWith("Microsoft.", StringComparison.OrdinalIgnoreCase) ||
-                    assemblyName.Equals("mscorlib", StringComparison.OrdinalIgnoreCase))
+                // Skip system assemblies but allow System.Data.SQLite on Windows only, and the libraries
+                // embedded with the app (System.Memory and others used by PdfPig aren't part of .NET Framework)
+                if (!IsEmbedded(assemblyName) &&
+                    ((assemblyName.StartsWith("System.", StringComparison.OrdinalIgnoreCase) &&
+                      !assemblyName.Equals("System.Data.SQLite", StringComparison.OrdinalIgnoreCase)) ||
+                     assemblyName.StartsWith("Microsoft.", StringComparison.OrdinalIgnoreCase) ||
+                     assemblyName.Equals("mscorlib", StringComparison.OrdinalIgnoreCase)))
                 {
                     return null;
                 }
@@ -287,6 +289,27 @@ namespace TinyOPDS
                 Log.WriteLine(LogLevel.Error, "Error resolving assembly {0}: {1}", args.Name, ex.Message);
                 return null;
             }
+        }
+
+        private static HashSet<string> embeddedNames;
+
+        /// <summary>
+        /// True if the assembly is embedded in the Libs folder of the app resources
+        /// </summary>
+        private static bool IsEmbedded(string assemblyName)
+        {
+            if (embeddedNames == null)
+            {
+                var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (string resource in Assembly.GetExecutingAssembly().GetManifestResourceNames())
+                {
+                    int i = resource.IndexOf(".Libs.", StringComparison.Ordinal);
+                    if (i >= 0 && resource.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+                        names.Add(resource.Substring(i + 6, resource.Length - i - 10));
+                }
+                embeddedNames = names;
+            }
+            return embeddedNames.Contains(assemblyName);
         }
 
         /// <summary>

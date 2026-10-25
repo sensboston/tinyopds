@@ -563,6 +563,18 @@ namespace TinyOPDS.Data
         /// <summary>
         /// Cross-platform compatible BookExists method
         /// </summary>
+        /// <summary>
+        /// True if any book (of any language, replaced ones too) is stored in the file or in the archive
+        /// </summary>
+        public bool IsFileUsed(string fileName)
+        {
+            var count = db.ExecuteScalar(
+                "SELECT COUNT(*) FROM Books WHERE FileName = @FileName OR substr(FileName, 1, length(@Archive)) = @Archive",
+                DatabaseManager.CreateParameter("@FileName", fileName),
+                DatabaseManager.CreateParameter("@Archive", fileName + "@"));
+            return Convert.ToInt32(count ?? 0) > 0;
+        }
+
         public bool BookExists(string fileName)
         {
             string languageFilter = GetLanguageFilter();

@@ -133,15 +133,17 @@ namespace TinyOPDS.Server
                 int added = AddToLibrary(bookPath, out int duplicates);
                 Log.WriteLine("Upload from {0}: {1}, {2} books added, {3} duplicates", processor.RealClientIP, Path.GetFileName(bookPath), added, duplicates);
 
+                // A better version of a book in the library replaces it and is counted as a duplicate too:
+                // the file is deleted only if the library doesn't use it
+                bool used = added > 0 || Library.IsFileUsed(bookPath.Substring(Library.LibraryPath.Length + 1));
+                if (!used) File.Delete(bookPath);
+
                 if (added == 0 && duplicates == 0)
                 {
-                    File.Delete(bookPath);
                     WriteResult(processor, false, Localizer.Text("No books found in the file"));
                 }
                 else if (added == 0)
                 {
-                    // Duplicates aren't saved to the library, the file would only take the space
-                    File.Delete(bookPath);
                     WriteResult(processor, true, Localizer.Text("This book is already in the library"));
                 }
                 else

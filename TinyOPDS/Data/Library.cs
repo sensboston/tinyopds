@@ -1221,6 +1221,14 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
+        /// True if any book of the library is stored in the file (or in the archive), regardless of the language filter
+        /// </summary>
+        public static bool IsFileUsed(string bookPath)
+        {
+            return bookRepository != null && bookRepository.IsFileUsed(bookPath);
+        }
+
+        /// <summary>
         /// Check if library contains book by file path
         /// </summary>
         public static bool Contains(string bookPath)

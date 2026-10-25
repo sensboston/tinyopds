@@ -3,9 +3,21 @@ name: Build and Release
 on:
   release:
     types: [created]
+  # Rebuild the executables of an existing release from master and replace them (no new release is created)
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag, e.g. v3.18'
+        required: true
+        type: string
+      docker:
+        description: 'Publish the Docker image too'
+        type: boolean
+        default: true
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   build:
@@ -14,17 +26,17 @@ jobs:
     steps:
       # IMPORTANT: Checkout the latest code from master branch, not the release tag
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: master  # Always use latest code from master branch
 
       - name: Setup NuGet
-        uses: NuGet/setup-nuget@v2
+        uses: NuGet/setup-nuget@v4
         with:
           nuget-version: 'latest'
 
       - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
+        uses: microsoft/setup-msbuild@v3
 
       # Restore packages for entire solution
       - name: Restore NuGet packages
@@ -33,11 +45,36 @@ jobs:
       - name: Build solution
         run: msbuild TinyOPDS.sln /p:Configuration=Release /p:Platform="Any CPU" /m
 
+      - name: Checksums
+        shell: bash
+        run: |
+          git log -1 --format='Built from %H (%s)'
+          sha256sum TinyOPDS/bin/Release/TinyOPDS.exe TinyOPDSCLI/bin/Release/TinyOPDSCLI.exe
+
       - name: Upload release assets
-        uses: softprops/action-gh-release@v1
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             TinyOPDS/bin/Release/TinyOPDS.exe
             TinyOPDSCLI/bin/Release/TinyOPDSCLI.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Replace release assets
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          gh release view "$TAG" --json name --jq '"Release: " + .name'
+          gh release upload "$TAG" TinyOPDS/bin/Release/TinyOPDS.exe TinyOPDSCLI/bin/Release/TinyOPDSCLI.exe --clobber
+
+      # A new release starts the Docker workflow by itself, replaced assets don't
+      - name: Publish Docker image
+        if: github.event_name == 'workflow_dispatch' && inputs.docker
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run docker.yml --ref master -f publish=true

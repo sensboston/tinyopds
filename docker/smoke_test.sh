@@ -17,14 +17,19 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# Outputs are checked as strings, not with "command | grep -q": grep -q exits on the first match,
+# the command may get SIGPIPE, and with pipefail the check fails although the text is there
+has() { [[ "$1" == *"$2"* ]]; }
+
+# Labels: the icon shown by Unraid
+ICON="$(docker inspect -f '{{index .Config.Labels "net.unraid.docker.icon"}}' "$IMAGE")"
+has "$ICON" "TinyOPDS.png" || { echo "FAILED: icon label is '$ICON'"; exit 1; }
+echo "Labels OK"
+
 docker run -d --name "$NAME" -p "$PORT:8080" \
     -v "$WORK/books:/books:ro" -v "$WORK/data:/data" \
     -e PUID="$(id -u)" -e PGID="$(id -g)" -e TINYOPDS_LANGUAGE=ru \
     "$IMAGE"
-
-# Outputs are checked as strings, not with "command | grep -q": grep -q exits on the first match,
-# the command may get SIGPIPE, and with pipefail the check fails although the text is there
-has() { [[ "$1" == *"$2"* ]]; }
 
 # 6 files: 5 books (one of them is a duplicate) and an invalid one, 4 books are saved
 DONE="invalid: 1, total: 6, in DB: 4"

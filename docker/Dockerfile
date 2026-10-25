@@ -8,6 +8,15 @@ RUN apt-get update \
         gosu tini curl ca-certificates tzdata \
     && rm -rf /var/lib/apt/lists/*
 
+# Image description; the icon and web UI address are shown by Unraid
+LABEL org.opencontainers.image.title="TinyOPDS" \
+      org.opencontainers.image.description="OPDS and web server for a home e-book library (FB2, EPUB, ZIP)" \
+      org.opencontainers.image.url="https://github.com/sensboston/tinyopds" \
+      org.opencontainers.image.source="https://github.com/sensboston/tinyopds" \
+      org.opencontainers.image.licenses="MIT" \
+      net.unraid.docker.icon="https://raw.githubusercontent.com/sensboston/tinyopds/master/TinyOPDS/TinyOPDS.png" \
+      net.unraid.docker.webui="http://[IP]:[PORT:8080]/"
+
 COPY app/TinyOPDSCLI.exe /app/
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

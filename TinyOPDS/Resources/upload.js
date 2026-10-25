@@ -68,7 +68,8 @@
         var input = document.createElement('input');
         input.type = 'file';
         input.multiple = true;
-        input.accept = '.fb2,.epub,.zip,.pdf';
+        // No file type filter: Android turns the extensions into MIME types and drops the unknown ones
+        // (FB2), so the picker hides such files; the server checks the files anyway
         input.style.display = 'none';
         input.addEventListener('change', function () {
             var files = Array.prototype.slice.call(input.files);

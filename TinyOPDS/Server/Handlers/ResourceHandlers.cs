@@ -130,7 +130,8 @@ namespace TinyOPDS.Server
                 {
                     if (stream != null && stream.Length > 0)
                     {
-                        processor.WriteSuccess("application/javascript");
+                        // Not cached: browsers would keep old scripts after the server is updated
+                        processor.WriteSuccess("application/javascript", noCache: true);
                         stream.CopyTo(processor.OutputStream.BaseStream);
                         processor.OutputStream.BaseStream.Flush();
                         Log.WriteLine(LogLevel.Info, "Served JavaScript file: {0}", scriptName);

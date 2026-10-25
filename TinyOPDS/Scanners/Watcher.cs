@@ -56,14 +56,19 @@ namespace TinyOPDS.Scanner
         public TimeSpan QuietPeriod { get; set; } = Utils.IsWindows ? TimeSpan.FromSeconds(2) : TimeSpan.FromSeconds(30);
 
         /// <summary>
-        /// While paused (a library scan is running) the changes are collected, but not processed
+        /// While paused (a library scan is running) the changes are collected, but not processed.
+        /// Pausing waits for the changes being processed now, so the watcher and the scan never save books at once
         /// </summary>
         public bool IsPaused
         {
-            get { return Volatile.Read(ref isPaused); }
-            set { Volatile.Write(ref isPaused, value); }
+            get { return Volatile.Read(ref isPaused) != 0; }
+            set
+            {
+                Interlocked.Exchange(ref isPaused, value ? 1 : 0);
+                while (value && Volatile.Read(ref isProcessing) != 0) Thread.Sleep(100);
+            }
         }
-        private bool isPaused;
+        private int isPaused, isProcessing;
 
         [PermissionSetAttribute(SecurityAction.LinkDemand, Unrestricted = true)]
         public Watcher(string path = "")
@@ -170,47 +175,57 @@ namespace TinyOPDS.Scanner
         {
             while (_isEnabled && !disposed)
             {
+                bool processed = false;
+
+                // Marked as processing before the pause is checked: a pause set meanwhile waits for this pass
+                Interlocked.Exchange(ref isProcessing, 1);
                 try
                 {
-                    if (IsPaused)
-                    {
-                        Thread.Sleep(500);
-                        continue;
-                    }
-
-                    // First, add the books which are completely written
-                    var readyFiles = TakeReadyFiles();
-                    if (readyFiles.Count > 0)
-                    {
-                        AddBooks(readyFiles);
-                        continue;
-                    }
-
-                    // Delete book from library (we don't care about actual file existence)
-                    string fileName = null;
-                    lock (sync)
-                    {
-                        if (deletedBooks.Count > 0)
-                        {
-                            fileName = deletedBooks.First();
-                            deletedBooks.Remove(fileName);
-                        }
-                    }
-                    if (fileName != null)
-                    {
-                        DeleteBook(fileName);
-                        continue;
-                    }
-
-                    // Get some rest
-                    Thread.Sleep(500);
+                    if (!IsPaused) processed = ProcessChanges();
                 }
                 catch (Exception ex)
                 {
                     Log.WriteLine(LogLevel.Error, "Watcher: {0}", ex.Message);
-                    Thread.Sleep(500);
+                }
+                finally
+                {
+                    Interlocked.Exchange(ref isProcessing, 0);
+                }
+
+                // Get some rest
+                if (!processed) Thread.Sleep(500);
+            }
+        }
+
+        /// <summary>
+        /// Adds the books which are completely written, or deletes a deleted book
+        /// </summary>
+        /// <returns>true if there was something to do</returns>
+        private bool ProcessChanges()
+        {
+            var readyFiles = TakeReadyFiles();
+            if (readyFiles.Count > 0)
+            {
+                AddBooks(readyFiles);
+                return true;
+            }
+
+            // Delete book from library (we don't care about actual file existence)
+            string fileName = null;
+            lock (sync)
+            {
+                if (deletedBooks.Count > 0)
+                {
+                    fileName = deletedBooks.First();
+                    deletedBooks.Remove(fileName);
                 }
             }
+            if (fileName != null)
+            {
+                DeleteBook(fileName);
+                return true;
+            }
+            return false;
         }
 
         /// <summary>

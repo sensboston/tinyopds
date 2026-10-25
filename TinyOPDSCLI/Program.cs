@@ -46,6 +46,10 @@ namespace TinyOPDSCLI
         private static Thread serverThread;
         private static FileScanner scanner;
         private static Watcher watcher;
+
+        // Running in a Docker container (set by the image): the library is scanned on start and at an interval,
+        // and watched for changes, so new books appear without restarts
+        private static readonly bool IsContainer = Environment.GetEnvironmentVariable("TINYOPDS_CONTAINER") == "1";
         private static DateTime scanStartTime;
 
         // Without a terminal (service, container log) the scan progress is printed as a line at this interval
@@ -412,6 +416,13 @@ namespace TinyOPDSCLI
 
                             case "scan":
                                 {
+                                    // A container exits after the scan and is restarted again and again
+                                    if (IsContainer)
+                                    {
+                                        Console.WriteLine("The library is scanned automatically in the container, starting the server");
+                                        StartServer();
+                                        break;
+                                    }
                                     ScanFolder().GetAwaiter().GetResult();
                                     CleanupAndExit(0);
                                 }
@@ -784,7 +795,9 @@ namespace TinyOPDSCLI
             {
                 Log.WriteLine(LogLevel.Info, "Deleted: \"{0}\"", e.BookPath);
             };
-            watcher.IsEnabled = Settings.Default.WatchLibrary;
+            // The container watches the library unless the setting is given explicitly
+            watcher.IsEnabled = IsContainer && Environment.GetEnvironmentVariable("TINYOPDS_WATCHLIBRARY") == null
+                ? true : Settings.Default.WatchLibrary;
 
             upnpController.DiscoverCompleted += UpnpController_DiscoverCompleted;
             upnpController.DiscoverAsync(Settings.Default.UseUPnP);
@@ -851,18 +864,38 @@ namespace TinyOPDSCLI
             {
                 Log.WriteLine("HTTP server started");
 
-                // Library scan while the server is running (Docker): new books are added, known ones are skipped
-                if (string.Equals(Environment.GetEnvironmentVariable("TINYOPDS_SCAN_ON_START"), "true", StringComparison.OrdinalIgnoreCase))
+                // Library scan while the server is running (Docker): new books are added, known ones are skipped.
+                // The interval scan catches the changes the watcher can't see (a library on a network share)
+                bool scanOnStart = IsContainer || string.Equals(Environment.GetEnvironmentVariable("TINYOPDS_SCAN_ON_START"), "true", StringComparison.OrdinalIgnoreCase);
+                if (!double.TryParse(Environment.GetEnvironmentVariable("TINYOPDS_SCAN_INTERVAL_HOURS"), System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out double scanHours))
+                    scanHours = IsContainer ? 24 : 0;
+                if (scanOnStart || scanHours > 0)
                 {
                     Task.Run(async () =>
                     {
-                        try
+                        for (bool first = true; server != null; first = false)
                         {
-                            await ScanLibraryAsync();
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.WriteLine(LogLevel.Error, "Library scan failed: {0}", ex.Message);
+                            if (!first || !scanOnStart)
+                            {
+                                if (scanHours <= 0) break;
+                                await Task.Delay(TimeSpan.FromHours(scanHours));
+                            }
+
+                            // The watcher waits while the library is scanned: they don't save books at once
+                            watcher.IsPaused = true;
+                            try
+                            {
+                                await ScanLibraryAsync();
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.WriteLine(LogLevel.Error, "Library scan failed: {0}", ex.Message);
+                            }
+                            finally
+                            {
+                                watcher.IsPaused = false;
+                            }
                         }
                     });
                 }

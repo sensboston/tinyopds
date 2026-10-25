@@ -13,12 +13,14 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # Library is mounted to /books (read only is fine), config, database and log are kept in /data.
-# Any setting of TinyOPDS.config can be given as TINYOPDS_<SETTING NAME>, e.g. TINYOPDS_LANGUAGE=ru
-ENV TINYOPDS_DATA_DIR=/data \
+# Any setting of TinyOPDS.config can be given as TINYOPDS_<SETTING NAME>, e.g. TINYOPDS_LANGUAGE=ru.
+# Container mode: the library is scanned on start and every TINYOPDS_SCAN_INTERVAL_HOURS (24 by default),
+# and watched for changes
+ENV TINYOPDS_CONTAINER=1 \
+    TINYOPDS_DATA_DIR=/data \
     TINYOPDS_LIBRARYPATH=/books \
     TINYOPDS_USEUPNP=false \
     TINYOPDS_OPENNATPORT=false \
-    TINYOPDS_SCAN_ON_START=true \
     PUID=1000 \
     PGID=1000 \
     HOME=/tmp

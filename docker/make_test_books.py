@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # Creates a small test library for the Docker image smoke test:
 # loose FB2 files, a numbered ZIP archive with FB2 books, a duplicate and an invalid file
+import io
 import os
 import sys
 import zipfile
@@ -56,5 +57,17 @@ def main(path):
         f.write(b"<?xml version='1.0'?><FictionBook>not a book")
 
 
+def new_archive():
+    """An archive copied to the library while the server runs (the folder watcher test)"""
+    with io.BytesIO() as buffer:
+        with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as z:
+            z.writestr("200001.fb2", fb2("Александр", "Куприн", "Белый пудель", "11111111-0000-0000-0000-000000000006", "1.0"))
+        return buffer.getvalue()
+
+
 if __name__ == "__main__":
-    main(sys.argv[1] if len(sys.argv) > 1 else "books")
+    if len(sys.argv) > 2 and sys.argv[1] == "new-archive":
+        with open(sys.argv[2], "wb") as f:
+            f.write(new_archive())
+    else:
+        main(sys.argv[1] if len(sys.argv) > 1 else "books")

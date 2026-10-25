@@ -53,8 +53,11 @@ to a reader app (KOReader, Moon+ Reader, FBReader, etc.)
 |---|---|---|
 | `PUID`, `PGID` | 1000 | User and group IDs the files in `/data` belong to (Synology: usually 1026 and 100, see `id` in SSH) |
 | `TZ` | UTC | Time zone, e.g. `Europe/Moscow` |
-| `TINYOPDS_SCAN_ON_START` | `true` | Scan the library on start: the first scan indexes all books, the next ones add only new books |
+| `TINYOPDS_WATCHLIBRARY` | `true` | Watch the library: copied, renamed and deleted books are processed when copying is over (about 30 seconds) |
+| `TINYOPDS_SCAN_INTERVAL_HOURS` | `24` | Rescan the library at this interval, `0` to switch off (for a library on a network share the watcher doesn't see) |
 | `TINYOPDS_<SETTING>` | | Any setting of `TinyOPDS.config`, name in upper case |
+
+The library is scanned on every start: the first scan indexes all books, the next ones add only new books.
 
 Useful settings: `TINYOPDS_LANGUAGE` (`en`, `ru`, `uk`, `de`, `fr`, `es`, `pl`), `TINYOPDS_SERVERNAME` (library name),
 `TINYOPDS_ROOTPREFIX` (OPDS catalog path, `opds` by default), `TINYOPDS_DARKTHEMEONWEB`, `TINYOPDS_ITEMSPEROPDSPAGE`,
@@ -76,7 +79,8 @@ and set `TINYOPDS_USEHTTPAUTH=true` and `TINYOPDS_CREDENTIALS=<the printed line>
 ## Notes
 
 - **First scan.** A large library (hundreds of thousands of books) takes hours on a NAS; the server works while scanning,
-  the progress is shown in the container log every 30 seconds. Restarts only add new books.
+  the progress is shown in the container log every 30 seconds. Books copied to the library later appear by themselves,
+  no restart is needed.
 - **Database from a PC.** The library can be scanned by TinyOPDS on Windows and `books.sqlite` copied to `/data`,
   if the archives are in the root of the library folder on both computers.
 - **Updates.** Pull the new image (Container Manager shows that an update is available) and recreate the container;

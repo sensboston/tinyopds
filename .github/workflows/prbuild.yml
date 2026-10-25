@@ -14,19 +14,20 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         repository: ${{ github.event.pull_request.head.repo.full_name }}
-        ref: ${{ github.event.pull_request.head.ref }}
+        # The commit, not the branch: the branch may be already deleted when a PR is merged right away
+        ref: ${{ github.event.pull_request.head.sha }}
         fetch-depth: 0
 
     - name: Setup NuGet
-      uses: NuGet/setup-nuget@v2
+      uses: NuGet/setup-nuget@v4
       with:
         nuget-version: 'latest'
 
     - name: Setup MSBuild
-      uses: microsoft/setup-msbuild@v2
+      uses: microsoft/setup-msbuild@v3
 
     - name: Clear NuGet cache
       shell: powershell
@@ -165,7 +166,7 @@ jobs:
 
     - name: Delete existing release if exists
       if: env.tag_exists == 'true'
-      uses: actions/github-script@v7
+      uses: actions/github-script@v9
       with:
         script: |
           const tagName = '${{ steps.get_tag_name.outputs.tag_name }}';
@@ -214,7 +215,7 @@ jobs:
         git push origin "$tag_name"
 
     - name: Create Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v3
       with:
         tag_name: ${{ steps.get_tag_name.outputs.tag_name }}
         name: "PR Build - ${{ steps.get_tag_name.outputs.branch_name }}"

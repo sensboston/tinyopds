@@ -26,6 +26,14 @@ services:
       - TZ=Europe/Moscow
       - TINYOPDS_LANGUAGE=ru
     restart: unless-stopped
+
+# Icon and title for CasaOS / ZimaOS (other systems ignore x- fields)
+x-casaos:
+  main: tinyopds
+  title:
+    en_us: TinyOPDS
+  icon: https://raw.githubusercontent.com/sensboston/tinyopds/master/TinyOPDS/TinyOPDS.png
+  port_map: "8080"
 ```
 
 Or the same with `docker run`:

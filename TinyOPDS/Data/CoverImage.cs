@@ -28,7 +28,7 @@ namespace TinyOPDS.Data
     public class CoverImage
     {
         // Backward-compatible public sizes
-        public static readonly Size CoverSize = new Size(240, 400);
+        public static readonly Size CoverSize = new Size(480, 800);
         public static readonly Size ThumbnailSize = new Size(96, 160);
 
         // Internal design size for default cover
@@ -121,7 +121,9 @@ namespace TinyOPDS.Data
                     if (extracted != null)
                     {
                         Log.WriteLine(LogLevel.Info, "Cover image extracted: {0}x{1}", extracted.Width, extracted.Height);
-                        var fitted = extracted.Resize(CoverSize, preserveAspectRatio: true);
+                        // Fit into CoverSize, small covers are copied without upscaling
+                        var box = new Size(Math.Min(CoverSize.Width, extracted.Width), Math.Min(CoverSize.Height, extracted.Height));
+                        var fitted = extracted.Resize(box, preserveAspectRatio: true);
                         extracted.Dispose();
                         cover = fitted;
                     }

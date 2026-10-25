@@ -218,10 +218,10 @@ namespace TinyOPDS.OPDS
                 }
 
                 // Add year on new line
-                if (fullBook.BookDate != DateTime.MinValue)
+                if (fullBook.PublicationYear > 0)
                 {
                     if (!string.IsNullOrEmpty(plainText)) plainText += "\n";
-                    plainText += Localizer.Text("Year of publication:") + " " + fullBook.BookDate.Year;
+                    plainText += Localizer.Text("Year of publication:") + " " + fullBook.PublicationYear;
                 }
 
                 // Add series on new line

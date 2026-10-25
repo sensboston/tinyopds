@@ -125,6 +125,11 @@ namespace TinyOPDS.Server
         private static readonly object permanentAuthLock = new object();
         private static bool permanentAuthLoaded = false;
 
+        // IP addresses clients have logged in from: reader apps (FBReader) load covers without credentials
+        // and with another user agent, so images are given to these addresses
+        private static readonly HashSet<string> AuthorizedIPs = new HashSet<string>();
+        private static readonly object authorizedIPsLock = new object();
+
         // Shared SHA256 instance for better performance
         private static readonly SHA256 sha256Instance = SHA256.Create();
         private static readonly object sha256Lock = new object();
@@ -149,6 +154,11 @@ namespace TinyOPDS.Server
             lock (bannedLock)
             {
                 BannedClients.Clear();
+            }
+
+            lock (authorizedIPsLock)
+            {
+                AuthorizedIPs.Clear();
             }
 
             lock (permanentAuthLock)
@@ -567,6 +577,19 @@ namespace TinyOPDS.Server
                                     Log.WriteLine(LogLevel.Authentication,
                                         "Authentication exception: IP: {0}, {1}", RealClientIP, e.Message);
                                 }
+                            }
+                        }
+
+                        lock (authorizedIPsLock)
+                        {
+                            if (authorized)
+                            {
+                                AuthorizedIPs.Add(RealClientIP);
+                            }
+                            else if (isImageRequest && AuthorizedIPs.Contains(RealClientIP))
+                            {
+                                authorized = true;
+                                Log.WriteLine(LogLevel.Authentication, "Image request from authorized IP {0}", RealClientIP);
                             }
                         }
                     }

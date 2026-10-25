@@ -40,9 +40,9 @@ namespace TinyOPDS.Server
         private static readonly object sync = new object();
 
         /// <summary>
-        /// Uploads work only when they are enabled in the settings and the server asks for a password
+        /// Uploads work only when they are enabled in the settings; password protection is up to the user
         /// </summary>
-        public static bool IsEnabled => Properties.Settings.Default.EnableUploads && Properties.Settings.Default.UseHTTPAuth;
+        public static bool IsEnabled => Properties.Settings.Default.EnableUploads;
 
         public static long MaxUploadSize => Math.Max(1, Properties.Settings.Default.MaxUploadSizeMB) * 1024L * 1024L;
 

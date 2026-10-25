@@ -1580,6 +1580,38 @@ namespace TinyOPDS.Data
             }
         }
 
+        /// <summary>
+        /// Books in a folder of the library (with subfolders), newest first
+        /// </summary>
+        public List<Book> GetBooksInFolderPaginated(string folder, int offset, int limit)
+        {
+            try
+            {
+                var books = db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksInFolderPaginated, MapBook,
+                    DatabaseManager.CreateParameter("@Folder", folder),
+                    DatabaseManager.CreateParameter("@Offset", offset),
+                    DatabaseManager.CreateParameter("@Limit", limit));
+
+                foreach (var book in books)
+                {
+                    LoadBookRelations(book);
+                }
+
+                return books;
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error getting books in folder {0}: {1}", folder, ex.Message);
+                return new List<Book>();
+            }
+        }
+
+        public int GetBooksInFolderCount(string folder)
+        {
+            var result = db.ExecuteScalar(DatabaseSchema.CountBooksInFolder, DatabaseManager.CreateParameter("@Folder", folder));
+            return Convert.ToInt32(result ?? 0);
+        }
+
         public List<string> GetAllAuthors()
         {
             string languageFilter = GetLanguageFilter();

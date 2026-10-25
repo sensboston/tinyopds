@@ -5,6 +5,10 @@ xmlns:x="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/terms/">
 	<xsl:param name="uiLanguage" select="'en'"/>
 	<xsl:param name="libName" select="''"/>
 	<xsl:param name="darkTheme" select="''"/>
+	<xsl:param name="uploadMaxMB" select="''"/>
+	<xsl:param name="uploadTooLarge" select="''"/>
+	<xsl:param name="uploadingText" select="''"/>
+	<xsl:param name="uploadFailedText" select="''"/>
 	<xsl:param name="searchPlaceholder" select="'Search authors or books...'"/>
 	<xsl:param name="searchButtonText" select="'Search'"/>
 	<xsl:param name="formatText" select="'Format:'"/>
@@ -966,6 +970,11 @@ xmlns:x="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/terms/">
 				<script src="/infinite-scroll.js">
 					<xsl:text> </xsl:text>
 				</script>
+				<xsl:if test="$uploadMaxMB != ''">
+					<script src="/upload.js" data-max-mb="{$uploadMaxMB}" data-too-large="{$uploadTooLarge}" data-uploading="{$uploadingText}" data-failed="{$uploadFailedText}">
+						<xsl:text> </xsl:text>
+					</script>
+				</xsl:if>
 				<script>
 					// Store reader localization strings in localStorage for reader.html
 					(function() {

@@ -786,6 +786,13 @@ namespace TinyOPDS.Server
         private const int BUF_SIZE = 4096;
         public void HandlePOSTRequest()
         {
+            // Uploaded books are streamed to a file, other POST requests are small
+            if (HttpUrl.StartsWith("/upload", StringComparison.Ordinal))
+            {
+                new UploadHandler().HandleUpload(this, inputStream);
+                return;
+            }
+
             MemoryStream memStream = null;
             StreamReader reader = null;
 

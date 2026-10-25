@@ -869,6 +869,19 @@ namespace TinyOPDS.Data
             ORDER BY AddedDate DESC
             LIMIT @Limit OFFSET @Offset";
 
+        // GLOB uses the FileName index; the folder separator is '\' on Windows and '/' on Linux and macOS
+        public const string SelectBooksInFolderPaginated = @"
+            SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
+                   Annotation, DocumentSize, AddedDate
+            FROM Books
+            WHERE (FileName GLOB @Folder || '/*' OR FileName GLOB @Folder || '\*') AND ReplacedByID IS NULL
+            ORDER BY AddedDate DESC
+            LIMIT @Limit OFFSET @Offset";
+
+        public const string CountBooksInFolder = @"
+            SELECT COUNT(*) FROM Books
+            WHERE (FileName GLOB @Folder || '/*' OR FileName GLOB @Folder || '\*') AND ReplacedByID IS NULL";
+
         public const string SelectNewBooksPaginatedByTitle = @"
             SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
                    Annotation, DocumentSize, AddedDate

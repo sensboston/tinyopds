@@ -27,13 +27,15 @@ namespace TinyOPDS.OPDS
         /// <param name="acceptFB2">Client can accept fb2 files</param>
         /// <param name="threshold">Items per page</param>
         /// <returns></returns>
-        public XDocument GetCatalog(string searchPattern, bool sortByDate, bool acceptFB2, int threshold = 100)
+        public XDocument GetCatalog(string searchPattern, bool sortByDate, bool acceptFB2, int threshold = 100, bool uploaded = false)
         {
+            string route = uploaded ? "uploads" : (sortByDate ? "newdate" : "newtitle");
             XDocument doc = new XDocument(
                 // Add root element and namespaces
                 new XElement("feed", new XAttribute(XNamespace.Xmlns + "dc", Namespaces.dc), new XAttribute(XNamespace.Xmlns + "os", Namespaces.os), new XAttribute(XNamespace.Xmlns + "opds", Namespaces.opds),
-                    new XElement("id", "tag:new"),
-                    new XElement("title", string.Format(Localizer.Text("New books sorted by {0}"), (sortByDate ? Localizer.Text("date") : Localizer.Text("titles")))),
+                    new XElement("id", uploaded ? "tag:uploads" : "tag:new"),
+                    new XElement("title", uploaded ? Localizer.Text("Uploaded books") :
+                        string.Format(Localizer.Text("New books sorted by {0}"), (sortByDate ? Localizer.Text("date") : Localizer.Text("titles")))),
                     new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                     new XElement("icon", "/icons/books.ico"),
                     // Add links
@@ -49,15 +51,15 @@ namespace TinyOPDS.OPDS
             }
 
             // Get paginated new books using the new Library method
-            var paginatedResult = Library.GetNewBooksPaginated(sortByDate, pageNumber, threshold);
+            var paginatedResult = uploaded
+                ? Library.GetUploadedBooksPaginated(pageNumber, threshold)
+                : Library.GetNewBooksPaginated(sortByDate, pageNumber, threshold);
 
             // Build catalog type for navigation links
             string catalogType = string.Empty;
             if (paginatedResult.HasNextPage)
             {
-                catalogType = string.Format("/{0}?pageNumber={1}",
-                    (sortByDate ? "newdate" : "newtitle"),
-                    pageNumber + 1);
+                catalogType = string.Format("/{0}?pageNumber={1}", route, pageNumber + 1);
             }
 
             // Add pagination links
@@ -72,9 +74,7 @@ namespace TinyOPDS.OPDS
 
             if (paginatedResult.HasPreviousPage)
             {
-                string prevCatalogType = string.Format("/{0}?pageNumber={1}",
-                    (sortByDate ? "newdate" : "newtitle"),
-                    pageNumber - 1);
+                string prevCatalogType = string.Format("/{0}?pageNumber={1}", route, pageNumber - 1);
 
                 doc.Root.Add(new XElement("link",
                     new XAttribute("rel", "previous"),
@@ -86,7 +86,7 @@ namespace TinyOPDS.OPDS
             // Add first page link if not on first page
             if (pageNumber > 0)
             {
-                string firstPageType = string.Format("/{0}", (sortByDate ? "newdate" : "newtitle"));
+                string firstPageType = "/" + route;
                 doc.Root.Add(new XElement("link",
                     new XAttribute("rel", "first"),
                     new XAttribute("href", firstPageType),

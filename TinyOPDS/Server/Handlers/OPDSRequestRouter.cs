@@ -113,6 +113,10 @@ namespace TinyOPDS.Server
             {
                 return new NewBooksCatalog().GetCatalog(request.Substring(9), false, acceptFB2, threshold).ToStringWithDeclaration();
             }
+            else if (request.StartsWith("/uploads") && UploadHandler.IsEnabled)
+            {
+                return new NewBooksCatalog().GetCatalog(request.Substring(8), true, acceptFB2, threshold, true).ToStringWithDeclaration();
+            }
             else if (request.StartsWith("/downstat") && IsRouteEnabled("downloads"))
             {
                 return HandleDownloadStatisticsRequest(request, acceptFB2, threshold);

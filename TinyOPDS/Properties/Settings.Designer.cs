@@ -480,5 +480,29 @@ namespace TinyOPDS.Properties {
                 this["TOCMenu"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool EnableUploads {
+            get {
+                return ((bool)(this["EnableUploads"]));
+            }
+            set {
+                this["EnableUploads"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("20")]
+        public int MaxUploadSizeMB {
+            get {
+                return ((int)(this["MaxUploadSizeMB"]));
+            }
+            set {
+                this["MaxUploadSizeMB"] = value;
+            }
+        }
     }
 }

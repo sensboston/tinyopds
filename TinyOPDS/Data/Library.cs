@@ -1006,6 +1006,29 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
+        /// Books uploaded from the web interface (the Uploads folder of the library), newest first
+        /// </summary>
+        public static NewBooksPaginatedResult GetUploadedBooksPaginated(int pageNumber = 0, int pageSize = 100)
+        {
+            var result = new NewBooksPaginatedResult();
+            if (bookRepository == null) return result;
+
+            result.TotalBooks = bookRepository.GetBooksInFolderCount(Server.UploadHandler.FolderName);
+            result.PageSize = pageSize;
+            result.CurrentPage = pageNumber;
+            result.TotalPages = (int)Math.Ceiling((double)result.TotalBooks / pageSize);
+            result.Books = bookRepository.GetBooksInFolderPaginated(Server.UploadHandler.FolderName, pageNumber * pageSize, pageSize);
+            result.HasPreviousPage = pageNumber > 0;
+            result.HasNextPage = pageNumber < result.TotalPages - 1;
+            return result;
+        }
+
+        public static int GetUploadedBooksCount()
+        {
+            return bookRepository == null ? 0 : bookRepository.GetBooksInFolderCount(Server.UploadHandler.FolderName);
+        }
+
+        /// <summary>
         /// Get total count of new books for the current period
         /// </summary>
         public static int GetNewBooksTotalCount()

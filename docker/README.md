@@ -5,6 +5,7 @@ Lightweight OPDS and web server for a home e-book library: FB2 and EPUB files an
 This image runs TinyOPDS CLI on Mono for NAS (Synology, QNAP, etc.) and other Linux hosts, amd64 and arm64.
 
 Project, documentation and Windows version: https://github.com/sensboston/tinyopds
+Step by step installation for Synology, QNAP, CasaOS and others: https://github.com/sensboston/tinyopds/wiki/Docker_en
 
 ## Quick start
 
@@ -101,4 +102,4 @@ OPDS и веб-сервер для домашней библиотеки (FB2, E
 папку для настроек и базы — в `/data`, укажите `PUID`/`PGID` пользователя NAS и `TINYOPDS_LANGUAGE=ru`.
 Веб-интерфейс: `http://<адрес NAS>:8080/`, OPDS-каталог для читалок: `http://<адрес NAS>:8080/opds`.
 Если Docker Hub недоступен, тот же образ есть в `ghcr.io/sensboston/tinyopds`.
-Подробная инструкция для NAS: https://github.com/sensboston/tinyopds
+Подробная инструкция для NAS: https://github.com/sensboston/tinyopds/wiki/Docker_ru

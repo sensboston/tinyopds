@@ -36,13 +36,37 @@ After installing this release (3.18), I strongly recommend deleting the database
 | Typo-tolerant search | No | Yes |
 | Transliteration | No | Yes |
 | Duplicates | Stored | Auto-removed |
-| Installers | Windows | Windows, Linux, macOS |
+| Installers | Windows | Windows, Linux, macOS, Docker |
 
 ### System Requirements
 
 - **.NET Framework 4.8** (Windows) or **Mono 6.0+** (Linux/macOS)
 - **2+ GB RAM** minimum (for large libraries 500000+ books)
 - **10 MB** for application + **2GB** for the large library database
+
+### Docker for NAS (beta)
+
+TinyOPDS CLI is available as a Docker image [sensboston/tinyopds](https://hub.docker.com/r/sensboston/tinyopds) (amd64 and arm64, also `ghcr.io/sensboston/tinyopds`) for Synology, QNAP, CasaOS and other NAS. The library is scanned on start, new books copied to the library folder appear by themselves.
+
+```yaml
+services:
+  tinyopds:
+    image: sensboston/tinyopds:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - /volume1/books:/books:ro
+      - /volume1/docker/tinyopds:/data
+    environment:
+      - PUID=1026
+      - PGID=100
+      - TINYOPDS_LANGUAGE=en
+    restart: unless-stopped
+```
+
+Web interface: `http://<NAS address>:8080/`, OPDS catalog: `http://<NAS address>:8080/opds`. Step by step installation for different NAS: [Docker (NAS)](https://github.com/sensboston/tinyopds/wiki/Docker_en).
+
+> The image was not tested on real NAS hardware yet (automated tests on Linux amd64/arm64 and the CasaOS demo only). If you run it on a NAS, please report your NAS model and results in [issues](https://github.com/sensboston/tinyopds/issues).
 
 ### Documentation
 
@@ -90,13 +114,37 @@ TinyOPDS - це простий та легкий OPDS сервер, написа
 | Пошук з помилками | Ні | Є |
 | Транслітерація | Ні | Є |
 | Дублікати | Зберігаються | Автовидалення |
-| Інсталятори | Windows | Windows, Linux, macOS |
+| Інсталятори | Windows | Windows, Linux, macOS, Docker |
 
 ### Системні вимоги
 
 - **.NET Framework 4.8** (Windows) або **Mono 6.0+** (Linux/macOS)
 - **2+ GB RAM** мінімум (для великих бібліотек на 500000 книг і більше)
 - **10 MB** для додатку + **2GB** для бази даних книг великої бібліотеки
+
+### Docker для NAS (бета)
+
+TinyOPDS CLI доступний у вигляді Docker-образу [sensboston/tinyopds](https://hub.docker.com/r/sensboston/tinyopds) (amd64 і arm64, також `ghcr.io/sensboston/tinyopds`) для Synology, QNAP, CasaOS та інших NAS. Бібліотека сканується при запуску, нові книги, скопійовані в папку бібліотеки, з'являються самі.
+
+```yaml
+services:
+  tinyopds:
+    image: sensboston/tinyopds:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - /volume1/books:/books:ro
+      - /volume1/docker/tinyopds:/data
+    environment:
+      - PUID=1026
+      - PGID=100
+      - TINYOPDS_LANGUAGE=uk
+    restart: unless-stopped
+```
+
+Веб-інтерфейс: `http://<адреса NAS>:8080/`, OPDS-каталог: `http://<адреса NAS>:8080/opds`. Покрокове встановлення для різних NAS: [Docker (NAS)](https://github.com/sensboston/tinyopds/wiki/Docker_uk).
+
+> Образ ще не перевірявся на справжніх NAS (тільки автоматичні тести на Linux amd64/arm64 і демо CasaOS). Якщо ви запустили його на NAS, повідомте, будь ласка, модель і результати в [issues](https://github.com/sensboston/tinyopds/issues).
 
 ### Документація
 
@@ -144,13 +192,37 @@ TinyOPDS - это простой OPDS сервер, написанный на C#
 | Поиск с опечатками | Нет | Есть |
 | Транслитерация | Нет | Есть |
 | Дубликаты | Хранятся | Автоудаление |
-| Инсталляторы | Windows | Windows, Linux, macOS |
+| Инсталляторы | Windows | Windows, Linux, macOS, Docker |
 
 ### Системные требования
 
 - **.NET Framework 4.8** (Windows) или **Mono 6.0+** (Linux/macOS)
 - **2+ GB RAM** минимум (для больших библиотек на 500000 книг и больше)
 - **10 MB** для приложения + **2GB** для базы данных книг большой библиотеки
+
+### Docker для NAS (бета)
+
+TinyOPDS CLI доступен в виде Docker-образа [sensboston/tinyopds](https://hub.docker.com/r/sensboston/tinyopds) (amd64 и arm64, также `ghcr.io/sensboston/tinyopds`) для Synology, QNAP, CasaOS и других NAS. Библиотека сканируется при запуске, новые книги, скопированные в папку библиотеки, появляются сами.
+
+```yaml
+services:
+  tinyopds:
+    image: sensboston/tinyopds:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - /volume1/books:/books:ro
+      - /volume1/docker/tinyopds:/data
+    environment:
+      - PUID=1026
+      - PGID=100
+      - TINYOPDS_LANGUAGE=ru
+    restart: unless-stopped
+```
+
+Веб-интерфейс: `http://<адрес NAS>:8080/`, OPDS-каталог: `http://<адрес NAS>:8080/opds`. Пошаговая установка для разных NAS: [Docker (NAS)](https://github.com/sensboston/tinyopds/wiki/Docker_ru).
+
+> Образ ещё не проверялся на настоящих NAS (только автоматические тесты на Linux amd64/arm64 и демо CasaOS). Если вы запустили его на NAS, сообщите, пожалуйста, модель и результаты в [issues](https://github.com/sensboston/tinyopds/issues).
 
 ### Документация
 

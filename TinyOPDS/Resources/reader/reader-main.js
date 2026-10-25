@@ -50,9 +50,31 @@ class UniversalReader {
         this.loadPreferences();
         this.checkMobile();
         this.applyLocalization();
+        this.watchTranslation();
 
         // Auto-load book if data is injected
         this.checkForInjectedBook();
+    }
+
+    // The browser hyphenates by the lang attribute: when the page is translated (Google Translate marks
+    // <html> with the translated-ltr/rtl class and sets its lang to the target language), the book text
+    // gets the target language, otherwise the translated text would be hyphenated as the original one
+    watchTranslation() {
+        const html = document.documentElement;
+        const update = () => {
+            if (!this.bookContent) return;
+            const translated = /\btranslated-(ltr|rtl)\b/.test(html.className);
+            let lang = this.detectedLanguage;
+            if (translated) {
+                lang = html.lang && html.lang !== this.detectedLanguage
+                    ? html.lang
+                    : (navigator.language || 'en').split('-')[0];
+            }
+            if (this.bookContent.getAttribute('lang') !== lang) {
+                this.bookContent.setAttribute('lang', lang);
+            }
+        };
+        new MutationObserver(update).observe(html, { attributes: true, attributeFilter: ['class', 'lang'] });
     }
 
     initializeElements() {

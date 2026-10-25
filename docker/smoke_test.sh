@@ -68,6 +68,30 @@ for f in books.sqlite TinyOPDS.config; do
 done
 echo "Data folder OK"
 
+# A new archive copied while the server runs is added by the folder watcher: it is written with
+# a temporary name in two parts with a pause, then renamed, as copying programs do
+python3 "$(dirname "$0")/make_test_books.py" new-archive "$WORK/new.zip"
+SIZE=$(stat -c %s "$WORK/new.zip")
+head -c $((SIZE / 2)) "$WORK/new.zip" > "$WORK/books/copy.tmp"
+sleep 5
+tail -c +$((SIZE / 2 + 1)) "$WORK/new.zip" >> "$WORK/books/copy.tmp"
+mv "$WORK/books/copy.tmp" "$WORK/books/fb2-200001-200001.zip"
+# "пудель"
+for i in $(seq 1 60); do
+    has "$(search "%D0%BF%D1%83%D0%B4%D0%B5%D0%BB%D1%8C")" "<title>Белый пудель</title>" && break
+    sleep 2
+done
+has "$(search "%D0%BF%D1%83%D0%B4%D0%B5%D0%BB%D1%8C")" "<title>Белый пудель</title>" \
+    || { echo "FAILED: new archive is not added by the folder watcher"; exit 1; }
+echo "Folder watcher OK"
+
+# The scan command doesn't make the container exit (and restart again and again)
+docker run -d --name "$NAME-scan" -v "$WORK/books:/books:ro" "$IMAGE" scan > /dev/null
+sleep 10
+[ "$(docker inspect -f '{{.State.Running}}' "$NAME-scan")" = true ] || { echo "FAILED: container exits on the scan command"; docker logs "$NAME-scan"; exit 1; }
+docker rm -f "$NAME-scan" > /dev/null
+echo "Scan command OK"
+
 # Encrypted credentials for password protection, as the image description explains
 CREDENTIALS="$(docker run --rm "$IMAGE" encred user1 password1 | tail -n 1)"
 [[ "$CREDENTIALS" =~ ^[A-Za-z0-9+/=]{16,}$ ]] || { echo "FAILED: encred printed '$CREDENTIALS'"; exit 1; }

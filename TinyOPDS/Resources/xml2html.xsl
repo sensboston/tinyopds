@@ -549,6 +549,7 @@ xmlns:x="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/terms/">
 					@media (min-width: 769px) and (max-width: 1100px) {
 					.cover { width: 160px; height: 240px; }
 					.download-section { width: 160px; }
+					.download-section .delete-book { top: 200px; }
 					.download-links { width: 100%; }
 					.download-link { width: calc(50% - 4px); }
 					}
@@ -648,6 +649,8 @@ xmlns:x="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/terms/">
 					margin-right: 15px;
 					margin-bottom: 10px;
 					}
+
+					.download-section .delete-book { top: 110px; }
 
 					.book-details {
 					display: block;
@@ -841,10 +844,11 @@ xmlns:x="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/terms/">
 					box-shadow: 0 8px 24px rgba(102, 126, 234, 0.8);
 					}
 
+					/* Bottom left corner of the cover (titles are usually at the top): top = cover height - 40 */
 					.delete-book {
 					position: absolute;
-					top: 6px;
-					right: 6px;
+					top: 150px;
+					left: 8px;
 					width: 32px;
 					height: 32px;
 					padding: 0;

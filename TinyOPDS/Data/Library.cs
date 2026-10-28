@@ -1006,6 +1006,48 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
+        /// Books uploaded from the web interface (the Uploads folder of the library), newest first
+        /// </summary>
+        public static NewBooksPaginatedResult GetUploadedBooksPaginated(int pageNumber = 0, int pageSize = 100)
+        {
+            var result = new NewBooksPaginatedResult();
+            if (bookRepository == null) return result;
+
+            result.TotalBooks = bookRepository.GetBooksInFolderCount(Server.UploadHandler.FolderName);
+            result.PageSize = pageSize;
+            result.CurrentPage = pageNumber;
+            result.TotalPages = (int)Math.Ceiling((double)result.TotalBooks / pageSize);
+            result.Books = bookRepository.GetBooksInFolderPaginated(Server.UploadHandler.FolderName, pageNumber * pageSize, pageSize);
+            result.HasPreviousPage = pageNumber > 0;
+            result.HasNextPage = pageNumber < result.TotalPages - 1;
+            return result;
+        }
+
+        public static int GetUploadedBooksCount()
+        {
+            return bookRepository == null ? 0 : bookRepository.GetBooksInFolderCount(Server.UploadHandler.FolderName);
+        }
+
+        /// <summary>
+        /// IDs of the books uploaded from the web interface: the web pages show a delete button on them
+        /// </summary>
+        public static List<string> GetUploadedBookIds()
+        {
+            return bookRepository == null ? new List<string>() : bookRepository.GetBookIDsInFolder(Server.UploadHandler.FolderName);
+        }
+
+        /// <summary>
+        /// Deletes a book from the library; the older copies it replaced are shown again
+        /// </summary>
+        public static bool DeleteBook(string id)
+        {
+            if (bookRepository == null || !bookRepository.DeleteBookRestoringReplaced(id)) return false;
+            IsChanged = true;
+            InvalidateCache();
+            return true;
+        }
+
+        /// <summary>
         /// Get total count of new books for the current period
         /// </summary>
         public static int GetNewBooksTotalCount()
@@ -1195,6 +1237,14 @@ namespace TinyOPDS.Data
                 Log.WriteLine(LogLevel.Error, "Error deleting book {0}: {1}", fileName, ex.Message);
                 return false;
             }
+        }
+
+        /// <summary>
+        /// True if any book of the library is stored in the file (or in the archive), regardless of the language filter
+        /// </summary>
+        public static bool IsFileUsed(string bookPath)
+        {
+            return bookRepository != null && bookRepository.IsFileUsed(bookPath);
         }
 
         /// <summary>

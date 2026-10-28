@@ -173,6 +173,9 @@
     <Compile Include="..\TinyOPDS\Server\Handlers\ImageRequestHandler.cs">
       <Link>Server\Handlers\ImageRequestHandler.cs</Link>
     </Compile>
+    <Compile Include="..\TinyOPDS\Server\Handlers\UploadHandler.cs">
+      <Link>Server\Handlers\UploadHandler.cs</Link>
+    </Compile>
     <Compile Include="..\TinyOPDS\Server\Handlers\OPDSRequestRouter.cs">
       <Link>Server\Handlers\OPDSRequestRouter.cs</Link>
     </Compile>
@@ -318,6 +321,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="..\TinyOPDS\Resources\infinite-scroll.js">
       <Link>Resources\infinite-scroll.js</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\Resources\upload.js">
+      <Link>Resources\upload.js</Link>
     </EmbeddedResource>
     <!-- Icons -->
     <EmbeddedResource Include="..\TinyOPDS\Resources\favicon.ico">

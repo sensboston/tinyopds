@@ -5,6 +5,16 @@ xmlns:x="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/terms/">
 	<xsl:param name="uiLanguage" select="'en'"/>
 	<xsl:param name="libName" select="''"/>
 	<xsl:param name="darkTheme" select="''"/>
+	<xsl:param name="uploadMaxMB" select="''"/>
+	<xsl:param name="uploadTooLarge" select="''"/>
+	<xsl:param name="uploadingText" select="''"/>
+	<xsl:param name="uploadFailedText" select="''"/>
+	<xsl:param name="uploadedIds" select="''"/>
+	<xsl:param name="deleteBookText" select="'Delete the book'"/>
+	<xsl:param name="deleteQuestionText" select="'Delete the book from the library?'"/>
+	<xsl:param name="deleteText" select="'Delete'"/>
+	<xsl:param name="cancelText" select="'Cancel'"/>
+	<xsl:param name="deleteFailedText" select="'Delete error'"/>
 	<xsl:param name="searchPlaceholder" select="'Search authors or books...'"/>
 	<xsl:param name="searchButtonText" select="'Search'"/>
 	<xsl:param name="formatText" select="'Format:'"/>
@@ -373,6 +383,7 @@ xmlns:x="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/terms/">
 					}
 
 					.download-section {
+					position: relative;
 					display: flex;
 					flex-direction: column;
 					align-items: flex-start;
@@ -631,6 +642,7 @@ xmlns:x="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/terms/">
 					}
 
 					.download-section {
+					position: relative;
 					float: left;
 					width: 100px;
 					margin-right: 15px;
@@ -829,6 +841,30 @@ xmlns:x="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/terms/">
 					box-shadow: 0 8px 24px rgba(102, 126, 234, 0.8);
 					}
 
+					.delete-book {
+					position: absolute;
+					top: 6px;
+					right: 6px;
+					width: 32px;
+					height: 32px;
+					padding: 0;
+					border: 0;
+					border-radius: 50%;
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					background: rgba(0,0,0,0.55);
+					color: #fff;
+					cursor: pointer;
+					opacity: 0.85;
+					transition: background .2s, opacity .2s;
+					}
+
+					.delete-book:hover, .delete-book:focus-visible {
+					background: #c0392b;
+					opacity: 1;
+					}
+
 					.dark .cover {
 					box-shadow: 0 2px 8px rgba(102, 126, 234, 0.6);
 					background-color: #222;
@@ -966,6 +1002,11 @@ xmlns:x="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/terms/">
 				<script src="/infinite-scroll.js">
 					<xsl:text> </xsl:text>
 				</script>
+				<xsl:if test="$uploadMaxMB != ''">
+					<script src="/upload.js" data-max-mb="{$uploadMaxMB}" data-too-large="{$uploadTooLarge}" data-uploading="{$uploadingText}" data-failed="{$uploadFailedText}" data-delete-question="{$deleteQuestionText}" data-delete="{$deleteText}" data-cancel="{$cancelText}" data-delete-failed="{$deleteFailedText}">
+						<xsl:text> </xsl:text>
+					</script>
+				</xsl:if>
 				<script>
 					// Store reader localization strings in localStorage for reader.html
 					(function() {
@@ -1234,6 +1275,15 @@ xmlns:x="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/terms/">
 													</xsl:when>
 												</xsl:choose>
 											</xsl:variable>
+
+											<!-- Delete button on the cover of an uploaded book (upload.js asks and deletes) -->
+											<xsl:if test="$bookId != '' and contains($uploadedIds, concat(',', $bookId, ','))">
+												<button type="button" class="delete-book" data-id="{$bookId}" data-title="{x:title}" title="{$deleteBookText}" aria-label="{$deleteBookText}">
+													<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+														<path fill="currentColor" d="M9 3h6l1 2h4v2H4V5h4l1-2zm-3 6h12l-1 12H7L6 9zm4 2v8h1.5v-8H10zm3.5 0v8H15v-8h-1.5z"/>
+													</svg>
+												</button>
+											</xsl:if>
 
 											<!-- Read button -->
 											<xsl:if test="$bookId != ''">

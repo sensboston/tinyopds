@@ -543,6 +543,33 @@ namespace TinyOPDS.Data
             }
         }
 
+        /// <summary>
+        /// Deletes the book; the older copies it replaced are back in the library
+        /// </summary>
+        public bool DeleteBookRestoringReplaced(string id)
+        {
+            IDbTransaction transaction = db.BeginTransactionWithObject();
+            try
+            {
+                db.ExecuteNonQueryInTransaction(DatabaseSchema.RestoreReplacedBooks, transaction,
+                    DatabaseManager.CreateParameter("@ID", id));
+                int deleted = db.ExecuteNonQueryInTransaction(DatabaseSchema.DeleteBook, transaction,
+                    DatabaseManager.CreateParameter("@ID", id));
+                transaction.Commit();
+                return deleted > 0;
+            }
+            catch (Exception ex)
+            {
+                transaction.Rollback();
+                Log.WriteLine(LogLevel.Error, "Error deleting book {0}: {1}", id, ex.Message);
+                return false;
+            }
+            finally
+            {
+                transaction.Dispose();
+            }
+        }
+
         public bool DeleteBookByFileName(string fileName)
         {
             try
@@ -563,6 +590,18 @@ namespace TinyOPDS.Data
         /// <summary>
         /// Cross-platform compatible BookExists method
         /// </summary>
+        /// <summary>
+        /// True if any book (of any language, replaced ones too) is stored in the file or in the archive
+        /// </summary>
+        public bool IsFileUsed(string fileName)
+        {
+            var count = db.ExecuteScalar(
+                "SELECT COUNT(*) FROM Books WHERE FileName = @FileName OR substr(FileName, 1, length(@Archive)) = @Archive",
+                DatabaseManager.CreateParameter("@FileName", fileName),
+                DatabaseManager.CreateParameter("@Archive", fileName + "@"));
+            return Convert.ToInt32(count ?? 0) > 0;
+        }
+
         public bool BookExists(string fileName)
         {
             string languageFilter = GetLanguageFilter();
@@ -1578,6 +1617,44 @@ namespace TinyOPDS.Data
                 Log.WriteLine(LogLevel.Error, "Error getting paginated new books: {0}", ex.Message);
                 return new List<Book>();
             }
+        }
+
+        /// <summary>
+        /// Books in a folder of the library (with subfolders), newest first
+        /// </summary>
+        public List<Book> GetBooksInFolderPaginated(string folder, int offset, int limit)
+        {
+            try
+            {
+                var books = db.ExecuteQuery<Book>(DatabaseSchema.SelectBooksInFolderPaginated, MapBook,
+                    DatabaseManager.CreateParameter("@Folder", folder),
+                    DatabaseManager.CreateParameter("@Offset", offset),
+                    DatabaseManager.CreateParameter("@Limit", limit));
+
+                foreach (var book in books)
+                {
+                    LoadBookRelations(book);
+                }
+
+                return books;
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Error getting books in folder {0}: {1}", folder, ex.Message);
+                return new List<Book>();
+            }
+        }
+
+        public int GetBooksInFolderCount(string folder)
+        {
+            var result = db.ExecuteScalar(DatabaseSchema.CountBooksInFolder, DatabaseManager.CreateParameter("@Folder", folder));
+            return Convert.ToInt32(result ?? 0);
+        }
+
+        public List<string> GetBookIDsInFolder(string folder)
+        {
+            return db.ExecuteQuery<string>(DatabaseSchema.SelectBookIDsInFolder, reader => reader.GetString(0),
+                DatabaseManager.CreateParameter("@Folder", folder));
         }
 
         public List<string> GetAllAuthors()

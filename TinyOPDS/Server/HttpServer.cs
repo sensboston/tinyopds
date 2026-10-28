@@ -786,6 +786,18 @@ namespace TinyOPDS.Server
         private const int BUF_SIZE = 4096;
         public void HandlePOSTRequest()
         {
+            // Uploaded books are streamed to a file, other POST requests are small
+            if (HttpUrl.StartsWith("/upload", StringComparison.Ordinal))
+            {
+                new UploadHandler().HandleUpload(this, inputStream);
+                return;
+            }
+            if (HttpUrl.StartsWith("/delete-book", StringComparison.Ordinal))
+            {
+                new UploadHandler().HandleDelete(this);
+                return;
+            }
+
             MemoryStream memStream = null;
             StreamReader reader = null;
 
@@ -868,10 +880,11 @@ namespace TinyOPDS.Server
             }
         }
 
-        public void WriteSuccess(string contentType = "text/xml", bool isGZip = false)
+        public void WriteSuccess(string contentType = "text/xml", bool isGZip = false, bool noCache = false)
         {
             string headers = "Content-Type: " + contentType;
             if (isGZip) headers += "\nContent-Encoding: gzip";
+            if (noCache) headers += "\nCache-Control: no-cache";
             WriteHttpResponse("200 OK", headers, "WriteSuccess", true);
         }
 

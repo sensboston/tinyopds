@@ -122,6 +122,19 @@ namespace TinyOPDS.OPDS
                           new XElement("link", new XAttribute("href", "/genres"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                       ),
 
+                      // Books uploaded from the web interface
+                      !Server.UploadHandler.IsEnabled ? null :
+                      new XElement("entry",
+                          new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
+                          new XElement("id", "tag:root:uploads"),
+                          new XElement("title", Localizer.Text("Uploaded books"), new XAttribute("type", "text")),
+                          new XElement("content",
+                              StringUtils.ApplyPluralForm(Library.GetUploadedBooksCount(), Localizer.Language,
+                                  string.Format(Localizer.Text("{0} books"), Library.GetUploadedBooksCount())),
+                              new XAttribute("type", "text")),
+                          new XElement("link", new XAttribute("href", "/uploads"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
+                      ),
+
                       // Add download statistics entry (always show, even if empty - user can see their history status)
                       new XElement("entry",
                           new XElement("updated", DateTime.UtcNow.ToUniversalTime()),

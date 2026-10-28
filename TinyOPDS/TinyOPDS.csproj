@@ -115,6 +115,7 @@
     <Compile Include="Server\OPDSServer.cs" />
     <Compile Include="Server\Handlers\BookDownloadHandler.cs" />
     <Compile Include="Server\Handlers\ImageRequestHandler.cs" />
+    <Compile Include="Server\Handlers\UploadHandler.cs" />
     <Compile Include="Server\Handlers\OPDSRequestRouter.cs" />
     <Compile Include="Server\Handlers\OPDSUtilities.cs" />
     <Compile Include="Server\Handlers\ReaderHandler.cs" />
@@ -189,6 +190,7 @@
     <!-- JavaScript Resources -->
     <EmbeddedResource Include="Resources\smart-header.js" />
     <EmbeddedResource Include="Resources\infinite-scroll.js" />
+    <EmbeddedResource Include="Resources\upload.js" />
     <!-- Reader Resources -->
     <EmbeddedResource Include="Resources\reader\reader.html" />
     <EmbeddedResource Include="Resources\reader\reader-formats.js" />

@@ -2008,5 +2008,167 @@
 			<text lang="pl">Hasło</text>
 		</property>		
 		
+		<property>
+			<text lang="en">Uploaded books</text>
+			<text lang="ru">Добавленные книги</text>
+			<text lang="uk">Додані книги</text>
+			<text lang="de">Hochgeladene Bücher</text>
+			<text lang="es">Libros subidos</text>
+			<text lang="fr">Livres envoyés</text>
+			<text lang="pl">Przesłane książki</text>
+		</property>
+		<property>
+			<text lang="en">Uploading</text>
+			<text lang="ru">Загрузка</text>
+			<text lang="uk">Надсилання</text>
+			<text lang="de">Hochladen</text>
+			<text lang="es">Subiendo</text>
+			<text lang="fr">Envoi</text>
+			<text lang="pl">Przesyłanie</text>
+		</property>
+		<property>
+			<text lang="en">Upload error</text>
+			<text lang="ru">Ошибка загрузки</text>
+			<text lang="uk">Помилка надсилання</text>
+			<text lang="de">Fehler beim Hochladen</text>
+			<text lang="es">Error al subir</text>
+			<text lang="fr">Erreur d'envoi</text>
+			<text lang="pl">Błąd przesyłania</text>
+		</property>
+		<property>
+			<text lang="en">The file is too large, maximum is {0} MB</text>
+			<text lang="ru">Файл слишком большой, максимум {0} МБ</text>
+			<text lang="uk">Файл завеликий, максимум {0} МБ</text>
+			<text lang="de">Die Datei ist zu groß, maximal {0} MB</text>
+			<text lang="es">El archivo es demasiado grande, máximo {0} MB</text>
+			<text lang="fr">Le fichier est trop volumineux, maximum {0} Mo</text>
+			<text lang="pl">Plik jest za duży, maksymalnie {0} MB</text>
+		</property>
+		<property>
+			<text lang="en">Only FB2, EPUB and ZIP files can be uploaded</text>
+			<text lang="ru">Можно загружать только файлы FB2, EPUB и ZIP</text>
+			<text lang="uk">Можна надсилати лише файли FB2, EPUB і ZIP</text>
+			<text lang="de">Nur FB2-, EPUB- und ZIP-Dateien können hochgeladen werden</text>
+			<text lang="es">Solo se pueden subir archivos FB2, EPUB y ZIP</text>
+			<text lang="fr">Seuls les fichiers FB2, EPUB et ZIP peuvent être envoyés</text>
+			<text lang="pl">Można przesyłać tylko pliki FB2, EPUB i ZIP</text>
+		</property>
+		<property>
+			<text lang="en">Too many uploads, please try again later</text>
+			<text lang="ru">Слишком много загрузок, попробуйте позже</text>
+			<text lang="uk">Забагато надсилань, спробуйте пізніше</text>
+			<text lang="de">Zu viele Uploads, bitte später erneut versuchen</text>
+			<text lang="es">Demasiadas subidas, inténtelo más tarde</text>
+			<text lang="fr">Trop d'envois, réessayez plus tard</text>
+			<text lang="pl">Zbyt wiele przesłań, spróbuj później</text>
+		</property>
+		<property>
+			<text lang="en">The file is damaged or is not a book archive</text>
+			<text lang="ru">Файл повреждён или не является архивом с книгами</text>
+			<text lang="uk">Файл пошкоджений або не є архівом із книжками</text>
+			<text lang="de">Die Datei ist beschädigt oder kein Bucharchiv</text>
+			<text lang="es">El archivo está dañado o no es un archivo de libros</text>
+			<text lang="fr">Le fichier est endommagé ou n'est pas une archive de livres</text>
+			<text lang="pl">Plik jest uszkodzony lub nie jest archiwum z książkami</text>
+		</property>
+		<property>
+			<text lang="en">No books found in the file</text>
+			<text lang="ru">В файле не найдено книг</text>
+			<text lang="uk">У файлі не знайдено книжок</text>
+			<text lang="de">Keine Bücher in der Datei gefunden</text>
+			<text lang="es">No se encontraron libros en el archivo</text>
+			<text lang="fr">Aucun livre trouvé dans le fichier</text>
+			<text lang="pl">W pliku nie znaleziono książek</text>
+		</property>
+		<property>
+			<text lang="en">This book is already in the library</text>
+			<text lang="ru">Эта книга уже есть в библиотеке</text>
+			<text lang="uk">Ця книжка вже є в бібліотеці</text>
+			<text lang="de">Dieses Buch ist bereits in der Bibliothek</text>
+			<text lang="es">Este libro ya está en la biblioteca</text>
+			<text lang="fr">Ce livre est déjà dans la bibliothèque</text>
+			<text lang="pl">Ta książka jest już w bibliotece</text>
+		</property>
+		<property>
+			<text lang="en">Added to the library: {0}</text>
+			<text lang="ru">Добавлено в библиотеку: {0}</text>
+			<text lang="uk">Додано до бібліотеки: {0}</text>
+			<text lang="de">Zur Bibliothek hinzugefügt: {0}</text>
+			<text lang="es">Añadido a la biblioteca: {0}</text>
+			<text lang="fr">Ajouté à la bibliothèque : {0}</text>
+			<text lang="pl">Dodano do biblioteki: {0}</text>
+		</property>
+		<property>
+			<text lang="en">An archive must contain one book</text>
+			<text lang="ru">В архиве должна быть одна книга</text>
+			<text lang="uk">В архіві має бути одна книга</text>
+			<text lang="de">Das Archiv darf nur ein Buch enthalten</text>
+			<text lang="es">El archivo debe contener un solo libro</text>
+			<text lang="fr">L'archive doit contenir un seul livre</text>
+			<text lang="pl">Archiwum musi zawierać jedną książkę</text>
+		</property>
+		<property>
+			<text lang="en">Delete the book</text>
+			<text lang="ru">Удалить книгу</text>
+			<text lang="uk">Видалити книгу</text>
+			<text lang="de">Buch löschen</text>
+			<text lang="es">Eliminar el libro</text>
+			<text lang="fr">Supprimer le livre</text>
+			<text lang="pl">Usuń książkę</text>
+		</property>
+		<property>
+			<text lang="en">Delete the book from the library?</text>
+			<text lang="ru">Удалить книгу из библиотеки?</text>
+			<text lang="uk">Видалити книгу з бібліотеки?</text>
+			<text lang="de">Das Buch aus der Bibliothek löschen?</text>
+			<text lang="es">¿Eliminar el libro de la biblioteca?</text>
+			<text lang="fr">Supprimer le livre de la bibliothèque ?</text>
+			<text lang="pl">Usunąć książkę z biblioteki?</text>
+		</property>
+		<property>
+			<text lang="en">Delete</text>
+			<text lang="ru">Удалить</text>
+			<text lang="uk">Видалити</text>
+			<text lang="de">Löschen</text>
+			<text lang="es">Eliminar</text>
+			<text lang="fr">Supprimer</text>
+			<text lang="pl">Usuń</text>
+		</property>
+		<property>
+			<text lang="en">Cancel</text>
+			<text lang="ru">Отмена</text>
+			<text lang="uk">Скасувати</text>
+			<text lang="de">Abbrechen</text>
+			<text lang="es">Cancelar</text>
+			<text lang="fr">Annuler</text>
+			<text lang="pl">Anuluj</text>
+		</property>
+		<property>
+			<text lang="en">The book is deleted</text>
+			<text lang="ru">Книга удалена</text>
+			<text lang="uk">Книгу видалено</text>
+			<text lang="de">Das Buch wurde gelöscht</text>
+			<text lang="es">El libro ha sido eliminado</text>
+			<text lang="fr">Le livre a été supprimé</text>
+			<text lang="pl">Książka została usunięta</text>
+		</property>
+		<property>
+			<text lang="en">This book can't be deleted</text>
+			<text lang="ru">Эту книгу нельзя удалить</text>
+			<text lang="uk">Цю книгу не можна видалити</text>
+			<text lang="de">Dieses Buch kann nicht gelöscht werden</text>
+			<text lang="es">Este libro no se puede eliminar</text>
+			<text lang="fr">Ce livre ne peut pas être supprimé</text>
+			<text lang="pl">Tej książki nie można usunąć</text>
+		</property>
+		<property>
+			<text lang="en">Delete error</text>
+			<text lang="ru">Ошибка удаления</text>
+			<text lang="uk">Помилка видалення</text>
+			<text lang="de">Fehler beim Löschen</text>
+			<text lang="es">Error al eliminar</text>
+			<text lang="fr">Erreur de suppression</text>
+			<text lang="pl">Błąd usuwania</text>
+		</property>
 	</properties>
 </root>

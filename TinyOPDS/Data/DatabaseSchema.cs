@@ -869,6 +869,23 @@ namespace TinyOPDS.Data
             ORDER BY AddedDate DESC
             LIMIT @Limit OFFSET @Offset";
 
+        // GLOB uses the FileName index; the folder separator is '\' on Windows and '/' on Linux and macOS
+        public const string SelectBooksInFolderPaginated = @"
+            SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
+                   Annotation, DocumentSize, AddedDate
+            FROM Books
+            WHERE (FileName GLOB @Folder || '/*' OR FileName GLOB @Folder || '\*') AND ReplacedByID IS NULL
+            ORDER BY AddedDate DESC
+            LIMIT @Limit OFFSET @Offset";
+
+        public const string CountBooksInFolder = @"
+            SELECT COUNT(*) FROM Books
+            WHERE (FileName GLOB @Folder || '/*' OR FileName GLOB @Folder || '\*') AND ReplacedByID IS NULL";
+
+        public const string SelectBookIDsInFolder = @"
+            SELECT ID FROM Books
+            WHERE (FileName GLOB @Folder || '/*' OR FileName GLOB @Folder || '\*') AND ReplacedByID IS NULL";
+
         public const string SelectNewBooksPaginatedByTitle = @"
             SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
                    Annotation, DocumentSize, AddedDate
@@ -884,6 +901,9 @@ namespace TinyOPDS.Data
         public const string DeleteBook = @"DELETE FROM Books WHERE ID = @ID";
 
         public const string DeleteBookByFileName = @"DELETE FROM Books WHERE FileName = @FileName";
+
+        // The copies a deleted book replaced are shown again
+        public const string RestoreReplacedBooks = @"UPDATE Books SET ReplacedByID = NULL WHERE ReplacedByID = @ID";
 
         public const string DeleteAllGenres = @"DELETE FROM Genres";
 

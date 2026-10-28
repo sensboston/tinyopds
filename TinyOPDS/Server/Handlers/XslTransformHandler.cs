@@ -139,6 +139,23 @@ namespace TinyOPDS.Server
                 args.AddParam("darkTheme", "", "dark");
             }
 
+            // Book uploads (double click on the logo), the script is added only when they are enabled
+            if (UploadHandler.IsEnabled)
+            {
+                args.AddParam("uploadMaxMB", "", Properties.Settings.Default.MaxUploadSizeMB.ToString());
+                args.AddParam("uploadTooLarge", "", string.Format(Localizer.Text("The file is too large, maximum is {0} MB"), Properties.Settings.Default.MaxUploadSizeMB));
+                args.AddParam("uploadingText", "", Localizer.Text("Uploading"));
+                args.AddParam("uploadFailedText", "", Localizer.Text("Upload error"));
+
+                // Uploaded books get a delete button: ",id1,id2," for a contains() test in the stylesheet
+                args.AddParam("uploadedIds", "", "," + string.Join(",", Library.GetUploadedBookIds()) + ",");
+                args.AddParam("deleteBookText", "", Localizer.Text("Delete the book"));
+                args.AddParam("deleteQuestionText", "", Localizer.Text("Delete the book from the library?"));
+                args.AddParam("deleteText", "", Localizer.Text("Delete"));
+                args.AddParam("cancelText", "", Localizer.Text("Cancel"));
+                args.AddParam("deleteFailedText", "", Localizer.Text("Delete error"));
+            }
+
             // Web interface localization
             AddWebInterfaceParameters(args);
 

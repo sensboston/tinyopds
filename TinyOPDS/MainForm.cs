@@ -20,6 +20,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Threading.Tasks;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 using UPnP;
 
@@ -743,31 +744,92 @@ namespace TinyOPDS
 
         private void WindowMenuItem_Click(object sender, EventArgs e)
         {
+            if (Visible && ShowInTaskbar)
+            {
+                Visible = false;
+                if (Settings.Default.CloseToTray) notifyIcon.Visible = true;
+                windowMenuItem.Text = Localizer.Text("Show window");
+            }
+            else ShowMainWindow();
+        }
+
+        // The window may be visible but covered by other windows, so a click on the tray icon
+        // always shows it on top instead of toggling it
+        private void ShowMainWindow()
+        {
             if (!ShowInTaskbar)
             {
                 ShowInTaskbar = true;
                 notifyIcon.Visible = Settings.Default.CloseToTray;
             }
-            else
-            {
-                Visible = !Visible;
-                if (!Visible && Settings.Default.CloseToTray)
-                {
-                    notifyIcon.Visible = true;
-                }
-            }
+            Visible = true;
+            WindowState = FormWindowState.Normal;
+            KeepNormalBounds();
+            // When the tray overflow area closes after the click, Windows activates the previous
+            // window again, so the form is brought to the top once more a moment later
+            BringToTop();
+            var timer = new System.Windows.Forms.Timer { Interval = 300 };
+            timer.Tick += (_, __) => { timer.Dispose(); BringToTop(); };
+            timer.Start();
+            windowMenuItem.Text = Localizer.Text("Hide window");
+        }
 
-            if (Visible)
-            {
-                WindowState = FormWindowState.Normal;
-                KeepNormalBounds();
-            }
-            windowMenuItem.Text = Localizer.Text(Visible ? "Hide window" : "Show window");
+        // Windows may refuse to give the focus (foreground lock), but the z-order can be
+        // changed, so the window is put on top of the others even when it is not activated
+        private void BringToTop()
+        {
+            if (!Visible) return;
+            TopMost = true;
+            TopMost = false;
+            Activate();
         }
 
         private void NotifyIcon1_MouseClick(object sender, MouseEventArgs e)
         {
-            if (e.Button == MouseButtons.Left) WindowMenuItem_Click(this, null);
+            if (e.Button != MouseButtons.Left) return;
+            // the click hides the window only when it is really seen, a covered window is brought to the top
+            if (Visible && ShowInTaskbar && WindowState == FormWindowState.Normal && !IsCovered())
+                WindowMenuItem_Click(this, null);
+            else
+                ShowMainWindow();
+        }
+
+        [DllImport("user32.dll")] static extern IntPtr GetWindow(IntPtr hWnd, uint uCmd);
+        [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr hWnd);
+        [DllImport("user32.dll")] static extern bool IsIconic(IntPtr hWnd);
+        [DllImport("user32.dll")] static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+        [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
+        [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+        [DllImport("dwmapi.dll")] static extern int DwmGetWindowAttribute(IntPtr hWnd, int attribute, out int value, int size);
+        [StructLayout(LayoutKind.Sequential)] struct RECT { public int Left, Top, Right, Bottom; }
+
+        // Is any normal window of another application above the form and overlapping it?
+        // Topmost windows (tray, remote desktop toolbars), tool windows and cloaked UWP windows are ignored
+        private bool IsCovered()
+        {
+            if (Utils.IsLinux) return false;
+            try
+            {
+                const uint GW_HWNDPREV = 3;
+                const int GWL_EXSTYLE = -20, WS_EX_TOPMOST = 0x8, WS_EX_TOOLWINDOW = 0x80, DWMWA_CLOAKED = 14;
+
+                GetWindowRect(Handle, out RECT r);
+                var form = Rectangle.FromLTRB(r.Left, r.Top, r.Right, r.Bottom);
+                uint ownPid = (uint)Process.GetCurrentProcess().Id;
+
+                for (IntPtr h = GetWindow(Handle, GW_HWNDPREV); h != IntPtr.Zero; h = GetWindow(h, GW_HWNDPREV))
+                {
+                    if (!IsWindowVisible(h) || IsIconic(h)) continue;
+                    if ((GetWindowLong(h, GWL_EXSTYLE) & (WS_EX_TOPMOST | WS_EX_TOOLWINDOW)) != 0) continue;
+                    if (DwmGetWindowAttribute(h, DWMWA_CLOAKED, out int cloaked, sizeof(int)) == 0 && cloaked != 0) continue;
+                    GetWindowThreadProcessId(h, out uint pid);
+                    if (pid == ownPid) continue;
+                    GetWindowRect(h, out r);
+                    if (form.IntersectsWith(Rectangle.FromLTRB(r.Left, r.Top, r.Right, r.Bottom))) return true;
+                }
+            }
+            catch { }
+            return false;
         }
 
         private bool realExit = false;

@@ -107,7 +107,8 @@
     function addDialogStyles() {
         var style = document.createElement('style');
         style.textContent =
-            '.confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;' +
+            // No inset and flex gap: older mobile browsers don't know them and the dialog would have no size
+            '.confirm-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);display:flex;align-items:center;' +
             'justify-content:center;padding:16px;z-index:10001;opacity:0;transition:opacity .15s}' +
             '.confirm-overlay.shown{opacity:1}' +
             '.confirm-box{background:#fff;color:#222;border-radius:14px;padding:22px 22px 18px;width:100%;max-width:380px;' +
@@ -115,7 +116,7 @@
             '.confirm-overlay.shown .confirm-box{transform:scale(1)}' +
             '.confirm-question{font-size:17px;font-weight:600;margin:0 0 8px}' +
             '.confirm-title{font-size:15px;color:#555;margin:0 0 20px;overflow-wrap:anywhere}' +
-            '.confirm-buttons{display:flex;justify-content:flex-end;gap:10px}' +
+            '.confirm-buttons{display:flex;justify-content:flex-end}.confirm-delete{margin-left:10px}' +
             '.confirm-buttons button{font:inherit;font-size:15px;padding:9px 18px;border-radius:8px;border:0;cursor:pointer}' +
             '.confirm-cancel{background:#eceff1;color:#333}' +
             '.confirm-delete{background:#c0392b;color:#fff}' +
@@ -185,7 +186,12 @@
             if (!button) return;
             e.preventDefault();
             e.stopPropagation();
-            confirmDelete(button.getAttribute('data-title'), function () { deleteBook(button); });
+            try {
+                confirmDelete(button.getAttribute('data-title'), function () { deleteBook(button); });
+            } catch (error) {
+                // The browser can't build the dialog: its own one asks then
+                if (window.confirm(deleteTexts.question + ' ' + button.getAttribute('data-title'))) deleteBook(button);
+            }
         }, true);
     }
 

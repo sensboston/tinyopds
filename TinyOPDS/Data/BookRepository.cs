@@ -543,6 +543,33 @@ namespace TinyOPDS.Data
             }
         }
 
+        /// <summary>
+        /// Deletes the book; the older copies it replaced are back in the library
+        /// </summary>
+        public bool DeleteBookRestoringReplaced(string id)
+        {
+            IDbTransaction transaction = db.BeginTransactionWithObject();
+            try
+            {
+                db.ExecuteNonQueryInTransaction(DatabaseSchema.RestoreReplacedBooks, transaction,
+                    DatabaseManager.CreateParameter("@ID", id));
+                int deleted = db.ExecuteNonQueryInTransaction(DatabaseSchema.DeleteBook, transaction,
+                    DatabaseManager.CreateParameter("@ID", id));
+                transaction.Commit();
+                return deleted > 0;
+            }
+            catch (Exception ex)
+            {
+                transaction.Rollback();
+                Log.WriteLine(LogLevel.Error, "Error deleting book {0}: {1}", id, ex.Message);
+                return false;
+            }
+            finally
+            {
+                transaction.Dispose();
+            }
+        }
+
         public bool DeleteBookByFileName(string fileName)
         {
             try
@@ -1622,6 +1649,12 @@ namespace TinyOPDS.Data
         {
             var result = db.ExecuteScalar(DatabaseSchema.CountBooksInFolder, DatabaseManager.CreateParameter("@Folder", folder));
             return Convert.ToInt32(result ?? 0);
+        }
+
+        public List<string> GetBookIDsInFolder(string folder)
+        {
+            return db.ExecuteQuery<string>(DatabaseSchema.SelectBookIDsInFolder, reader => reader.GetString(0),
+                DatabaseManager.CreateParameter("@Folder", folder));
         }
 
         public List<string> GetAllAuthors()

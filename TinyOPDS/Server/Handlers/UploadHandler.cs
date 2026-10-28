@@ -24,6 +24,7 @@ namespace TinyOPDS.Server
     /// <summary>
     /// Saves a book uploaded from the web interface to the Uploads folder of the library and adds it to the library.
     /// The request body is the file itself, its name is given in the query string: POST /upload?name=...
+    /// Uploaded books (and only they) can be deleted from the web interface: POST /delete-book?id=...
     /// </summary>
     public class UploadHandler
     {
@@ -100,6 +101,14 @@ namespace TinyOPDS.Server
                     return;
                 }
 
+                // A ZIP is one packed book (book.fb2.zip): an uploaded file is always one book, so it can be deleted
+                // with it; collections go to the library folder
+                if (ext == ".zip" && CountArchiveFiles(tempPath) > 1)
+                {
+                    WriteResult(processor, false, Localizer.Text("An archive must contain one book"));
+                    return;
+                }
+
                 if (ext != ".fb2" && !CheckArchive(tempPath, ext == ".zip"))
                 {
                     WriteResult(processor, false, Localizer.Text("The file is damaged or is not a book archive"));
@@ -147,17 +156,80 @@ namespace TinyOPDS.Server
         }
 
         /// <summary>
+        /// Deletes an uploaded book from the library and its file: POST /delete-book?id=...
+        /// Books of the Uploads folder only, the rest of the library can't be touched from the web interface
+        /// </summary>
+        public void HandleDelete(HttpProcessor processor)
+        {
+            if (!IsEnabled)
+            {
+                processor.WriteFailure();
+                return;
+            }
+
+            try
+            {
+                string id = GetQueryValue(processor.HttpUrl, "id");
+                Book book = string.IsNullOrEmpty(id) ? null : Library.GetBook(id);
+                // A book in an archive is stored as "archive.zip@book.fb2"
+                string fileName = book?.FileName.Split('@')[0];
+                if (book == null || !IsInUploads(fileName))
+                {
+                    WriteResult(processor, false, Localizer.Text("This book can't be deleted"));
+                    return;
+                }
+
+                if (!Library.DeleteBook(book.ID))
+                {
+                    WriteResult(processor, false, Localizer.Text("Delete error"));
+                    return;
+                }
+
+                string path = Path.Combine(Library.LibraryPath, fileName);
+                if (!Library.IsFileUsed(fileName) && File.Exists(path)) File.Delete(path);
+                Log.WriteLine("Deleted from {0}: {1}, \"{2}\"", processor.RealClientIP, fileName, book.Title);
+                WriteResult(processor, true, Localizer.Text("The book is deleted"));
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLine(LogLevel.Error, "Delete error from {0}: {1}", processor.RealClientIP, ex.Message);
+                WriteResult(processor, false, Localizer.Text("Delete error"));
+            }
+        }
+
+        /// <summary>
+        /// True if the file (relative to the library) is inside the Uploads folder, after ".." and the like are resolved
+        /// </summary>
+        private static bool IsInUploads(string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName)) return false;
+            char separator = Path.DirectorySeparatorChar;
+            string full = Path.GetFullPath(Path.Combine(Library.LibraryPath, fileName.Replace('\\', separator).Replace('/', separator)));
+            string uploads = Path.GetFullPath(UploadsPath).TrimEnd(separator) + separator;
+            return full.StartsWith(uploads, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string GetQueryValue(string url, string key)
+        {
+            int i = url.IndexOf('?');
+            if (i < 0) return null;
+            foreach (string pair in url.Substring(i + 1).Split('&'))
+            {
+                if (pair.StartsWith(key + "=", StringComparison.Ordinal))
+                {
+                    return Uri.UnescapeDataString(pair.Substring(key.Length + 1).Replace('+', ' '));
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
         /// File name from the query string, without folders and characters not allowed in file names
         /// </summary>
         private static string GetFileName(string url)
         {
-            int i = url.IndexOf("name=", StringComparison.Ordinal);
-            if (i < 0) return null;
-            string name = url.Substring(i + 5);
-            int amp = name.IndexOf('&');
-            if (amp >= 0) name = name.Substring(0, amp);
-
-            name = Uri.UnescapeDataString(name.Replace('+', ' '));
+            string name = GetQueryValue(url, "name");
+            if (name == null) return null;
             name = name.Replace('\\', '/');
             name = name.Substring(name.LastIndexOf('/') + 1);
             foreach (char c in Path.GetInvalidFileNameChars()) name = name.Replace(c, '_');
@@ -262,6 +334,24 @@ namespace TinyOPDS.Server
             {
                 Log.WriteLine(LogLevel.Warning, "Upload: bad archive: {0}", ex.Message);
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Files in a ZIP archive (folders aside); 0 if it isn't a readable archive, CheckArchive rejects it then
+        /// </summary>
+        private static int CountArchiveFiles(string path)
+        {
+            try
+            {
+                using (var archive = ZipFile.OpenRead(path))
+                {
+                    return archive.Entries.Count(e => !string.IsNullOrEmpty(e.Name));
+                }
+            }
+            catch
+            {
+                return 0;
             }
         }
 

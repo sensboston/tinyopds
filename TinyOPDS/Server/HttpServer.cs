@@ -792,6 +792,11 @@ namespace TinyOPDS.Server
                 new UploadHandler().HandleUpload(this, inputStream);
                 return;
             }
+            if (HttpUrl.StartsWith("/delete-book", StringComparison.Ordinal))
+            {
+                new UploadHandler().HandleDelete(this);
+                return;
+            }
 
             MemoryStream memStream = null;
             StreamReader reader = null;

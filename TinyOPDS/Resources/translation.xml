@@ -2098,5 +2098,77 @@
 			<text lang="fr">Ajouté à la bibliothèque : {0}</text>
 			<text lang="pl">Dodano do biblioteki: {0}</text>
 		</property>
+		<property>
+			<text lang="en">An archive must contain one book</text>
+			<text lang="ru">В архиве должна быть одна книга</text>
+			<text lang="uk">В архіві має бути одна книга</text>
+			<text lang="de">Das Archiv darf nur ein Buch enthalten</text>
+			<text lang="es">El archivo debe contener un solo libro</text>
+			<text lang="fr">L'archive doit contenir un seul livre</text>
+			<text lang="pl">Archiwum musi zawierać jedną książkę</text>
+		</property>
+		<property>
+			<text lang="en">Delete the book</text>
+			<text lang="ru">Удалить книгу</text>
+			<text lang="uk">Видалити книгу</text>
+			<text lang="de">Buch löschen</text>
+			<text lang="es">Eliminar el libro</text>
+			<text lang="fr">Supprimer le livre</text>
+			<text lang="pl">Usuń książkę</text>
+		</property>
+		<property>
+			<text lang="en">Delete the book from the library?</text>
+			<text lang="ru">Удалить книгу из библиотеки?</text>
+			<text lang="uk">Видалити книгу з бібліотеки?</text>
+			<text lang="de">Das Buch aus der Bibliothek löschen?</text>
+			<text lang="es">¿Eliminar el libro de la biblioteca?</text>
+			<text lang="fr">Supprimer le livre de la bibliothèque ?</text>
+			<text lang="pl">Usunąć książkę z biblioteki?</text>
+		</property>
+		<property>
+			<text lang="en">Delete</text>
+			<text lang="ru">Удалить</text>
+			<text lang="uk">Видалити</text>
+			<text lang="de">Löschen</text>
+			<text lang="es">Eliminar</text>
+			<text lang="fr">Supprimer</text>
+			<text lang="pl">Usuń</text>
+		</property>
+		<property>
+			<text lang="en">Cancel</text>
+			<text lang="ru">Отмена</text>
+			<text lang="uk">Скасувати</text>
+			<text lang="de">Abbrechen</text>
+			<text lang="es">Cancelar</text>
+			<text lang="fr">Annuler</text>
+			<text lang="pl">Anuluj</text>
+		</property>
+		<property>
+			<text lang="en">The book is deleted</text>
+			<text lang="ru">Книга удалена</text>
+			<text lang="uk">Книгу видалено</text>
+			<text lang="de">Das Buch wurde gelöscht</text>
+			<text lang="es">El libro ha sido eliminado</text>
+			<text lang="fr">Le livre a été supprimé</text>
+			<text lang="pl">Książka została usunięta</text>
+		</property>
+		<property>
+			<text lang="en">This book can't be deleted</text>
+			<text lang="ru">Эту книгу нельзя удалить</text>
+			<text lang="uk">Цю книгу не можна видалити</text>
+			<text lang="de">Dieses Buch kann nicht gelöscht werden</text>
+			<text lang="es">Este libro no se puede eliminar</text>
+			<text lang="fr">Ce livre ne peut pas être supprimé</text>
+			<text lang="pl">Tej książki nie można usunąć</text>
+		</property>
+		<property>
+			<text lang="en">Delete error</text>
+			<text lang="ru">Ошибка удаления</text>
+			<text lang="uk">Помилка видалення</text>
+			<text lang="de">Fehler beim Löschen</text>
+			<text lang="es">Error al eliminar</text>
+			<text lang="fr">Erreur de suppression</text>
+			<text lang="pl">Błąd usuwania</text>
+		</property>
 	</properties>
 </root>

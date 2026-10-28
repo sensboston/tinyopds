@@ -1029,6 +1029,25 @@ namespace TinyOPDS.Data
         }
 
         /// <summary>
+        /// IDs of the books uploaded from the web interface: the web pages show a delete button on them
+        /// </summary>
+        public static List<string> GetUploadedBookIds()
+        {
+            return bookRepository == null ? new List<string>() : bookRepository.GetBookIDsInFolder(Server.UploadHandler.FolderName);
+        }
+
+        /// <summary>
+        /// Deletes a book from the library; the older copies it replaced are shown again
+        /// </summary>
+        public static bool DeleteBook(string id)
+        {
+            if (bookRepository == null || !bookRepository.DeleteBookRestoringReplaced(id)) return false;
+            IsChanged = true;
+            InvalidateCache();
+            return true;
+        }
+
+        /// <summary>
         /// Get total count of new books for the current period
         /// </summary>
         public static int GetNewBooksTotalCount()

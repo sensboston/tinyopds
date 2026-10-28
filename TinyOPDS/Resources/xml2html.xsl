@@ -5,6 +5,7 @@ xmlns:x="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/terms/">
 	<xsl:param name="uiLanguage" select="'en'"/>
 	<xsl:param name="libName" select="''"/>
 	<xsl:param name="darkTheme" select="''"/>
+	<xsl:param name="scriptsVersion" select="''"/>
 	<xsl:param name="uploadMaxMB" select="''"/>
 	<xsl:param name="uploadTooLarge" select="''"/>
 	<xsl:param name="uploadingText" select="''"/>
@@ -1005,14 +1006,14 @@ xmlns:x="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/terms/">
 					}
 					.dark .descr-toggle{background:transparent;border-color:#444;color:#eee}
 				</style>
-				<script src="/smart-header.js">
+				<script src="/smart-header.js?v={$scriptsVersion}">
 					<xsl:text> </xsl:text>
 				</script>
-				<script src="/infinite-scroll.js">
+				<script src="/infinite-scroll.js?v={$scriptsVersion}">
 					<xsl:text> </xsl:text>
 				</script>
 				<xsl:if test="$uploadMaxMB != ''">
-					<script src="/upload.js" data-max-mb="{$uploadMaxMB}" data-too-large="{$uploadTooLarge}" data-uploading="{$uploadingText}" data-failed="{$uploadFailedText}" data-delete-question="{$deleteQuestionText}" data-delete="{$deleteText}" data-cancel="{$cancelText}" data-delete-failed="{$deleteFailedText}">
+					<script src="/upload.js?v={$scriptsVersion}" data-max-mb="{$uploadMaxMB}" data-too-large="{$uploadTooLarge}" data-uploading="{$uploadingText}" data-failed="{$uploadFailedText}" data-delete-question="{$deleteQuestionText}" data-delete="{$deleteText}" data-cancel="{$cancelText}" data-delete-failed="{$deleteFailedText}">
 						<xsl:text> </xsl:text>
 					</script>
 				</xsl:if>

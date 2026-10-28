@@ -28,6 +28,21 @@ namespace TinyOPDS.Server
         private readonly XslCompiledTransform xslTransform = new XslCompiledTransform();
         private readonly object xslLock = new object();
 
+        // Added to the script URLs: mobile Chrome kept an old script despite no-cache, a new build gives new URLs
+        private static readonly string scriptsVersion = GetScriptsVersion();
+
+        private static string GetScriptsVersion()
+        {
+            try
+            {
+                return File.GetLastWriteTimeUtc(Assembly.GetExecutingAssembly().Location).Ticks.ToString("x");
+            }
+            catch
+            {
+                return Utils.ServerVersionName.GetHashCode().ToString("x");
+            }
+        }
+
         public XslTransformHandler()
         {
             InitializeXslTransform();
@@ -134,6 +149,7 @@ namespace TinyOPDS.Server
             var books = StringUtils.ApplyPluralForm(booksCount, Localizer.Language, string.Format(Localizer.Text("{0} books"), booksCount));
             string libName = string.Format("{0}: {1}", Properties.Settings.Default.ServerName, books);
             args.AddParam("libName", "", libName);
+            args.AddParam("scriptsVersion", "", scriptsVersion);
             if (Properties.Settings.Default.DarkThemeOnWeb)
             {
                 args.AddParam("darkTheme", "", "dark");

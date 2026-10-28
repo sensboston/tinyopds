@@ -693,9 +693,10 @@ namespace TinyOPDS
                     notifyIcon.Visible = true;
                     windowMenuItem.Text = Localizer.Text("Show window");
                 }
-                else if (WindowState == FormWindowState.Normal)
+                // Windows sends WM_SIZE to hidden windows too (display reconfiguration, TV standby,
+                // remote desktop virtual screen), so a resize must never show a window hidden to tray
+                else if (WindowState == FormWindowState.Normal && Visible)
                 {
-                    Visible = true;
                     notifyIcon.Visible = true;
                     windowMenuItem.Text = Localizer.Text("Hide window");
                 }

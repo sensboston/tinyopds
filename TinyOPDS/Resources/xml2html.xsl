@@ -864,6 +864,11 @@ xmlns:x="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/terms/">
 					transition: background .2s, opacity .2s;
 					}
 
+					/* A tap always hits the button itself, not the icon */
+					.delete-book svg {
+					pointer-events: none;
+					}
+
 					.delete-book:hover, .delete-book:focus-visible {
 					background: #c0392b;
 					opacity: 1;

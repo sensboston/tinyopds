@@ -182,7 +182,12 @@
         addDialogStyles();
         // Book lists grow while scrolling, so the clicks are caught on the page, before the handlers of the book card
         document.addEventListener('click', function (e) {
-            var button = e.target.closest ? e.target.closest('.delete-book') : null;
+            // Not closest(): some mobile browsers have no closest() on SVG elements, the icon of the button
+            var button = e.target;
+            while (button && !(button.className && typeof button.className === 'string' &&
+                (' ' + button.className + ' ').indexOf(' delete-book ') >= 0)) {
+                button = button.parentNode;
+            }
             if (!button) return;
             e.preventDefault();
             e.stopPropagation();

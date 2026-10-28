@@ -220,6 +220,8 @@ namespace TinyOPDS
             UpdateInfo();
             databaseFileName.Text = "books.sqlite";
             normalSize = Size;
+            normalLocation = Location;
+            Move += MainForm_Move;
 
             if (Settings.Default.StartMinimized && Settings.Default.CloseToTray)
             {
@@ -686,18 +688,35 @@ namespace TinyOPDS
 
         // Size of the form after loading; the border is fixed, so any other size is set by Windows
         private Size normalSize = Size.Empty;
+        // Last position of the visible window that fitted the screen
+        private Point normalLocation;
 
         // When the only display disappears (TV standby), Windows shrinks the window to the
         // 1024x768 fallback screen and then scales it up to the whole screen when the display
         // with another DPI returns. Controls are not rescaled, so the original size is restored.
         private void KeepNormalBounds()
         {
-            if (normalSize.IsEmpty || WindowState != FormWindowState.Normal || Size == normalSize) return;
+            Rectangle saved = new Rectangle(normalLocation, normalSize);
+            if (normalSize.IsEmpty || WindowState != FormWindowState.Normal || Bounds == saved) return;
 
             Rectangle area = Screen.FromControl(this).WorkingArea;
+            if (area.Contains(saved))
+            {
+                Bounds = saved;
+                return;
+            }
+            if (Size == normalSize && area.Contains(Bounds)) return;
             int x = Math.Max(area.Left, Math.Min(Left, area.Right - normalSize.Width));
             int y = Math.Max(area.Top, Math.Min(Top, area.Bottom - normalSize.Height));
             Bounds = new Rectangle(new Point(x, y), normalSize);
+        }
+
+        private void MainForm_Move(object sender, EventArgs e)
+        {
+            // positions set by Windows on a temporary screen are not remembered
+            if (Visible && WindowState == FormWindowState.Normal && Size == normalSize &&
+                Screen.FromControl(this).WorkingArea.Contains(Bounds))
+                normalLocation = Location;
         }
 
         private void MainForm_Resize(object sender, EventArgs e)
@@ -738,7 +757,11 @@ namespace TinyOPDS
                 }
             }
 
-            if (Visible) WindowState = FormWindowState.Normal;
+            if (Visible)
+            {
+                WindowState = FormWindowState.Normal;
+                KeepNormalBounds();
+            }
             windowMenuItem.Text = Localizer.Text(Visible ? "Hide window" : "Show window");
         }
 

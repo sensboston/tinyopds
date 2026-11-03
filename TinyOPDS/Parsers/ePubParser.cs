@@ -363,7 +363,7 @@ namespace TinyOPDS.Parsers
                 // Set series info if found
                 if (!string.IsNullOrEmpty(seriesName))
                 {
-                    book.Sequence = seriesName.Trim();
+                    book.Sequence = seriesName.NormalizeSequenceName();
                     book.NumberInSequence = seriesIndex;
                     Log.WriteLine(LogLevel.Info, "Found series: {0} #{1}", book.Sequence, book.NumberInSequence);
                 }
@@ -508,7 +508,7 @@ namespace TinyOPDS.Parsers
 
                     if (!string.IsNullOrEmpty(coverPath))
                     {
-                        var coverEntry = archive.GetEntry(coverPath);
+                        var coverEntry = FindEntry(archive, coverPath);
                         if (coverEntry != null)
                         {
                             using (var coverStream = coverEntry.Open())
@@ -606,12 +606,7 @@ namespace TinyOPDS.Parsers
                             {
                                 string href = coverItem.Attribute("href")?.Value;
                                 if (!string.IsNullOrEmpty(href))
-                                {
-                                    // Handle relative paths
-                                    if (!href.StartsWith("/"))
-                                        href = opfDir + href;
-                                    return href;
-                                }
+                                    return ResolveHref(opfDir, href);
                             }
                         }
                     }
@@ -626,11 +621,7 @@ namespace TinyOPDS.Parsers
                 {
                     string href = coverImageItem.Attribute("href")?.Value;
                     if (!string.IsNullOrEmpty(href))
-                    {
-                        if (!href.StartsWith("/"))
-                            href = opfDir + href;
-                        return href;
-                    }
+                        return ResolveHref(opfDir, href);
                 }
 
                 // Look for item with id="cover" or id containing "cover"
@@ -646,11 +637,7 @@ namespace TinyOPDS.Parsers
                 {
                     string href = item.Attribute("href")?.Value;
                     if (!string.IsNullOrEmpty(href))
-                    {
-                        if (!href.StartsWith("/"))
-                            href = opfDir + href;
-                        return href;
-                    }
+                        return ResolveHref(opfDir, href);
                 }
             }
             catch (Exception ex)
@@ -659,6 +646,36 @@ namespace TinyOPDS.Parsers
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Archive path of a manifest href: URL-decoded (the spec requires "%20" for a blank),
+        /// without fragment, relative to the OPF folder, with "." and ".." segments resolved
+        /// </summary>
+        private static string ResolveHref(string opfDir, string href)
+        {
+            int hash = href.IndexOf('#');
+            if (hash >= 0) href = href.Substring(0, hash);
+            try { href = Uri.UnescapeDataString(href); } catch (UriFormatException) { }
+
+            string path = href.StartsWith("/") ? href.Substring(1) : opfDir + href;
+            var parts = new List<string>();
+            foreach (var part in path.Replace('\\', '/').Split('/'))
+            {
+                if (part.Length == 0 || part == ".") continue;
+                if (part == "..") { if (parts.Count > 0) parts.RemoveAt(parts.Count - 1); }
+                else parts.Add(part);
+            }
+            return string.Join("/", parts);
+        }
+
+        /// <summary>
+        /// Archive entry by path; falls back to a case-insensitive match (some books differ in case from the manifest)
+        /// </summary>
+        private static ZipArchiveEntry FindEntry(ZipArchive archive, string path)
+        {
+            return archive.GetEntry(path) ??
+                   archive.Entries.FirstOrDefault(e => string.Equals(e.FullName, path, StringComparison.OrdinalIgnoreCase));
         }
     }
 }

@@ -122,6 +122,7 @@
             this.useHTTPAuth = new System.Windows.Forms.CheckBox();
             this.tabPage3 = new System.Windows.Forms.TabPage();
             this.darkTheme = new System.Windows.Forms.CheckBox();
+            this.installUpdates = new System.Windows.Forms.CheckBox();
             this.oneInstance = new System.Windows.Forms.CheckBox();
             this.viewLogFile = new System.Windows.Forms.Button();
             this.label32 = new System.Windows.Forms.Label();
@@ -1218,6 +1219,7 @@
             // tabPage3
             // 
             this.tabPage3.BackColor = System.Drawing.SystemColors.Control;
+            this.tabPage3.Controls.Add(this.installUpdates);
             this.tabPage3.Controls.Add(this.darkTheme);
             this.tabPage3.Controls.Add(this.oneInstance);
             this.tabPage3.Controls.Add(this.viewLogFile);
@@ -1250,7 +1252,18 @@
             this.darkTheme.Text = "Dark theme";
             this.darkTheme.UseVisualStyleBackColor = true;
             this.darkTheme.CheckedChanged += new System.EventHandler(this.checkBox1_CheckedChanged);
-            // 
+            //
+            // installUpdates
+            //
+            this.installUpdates.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::TinyOPDS.Properties.Settings.Default, "InstallUpdates", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.installUpdates.Location = new System.Drawing.Point(733, 470);
+            this.installUpdates.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
+            this.installUpdates.Name = "installUpdates";
+            this.installUpdates.Size = new System.Drawing.Size(576, 41);
+            this.installUpdates.TabIndex = 42;
+            this.installUpdates.Text = "Install updates automatically";
+            this.installUpdates.UseVisualStyleBackColor = true;
+            //
             // oneInstance
             // 
             this.oneInstance.Location = new System.Drawing.Point(733, 162);
@@ -1743,6 +1756,7 @@
         private System.Windows.Forms.Button clearDownloadsButton;
         private System.Windows.Forms.CheckBox filterByLanguage;
         private System.Windows.Forms.CheckBox darkTheme;
+        private System.Windows.Forms.CheckBox installUpdates;
         private System.Windows.Forms.Button clearAuthorizedClients;
     }
 }

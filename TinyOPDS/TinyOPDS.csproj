@@ -145,6 +145,7 @@
     <Compile Include="Misc\StringUtils.cs" />
     <Compile Include="Misc\ZipEntryReader.cs" />
     <Compile Include="Misc\UpdateChecker.cs" />
+    <Compile Include="Misc\UpdateInstaller.cs" />
     <Compile Include="Misc\UPnP.cs" />
     <Compile Include="Misc\Utils.cs" />
   </ItemGroup>

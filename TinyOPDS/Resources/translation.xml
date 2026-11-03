@@ -1359,6 +1359,42 @@
 			<text lang="pl">TinyOPDS: znaleziono aktualizację</text>
 		</property>
 		<property>
+			<text lang="en">Version {0} is available. Click here to view releases.</text>
+			<text lang="ru">Доступна версия {0}. Нажмите, чтобы открыть страницу релизов.</text>
+			<text lang="uk">Доступна версія {0}. Натисніть, щоб відкрити сторінку релізів.</text>
+			<text lang="de">Version {0} ist verfügbar. Hier klicken, um die Releases anzuzeigen.</text>
+			<text lang="es">La versión {0} está disponible. Haga clic aquí para ver las versiones.</text>
+			<text lang="fr">La version {0} est disponible. Cliquez ici pour voir les versions.</text>
+			<text lang="pl">Wersja {0} jest dostępna. Kliknij tutaj, aby zobaczyć wydania.</text>
+		</property>
+		<property>
+			<text lang="en">Version {0} is not installed automatically. Click here to view releases.</text>
+			<text lang="ru">Версию {0} не удалось установить автоматически. Нажмите, чтобы открыть страницу релизов.</text>
+			<text lang="uk">Версію {0} не вдалося встановити автоматично. Натисніть, щоб відкрити сторінку релізів.</text>
+			<text lang="de">Version {0} konnte nicht automatisch installiert werden. Hier klicken, um die Releases anzuzeigen.</text>
+			<text lang="es">No se pudo instalar la versión {0} automáticamente. Haga clic aquí para ver las versiones.</text>
+			<text lang="fr">La version {0} n'a pas pu être installée automatiquement. Cliquez ici pour voir les versions.</text>
+			<text lang="pl">Nie udało się automatycznie zainstalować wersji {0}. Kliknij tutaj, aby zobaczyć wydania.</text>
+		</property>
+		<property>
+			<text lang="en">TinyOPDS has been updated to version {0}</text>
+			<text lang="ru">TinyOPDS обновлён до версии {0}</text>
+			<text lang="uk">TinyOPDS оновлено до версії {0}</text>
+			<text lang="de">TinyOPDS wurde auf Version {0} aktualisiert</text>
+			<text lang="es">TinyOPDS se ha actualizado a la versión {0}</text>
+			<text lang="fr">TinyOPDS a été mis à jour vers la version {0}</text>
+			<text lang="pl">TinyOPDS został zaktualizowany do wersji {0}</text>
+		</property>
+		<property form="MainForm" ctrl="installUpdates">
+			<text lang="en">Install updates automatically</text>
+			<text lang="ru">Устанавливать обновления автоматически</text>
+			<text lang="uk">Встановлювати оновлення автоматично</text>
+			<text lang="de">Updates automatisch installieren</text>
+			<text lang="es">Instalar actualizaciones automáticamente</text>
+			<text lang="fr">Installer les mises à jour automatiquement</text>
+			<text lang="pl">Instaluj aktualizacje automatycznie</text>
+		</property>
+		<property>
 			<text lang="en">Click here to download update v {0}</text>
 			<text lang="ru">Кликните для загрузки обновления v {0}</text>
 			<text lang="uk">Натисніть тут для завантаження оновлення v {0}</text>

@@ -27,10 +27,15 @@ namespace TinyOPDS
         static readonly Mutex mutex = new Mutex(false, "tiny_opds_mutex");
 
         /// <summary>
+        /// This start completes an automatic update
+        /// </summary>
+        public static bool Updated { get; private set; }
+
+        /// <summary>
         /// The main entry point for the application.
         /// </summary>
         [STAThread]
-        static void Main()
+        static void Main(string[] args)
         {
             // Check for macOS WinForms compatibility
             if (Utils.IsMacOS)
@@ -71,6 +76,9 @@ namespace TinyOPDS
             Application.SetCompatibleTextRenderingDefault(false);
             Application.EnableVisualStyles();
 
+            // Started by the previous version after an update: it holds the single instance mutex until it exits
+            Updated = UpdateInstaller.CompleteUpdate(args);
+
             // Check for single instance only if enabled in settings
             if (Settings.Default.OnlyOneInstance)
             {
@@ -80,7 +88,14 @@ namespace TinyOPDS
                 }
                 else
                 {
-                    if (!mutex.WaitOne(TimeSpan.FromSeconds(1), false)) return;
+                    try
+                    {
+                        if (!mutex.WaitOne(TimeSpan.FromSeconds(1), false)) return;
+                    }
+                    catch (AbandonedMutexException)
+                    {
+                        // The previous instance was killed, the mutex is ours now
+                    }
                 }
             }
 

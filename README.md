@@ -1,9 +1,19 @@
-# TinyOPDS 3.18
+# TinyOPDS 3.20
 Lightweight and powerful OPDS server for home libraries
 
 ![](https://github.com/sensboston/tinyopds/blob/master/wiki/ss1.png?raw=true)
 
 TinyOPDS is a simple and lightweight OPDS server written in C#. Works on Windows, Linux and macOS via .NET or Mono.
+
+## What's new in 3.20
+
+- **Book uploads from the web interface** - add FB2, EPUB or a zipped book from a phone or another computer: double click (double tap) the logo in the page header. Uploaded books go to the `Uploads` subfolder of the library, appear in the **Uploaded books** catalog and can be deleted from the web interface. Off by default, see [Book uploads](https://github.com/sensboston/tinyopds/wiki/Uploads_en)
+- **Automatic updates** (Windows, optional) - a new release is downloaded, checked by its SHA-256 digest and installed with a restart; the update check also finds patch releases and repeats a missed notification daily
+- **Series** - a book is listed in all its series, and variants of one series name (case, ё/е, blanks, a trailing dot) are merged; an existing database is fixed on the first start, a rescan adds the missing second series of books
+- **EPUB covers** with blanks or other encoded characters in the image file name are shown
+- **Program window** keeps its size and position after display changes (TV standby, remote desktop), a click on the tray icon brings it to the front
+
+Upgrading from 3.18 doesn't require a rescan.
 
 ## TinyOPDS 3.18 - Revolutionary Update!
 
@@ -78,10 +88,20 @@ If TinyOPDS helped organize your library, you can support development - donation
 
 ---
 
-## TinyOPDS 3.18
+## TinyOPDS 3.20
 Легкий та потужний OPDS сервер для домашніх бібліотек
 
 TinyOPDS - це простий та легкий OPDS сервер, написаний на C#. Працює на Windows, Linux та macOS через .NET або Mono.
+
+## Що нового у 3.20
+
+- **Завантаження книг з веб-інтерфейсу** - додавайте FB2, EPUB або запаковану книгу з телефона чи іншого комп'ютера: подвійне клацання (подвійний дотик) по логотипу в шапці сторінки. Завантажені книги потрапляють до підпапки `Uploads` бібліотеки, у розділ **Додані книги** і можуть бути видалені з веб-інтерфейсу. Типово вимкнено, див. [Завантаження книг](https://github.com/sensboston/tinyopds/wiki/Uploads_uk)
+- **Автоматичне оновлення** (Windows, за бажанням) - новий реліз завантажується, перевіряється за SHA-256 і встановлюється з перезапуском; перевірка оновлень також знаходить патч-релізи і повторює пропущене сповіщення щодня
+- **Серії** - книга показується в усіх своїх серіях, а варіанти назви однієї серії (регістр, ё/е, пробіли, крапка в кінці) об'єднуються; наявна база виправляється під час першого запуску, пересканування додає книгам пропущену другу серію
+- **Обкладинки EPUB** з пробілами чи іншими закодованими символами в назві файлу зображення показуються
+- **Вікно програми** зберігає розмір і положення після зміни дисплея (режим очікування телевізора, віддалений робочий стіл), клацання по значку в треї виводить його наперед
+
+Оновлення з 3.18 не потребує пересканування.
 
 ## TinyOPDS отримав революційне оновлення!
 
@@ -156,10 +176,20 @@ services:
 
 ---
 
-## TinyOPDS 3.18
+## TinyOPDS 3.20
 Легкий, но мощный OPDS сервер для домашних библиотек
 
 TinyOPDS - это простой OPDS сервер, написанный на C#. Работает на Windows, Linux и macOS через .NET или Mono.
+
+## Что нового в 3.20
+
+- **Загрузка книг из веб-интерфейса** - добавляйте FB2, EPUB или запакованную книгу с телефона или другого компьютера: двойной щелчок (двойное касание) по логотипу в шапке страницы. Загруженные книги попадают в подпапку `Uploads` библиотеки, в раздел **Добавленные книги** и могут быть удалены из веб-интерфейса. По умолчанию выключено, см. [Загрузка книг](https://github.com/sensboston/tinyopds/wiki/Uploads_ru)
+- **Автоматическое обновление** (Windows, по желанию) - новый релиз скачивается, проверяется по SHA-256 и устанавливается с перезапуском; проверка обновлений также находит патч-релизы и повторяет пропущенное уведомление ежедневно
+- **Серии** - книга показывается во всех своих сериях, а варианты названия одной серии (регистр, ё/е, пробелы, точка в конце) объединяются; существующая база исправляется при первом запуске, пересканирование добавляет книгам пропущенную вторую серию
+- **Обложки EPUB** с пробелами или другими закодированными символами в имени файла изображения показываются
+- **Окно программы** сохраняет размер и положение после смены дисплея (режим ожидания телевизора, удалённый рабочий стол), щелчок по значку в трее выводит его на передний план
+
+Обновление с 3.18 не требует пересканирования.
 
 ## TinyOPDS получил революционное обновление!
 

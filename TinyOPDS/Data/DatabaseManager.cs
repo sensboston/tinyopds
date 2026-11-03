@@ -513,6 +513,88 @@ namespace TinyOPDS.Data
                     Log.WriteLine("Books full-text index trigger updated");
                 }
             }
+
+            if (version < 3)
+            {
+                // Older versions kept variants of one series name ("Черный Отряд" / "Черный отряд",
+                // "...томах" / "...томах.", "Твен.Собрание" / "Твен. Собрание") as different series.
+                // Merging is repeatable, so it runs again while the step above is not done
+                try
+                {
+                    MergeSequenceVariants();
+                    if (Convert.ToInt32(ExecuteScalar("PRAGMA user_version") ?? 0) >= 2)
+                        ExecuteNonQuery("PRAGMA user_version = 3");
+                }
+                catch (Exception ex)
+                {
+                    Log.WriteLine(LogLevel.Error, "Error merging series name variants: {0}", ex.Message);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Merge series with the same key (Utils.SequenceKey) into the one with most books, normalize
+        /// series names and store the keys used to find a series when books are added
+        /// </summary>
+        private void MergeSequenceVariants()
+        {
+            Log.WriteLine("Merging series name variants...");
+            var sequences = ExecuteQuery(
+                "SELECT s.ID, s.Name, (SELECT COUNT(*) FROM BookSequences bs WHERE bs.SequenceID = s.ID) FROM Sequences s",
+                reader => new { ID = reader.GetInt64(0), Name = reader.GetString(1), Books = reader.GetInt64(2) });
+
+            int merged = 0, renamed = 0;
+            IDbTransaction tx = BeginTransactionWithObject();
+            try
+            {
+                // Index triggers scan the whole series index for each row (SequenceID is not indexed there),
+                // so they are off while series are merged and the index is rebuilt at the end. The update
+                // trigger is created for name changes only (it fired on any update)
+                ExecuteNonQueryInTransaction("DROP TRIGGER IF EXISTS sequences_au", tx);
+                ExecuteNonQueryInTransaction("DROP TRIGGER IF EXISTS sequences_ad", tx);
+
+                foreach (var group in sequences.GroupBy(s => s.Name.SequenceKey()))
+                {
+                    var main = group.OrderByDescending(s => s.Books).ThenBy(s => s.ID).First();
+                    foreach (var other in group.Where(s => s.ID != main.ID))
+                    {
+                        // A book in both variants keeps the number of the main one
+                        ExecuteNonQueryInTransaction("UPDATE OR IGNORE BookSequences SET SequenceID = @Main WHERE SequenceID = @Other", tx,
+                            CreateParameter("@Main", main.ID), CreateParameter("@Other", other.ID));
+                        ExecuteNonQueryInTransaction("DELETE FROM BookSequences WHERE SequenceID = @Other", tx,
+                            CreateParameter("@Other", other.ID));
+                        ExecuteNonQueryInTransaction("DELETE FROM Sequences WHERE ID = @Other", tx,
+                            CreateParameter("@Other", other.ID));
+                        merged++;
+                    }
+
+                    string name = main.Name.NormalizeSequenceName();
+                    if (name.Length > 0 && name != main.Name)
+                    {
+                        ExecuteNonQueryInTransaction("UPDATE Sequences SET Name = @Name WHERE ID = @ID", tx,
+                            CreateParameter("@Name", name), CreateParameter("@ID", main.ID));
+                        renamed++;
+                    }
+                    ExecuteNonQueryInTransaction("UPDATE Sequences SET SearchName = @Key WHERE ID = @ID", tx,
+                        CreateParameter("@Key", group.Key), CreateParameter("@ID", main.ID));
+                }
+
+                ExecuteNonQueryInTransaction(DatabaseSchema.DeleteAllSequencesFTS, tx);
+                ExecuteNonQueryInTransaction("INSERT INTO SequencesFTS(SequenceID, Name) SELECT ID, Name FROM Sequences", tx);
+                ExecuteNonQueryInTransaction(DatabaseSchema.CreateSequenceUpdateTrigger, tx);
+                ExecuteNonQueryInTransaction(DatabaseSchema.CreateSequenceDeleteTrigger, tx);
+                tx.Commit();
+            }
+            catch
+            {
+                tx.Rollback();
+                throw;
+            }
+            finally
+            {
+                tx.Dispose();
+            }
+            Log.WriteLine("Series name variants merged: {0} series merged, {1} renamed", merged, renamed);
         }
 
         /// <summary>

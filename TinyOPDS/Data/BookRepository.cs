@@ -391,13 +391,14 @@ namespace TinyOPDS.Data
                                     {
                                         if (!string.IsNullOrEmpty(sequenceInfo.Name))
                                         {
-                                            string searchName = NormalizeForSearch(sequenceInfo.Name);
+                                            string sequenceKey = sequenceInfo.Name.SequenceKey();
                                             db.ExecuteNonQueryInTransaction(DatabaseSchema.InsertSequence, transaction,
                                                 DatabaseManager.CreateParameter("@Name", sequenceInfo.Name),
-                                                DatabaseManager.CreateParameter("@SearchName", searchName));
+                                                DatabaseManager.CreateParameter("@SearchName", sequenceKey));
 
                                             db.ExecuteNonQueryInTransaction(DatabaseSchema.InsertBookSequence, transaction,
                                                 DatabaseManager.CreateParameter("@BookID", book.ID),
+                                                DatabaseManager.CreateParameter("@SearchName", sequenceKey),
                                                 DatabaseManager.CreateParameter("@SequenceName", sequenceInfo.Name),
                                                 DatabaseManager.CreateParameter("@NumberInSequence", (long)sequenceInfo.NumberInSequence));
                                         }

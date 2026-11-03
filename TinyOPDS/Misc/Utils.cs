@@ -17,6 +17,7 @@ using System.IO;
 using System.Collections;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Security.Principal;
 
 namespace TinyOPDS
@@ -50,6 +51,29 @@ namespace TinyOPDS
                 str += words[i] + " ";
             }
             return str.Trim();
+        }
+
+        /// <summary>
+        /// Series name as stored: single blanks (no-break spaces too), no blank before "." and ",",
+        /// a blank after them between words ("Марк Твен.Собрание" -> "Марк Твен. Собрание"; initials, "XXV.II"
+        /// and "Tor.Com" are kept), no trailing dot or comma (an ellipsis is kept)
+        /// </summary>
+        public static string NormalizeSequenceName(this string name)
+        {
+            if (string.IsNullOrEmpty(name)) return string.Empty;
+            name = Regex.Replace(name.Replace(' ', ' '), @"\s+", " ").Trim();
+            name = Regex.Replace(name, @" ([.,])", "$1");
+            name = Regex.Replace(name, @"(?<=[^\W\d_]{2})([.,])(?=\p{Lu}\p{Ll}{3})", "$1 ");
+            name = Regex.Replace(name, @"(?<!\.)[.,]$", "");
+            return name.TrimEnd();
+        }
+
+        /// <summary>
+        /// Key that identifies a series: normalized name, case-insensitive, "ё" = "е"
+        /// </summary>
+        public static string SequenceKey(this string name)
+        {
+            return name.NormalizeSequenceName().ToLowerInvariant().Replace('ё', 'е');
         }
 
         public static bool IsUpper(this string str)

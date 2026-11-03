@@ -360,22 +360,16 @@ namespace TinyOPDS.Parsers
                 }
             }
 
-            // Sequences (series)
-            var sequences = titleInfo.Elements(fb2Ns + "sequence");
-            if (sequences.Any())
+            // Sequences (series): all of them, a book can be in a series of the author and in a series
+            // of the edition, or in variants of one series name
+            foreach (var sequence in titleInfo.Elements(fb2Ns + "sequence"))
             {
-                var firstSequence = sequences.First();
-                var seqName = firstSequence.Attribute("name")?.Value;
-                if (!string.IsNullOrEmpty(seqName))
-                {
-                    book.Sequence = seqName.Capitalize(true);
+                var seqName = sequence.Attribute("name")?.Value?.Capitalize(true).NormalizeSequenceName();
+                if (string.IsNullOrEmpty(seqName)) continue;
+                if (book.Sequences.Any(s => s.Name.SequenceKey() == seqName.SequenceKey())) continue;
 
-                    var seqNumber = firstSequence.Attribute("number")?.Value;
-                    if (!string.IsNullOrEmpty(seqNumber) && uint.TryParse(seqNumber, out uint num))
-                    {
-                        book.NumberInSequence = num;
-                    }
-                }
+                uint.TryParse(sequence.Attribute("number")?.Value?.Trim(), out uint num);
+                book.Sequences.Add(new BookSequenceInfo(seqName, num));
             }
 
             var coverpage = titleInfo.Element(fb2Ns + "coverpage");

@@ -67,9 +67,10 @@ namespace TinyOPDS.OPDS
             List<Book> books = Library.GetBooksByAuthor(author);
             Log.WriteLine(LogLevel.Info, "Found {0} total books for author '{1}'", books.Count, author);
 
+            // A book in several series is counted in each of them
             var seriesGroups = books
-                .Where(b => !string.IsNullOrEmpty(b.Sequence))
-                .GroupBy(b => b.Sequence)
+                .SelectMany(b => b.Sequences.Where(s => !string.IsNullOrEmpty(s.Name)).Select(s => new { Book = b, s.Name }))
+                .GroupBy(x => x.Name, x => x.Book)
                 .OrderBy(g => g.Key, new OPDSComparer(Properties.Settings.Default.SortOrder > 0));
 
             Log.WriteLine(LogLevel.Info, "Found {0} series for author '{1}'", seriesGroups.Count(), author);

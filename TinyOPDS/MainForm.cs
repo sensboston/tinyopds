@@ -115,7 +115,6 @@ namespace TinyOPDS
             updateCheckerTimer.Tick += UpdateChecker_Tick;
             scanInfoTimer.Tick += (_, __) => InternalUpdateInfo(false);
             updateChecker.CheckCompleted += UpdateChecker_CheckCompleted;
-            if (Settings.Default.UpdatesCheck > 0) updateChecker.CheckAsync();
 
             bs.AddingNew += Bs_AddingNew;
             bs.AllowNew = true;
@@ -229,6 +228,16 @@ namespace TinyOPDS
                 WindowState = FormWindowState.Minimized;
                 Visible = false;
                 notifyIcon.Visible = true;
+            }
+
+            if (Program.Updated)
+            {
+                updateUrl = string.Empty;
+                notifyIcon.Visible = true;
+                notifyIcon.ShowBalloonTip(10000, "TinyOPDS",
+                    string.Format(Localizer.Text("TinyOPDS has been updated to version {0}"),
+                        UpdateChecker.CurrentVersion.ToString(UpdateChecker.CurrentVersion.Build > 0 ? 3 : 2)),
+                    ToolTipIcon.Info);
             }
         }
 
@@ -346,6 +355,8 @@ namespace TinyOPDS
             interfaceCombo.SelectedIndex = Math.Min(UPnPController.LocalInterfaces.Count - 1, Settings.Default.LocalInterfaceIndex);
             logVerbosity.SelectedIndex = Math.Min(2, Settings.Default.LogLevel);
             updateCombo.SelectedIndex = Math.Min(2, Settings.Default.UpdatesCheck);
+            installUpdates.Visible = Utils.IsWindows && !Utils.IsLinux && !Utils.IsMacOS;
+            installUpdates.Enabled = updateCombo.SelectedIndex > 0;
             langCombo.SelectedValue = Settings.Default.Language;
             sortOrderCombo.SelectedIndex = Settings.Default.SortOrder;
             newBooksPeriodCombo.SelectedIndex = Settings.Default.NewBooksPeriod;
@@ -1089,6 +1100,7 @@ namespace TinyOPDS
         private void UpdateCombo_SelectedIndexChanged(object sender, EventArgs e)
         {
             Settings.Default.UpdatesCheck = updateCombo.SelectedIndex;
+            installUpdates.Enabled = updateCombo.SelectedIndex > 0;
         }
 
         private void ViewLogFile_Click(object sender, EventArgs e)
@@ -1134,12 +1146,27 @@ namespace TinyOPDS
 
         #region TinyOPDS updates checker
 
+        // Update to install when the scan is over
+        UpdateCheckEventArgs pendingUpdate;
+        bool installingUpdate;
+
         void UpdateChecker_Tick(object sender, EventArgs e)
         {
-            if (Settings.Default.UpdatesCheck > 0 && !updateChecker.IsChecking)
+            if (pendingUpdate != null)
+            {
+                if (scanner.Status != FileScannerStatus.SCANNING)
+                {
+                    var update = pendingUpdate;
+                    pendingUpdate = null;
+                    InstallUpdate(update);
+                }
+                return;
+            }
+
+            if (Settings.Default.UpdatesCheck > 0 && !updateChecker.IsChecking && !installingUpdate)
             {
                 if (UpdateChecker.ShouldCheckForUpdates(Settings.Default.UpdatesCheck,
-                                                        Settings.Default.LastCheck))
+                                                        Settings.Default.LastCheck, UpdateChecker.UpdatePending))
                 {
                     updateChecker.CheckAsync();
                 }
@@ -1150,18 +1177,55 @@ namespace TinyOPDS
         {
             if (e.UpdateAvailable)
             {
-                updateUrl = e.DownloadUrl;
-
                 BeginInvoke((MethodInvoker)delegate
                 {
-                    notifyIcon.Visible = true;
-                    notifyIcon.ShowBalloonTip(30000,
-                        Localizer.Text("TinyOPDS: update found"),
-                        string.Format(Localizer.Text("Version {0} is available. Click here to view releases."),
-                            e.NewVersion),
-                        ToolTipIcon.Info);
+                    if (Settings.Default.InstallUpdates && UpdateInstaller.CanInstall(e))
+                    {
+                        if (scanner.Status == FileScannerStatus.SCANNING)
+                        {
+                            Log.WriteLine("Update {0} will be installed when the scan is over", e.NewVersion);
+                            pendingUpdate = e;
+                        }
+                        else InstallUpdate(e);
+                    }
+                    else ShowUpdateBalloon(e, "Version {0} is available. Click here to view releases.");
                 });
             }
+        }
+
+        /// <summary>
+        /// Download and install the update in background, then restart; on failure only notify
+        /// </summary>
+        void InstallUpdate(UpdateCheckEventArgs update)
+        {
+            installingUpdate = true;
+            Task.Run(() => UpdateInstaller.Install(update)).ContinueWith(t =>
+            {
+                installingUpdate = false;
+                if (t.Result)
+                {
+                    try
+                    {
+                        UpdateInstaller.StartNewVersion();
+                        realExit = true;
+                        Close();
+                        return;
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.WriteLine(LogLevel.Error, "Updated version is not started: {0}", ex.Message);
+                    }
+                }
+                ShowUpdateBalloon(update, "Version {0} is not installed automatically. Click here to view releases.");
+            }, TaskScheduler.FromCurrentSynchronizationContext());
+        }
+
+        void ShowUpdateBalloon(UpdateCheckEventArgs update, string text)
+        {
+            updateUrl = update.DownloadUrl;
+            notifyIcon.Visible = true;
+            notifyIcon.ShowBalloonTip(30000, Localizer.Text("TinyOPDS: update found"),
+                string.Format(Localizer.Text(text), update.NewVersion), ToolTipIcon.Info);
         }
 
         void NotifyIcon_BalloonTipClicked(object sender, EventArgs e)

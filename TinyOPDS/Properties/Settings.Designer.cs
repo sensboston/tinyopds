@@ -504,5 +504,29 @@ namespace TinyOPDS.Properties {
                 this["MaxUploadSizeMB"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool InstallUpdates {
+            get {
+                return ((bool)(this["InstallUpdates"]));
+            }
+            set {
+                this["InstallUpdates"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string LatestRelease {
+            get {
+                return ((string)(this["LatestRelease"]));
+            }
+            set {
+                this["LatestRelease"] = value;
+            }
+        }
     }
 }

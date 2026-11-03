@@ -74,7 +74,7 @@ namespace TinyOPDS.OPDS
             // Group books by series to count series books and non-series books
             var booksWithSeries = books.Where(b => !string.IsNullOrEmpty(b.Sequence)).ToList();
             var booksWithoutSeries = books.Where(b => string.IsNullOrEmpty(b.Sequence)).ToList();
-            var seriesCount = booksWithSeries.GroupBy(b => b.Sequence).Count();
+            var seriesCount = booksWithSeries.SelectMany(b => b.Sequences).Select(s => s.Name).Where(n => !string.IsNullOrEmpty(n)).Distinct().Count();
 
             Log.WriteLine(LogLevel.Info, "Author '{0}': {1} books with series ({2} series), {3} books without series",
                 author, booksWithSeries.Count, seriesCount, booksWithoutSeries.Count);

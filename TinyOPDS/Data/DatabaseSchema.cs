@@ -65,7 +65,7 @@ namespace TinyOPDS.Data
             CREATE TABLE IF NOT EXISTS Sequences (
                 ID INTEGER PRIMARY KEY AUTOINCREMENT,
                 Name TEXT NOT NULL UNIQUE,
-                SearchName TEXT                 -- Normalized for search (lowercase)
+                SearchName TEXT                 -- Series key: normalized name, lowercase, ё = е (Utils.SequenceKey)
             )";
 
         // Table to track downloaded/opened books
@@ -340,7 +340,7 @@ namespace TinyOPDS.Data
             END";
 
         public const string CreateSequenceUpdateTrigger = @"
-            CREATE TRIGGER IF NOT EXISTS sequences_au AFTER UPDATE ON Sequences BEGIN
+            CREATE TRIGGER IF NOT EXISTS sequences_au AFTER UPDATE OF Name ON Sequences BEGIN
                 UPDATE SequencesFTS 
                 SET Name = new.Name
                 WHERE SequenceID = new.ID;
@@ -401,10 +401,12 @@ namespace TinyOPDS.Data
         public const string InsertTranslator = @"
             INSERT OR IGNORE INTO Translators (Name) VALUES (@Name)";
 
-        // Insert sequence
+        // Insert sequence, unless there is one with the same key (name variants differing in case,
+        // blanks or a trailing dot are one series, the name inserted first is kept)
         public const string InsertSequence = @"
             INSERT OR IGNORE INTO Sequences (Name, SearchName) 
-            VALUES (@Name, @SearchName)";
+            SELECT @Name, @SearchName
+            WHERE NOT EXISTS (SELECT 1 FROM Sequences WHERE SearchName = @SearchName)";
 
         public const string InsertBookAuthor = @"
             INSERT OR IGNORE INTO BookAuthors (BookID, AuthorID) 
@@ -420,7 +422,8 @@ namespace TinyOPDS.Data
         // Insert book-sequence relationship
         public const string InsertBookSequence = @"
             INSERT OR IGNORE INTO BookSequences (BookID, SequenceID, NumberInSequence) 
-            VALUES (@BookID, (SELECT ID FROM Sequences WHERE Name = @SequenceName), @NumberInSequence)";
+            VALUES (@BookID, COALESCE((SELECT ID FROM Sequences WHERE SearchName = @SearchName LIMIT 1),
+                                      (SELECT ID FROM Sequences WHERE Name = @SequenceName)), @NumberInSequence)";
 
         // Insert download record
         public const string InsertDownload = @"

@@ -85,6 +85,14 @@ docker run --rm sensboston/tinyopds encred user1 password1 user2 password2
 
 and set `TINYOPDS_USEHTTPAUTH=true` and `TINYOPDS_CREDENTIALS=<the printed line>`.
 
+### Book uploads
+
+Books (FB2, EPUB, ZIP with one book) can be added from the web interface: double click (double tap) the logo in the page
+header. Set `TINYOPDS_ENABLEUPLOADS=true` (size limit `TINYOPDS_MAXUPLOADSIZEMB`, 20 MB by default) and mount the library
+without `:ro`: uploaded books are saved to its `Uploads` subfolder. Anyone who opens the web interface can upload,
+so use password protection if the server is reachable from the internet.
+[Details](https://github.com/sensboston/tinyopds/wiki/Uploads_en).
+
 ## Notes
 
 - **First scan.** A large library (hundreds of thousands of books) takes hours on a NAS; the server works while scanning,

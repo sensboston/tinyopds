@@ -153,6 +153,18 @@ namespace TinyOPDS.OPDS
                     Links.opensearch, Links.search, Links.start)
                 );
 
+            // Root of navigation: letters with authors counts are kept by the authors cache
+            if (string.IsNullOrEmpty(searchPattern) && !isOpenSearch)
+            {
+                var letterCounts = Library.GetAuthorsFirstLetterCounts();
+                if (letterCounts != null)
+                {
+                    foreach (var letter in letterCounts)
+                        doc.Root.Add(NavigationEntry(letter.Key, letter.Value));
+                    return doc;
+                }
+            }
+
             // Get authors names based on search pattern
             List<string> authors;
 
@@ -180,18 +192,7 @@ namespace TinyOPDS.OPDS
                 // Add navigation entries
                 foreach (var group in navigationGroups)
                 {
-                    doc.Root.Add(
-                        new XElement("entry",
-                            new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
-                            new XElement("id", "tag:authors:" + group.Key),
-                            new XElement("title", group.Key),
-                            new XElement("content", StringUtils.ApplyPluralForm(group.Value, Localizer.Language,
-                                                    string.Format(Localizer.Text("Total authors on {0}: {1}"), group.Key, group.Value)),
-                                         new XAttribute("type", "text")),
-                            new XElement("link", new XAttribute("href", "/authorsindex/" + Uri.EscapeDataString(group.Key)),
-                                         new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
-                        )
-                    );
+                    doc.Root.Add(NavigationEntry(group.Key, group.Value));
                 }
 
                 // Keep only authors that don't start with any group prefix.
@@ -235,6 +236,22 @@ namespace TinyOPDS.OPDS
                 totalEntries - groupEntries, groupEntries);
 
             return doc;
+        }
+
+        /// <summary>
+        /// Entry leading to authors starting with the prefix
+        /// </summary>
+        private static XElement NavigationEntry(string prefix, int authorsCount)
+        {
+            return new XElement("entry",
+                new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
+                new XElement("id", "tag:authors:" + prefix),
+                new XElement("title", prefix),
+                new XElement("content", StringUtils.ApplyPluralForm(authorsCount, Localizer.Language,
+                                        string.Format(Localizer.Text("Total authors on {0}: {1}"), prefix, authorsCount)),
+                             new XAttribute("type", "text")),
+                new XElement("link", new XAttribute("href", "/authorsindex/" + Uri.EscapeDataString(prefix)),
+                             new XAttribute("type", "application/atom+xml;profile=opds-catalog")));
         }
 
         /// <summary>

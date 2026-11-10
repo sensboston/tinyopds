@@ -84,6 +84,24 @@ namespace TinyOPDS.Server
     }
 
     /// <summary>
+    /// Wrong logins of a client
+    /// </summary>
+    public class BanEntry
+    {
+        public int Failures { get; set; }
+        public DateTime LastFailure { get; set; }
+
+        public bool IsBanned
+        {
+            get
+            {
+                return Failures >= Properties.Settings.Default.WrongAttemptsCount &&
+                       DateTime.UtcNow - LastFailure < HttpProcessor.BanDuration;
+            }
+        }
+    }
+
+    /// <summary>
     /// Simple HTTP processor with client tracking
     /// </summary>
     public class HttpProcessor : IDisposable
@@ -113,8 +131,12 @@ namespace TinyOPDS.Server
         private static readonly object authCacheLock = new object();
         private static DateTime lastCacheCleanup = DateTime.UtcNow;
 
-        public static Dictionary<string, int> BannedClients = new Dictionary<string, int>();
+        // Clients that sent wrong credentials, by network key (ClientNetworkKey). A client is banned for
+        // BanDuration after WrongAttemptsCount wrong logins in a row; bans are kept in settings over restarts
+        public static Dictionary<string, BanEntry> BannedClients = new Dictionary<string, BanEntry>();
         internal static readonly object bannedLock = new object();
+        private static bool bannedClientsLoaded = false;
+        internal static readonly TimeSpan BanDuration = TimeSpan.FromHours(24);
 
         private static readonly Dictionary<string, string> credentialCache = new Dictionary<string, string>();
         private static readonly object credentialCacheLock = new object();
@@ -154,7 +176,9 @@ namespace TinyOPDS.Server
             lock (bannedLock)
             {
                 BannedClients.Clear();
+                bannedClientsLoaded = true;
             }
+            Properties.Settings.Default.BannedClients = string.Empty;
 
             lock (authorizedIPsLock)
             {
@@ -173,9 +197,45 @@ namespace TinyOPDS.Server
             }
 
             Properties.Settings.Default.AuthorizedClients = string.Empty;
+            Properties.Settings.Default.CredentialsHash = CredentialsHash();
             Properties.Settings.Default.Save();
 
             Log.WriteLine(LogLevel.Info, "All authorized clients, sessions, and banned clients cleared");
+        }
+
+        /// <summary>
+        /// Clients are remembered over restarts; they are forgotten only when credentials were changed
+        /// since they logged in (credentials may be changed in config or environment while the server is down)
+        /// </summary>
+        public static void ForgetClientsIfCredentialsChanged()
+        {
+            string hash = CredentialsHash();
+            string saved = Properties.Settings.Default.CredentialsHash ?? string.Empty;
+            if (hash == saved) return;
+
+            if (string.IsNullOrEmpty(saved))
+            {
+                // First start of a version that keeps the hash: clients authorized before are kept
+                Properties.Settings.Default.CredentialsHash = hash;
+                Properties.Settings.Default.Save();
+            }
+            else
+            {
+                Log.WriteLine(LogLevel.Authentication, "Credentials were changed, authorized clients are forgotten");
+                ClearAllAuthorizedClients();
+            }
+        }
+
+        private static string CredentialsHash()
+        {
+            var text = new System.Text.StringBuilder();
+            foreach (Credential cred in Credentials.OrderBy(c => c.User, StringComparer.Ordinal))
+                text.Append(cred.User).Append(':').Append(cred.Password).Append('\n');
+
+            lock (sha256Lock)
+            {
+                return Convert.ToBase64String(sha256Instance.ComputeHash(System.Text.Encoding.UTF8.GetBytes(text.ToString())));
+            }
         }
 
         public HttpProcessor(TcpClient socket, HttpServer server)
@@ -301,11 +361,32 @@ namespace TinyOPDS.Server
             return false;
         }
 
-        private string GenerateClientFingerprint(string realIP, string userAgent)
+        /// <summary>
+        /// Address that identifies a client: IPv4 address or IPv6 /64 network. Devices change their IPv6
+        /// address inside the network prefix (privacy extensions, Android does it daily), so a client
+        /// authorized by full IPv6 address became unknown the next day
+        /// </summary>
+        internal static string ClientNetworkKey(string ip)
         {
-            // Fingerprint must always include client IP: User-Agent alone is not a secret
+            if (!IPAddress.TryParse(ip, out IPAddress address)) return ip;
+
+            if (address.IsIPv4MappedToIPv6) return address.MapToIPv4().ToString();
+
+            if (address.AddressFamily == AddressFamily.InterNetworkV6 && !IPAddress.IsLoopback(address))
+            {
+                byte[] bytes = address.GetAddressBytes();
+                for (int i = 8; i < bytes.Length; i++) bytes[i] = 0;
+                return new IPAddress(bytes) + "/64";
+            }
+
+            return address.ToString();
+        }
+
+        private string GenerateClientFingerprint(string clientKey, string userAgent)
+        {
+            // Fingerprint must always include client address: User-Agent alone is not a secret
             // and can be set to anything by any client
-            string fingerprint = realIP + "|" + (userAgent ?? "unknown");
+            string fingerprint = clientKey + "|" + (userAgent ?? "unknown");
 
             // Use shared SHA256 instance for better performance
             lock (sha256Lock)
@@ -358,6 +439,72 @@ namespace TinyOPDS.Server
             }
         }
 
+        // Load bans from settings ("key|failures|last failure ticks", comma separated)
+        private static void LoadBannedClients()
+        {
+            lock (bannedLock)
+            {
+                if (bannedClientsLoaded) return;
+                bannedClientsLoaded = true;
+
+                foreach (string item in (Properties.Settings.Default.BannedClients ?? "").Split(','))
+                {
+                    string[] parts = item.Split('|');
+                    if (parts.Length == 3 && int.TryParse(parts[1], out int failures) && long.TryParse(parts[2], out long ticks))
+                    {
+                        var entry = new BanEntry { Failures = failures, LastFailure = new DateTime(ticks, DateTimeKind.Utc) };
+                        if (entry.IsBanned) BannedClients[parts[0]] = entry;
+                    }
+                }
+            }
+        }
+
+        // Save active bans to settings (must be called under bannedLock)
+        private static void SaveBannedClients()
+        {
+            Properties.Settings.Default.BannedClients = string.Join(",", BannedClients
+                .Where(b => b.Value.IsBanned)
+                .Select(b => b.Key + "|" + b.Value.Failures + "|" + b.Value.LastFailure.Ticks));
+            Properties.Settings.Default.Save();
+        }
+
+        // Is the client banned now; expired bans are removed
+        private static bool IsBanned(string clientKey)
+        {
+            lock (bannedLock)
+            {
+                if (!BannedClients.TryGetValue(clientKey, out BanEntry entry)) return false;
+                if (entry.IsBanned) return true;
+
+                if (DateTime.UtcNow - entry.LastFailure >= BanDuration)
+                {
+                    bool wasBanned = entry.Failures >= Properties.Settings.Default.WrongAttemptsCount;
+                    BannedClients.Remove(clientKey);
+                    if (wasBanned) SaveBannedClients();
+                }
+                return false;
+            }
+        }
+
+        // Count a wrong login; the client is banned when the count reaches the limit
+        private static void RegisterWrongLogin(string clientKey)
+        {
+            lock (bannedLock)
+            {
+                if (!BannedClients.TryGetValue(clientKey, out BanEntry entry))
+                    BannedClients[clientKey] = entry = new BanEntry();
+                entry.Failures++;
+                entry.LastFailure = DateTime.UtcNow;
+
+                if (entry.IsBanned)
+                {
+                    SaveBannedClients();
+                    Log.WriteLine(LogLevel.Authentication, "Client {0} is banned for {1} hours after {2} wrong logins",
+                        clientKey, BanDuration.TotalHours, entry.Failures);
+                }
+            }
+        }
+
         public void Process()
         {
             try
@@ -405,8 +552,10 @@ namespace TinyOPDS.Server
                 Log.WriteLine(LogLevel.Info, "Request from {0} (direct: {1}): {2}",
                     RealClientIP, directIP, HttpUrl);
 
+                string clientKey = ClientNetworkKey(RealClientIP);
                 this.ClientHash = Utils.CreateGuid(Utils.IsoOidNamespace, RealClientIP).ToString();
-                this.ClientFingerprint = GenerateClientFingerprint(RealClientIP, userAgent);
+                this.ClientFingerprint = GenerateClientFingerprint(clientKey, userAgent);
+                bool wrongCredentials = false;
 
                 string sessionToken = null;
                 bool sendSessionCookie = false;
@@ -427,16 +576,13 @@ namespace TinyOPDS.Server
                     // Check if banned
                     if (Properties.Settings.Default.BanClients)
                     {
-                        lock (bannedLock)
+                        LoadBannedClients();
+                        if (IsBanned(clientKey))
                         {
-                            if (BannedClients.ContainsKey(RealClientIP) &&
-                                BannedClients[RealClientIP] >= Properties.Settings.Default.WrongAttemptsCount)
-                            {
-                                checkLogin = false;
-                                Log.WriteLine(LogLevel.Authentication, "IP address {0} is banned!", RealClientIP);
-                                WriteForbidden();
-                                return;
-                            }
+                            checkLogin = false;
+                            Log.WriteLine(LogLevel.Authentication, "Banned client {0}: {1}", clientKey, HttpUrl);
+                            WriteForbidden();
+                            return;
                         }
                     }
 
@@ -449,7 +595,7 @@ namespace TinyOPDS.Server
                             {
                                 authorized = true;
                                 this.Username = "permanent_user";
-                                Log.WriteLine(LogLevel.Authentication,
+                                Log.WriteLine(LogLevel.Info,
                                     "Permanently authorized client from {0}", RealClientIP);
                             }
                         }
@@ -473,7 +619,7 @@ namespace TinyOPDS.Server
                                             session.UpdateLastAccess();
                                             authorized = true;
                                             this.Username = session.Username;
-                                            Log.WriteLine(LogLevel.Authentication,
+                                            Log.WriteLine(LogLevel.Info,
                                                 "Session authenticated for user {0} from {1}",
                                                 session.Username, RealClientIP);
                                         }
@@ -494,7 +640,7 @@ namespace TinyOPDS.Server
                                             entry.UpdateLastAccess();
                                             authorized = true;
                                             this.Username = entry.Username;
-                                            Log.WriteLine(LogLevel.Authentication,
+                                            Log.WriteLine(LogLevel.Info,
                                                 "Cached authorization for {0} from {1}", entry.Username, RealClientIP);
                                         }
                                     }
@@ -507,7 +653,16 @@ namespace TinyOPDS.Server
                         {
                             string hash = HttpHeaders["Authorization"];
 
-                            if (hash.StartsWith("Basic "))
+                            // Wrong or malformed credentials count as a wrong login, a request without them doesn't
+                            wrongCredentials = true;
+
+                            if (!hash.StartsWith("Basic "))
+                            {
+                                int space = hash.IndexOf(' ');
+                                Log.WriteLine(LogLevel.Authentication, "Unsupported authorization scheme '{0}' from {1}",
+                                    space > 0 ? hash.Substring(0, space) : hash, RealClientIP);
+                            }
+                            else
                             {
                                 try
                                 {
@@ -523,6 +678,12 @@ namespace TinyOPDS.Server
                                         if (authorized)
                                         {
                                             this.Username = user;
+                                            wrongCredentials = false;
+
+                                            lock (bannedLock)
+                                            {
+                                                BannedClients.Remove(clientKey);
+                                            }
 
                                             // Save as permanently authorized
                                             SavePermanentlyAuthorized(ClientFingerprint);
@@ -571,6 +732,11 @@ namespace TinyOPDS.Server
                                                 "Authentication failed! IP: {0} user: {1}", RealClientIP, user);
                                         }
                                     }
+                                    else
+                                    {
+                                        Log.WriteLine(LogLevel.Authentication,
+                                            "Malformed Basic credentials (no user:password) from {0}", RealClientIP);
+                                    }
                                 }
                                 catch (Exception e)
                                 {
@@ -584,12 +750,12 @@ namespace TinyOPDS.Server
                         {
                             if (authorized)
                             {
-                                AuthorizedIPs.Add(RealClientIP);
+                                AuthorizedIPs.Add(clientKey);
                             }
-                            else if (isImageRequest && AuthorizedIPs.Contains(RealClientIP))
+                            else if (isImageRequest && AuthorizedIPs.Contains(clientKey))
                             {
                                 authorized = true;
-                                Log.WriteLine(LogLevel.Authentication, "Image request from authorized IP {0}", RealClientIP);
+                                Log.WriteLine(LogLevel.Info, "Image request from authorized client {0}", clientKey);
                             }
                         }
                     }
@@ -623,17 +789,14 @@ namespace TinyOPDS.Server
                     Log.WriteLine(LogLevel.Authentication, "Unauthorized: IP={0}, URL={1}, UserAgent={2}, HasAuth={3}",
                         RealClientIP, HttpUrl, userAgent, HttpHeaders.ContainsKey("Authorization"));
 
-                    if (Properties.Settings.Default.BanClients)
+                    // A request without credentials is the usual first request of a client (and of scanners):
+                    // it gets the login challenge but is not a wrong login
+                    if (wrongCredentials)
                     {
-                        lock (bannedLock)
-                        {
-                            if (!BannedClients.ContainsKey(RealClientIP))
-                                BannedClients[RealClientIP] = 0;
-                            BannedClients[RealClientIP]++;
-                        }
+                        if (Properties.Settings.Default.BanClients) RegisterWrongLogin(clientKey);
+                        HttpServer.ServerStatistics.IncrementWrongLoginAttempts();
                     }
 
-                    HttpServer.ServerStatistics.IncrementWrongLoginAttempts();
                     WriteNotAuthorized();
                 }
             }
@@ -940,7 +1103,7 @@ namespace TinyOPDS.Server
             {
                 lock (HttpProcessor.bannedLock)
                 {
-                    return HttpProcessor.BannedClients.Count(client => client.Value >= Properties.Settings.Default.WrongAttemptsCount);
+                    return HttpProcessor.BannedClients.Count(client => client.Value.IsBanned);
                 }
             }
         }

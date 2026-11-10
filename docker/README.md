@@ -85,6 +85,10 @@ docker run --rm sensboston/tinyopds encred user1 password1 user2 password2
 
 and set `TINYOPDS_USEHTTPAUTH=true` and `TINYOPDS_CREDENTIALS=<the printed line>`.
 
+Set `TINYOPDS_BANCLIENTS=true` to ban an address for 24 hours after `TINYOPDS_WRONGATTEMPTSCOUNT` (5 by default) wrong
+passwords in a row. To see who connects, set `TINYOPDS_SAVELOGTODISK=true` and `TINYOPDS_LOGLEVEL=3`: the log
+(`/data/TinyOPDS.log`) then keeps only logins, rejected requests, bans and errors.
+
 ### Book uploads
 
 Books (FB2, EPUB, ZIP with one book) can be added from the web interface: double click (double tap) the logo in the page

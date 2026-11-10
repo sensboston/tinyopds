@@ -468,6 +468,30 @@ namespace TinyOPDS.Properties {
                 this["AuthorizedClients"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string BannedClients {
+            get {
+                return ((string)(this["BannedClients"]));
+            }
+            set {
+                this["BannedClients"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string CredentialsHash {
+            get {
+                return ((string)(this["CredentialsHash"]));
+            }
+            set {
+                this["CredentialsHash"] = value;
+            }
+        }
 
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]

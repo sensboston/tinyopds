@@ -1323,6 +1323,15 @@
 			<text lang="pl">Tylko błędy</text>
 		</property>
 		<property>
+			<text lang="en">Logins and errors</text>
+			<text lang="ru">Входы и ошибки</text>
+			<text lang="uk">Входи та помилки</text>
+			<text lang="de">Anmeldungen und Fehler</text>
+			<text lang="es">Inicios de sesión y errores</text>
+			<text lang="fr">Connexions et erreurs</text>
+			<text lang="pl">Logowania i błędy</text>
+		</property>
+		<property>
 			<text lang="en">Never</text>
 			<text lang="ru">Никогда</text>
 			<text lang="uk">Ніколи</text>

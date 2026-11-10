@@ -171,6 +171,7 @@ namespace TinyOPDSCLI
 
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
             Log.SaveToFile = Settings.Default.SaveLogToDisk;
+            Log.VerbosityLevel = (LogLevel)Math.Min(3, Math.Max(0, Settings.Default.LogLevel));
 
             // Initialize embedded DLL loader FIRST
             EmbeddedDllLoader.Initialize();
@@ -761,6 +762,7 @@ namespace TinyOPDSCLI
 
             // Init log file settings
             Log.SaveToFile = Settings.Default.SaveLogToDisk;
+            Log.VerbosityLevel = (LogLevel)Math.Min(3, Math.Max(0, Settings.Default.LogLevel));
 
             // Init localization service
             Localizer.Init();
@@ -832,7 +834,7 @@ namespace TinyOPDSCLI
             }
 
             // Create and start HTTP server
-            HttpProcessor.ClearAllAuthorizedClients();
+            HttpProcessor.ForgetClientsIfCredentialsChanged();
             server = new OPDSServer(IPAddress.Any, int.Parse(Settings.Default.ServerPort));
 
             serverThread = new Thread(new ThreadStart(server.Listen))
@@ -978,6 +980,7 @@ namespace TinyOPDSCLI
         {
             // Init log file settings
             Log.SaveToFile = Settings.Default.SaveLogToDisk;
+            Log.VerbosityLevel = (LogLevel)Math.Min(3, Math.Max(0, Settings.Default.LogLevel));
 
             // Init localization service
             Localizer.Init();

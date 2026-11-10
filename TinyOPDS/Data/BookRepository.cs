@@ -765,7 +765,7 @@ namespace TinyOPDS.Data
             }
 
             var books = db.ExecuteQuery<Book>(query, MapBook,
-                AddLanguageParameter(DatabaseManager.CreateParameter("@Title", title)));
+                AddLanguageParameter(DatabaseManager.CreateParameter("@Title", FoldYo(title))));
 
             foreach (var book in books)
             {
@@ -813,7 +813,7 @@ namespace TinyOPDS.Data
                 books = db.ExecuteQuery<Book>(ftsQuery, MapBook,
                     AddLanguageParameter(
                         DatabaseManager.CreateParameter("@SearchPattern", ftsPattern),
-                        DatabaseManager.CreateParameter("@LikePattern", searchPattern)));
+                        DatabaseManager.CreateParameter("@LikePattern", FoldYo(searchPattern))));
 
                 // If no results and contains Latin letters, try transliteration
                 if (books.Count == 0 && ContainsLatinLetters(searchPattern))
@@ -828,7 +828,7 @@ namespace TinyOPDS.Data
                         var gostBooks = db.ExecuteQuery<Book>(ftsQuery, MapBook,
                             AddLanguageParameter(
                                 DatabaseManager.CreateParameter("@SearchPattern", ftsPatternGOST),
-                                DatabaseManager.CreateParameter("@LikePattern", transliteratedGOST)));
+                                DatabaseManager.CreateParameter("@LikePattern", FoldYo(transliteratedGOST))));
 
                         if (gostBooks.Count > 0)
                         {
@@ -848,7 +848,7 @@ namespace TinyOPDS.Data
                             var isoBooks = db.ExecuteQuery<Book>(ftsQuery, MapBook,
                                 AddLanguageParameter(
                                     DatabaseManager.CreateParameter("@SearchPattern", ftsPatternISO),
-                                    DatabaseManager.CreateParameter("@LikePattern", transliteratedISO)));
+                                    DatabaseManager.CreateParameter("@LikePattern", FoldYo(transliteratedISO))));
 
                             if (isoBooks.Count > 0)
                             {
@@ -873,7 +873,7 @@ namespace TinyOPDS.Data
                     }
 
                     books = db.ExecuteQuery<Book>(likeQuery, MapBook,
-                        AddLanguageParameter(DatabaseManager.CreateParameter("@Title", searchPattern)));
+                        AddLanguageParameter(DatabaseManager.CreateParameter("@Title", FoldYo(searchPattern))));
                 }
 
                 // Load book relations
@@ -2116,6 +2116,9 @@ namespace TinyOPDS.Data
         {
             if (string.IsNullOrEmpty(text)) return text;
 
+            // Full-text indexes keep "ё" as "е"
+            text = FoldYo(text);
+
             // FTS5 special characters that need escaping
             // Double quotes need to be escaped by doubling them
             text = text.Replace("\"", "\"\"");
@@ -2136,6 +2139,14 @@ namespace TinyOPDS.Data
                 text = text.Replace("  ", " ");
 
             return text.Trim();
+        }
+
+        /// <summary>
+        /// Fold "ё" to "е" the same way as the full-text indexes and LIKE searches do (DatabaseSchema)
+        /// </summary>
+        internal static string FoldYo(string text)
+        {
+            return string.IsNullOrEmpty(text) ? text : text.Replace('ё', 'е').Replace('Ё', 'Е');
         }
 
         /// <summary>

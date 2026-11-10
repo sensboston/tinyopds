@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of TinyOPDS server project
  * https://github.com/sensboston/tinyopds
  *
@@ -132,7 +132,12 @@ namespace TinyOPDS
         /// </summary>
         public static void WriteLine(LogLevel level, string format, params object[] args)
         {
-            if (level >= VerbosityLevel || level == LogLevel.Authentication)
+            // Authentication verbosity keeps logins, bans and errors only
+            bool write = VerbosityLevel == LogLevel.Authentication
+                ? level == LogLevel.Authentication || level == LogLevel.Error
+                : level >= VerbosityLevel || level == LogLevel.Authentication;
+
+            if (write)
             {
                 string caller = "---";
 
@@ -156,6 +161,9 @@ namespace TinyOPDS
 
         private static readonly object fileSyncObject = new object();
 
+        // When the log grows over this size it is renamed to TinyOPDS.log.old and a new one is started
+        private const long MaxLogSize = 10 * 1024 * 1024;
+
         /// <summary>
         /// Writes a line to the current log file.
         /// </summary>
@@ -175,6 +183,13 @@ namespace TinyOPDS
                     if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
                     {
                         Directory.CreateDirectory(directory);
+                    }
+
+                    if (File.Exists(fullLogPath) && new FileInfo(fullLogPath).Length > MaxLogSize)
+                    {
+                        string oldLogPath = fullLogPath + ".old";
+                        if (File.Exists(oldLogPath)) File.Delete(oldLogPath);
+                        File.Move(fullLogPath, oldLogPath);
                     }
 
                     fileStream = new FileStream(fullLogPath, (File.Exists(fullLogPath) ? FileMode.Append : FileMode.Create), FileAccess.Write, FileShare.ReadWrite);
@@ -214,7 +229,7 @@ namespace TinyOPDS
         /// </summary>
         Error = 2,
         /// <summary>
-        /// Authentication message, MUST be logged.
+        /// Authentication message, MUST be logged. As verbosity level: only authentication messages and errors
         /// </summary>
         Authentication = 3,
     }

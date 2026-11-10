@@ -353,7 +353,7 @@ namespace TinyOPDS
             if (Utils.IsLinux) startWithWindows.Enabled = false;
 
             interfaceCombo.SelectedIndex = Math.Min(UPnPController.LocalInterfaces.Count - 1, Settings.Default.LocalInterfaceIndex);
-            logVerbosity.SelectedIndex = Math.Min(2, Settings.Default.LogLevel);
+            logVerbosity.SelectedIndex = Math.Min(3, Settings.Default.LogLevel);
             updateCombo.SelectedIndex = Math.Min(2, Settings.Default.UpdatesCheck);
             installUpdates.Visible = Utils.IsWindows && !Utils.IsLinux && !Utils.IsMacOS;
             installUpdates.Enabled = updateCombo.SelectedIndex > 0;
@@ -381,6 +381,7 @@ namespace TinyOPDS
             comboBox1.Text = $"{Settings.Default.MaxRAMImageCacheSizeMB} MB";
             comboBox1.Enabled = radioButton1.Checked;
 
+            credentialsLoading = true;
             try
             {
                 HttpProcessor.Credentials.Clear();
@@ -410,6 +411,11 @@ namespace TinyOPDS
                 Settings.Default.Credentials = string.Empty;
                 Settings.Default.Save();
             }
+            finally
+            {
+                credentialsLoading = false;
+            }
+            savedCredentials = CredentialsText();
         }
 
         private void SaveSettings()
@@ -437,10 +443,23 @@ namespace TinyOPDS
             e.NewObject = new Credential("", "");
         }
 
-        void Bs_CurrentItemChanged(object sender, EventArgs e)
+        // Credentials as saved in settings (before encryption)
+        private string savedCredentials = string.Empty;
+        private bool credentialsLoading = false;
+
+        private static string CredentialsText()
         {
             string s = string.Empty;
             foreach (Credential cred in HttpProcessor.Credentials) s += cred.User + ":" + cred.Password + ";";
+            return s;
+        }
+
+        void Bs_CurrentItemChanged(object sender, EventArgs e)
+        {
+            string s = CredentialsText();
+            if (credentialsLoading || s == savedCredentials) return;
+            savedCredentials = s;
+
             try
             {
                 Settings.Default.Credentials = string.IsNullOrEmpty(s) ? string.Empty : Crypt.EncryptStringAES(s, urlTemplate);
@@ -449,6 +468,9 @@ namespace TinyOPDS
             {
                 Settings.Default.Save();
             }
+
+            // Clients logged in with old credentials must log in again
+            HttpProcessor.ClearAllAuthorizedClients();
         }
 
         #endregion
@@ -605,7 +627,7 @@ namespace TinyOPDS
 
         private void StartHttpServer()
         {
-            HttpProcessor.ClearAllAuthorizedClients();
+            HttpProcessor.ForgetClientsIfCredentialsChanged();
             server = new OPDSServer(IPAddress.Any, int.Parse(Settings.Default.ServerPort));
 
             serverThread = new Thread(new ThreadStart(server.Listen)) { Priority = ThreadPriority.BelowNormal };
@@ -1030,6 +1052,7 @@ namespace TinyOPDS
             logVerbosity.Items[0] = Localizer.Text("Info, warnings and errors");
             logVerbosity.Items[1] = Localizer.Text("Warnings and errors");
             logVerbosity.Items[2] = Localizer.Text("Errors only");
+            logVerbosity.Items[3] = Localizer.Text("Logins and errors");
             updateCombo.Items[0] = Localizer.Text("Never");
             updateCombo.Items[1] = Localizer.Text("Once a week");
             updateCombo.Items[2] = Localizer.Text("Once a month");

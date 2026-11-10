@@ -1328,7 +1328,8 @@
             this.logVerbosity.Items.AddRange(new object[] {
             "Info, warnings and errors",
             "Warnings and errors",
-            "Errors only"});
+            "Errors only",
+            "Logins and errors"});
             this.logVerbosity.Location = new System.Drawing.Point(67, 560);
             this.logVerbosity.Margin = new System.Windows.Forms.Padding(8, 7, 8, 7);
             this.logVerbosity.Name = "logVerbosity";

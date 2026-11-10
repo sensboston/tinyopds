@@ -1,9 +1,18 @@
-# TinyOPDS 3.20
+# TinyOPDS 3.21
 Lightweight and powerful OPDS server for home libraries
 
 ![](https://github.com/sensboston/tinyopds/blob/master/wiki/ss1.png?raw=true)
 
 TinyOPDS is a simple and lightweight OPDS server written in C#. Works on Windows, Linux and macOS via .NET or Mono.
+
+## What's new in 3.21
+
+- **Search finds titles and names with "ё"** when you type "е" and vice versa ("желтые короли" finds "Жёлтые короли")
+- **Browsing authors is instant**: the first letters and author lists come from memory, without the pause after the program was idle; authors of new books appear right after a scan
+- **Password protection**: reader apps stay logged in after a restart or an update (FBReader kept losing its search), phones with changing IPv6 addresses stay recognized; only wrong passwords count as failed logins and lead to a ban, which now lasts 24 hours and survives restarts
+- **New log level "Logins and errors"** keeps the log small enough to leave it on; the log is rotated at 10 MB
+
+The first start rebuilds the search index (a few seconds to a minute on a big library).
 
 ## What's new in 3.20
 
@@ -88,10 +97,19 @@ If TinyOPDS helped organize your library, you can support development - donation
 
 ---
 
-## TinyOPDS 3.20
+## TinyOPDS 3.21
 Легкий та потужний OPDS сервер для домашніх бібліотек
 
 TinyOPDS - це простий та легкий OPDS сервер, написаний на C#. Працює на Windows, Linux та macOS через .NET або Mono.
+
+## Що нового у 3.21
+
+- **Пошук знаходить назви та імена з «ё»**, коли ви вводите «е», і навпаки («желтые короли» знаходить «Жёлтые короли»)
+- **Перегляд авторів миттєвий**: перші літери та списки авторів беруться з пам'яті, без паузи після простою програми; автори нових книг з'являються одразу після сканування
+- **Захист паролем**: програми для читання залишаються авторизованими після перезапуску чи оновлення (FBReader втрачав пошук), телефони зі змінною IPv6-адресою впізнаються; невдалим входом і причиною бану вважається лише неправильний пароль, бан тепер діє 24 години і зберігається після перезапуску
+- **Новий рівень журналу «Входи та помилки»** - журнал достатньо малий, щоб тримати його ввімкненим; журнал ротується при 10 МБ
+
+Перший запуск перебудовує пошуковий індекс (від кількох секунд до хвилини на великій бібліотеці).
 
 ## Що нового у 3.20
 
@@ -176,10 +194,19 @@ services:
 
 ---
 
-## TinyOPDS 3.20
+## TinyOPDS 3.21
 Легкий, но мощный OPDS сервер для домашних библиотек
 
 TinyOPDS - это простой OPDS сервер, написанный на C#. Работает на Windows, Linux и macOS через .NET или Mono.
+
+## Что нового в 3.21
+
+- **Поиск находит названия и имена с «ё»**, когда вы вводите «е», и наоборот («желтые короли» находит «Жёлтые короли»)
+- **Просмотр авторов мгновенный**: первые буквы и списки авторов берутся из памяти, без паузы после простоя программы; авторы новых книг появляются сразу после сканирования
+- **Защита паролем**: программы для чтения остаются авторизованными после перезапуска или обновления (FBReader терял поиск), телефоны с меняющимся IPv6-адресом узнаются; неудачным входом и причиной бана считается только неверный пароль, бан теперь действует 24 часа и сохраняется после перезапуска
+- **Новый уровень журнала «Входы и ошибки»** - журнал достаточно мал, чтобы держать его включённым; журнал ротируется при 10 МБ
+
+Первый запуск перестраивает поисковый индекс (от нескольких секунд до минуты на большой библиотеке).
 
 ## Что нового в 3.20
 

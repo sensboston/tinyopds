@@ -467,7 +467,7 @@ namespace TinyOPDS.Data
                 try
                 {
                     ExecuteNonQueryInTransaction(DatabaseSchema.DeleteAllBooksFTS, tx);
-                    ExecuteNonQueryInTransaction("INSERT INTO BooksFTS(BookID, Title) SELECT ID, Title FROM Books", tx);
+                    ExecuteNonQueryInTransaction(DatabaseSchema.FillBooksFTS, tx);
                     tx.Commit();
                 }
                 catch
@@ -530,6 +530,44 @@ namespace TinyOPDS.Data
                     Log.WriteLine(LogLevel.Error, "Error merging series name variants: {0}", ex.Message);
                 }
             }
+
+            if (version < 4 && Convert.ToInt32(ExecuteScalar("PRAGMA user_version") ?? 0) >= 3)
+            {
+                // Older versions indexed "ё" as is, and "желтые" didn't find "Жёлтые": the triggers
+                // are replaced with ones that fold "ё" to "е" and the indexes are rebuilt
+                Log.WriteLine("Rebuilding full-text indexes...");
+                IDbTransaction tx = BeginTransactionWithObject();
+                try
+                {
+                    foreach (string trigger in new[] { "books_ai", "books_au", "authors_ai", "authors_au", "sequences_ai", "sequences_au" })
+                        ExecuteNonQueryInTransaction("DROP TRIGGER IF EXISTS " + trigger, tx);
+                    ExecuteNonQueryInTransaction(DatabaseSchema.CreateBookInsertTrigger, tx);
+                    ExecuteNonQueryInTransaction(DatabaseSchema.CreateBookUpdateTrigger, tx);
+                    ExecuteNonQueryInTransaction(DatabaseSchema.CreateAuthorInsertTrigger, tx);
+                    ExecuteNonQueryInTransaction(DatabaseSchema.CreateAuthorUpdateTrigger, tx);
+                    ExecuteNonQueryInTransaction(DatabaseSchema.CreateSequenceInsertTrigger, tx);
+                    ExecuteNonQueryInTransaction(DatabaseSchema.CreateSequenceUpdateTrigger, tx);
+
+                    ExecuteNonQueryInTransaction(DatabaseSchema.DeleteAllBooksFTS, tx);
+                    ExecuteNonQueryInTransaction(DatabaseSchema.FillBooksFTS, tx);
+                    ExecuteNonQueryInTransaction(DatabaseSchema.DeleteAllAuthorsFTS, tx);
+                    ExecuteNonQueryInTransaction(DatabaseSchema.FillAuthorsFTS, tx);
+                    ExecuteNonQueryInTransaction(DatabaseSchema.DeleteAllSequencesFTS, tx);
+                    ExecuteNonQueryInTransaction(DatabaseSchema.FillSequencesFTS, tx);
+                    ExecuteNonQueryInTransaction("PRAGMA user_version = 4", tx);
+                    tx.Commit();
+                    Log.WriteLine("Full-text indexes rebuilt");
+                }
+                catch (Exception ex)
+                {
+                    tx.Rollback();
+                    Log.WriteLine(LogLevel.Error, "Error rebuilding full-text indexes: {0}", ex.Message);
+                }
+                finally
+                {
+                    tx.Dispose();
+                }
+            }
         }
 
         /// <summary>
@@ -580,7 +618,7 @@ namespace TinyOPDS.Data
                 }
 
                 ExecuteNonQueryInTransaction(DatabaseSchema.DeleteAllSequencesFTS, tx);
-                ExecuteNonQueryInTransaction("INSERT INTO SequencesFTS(SequenceID, Name) SELECT ID, Name FROM Sequences", tx);
+                ExecuteNonQueryInTransaction(DatabaseSchema.FillSequencesFTS, tx);
                 ExecuteNonQueryInTransaction(DatabaseSchema.CreateSequenceUpdateTrigger, tx);
                 ExecuteNonQueryInTransaction(DatabaseSchema.CreateSequenceDeleteTrigger, tx);
                 tx.Commit();

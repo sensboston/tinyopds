@@ -269,11 +269,15 @@ namespace TinyOPDS.Data
 
         #region Triggers for FTS Synchronization
 
+        // Full-text indexes keep text with "ё" folded to "е" (search queries are folded the same way,
+        // see BookRepository.FoldYo): the unicode61 tokenizer removes diacritics of Latin letters only,
+        // so "желтые" didn't find "Жёлтые"
+
         // Books triggers - FIXED: Removed Annotation from FTS operations
         public const string CreateBookInsertTrigger = @"
             CREATE TRIGGER IF NOT EXISTS books_ai AFTER INSERT ON Books BEGIN
                 INSERT INTO BooksFTS(BookID, Title) 
-                VALUES (new.ID, new.Title);
+                VALUES (new.ID, replace(replace(new.Title, 'ё', 'е'), 'Ё', 'Е'));
             END";
 
         // Only title is indexed: other updates (marking a book as replaced) don't touch the index.
@@ -281,7 +285,7 @@ namespace TinyOPDS.Data
         public const string CreateBookUpdateTrigger = @"
             CREATE TRIGGER IF NOT EXISTS books_au AFTER UPDATE OF Title ON Books BEGIN
                 UPDATE BooksFTS 
-                SET Title = new.Title
+                SET Title = replace(replace(new.Title, 'ё', 'е'), 'Ё', 'Е')
                 WHERE BookID = new.ID;
             END";
 
@@ -298,15 +302,15 @@ namespace TinyOPDS.Data
                     new.ID, 
                     CASE 
                         WHEN new.FirstName IS NOT NULL AND new.LastName IS NOT NULL 
-                        THEN new.FirstName || ' ' || new.LastName
-                        ELSE new.Name
+                        THEN replace(replace(new.FirstName || ' ' || new.LastName, 'ё', 'е'), 'Ё', 'Е')
+                        ELSE replace(replace(new.Name, 'ё', 'е'), 'Ё', 'Е')
                     END,
                     CASE 
                         WHEN new.FirstName IS NOT NULL AND new.LastName IS NOT NULL 
-                        THEN new.LastName || ' ' || new.FirstName
-                        ELSE new.Name
+                        THEN replace(replace(new.LastName || ' ' || new.FirstName, 'ё', 'е'), 'Ё', 'Е')
+                        ELSE replace(replace(new.Name, 'ё', 'е'), 'Ё', 'Е')
                     END,
-                    COALESCE(new.LastName, new.Name)
+                    replace(replace(COALESCE(new.LastName, new.Name), 'ё', 'е'), 'Ё', 'Е')
                 );
             END";
 
@@ -315,15 +319,15 @@ namespace TinyOPDS.Data
                 UPDATE AuthorsFTS 
                 SET FullName = CASE 
                         WHEN new.FirstName IS NOT NULL AND new.LastName IS NOT NULL 
-                        THEN new.FirstName || ' ' || new.LastName
-                        ELSE new.Name
+                        THEN replace(replace(new.FirstName || ' ' || new.LastName, 'ё', 'е'), 'Ё', 'Е')
+                        ELSE replace(replace(new.Name, 'ё', 'е'), 'Ё', 'Е')
                     END,
                     ReversedName = CASE 
                         WHEN new.FirstName IS NOT NULL AND new.LastName IS NOT NULL 
-                        THEN new.LastName || ' ' || new.FirstName
-                        ELSE new.Name
+                        THEN replace(replace(new.LastName || ' ' || new.FirstName, 'ё', 'е'), 'Ё', 'Е')
+                        ELSE replace(replace(new.Name, 'ё', 'е'), 'Ё', 'Е')
                     END,
-                    LastName = COALESCE(new.LastName, new.Name)
+                    LastName = replace(replace(COALESCE(new.LastName, new.Name), 'ё', 'е'), 'Ё', 'Е')
                 WHERE AuthorID = new.ID;
             END";
 
@@ -336,13 +340,13 @@ namespace TinyOPDS.Data
         public const string CreateSequenceInsertTrigger = @"
             CREATE TRIGGER IF NOT EXISTS sequences_ai AFTER INSERT ON Sequences BEGIN
                 INSERT INTO SequencesFTS(SequenceID, Name) 
-                VALUES (new.ID, new.Name);
+                VALUES (new.ID, replace(replace(new.Name, 'ё', 'е'), 'Ё', 'Е'));
             END";
 
         public const string CreateSequenceUpdateTrigger = @"
             CREATE TRIGGER IF NOT EXISTS sequences_au AFTER UPDATE OF Name ON Sequences BEGIN
                 UPDATE SequencesFTS 
-                SET Name = new.Name
+                SET Name = replace(replace(new.Name, 'ё', 'е'), 'Ё', 'Е')
                 WHERE SequenceID = new.ID;
             END";
 
@@ -526,7 +530,7 @@ namespace TinyOPDS.Data
             WHERE BooksFTS MATCH @SearchPattern
               AND b.ReplacedByID IS NULL
             ORDER BY
-                CASE WHEN b.Title LIKE @LikePattern || '%' THEN 0 ELSE 1 END,
+                CASE WHEN replace(replace(b.Title, 'ё', 'е'), 'Ё', 'Е') LIKE @LikePattern || '%' THEN 0 ELSE 1 END,
                 bm25(BooksFTS),
                 b.Title";
 
@@ -535,7 +539,7 @@ namespace TinyOPDS.Data
             SELECT ID, Version, FileName, Title, Language, BookDate, DocumentDate,
                    Annotation, DocumentSize, AddedDate
             FROM Books 
-            WHERE Title LIKE '%' || @Title || '%' COLLATE NOCASE
+            WHERE replace(replace(Title, 'ё', 'е'), 'Ё', 'Е') LIKE '%' || @Title || '%' COLLATE NOCASE
               AND ReplacedByID IS NULL
             ORDER BY Title";
 
@@ -1037,6 +1041,23 @@ namespace TinyOPDS.Data
         public const string DeleteAllBooksFTS = @"DELETE FROM BooksFTS";
         public const string DeleteAllAuthorsFTS = @"DELETE FROM AuthorsFTS";
         public const string DeleteAllSequencesFTS = @"DELETE FROM SequencesFTS";
+
+        // Fill full-text indexes from the tables (same folding as the triggers)
+        public const string FillBooksFTS = @"
+            INSERT INTO BooksFTS(BookID, Title) SELECT ID, replace(replace(Title, 'ё', 'е'), 'Ё', 'Е') FROM Books";
+
+        public const string FillAuthorsFTS = @"
+            INSERT INTO AuthorsFTS(AuthorID, FullName, ReversedName, LastName)
+            SELECT ID,
+                CASE WHEN FirstName IS NOT NULL AND LastName IS NOT NULL
+                     THEN replace(replace(FirstName || ' ' || LastName, 'ё', 'е'), 'Ё', 'Е') ELSE replace(replace(Name, 'ё', 'е'), 'Ё', 'Е') END,
+                CASE WHEN FirstName IS NOT NULL AND LastName IS NOT NULL
+                     THEN replace(replace(LastName || ' ' || FirstName, 'ё', 'е'), 'Ё', 'Е') ELSE replace(replace(Name, 'ё', 'е'), 'Ё', 'Е') END,
+                replace(replace(COALESCE(LastName, Name), 'ё', 'е'), 'Ё', 'Е')
+            FROM Authors";
+
+        public const string FillSequencesFTS = @"
+            INSERT INTO SequencesFTS(SequenceID, Name) SELECT ID, replace(replace(Name, 'ё', 'е'), 'Ё', 'Е') FROM Sequences";
         #endregion
 
     }

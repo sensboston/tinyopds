@@ -267,6 +267,37 @@ namespace TinyOPDS.Data
             return null;
         }
 
+        /// <summary>
+        /// Forgets the images of a book: a new version of a book (an uploaded translation in progress) keeps
+        /// its ID, and its cover would be the old one otherwise
+        /// </summary>
+        public static void Remove(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return;
+
+            lock (lockObject)
+            {
+                thumbnailsCache.Remove(id);
+                if (ramCoversCache.TryGetValue(id, out var cover))
+                {
+                    currentRamUsageBytes -= cover.SizeBytes;
+                    ramCoversCache.Remove(id);
+                }
+
+                try
+                {
+                    foreach (string path in new[] { Path.Combine(coversPath, id + ".jpg"), Path.Combine(thumbsPath, id + ".jpg") })
+                    {
+                        if (File.Exists(path)) File.Delete(path);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.WriteLine(LogLevel.Warning, "Failed to remove cached images of {0}: {1}", id, ex.Message);
+                }
+            }
+        }
+
         public static void ClearCache()
         {
             lock (lockObject)

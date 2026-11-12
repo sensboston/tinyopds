@@ -210,15 +210,14 @@ namespace TinyOPDS.Scanner
                 return true;
             }
 
-            // Delete book from library (we don't care about actual file existence)
+            // Delete book from library. A file written again with the same name (a new version uploaded after the
+            // old one was deleted) waits for AddBooks, which replaces its books: deleted here, the new book would
+            // be gone from the library until the file is scanned
             string fileName = null;
             lock (sync)
             {
-                if (deletedBooks.Count > 0)
-                {
-                    fileName = deletedBooks.First();
-                    deletedBooks.Remove(fileName);
-                }
+                fileName = deletedBooks.FirstOrDefault(f => !File.Exists(f));
+                if (fileName != null) deletedBooks.Remove(fileName);
             }
             if (fileName != null)
             {

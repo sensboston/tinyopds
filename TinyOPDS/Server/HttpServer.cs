@@ -648,10 +648,12 @@ namespace TinyOPDS.Server
                             }
                         }
 
-                        // Try HTTP Basic Auth
-                        if (!authorized && HttpHeaders.ContainsKey("Authorization"))
+                        // Try HTTP Basic Auth. An empty header is no credentials: requests coming through a tunnel
+                        // (cloudflared) have it, and the first request of every client would count as a wrong login
+                        if (!authorized && HttpHeaders.TryGetValue("Authorization", out string authHeader) &&
+                            !string.IsNullOrWhiteSpace(authHeader))
                         {
-                            string hash = HttpHeaders["Authorization"];
+                            string hash = authHeader.Trim();
 
                             // Wrong or malformed credentials count as a wrong login, a request without them doesn't
                             wrongCredentials = true;
@@ -787,7 +789,8 @@ namespace TinyOPDS.Server
                 else
                 {
                     Log.WriteLine(LogLevel.Authentication, "Unauthorized: IP={0}, URL={1}, UserAgent={2}, HasAuth={3}",
-                        RealClientIP, HttpUrl, userAgent, HttpHeaders.ContainsKey("Authorization"));
+                        RealClientIP, HttpUrl, userAgent,
+                        HttpHeaders.TryGetValue("Authorization", out string authValue) && !string.IsNullOrWhiteSpace(authValue));
 
                     // A request without credentials is the usual first request of a client (and of scanners):
                     // it gets the login challenge but is not a wrong login

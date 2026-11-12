@@ -729,12 +729,14 @@ namespace TinyOPDS.Data
 
         #region Select Queries - Relations
 
+        // Authors and translators in the order of the book (the first author is the one shown): the relation rows
+        // are inserted in that order, so the rowid keeps it
         public const string SelectBookAuthors = @"
             SELECT a.Name
             FROM Authors a
             INNER JOIN BookAuthors ba ON a.ID = ba.AuthorID
             WHERE ba.BookID = @BookID
-            ORDER BY a.Name";
+            ORDER BY ba.rowid";
 
         public const string SelectBookGenres = @"
             SELECT GenreTag
@@ -746,7 +748,7 @@ namespace TinyOPDS.Data
             FROM Translators t
             INNER JOIN BookTranslators bt ON t.ID = bt.TranslatorID
             WHERE bt.BookID = @BookID
-            ORDER BY t.Name";
+            ORDER BY bt.rowid";
 
         // Select book sequences
         public const string SelectBookSequences = @"

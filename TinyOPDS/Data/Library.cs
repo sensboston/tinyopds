@@ -1079,6 +1079,7 @@ namespace TinyOPDS.Data
             if (bookRepository == null || !bookRepository.DeleteBookRestoringReplaced(id)) return false;
             IsChanged = true;
             InvalidateCache();
+            ImagesCache.Remove(id);
             return true;
         }
 
@@ -1132,6 +1133,7 @@ namespace TinyOPDS.Data
                 {
                     IsChanged = true;
                     InvalidateCache();
+                    ImagesCache.Remove(book.ID);
                 }
 
                 return success;
@@ -1189,6 +1191,10 @@ namespace TinyOPDS.Data
                 if (result.Added > 0 || result.Replaced > 0)
                 {
                     IsChanged = true;
+
+                    // A new version of a book keeps its ID: the cover of the old one must not be shown
+                    // (books found duplicates lose their cached images too, they are made again on request)
+                    foreach (var book in books) ImagesCache.Remove(book.ID);
 
                     // Books counts are refreshed right away to show them after each batch. Authors, series
                     // and new books counts take seconds on a big library, they are refreshed by

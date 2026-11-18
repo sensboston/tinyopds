@@ -26,6 +26,10 @@ class UniversalReader {
         this.noteMode = 'toast';
         this.noteTimer = null;
         this.noteScrollY = 0;
+        // Reading position of the book (see savePosition): key in localStorage, saving paused while it's restored
+        this.bookKey = null;
+        this.restoringPosition = false;
+        this.positionTimer = null;
         // Scroll position to return to after "More" of a note took the reader to the notes
         this.noteReturn = null;
 
@@ -248,12 +252,17 @@ class UniversalReader {
 
         window.onscroll = () => {
             this.updateProgress();
+            this.schedulePositionSave();
             if (!this.isScrolling) {
                 this.updateCurrentChapter();
             }
         };
 
         document.onkeydown = (e) => this.handleKeyboard(e);
+
+        // The position is saved when the page is left too: a phone may close the tab without a scroll event
+        document.addEventListener('visibilitychange', () => { if (document.hidden) this.savePosition(); });
+        window.addEventListener('pagehide', () => this.savePosition());
 
         document.onclick = (e) => {
             if (!this.toolbar.contains(e.target) &&
@@ -433,6 +442,9 @@ class UniversalReader {
 
         const fileName = file.name.toLowerCase();
         this.showLoading(true);
+        // A book of the library is known by its ID in the URL (/reader/<id>), a local file by its name and size
+        const idMatch = location.pathname.match(/\/reader\/([^/?#]+)/);
+        this.bookKey = 'reader-position:' + (idMatch ? decodeURIComponent(idMatch[1]) : file.name + ':' + file.size);
 
         try {
             let fb2Content;
@@ -604,7 +616,86 @@ class UniversalReader {
         this.noteReturn = null;
         this.noteBack.classList.remove('visible');
 
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        this.restorePosition();
+    }
+
+    // --- Reading position ---
+    // Kept as the block (paragraph, title, image) at the top of the screen and how far it is scrolled, not as
+    // pixels: the same text comes back after a change of the font, margins, window width or a page translation
+
+    positionBlocks() {
+        return this.bookContent.querySelectorAll('p, h1, h2, h3, img');
+    }
+
+    currentPosition() {
+        // After "More" of a note the reader is in the notes: the place to come back to is kept
+        const top = this.noteReturn !== null ? this.noteReturn : window.scrollY;
+        const blocks = this.positionBlocks();
+        const contentTop = this.bookContent.getBoundingClientRect().top + window.scrollY;
+        let lo = 0, hi = blocks.length - 1, index = 0;
+        // The first block whose bottom is below the top of the screen (blocks go down the page)
+        while (lo <= hi) {
+            const mid = (lo + hi) >> 1;
+            const r = blocks[mid].getBoundingClientRect();
+            if (r.bottom + window.scrollY > top) { index = mid; hi = mid - 1; } else lo = mid + 1;
+        }
+        if (!blocks.length || top <= contentTop) return { block: 0, offset: 0 };
+        const r = blocks[index].getBoundingClientRect();
+        const offset = r.height > 0 ? Math.min(1, Math.max(0, (top - (r.top + window.scrollY)) / r.height)) : 0;
+        return { block: index, offset: Math.round(offset * 1000) / 1000 };
+    }
+
+    schedulePositionSave() {
+        if (this.restoringPosition || !this.bookKey) return;
+        clearTimeout(this.positionTimer);
+        this.positionTimer = setTimeout(() => this.savePosition(), 1000);
+    }
+
+    savePosition() {
+        if (this.restoringPosition || !this.bookKey || !this.positionBlocks().length) return;
+        try {
+            const position = this.currentPosition();
+            position.time = Date.now();
+            localStorage.setItem(this.bookKey, JSON.stringify(position));
+            this.prunePositions();
+        } catch (e) {
+            // localStorage may be full or unavailable (private mode): the position is just not kept
+        }
+    }
+
+    // Positions of the books read last are kept, the oldest ones go
+    prunePositions() {
+        const keys = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('reader-position:')) keys.push(key);
+        }
+        if (keys.length <= 300) return;
+        const time = (key) => { try { return JSON.parse(localStorage.getItem(key)).time || 0; } catch (e) { return 0; } };
+        keys.sort((a, b) => time(a) - time(b)).slice(0, keys.length - 300).forEach(key => localStorage.removeItem(key));
+    }
+
+    async restorePosition() {
+        let saved = null;
+        try { saved = this.bookKey && JSON.parse(localStorage.getItem(this.bookKey) || 'null'); } catch (e) { }
+        if (!saved || !(saved.block > 0 || saved.offset > 0)) {
+            window.scrollTo({ top: 0 });
+            return;
+        }
+        this.restoringPosition = true;
+        // Images change the layout when they are decoded: the position is taken after them
+        const images = Array.from(this.bookContent.querySelectorAll('img'));
+        await Promise.all(images.map(img => img.decode ? img.decode().catch(() => { }) : null));
+        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+        const blocks = this.positionBlocks();
+        const block = blocks[Math.min(saved.block, blocks.length - 1)];
+        if (block) {
+            const r = block.getBoundingClientRect();
+            window.scrollTo({ top: Math.max(0, r.top + window.scrollY + (saved.offset || 0) * r.height) });
+        }
+        this.updateProgress();
+        // The scroll events of the restore itself are not a new position
+        setTimeout(() => { this.restoringPosition = false; }, 300);
     }
 
     // The note mark nearest to the point, if the point is within a finger's reach of it: a raised "1" is

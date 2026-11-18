@@ -122,6 +122,14 @@ namespace TinyOPDS.Server
                 }
             }
 
+            // Icons of the site for phones (home screen, tabs): PNG, larger than the favicon
+            if (HttpProcessor.IsSiteIcon(request) && request.EndsWith(".png"))
+            {
+                resourceHandlers.HandleDummyCoverRequest(processor,
+                    request == "/icon-192.png" ? "icon-192.png" : "apple-touch-icon.png");
+                return;
+            }
+
             // Handle dummy book cover request
             if (request.Equals("/book_cover.jpg"))
             {

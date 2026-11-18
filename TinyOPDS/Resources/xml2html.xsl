@@ -66,7 +66,9 @@ xmlns:x="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/terms/">
 				<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 				<meta name="google" content="notranslate" />
 				<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-				<link rel="icon" type="image/x-icon" href="{$faviconIco}?v=1"/>
+				<link rel="icon" type="image/x-icon" href="{$faviconIco}?v=2"/>
+				<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png?v=2"/>
+				<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2"/>
 				<style>
 					html {
 					scrollbar-gutter: stable;

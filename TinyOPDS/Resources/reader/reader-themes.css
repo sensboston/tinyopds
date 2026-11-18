@@ -283,7 +283,7 @@ body.theme-sepia {
 
 .note-sheet {
     /* A shade apart from the page, with a thin border: a separate leaf over the text */
-    --sheet-bg: #f1f1ee;
+    --sheet-bg: #e4e2d9;
     position: fixed;
     left: 0;
     right: 0;
@@ -292,8 +292,8 @@ body.theme-sepia {
     margin: 0 auto;
     padding: 14px 20px calc(12px + env(safe-area-inset-bottom));
     border-radius: 14px 14px 0 0;
-    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.25);
-    border: 1px solid rgba(0, 0, 0, 0.12);
+    box-shadow: 0 -3px 16px rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(0, 0, 0, 0.2);
     background: var(--sheet-bg);
     color: #333;
     font-size: 16px;
@@ -303,6 +303,20 @@ body.theme-sepia {
 
 .note-overlay.toast .note-sheet {
     animation: note-up 0.2s ease-out;
+    padding-top: 20px;
+}
+
+/* A handle at the top of the phone sheet, as Android bottom sheets have */
+.note-overlay.toast .note-sheet::before {
+    content: '';
+    position: absolute;
+    top: 7px;
+    left: 50%;
+    width: 36px;
+    height: 4px;
+    margin-left: -18px;
+    border-radius: 2px;
+    background: rgba(128, 128, 128, 0.5);
 }
 
 @keyframes note-up {
@@ -318,7 +332,7 @@ body.theme-sepia {
     margin: 0;
     padding: 10px 16px;
     border-radius: 10px;
-    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
 .note-overlay.popup .note-text {
@@ -343,7 +357,7 @@ body.theme-sepia {
     right: 0;
     bottom: 0;
     height: 3em;
-    background: linear-gradient(rgba(241, 241, 238, 0), var(--sheet-bg));
+    background: linear-gradient(rgba(228, 226, 217, 0), var(--sheet-bg));
 }
 
 .note-more {
@@ -380,23 +394,23 @@ body.theme-sepia {
 }
 
 body.theme-dark .note-sheet {
-    --sheet-bg: #3b3b3b;
+    --sheet-bg: #4a4a4a;
     color: #e1e1e1;
-    border-color: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.2);
 }
 
 body.theme-dark .note-text.clamped::after {
-    background: linear-gradient(rgba(59, 59, 59, 0), var(--sheet-bg));
+    background: linear-gradient(rgba(74, 74, 74, 0), var(--sheet-bg));
 }
 
 body.theme-sepia .note-sheet {
-    --sheet-bg: #F0E0BF;
+    --sheet-bg: #E6CFA3;
     color: #5C4033;
-    border-color: rgba(92, 64, 51, 0.2);
+    border-color: rgba(92, 64, 51, 0.3);
 }
 
 body.theme-sepia .note-text.clamped::after {
-    background: linear-gradient(rgba(240, 224, 191, 0), var(--sheet-bg));
+    background: linear-gradient(rgba(230, 207, 163, 0), var(--sheet-bg));
 }
 
 body.theme-dark .book-content sup.noteref a,

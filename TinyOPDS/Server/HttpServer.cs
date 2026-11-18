@@ -563,7 +563,9 @@ namespace TinyOPDS.Server
                 // Load permanently authorized clients on first use
                 LoadPermanentlyAuthorized();
 
-                if (Properties.Settings.Default.UseHTTPAuth)
+                // The icons of the site are not behind the login: browsers (mobile Chrome) load them without the
+                // credentials of the page, and they are the icons of the program, nothing of the library
+                if (Properties.Settings.Default.UseHTTPAuth && !IsSiteIcon(HttpUrl))
                 {
                     authorized = false;
 
@@ -1044,6 +1046,14 @@ namespace TinyOPDS.Server
                 string logMethodName = methodName ?? new System.Diagnostics.StackTrace().GetFrame(1).GetMethod().Name;
                 Log.WriteLine(LogLevel.Error, "{0} exception: {1}", logMethodName, e.Message);
             }
+        }
+
+        public static bool IsSiteIcon(string url)
+        {
+            int query = url.IndexOf('?');
+            string path = query >= 0 ? url.Substring(0, query) : url;
+            return path == "/favicon.ico" || path == "/icon-192.png" || path == "/apple-touch-icon.png" ||
+                   path == "/apple-touch-icon-precomposed.png";
         }
 
         public void WriteSuccess(string contentType = "text/xml", bool isGZip = false, bool noCache = false, string cacheControl = null)

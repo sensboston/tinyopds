@@ -329,6 +329,12 @@
     <EmbeddedResource Include="..\TinyOPDS\Resources\favicon.ico">
       <Link>Resources\favicon.ico</Link>
     </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\Resources\icon-192.png">
+      <Link>Resources\icon-192.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\TinyOPDS\Resources\apple-touch-icon.png">
+      <Link>Resources\apple-touch-icon.png</Link>
+    </EmbeddedResource>
     <EmbeddedResource Include="..\TinyOPDS\Resources\trayIcon.ico">
       <Link>Resources\trayIcon.ico</Link>
     </EmbeddedResource>

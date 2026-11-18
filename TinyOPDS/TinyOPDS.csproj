@@ -185,6 +185,8 @@
     <EmbeddedResource Include="Resources\folder.png" />
     <!-- Icons -->
     <EmbeddedResource Include="Resources\favicon.ico" />
+    <EmbeddedResource Include="Resources\icon-192.png" />
+    <EmbeddedResource Include="Resources\apple-touch-icon.png" />
     <EmbeddedResource Include="Resources\library.ico" />
     <EmbeddedResource Include="Resources\TinyOPDS.ico" />
     <EmbeddedResource Include="Resources\trayIcon.ico" />

@@ -740,7 +740,7 @@ class FormatConverter {
         return 'note-' + String(id).replace(/[^A-Za-z0-9_-]/g, '_');
     }
 
-    // A link to a note is a superscript marker ("[12]" shown as a raised 12), a tap opens the note;
+    // A link to a note is a superscript mark written as in the book ("[12]" stays "[12]", raised), a tap opens the note;
     // other links keep their text only
     convertLink(element) {
         const href = FormatConverter.linkHref(element);
@@ -750,7 +750,7 @@ class FormatConverter {
             const label = text.replace(/^[\[{(]\s*/, '').replace(/\s*[\]})]$/, '');
             const attr = this.escapeXml(id);
             if (label.length > 0 && label.length <= 4) {
-                return `<sup class="noteref"><a href="#${this.noteElementId(id)}" data-note="${attr}">${this.escapeXml(label)}</a></sup>`;
+                return `<sup class="noteref"><a href="#${this.noteElementId(id)}" data-note="${attr}">${this.escapeXml(text)}</a></sup>`;
             }
             return `<a class="noteref-text" href="#${this.noteElementId(id)}" data-note="${attr}">${this.convertFB2ToHTML(element)}</a>`;
         }

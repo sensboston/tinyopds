@@ -1046,11 +1046,12 @@ namespace TinyOPDS.Server
             }
         }
 
-        public void WriteSuccess(string contentType = "text/xml", bool isGZip = false, bool noCache = false)
+        public void WriteSuccess(string contentType = "text/xml", bool isGZip = false, bool noCache = false, string cacheControl = null)
         {
             string headers = "Content-Type: " + contentType;
             if (isGZip) headers += "\nContent-Encoding: gzip";
             if (noCache) headers += "\nCache-Control: no-cache";
+            else if (cacheControl != null) headers += "\nCache-Control: " + cacheControl;
             WriteHttpResponse("200 OK", headers, "WriteSuccess", true);
         }
 

@@ -374,6 +374,8 @@ class FormatConverter {
 
         this.chapters = [];
         let chapterIndex = 0;
+        // Notes: "file#id" of a note -> its key in the FB2, and the parsed chapters to take the note texts from
+        this.epubNotes = { keys: {}, list: [], docs: {} };
 
         for (let itemRef of spine) {
             const id = itemRef.getAttribute('idref');
@@ -384,10 +386,11 @@ class FormatConverter {
 
             try {
                 const chapterHtml = await zip.file(chapterPath).async('string');
-                const fb2Chapter = this.convertHtmlToFb2(chapterHtml, opfDir, imageMap, chapterIndex);
+                const chapterDoc = new DOMParser().parseFromString(chapterHtml, 'text/html');
+                this.epubNotes.docs[chapterPath] = chapterDoc;
+                const fb2Chapter = this.convertHtmlToFb2(chapterDoc, opfDir, imageMap, chapterIndex, chapterPath);
                 fb2Content += fb2Chapter;
 
-                const chapterDoc = new DOMParser().parseFromString(chapterHtml, 'text/html');
                 const chapterTitle = chapterDoc.querySelector('h1, h2, h3, title')?.textContent || `Chapter ${chapterIndex + 1}`;
                 this.chapters.push({ title: chapterTitle, id: `chapter_${chapterIndex}` });
                 chapterIndex++;
@@ -397,6 +400,7 @@ class FormatConverter {
         }
 
         fb2Content += '</body>';
+        fb2Content += this.epubNotesBody(opfDir, imageMap);
 
         // Add binary images
         for (let imageId in this.images) {
@@ -410,10 +414,76 @@ class FormatConverter {
     }
 
     // HTML to FB2 conversion - FIXED paragraph handling
-    convertHtmlToFb2(html, baseDir, imageMap, chapterIndex) {
-        const doc = new DOMParser().parseFromString(html, 'text/html');
+    convertHtmlToFb2(doc, baseDir, imageMap, chapterIndex, chapterPath) {
         let fb2 = `<section id="chapter_${chapterIndex}">`;
+        fb2 += this.htmlToFb2(doc.body || doc.documentElement, { baseDir, imageMap, chapterPath, inNote: false });
+        fb2 += '</section>';
+        return fb2;
+    }
 
+    // An EPUB link to a note: marked as one (epub:type="noteref", role="doc-noteref"), or a link to an anchor
+    // that looks like a note mark (in a superscript, or "12", "[12]", "*")
+    static isEpubNoteRef(node) {
+        const href = node.getAttribute('href') || '';
+        if (!href.includes('#') || /^[a-z]+:/i.test(href)) return false;
+        const type = (node.getAttribute('epub:type') || '') + ' ' + (node.getAttribute('role') || '');
+        if (/\bnoteref\b|doc-noteref/.test(type)) return true;
+        const text = node.textContent.trim();
+        return (!!node.closest('sup') && text.length <= 4) || /^\[?(\d{1,3}|\*{1,3})\]?$/.test(text);
+    }
+
+    // Note texts of an EPUB marked as such (aside epub:type="footnote"): not shown in the text
+    static isEpubNoteAside(node) {
+        const type = (node.getAttribute('epub:type') || '') + ' ' + (node.getAttribute('role') || '');
+        return /\b(footnote|endnote|rearnote)\b|doc-(footnote|endnote)/.test(type);
+    }
+
+    epubNoteKey(href, chapterPath) {
+        const hash = href.indexOf('#');
+        let file = href.substring(0, hash);
+        let id = href.substring(hash + 1);
+        try { id = decodeURIComponent(id); } catch (e) { }
+        if (!file) {
+            file = chapterPath;
+        } else {
+            // Relative to the chapter: "../Text/notes.xhtml"
+            const parts = chapterPath.split('/').slice(0, -1);
+            for (const part of file.split('/')) {
+                if (part === '..') parts.pop();
+                else if (part !== '.') parts.push(part);
+            }
+            file = parts.join('/');
+        }
+        const target = file + '#' + id;
+        if (!this.epubNotes.keys[target]) {
+            const key = 'note_' + (this.epubNotes.list.length + 1);
+            this.epubNotes.keys[target] = key;
+            this.epubNotes.list.push({ key, file, id });
+        }
+        return this.epubNotes.keys[target];
+    }
+
+    // The notes found in the chapters as the second FB2 body
+    epubNotesBody(baseDir, imageMap) {
+        let body = '';
+        for (const note of this.epubNotes.list) {
+            const doc = this.epubNotes.docs[note.file];
+            const target = doc && doc.getElementById(note.id);
+            if (!target) continue;
+            // An anchor inside the note text: the note is its paragraph (or list item)
+            const block = ['aside', 'li', 'p', 'section', 'div', 'dd'].includes(target.tagName.toLowerCase())
+                ? target : (target.closest('aside, li, p, dd') || target.parentElement || target);
+            let content = this.htmlToFb2(block, { baseDir, imageMap, chapterPath: note.file, inNote: true });
+            if (!content.trim()) continue;
+            if (!/<p>|<title>|<cite>|<poem>/.test(content)) content = `<p>${content}</p>`;
+            body += `<section id="${note.key}">${content}</section>`;
+        }
+        return body ? `<body name="notes">${body}</body>` : '';
+    }
+
+    htmlToFb2(root, ctx) {
+        const { baseDir, imageMap } = ctx;
+        let needsSpacing = false;
         const processElement = (element) => {
             let result = '';
 
@@ -491,8 +561,27 @@ class FormatConverter {
                             }
                             break;
                         case 'a':
-                            result += processElement(node);
+                            if (!ctx.inNote && FormatConverter.isEpubNoteRef(node)) {
+                                const key = this.epubNoteKey(node.getAttribute('href'), ctx.chapterPath);
+                                result += `<a l:href="#${key}" type="note">${this.escapeXml(node.textContent.trim())}</a>`;
+                            } else if (ctx.inNote && /^([↩↑^]︎?|back)$/i.test(node.textContent.trim())) {
+                                // The link back to the text at the end of a note
+                            } else {
+                                result += processElement(node);
+                            }
                             break;
+                        case 'aside':
+                            // Notes are taken to the notes body, as readers show them
+                            if (!FormatConverter.isEpubNoteAside(node)) result += processElement(node);
+                            break;
+                        case 'sup':
+                        case 'sub': {
+                            const inner = processElement(node);
+                            // A superscript of a note link only: the link is a superscript by itself
+                            if (/^<a l:href="#note_\d+" type="note">[^<]*<\/a>$/.test(inner.trim())) result += inner.trim();
+                            else result += `<${tag}>${inner}</${tag}>`;
+                            break;
+                        }
                         case 'blockquote':
                             result += `<cite>${processElement(node)}</cite>`;
                             break;
@@ -525,10 +614,7 @@ class FormatConverter {
             return result;
         };
 
-        fb2 += processElement(doc.body || doc.documentElement);
-        fb2 += '</section>';
-
-        return fb2;
+        return processElement(root);
     }
 
     // Extract FB2 TOC with tree structure
@@ -604,6 +690,73 @@ class FormatConverter {
         return toc;
     }
 
+    // href of an FB2 link, whatever the prefix of the xlink namespace is
+    static linkHref(element) {
+        return element.getAttributeNS('http://www.w3.org/1999/xlink', 'href') ||
+            element.getAttribute('l:href') || element.getAttribute('xlink:href') || element.getAttribute('href') || '';
+    }
+
+    // Notes of an FB2 book: the sections with an id in the bodies after the main one, id -> { label, html }.
+    // The ids are collected first, so that a note can link to another one. A note is shown without its title,
+    // which is its number; the note bodies are also rendered after the text (notesHtml)
+    extractFB2Notes(xmlDoc) {
+        this.notes = {};
+        this.notesHtml = '';
+        const bodies = Array.from(xmlDoc.getElementsByTagName('body')).slice(1);
+        const sections = [];
+        for (const body of bodies) {
+            for (const section of body.querySelectorAll('section[id]')) {
+                this.notes[section.getAttribute('id')] = { label: '', html: '' };
+                sections.push(section);
+            }
+        }
+        for (const section of sections) {
+            const note = this.notes[section.getAttribute('id')];
+            for (const part of section.childNodes) {
+                if (part.nodeType === Node.ELEMENT_NODE && part.tagName.toLowerCase() === 'title') {
+                    note.label = part.textContent.trim().replace(/\s+/g, ' ');
+                } else {
+                    note.html += this.convertFB2ToHTML({ childNodes: [part] });
+                }
+            }
+        }
+        for (const body of bodies) {
+            const html = this.convertFB2ToHTML(body);
+            if (!html.trim()) continue;
+            // A body without a title of its own gets "Notes"
+            const hasTitle = Array.from(body.children).some(c => c.tagName.toLowerCase() === 'title');
+            this.notesHtml += '<div class="notes-body">' +
+                (hasTitle ? '' : `<h2>${this.escapeXml(this.strings?.notes || 'Notes')}</h2>`) + html + '</div>';
+        }
+        return this.notes;
+    }
+
+    isNoteSection(element) {
+        const id = element && element.getAttribute && element.getAttribute('id');
+        return !!(id && this.notes && this.notes[id] && element.tagName.toLowerCase() === 'section');
+    }
+
+    noteElementId(id) {
+        return 'note-' + String(id).replace(/[^A-Za-z0-9_-]/g, '_');
+    }
+
+    // A link to a note is a superscript marker ("[12]" shown as a raised 12), a tap opens the note;
+    // other links keep their text only
+    convertLink(element) {
+        const href = FormatConverter.linkHref(element);
+        const id = href.startsWith('#') ? href.substring(1) : null;
+        if (id && this.notes && this.notes[id]) {
+            const text = element.textContent.trim();
+            const label = text.replace(/^[\[{(]\s*/, '').replace(/\s*[\]})]$/, '');
+            const attr = this.escapeXml(id);
+            if (label.length > 0 && label.length <= 4) {
+                return `<sup class="noteref"><a href="#${this.noteElementId(id)}" data-note="${attr}">${this.escapeXml(label)}</a></sup>`;
+            }
+            return `<a class="noteref-text" href="#${this.noteElementId(id)}" data-note="${attr}">${this.convertFB2ToHTML(element)}</a>`;
+        }
+        return this.convertFB2ToHTML(element);
+    }
+
     // FB2 to HTML conversion with TOC support and poetry tags
     convertFB2ToHTML(element) {
         let html = '';
@@ -614,6 +767,10 @@ class FormatConverter {
             } else if (child.nodeType === Node.ELEMENT_NODE) {
                 switch (child.tagName.toLowerCase()) {
                     case 'title':
+                        if (this.isNoteSection(child.parentNode)) {
+                            html += `<p class="note-label">${this.escapeXml(child.textContent.trim().replace(/\s+/g, ' '))}</p>`;
+                            break;
+                        }
                         const level = Math.min(3, (child.parentNode.tagName === 'section' ? 2 : 1));
                         html += `<h${level}>${this.convertFB2ToHTML(child)}</h${level}>`;
                         break;
@@ -627,6 +784,10 @@ class FormatConverter {
                         html += `<strong>${this.convertFB2ToHTML(child)}</strong>`;
                         break;
                     case 'section':
+                        if (this.isNoteSection(child)) {
+                            html += `<div class="note" id="${this.noteElementId(child.getAttribute('id'))}">${this.convertFB2ToHTML(child)}</div>`;
+                            break;
+                        }
                         // Use the ID that was set by extractFB2TOC
                         const tocId = child.getAttribute('data-toc-id');
                         if (tocId) {
@@ -694,6 +855,26 @@ class FormatConverter {
 
                     case 'date':
                         html += `<p class="date">${this.convertFB2ToHTML(child)}</p>`;
+                        break;
+
+                    case 'sup':
+                        html += `<sup>${this.convertFB2ToHTML(child)}</sup>`;
+                        break;
+
+                    case 'sub':
+                        html += `<sub>${this.convertFB2ToHTML(child)}</sub>`;
+                        break;
+
+                    case 'strikethrough':
+                        html += `<s>${this.convertFB2ToHTML(child)}</s>`;
+                        break;
+
+                    case 'code':
+                        html += `<code>${this.convertFB2ToHTML(child)}</code>`;
+                        break;
+
+                    case 'a':
+                        html += this.convertLink(child);
                         break;
 
                     default:

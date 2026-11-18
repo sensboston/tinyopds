@@ -164,6 +164,11 @@ namespace TinyOPDS.Data
         public BookType BookType { get { return Path.GetExtension(FilePath).ToLower().Contains("epub") ? BookType.EPUB : BookType.FB2; } }
         public bool IsValid { get { return !string.IsNullOrEmpty(Title) && Title.IsValidUTF() && Authors.Count > 0 && Genres.Count > 0; } }
         public DateTime AddedDate { get; set; }
+
+        // Image URLs carry the time the book was added: a new version of a book keeps its ID, and browsers and
+        // readers would show the cover of the old one from their cache otherwise
+        public string CoverUrl { get { return "/cover/" + ID + ".jpeg?v=" + AddedDate.Ticks.ToString("x"); } }
+        public string ThumbnailUrl { get { return "/thumbnail/" + ID + ".jpeg?v=" + AddedDate.Ticks.ToString("x"); } }
         public DateTime? LastDownloadDate { get; set; }
 
         public bool DocumentIDTrusted { get; set; }

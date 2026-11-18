@@ -218,3 +218,190 @@ body.theme-sepia {
 .book-content.sepia .date {
     color: #8B7355;
 }
+
+/* Notes: marks in the text, the notes after the text, the sheet a tapped note opens in */
+.book-content sup.noteref {
+    font-size: 0.7em;
+    line-height: 0;
+    vertical-align: super;
+}
+
+.book-content sup.noteref a,
+.book-content a.noteref-text,
+.note-text a[data-note] {
+    color: #2f6fb0;
+    text-decoration: none;
+    padding: 0 0.15em;
+    cursor: pointer;
+}
+
+.book-content a.noteref-text {
+    border-bottom: 1px dotted currentColor;
+    padding: 0;
+}
+
+.book-content .notes-body {
+    margin-top: 3em;
+    padding-top: 1em;
+    border-top: 1px solid rgba(128, 128, 128, 0.4);
+    font-size: 0.9em;
+}
+
+.book-content .note {
+    margin: 0.8em 0;
+    scroll-margin-top: 1em;
+    border-radius: 4px;
+    transition: background-color 1s ease;
+}
+
+.book-content .note.highlight {
+    background-color: rgba(47, 111, 176, 0.15);
+}
+
+.book-content .note-label,
+.note-text .note-label {
+    font-weight: 600;
+    text-indent: 0 !important;
+    margin-bottom: 0.2em;
+}
+
+.note-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1900;
+    display: none;
+    /* No backdrop: the text stays as it is, clicks are taken by the reader while a note is open */
+    pointer-events: none;
+}
+
+.note-overlay.visible {
+    display: block;
+}
+
+.note-sheet {
+    /* A shade apart from the page, with a thin border: a separate leaf over the text */
+    --sheet-bg: #f1f1ee;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 14px 20px calc(12px + env(safe-area-inset-bottom));
+    border-radius: 14px 14px 0 0;
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    background: var(--sheet-bg);
+    color: #333;
+    font-size: 16px;
+    line-height: 1.5;
+    pointer-events: auto;
+}
+
+.note-overlay.toast .note-sheet {
+    animation: note-up 0.2s ease-out;
+}
+
+@keyframes note-up {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
+/* A computer: a popup at the note mark, placed by the reader */
+.note-overlay.popup .note-sheet {
+    right: auto;
+    bottom: auto;
+    max-width: none;
+    margin: 0;
+    padding: 10px 16px;
+    border-radius: 10px;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
+}
+
+.note-overlay.popup .note-text {
+    overflow-y: auto;
+}
+
+.note-text {
+    max-height: 35vh;
+    overflow: hidden;
+    position: relative;
+}
+
+.note-text p {
+    margin: 0.3em 0;
+    text-indent: 0;
+}
+
+.note-text.clamped::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3em;
+    background: linear-gradient(rgba(241, 241, 238, 0), var(--sheet-bg));
+}
+
+.note-more {
+    display: none;
+    margin-top: 6px;
+    padding: 6px 0;
+    border: 0;
+    background: none;
+    color: #2f6fb0;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.note-back {
+    position: fixed;
+    left: 50%;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    z-index: 1800;
+    display: none;
+    padding: 10px 18px;
+    border: 0;
+    border-radius: 20px;
+    background: #2f6fb0;
+    color: #fff;
+    font-size: 15px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+}
+
+.note-back.visible {
+    display: block;
+}
+
+body.theme-dark .note-sheet {
+    --sheet-bg: #3b3b3b;
+    color: #e1e1e1;
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+body.theme-dark .note-text.clamped::after {
+    background: linear-gradient(rgba(59, 59, 59, 0), var(--sheet-bg));
+}
+
+body.theme-sepia .note-sheet {
+    --sheet-bg: #F0E0BF;
+    color: #5C4033;
+    border-color: rgba(92, 64, 51, 0.2);
+}
+
+body.theme-sepia .note-text.clamped::after {
+    background: linear-gradient(rgba(240, 224, 191, 0), var(--sheet-bg));
+}
+
+body.theme-dark .book-content sup.noteref a,
+body.theme-dark .book-content a.noteref-text,
+body.theme-dark .note-text a[data-note],
+body.theme-dark .note-more {
+    color: #7fb2e5;
+}

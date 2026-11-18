@@ -20,6 +20,14 @@ class UniversalReader {
         this.currentChapterIndex = -1;
         this.isScrolling = false;
         this.detectedLanguage = 'en';
+        this.notes = {};
+        this.currentNoteId = null;
+        this.noteAnchor = null;
+        this.noteMode = 'toast';
+        this.noteTimer = null;
+        this.noteScrollY = 0;
+        // Scroll position to return to after "More" of a note took the reader to the notes
+        this.noteReturn = null;
 
         // Create format converter instance
         this.formatConverter = new FormatConverter();
@@ -41,7 +49,10 @@ class UniversalReader {
             errorLoading: 'Error loading file',
             noTitle: 'Untitled',
             unknownAuthor: 'Unknown Author',
-            noChapters: 'No chapters available'
+            noChapters: 'No chapters available',
+            notes: 'Notes',
+            more: 'More',
+            backToText: 'Back to text'
         };
 
         this.initializeElements();
@@ -92,6 +103,11 @@ class UniversalReader {
         this.tocOverlay = document.getElementById('tocOverlay');
         this.tocContent = document.getElementById('tocContent');
         this.tocClose = document.getElementById('tocClose');
+        this.noteOverlay = document.getElementById('noteOverlay');
+        this.noteSheet = document.getElementById('noteSheet');
+        this.noteText = document.getElementById('noteText');
+        this.noteMore = document.getElementById('noteMore');
+        this.noteBack = document.getElementById('noteBack');
     }
 
     loadLocalization() {
@@ -135,13 +151,60 @@ class UniversalReader {
         if (tocTitle) {
             tocTitle.textContent = this.strings.tableOfContents;
         }
+
+        this.noteMore.textContent = this.strings.more;
+        this.noteBack.textContent = '\u2190 ' + this.strings.backToText;
     }
 
     bindEvents() {
         this.menuToggle.onclick = () => this.toggleMenu();
 
-        this.clickTop.onclick = () => this.scrollPage(-1);
-        this.clickBottom.onclick = () => this.scrollPage(1);
+        // The click areas cover the text: a tap on a note mark under them opens the note instead of turning the page
+        this.clickTop.onclick = (e) => { if (!this.openNoteAt(e.clientX, e.clientY)) this.scrollPage(-1); };
+        this.clickBottom.onclick = (e) => { if (!this.openNoteAt(e.clientX, e.clientY)) this.scrollPage(1); };
+
+        this.bookContent.addEventListener('click', (e) => {
+            const ref = e.target.closest && e.target.closest('[data-note]');
+            if (ref) {
+                e.preventDefault();
+                this.showNote(ref.getAttribute('data-note'), ref);
+            }
+        });
+        // While a note is open, a click elsewhere closes it and does nothing else (doesn't turn the page);
+        // a click on another note mark opens that note
+        window.addEventListener('click', (e) => {
+            if (this.currentNoteId === null || this.noteSheet.contains(e.target)) return;
+            e.stopPropagation();
+            e.preventDefault();
+            this.hideNote();
+            this.openNoteAt(e.clientX, e.clientY);
+        }, true);
+        this.noteSheet.onclick = (e) => {
+            e.stopPropagation();
+            const ref = e.target.closest && e.target.closest('[data-note]');
+            if (ref) {
+                // A note linking to another note
+                e.preventDefault();
+                this.showNote(ref.getAttribute('data-note'), this.noteAnchor);
+            } else if (this.noteMode === 'toast') {
+                // A tap on the note of a phone: the whole note if it's cut, closed otherwise
+                if (this.noteText.classList.contains('clamped')) this.goToNote();
+                else this.hideNote();
+            }
+        };
+        // Scrolling (or a page turned by keys) closes the note
+        window.addEventListener('scroll', () => {
+            if (this.currentNoteId !== null && Math.abs(window.scrollY - this.noteScrollY) > 40) this.hideNote();
+        }, { passive: true });
+        this.noteMore.onclick = (e) => {
+            e.stopPropagation();
+            this.goToNote();
+        };
+        this.noteBack.onclick = (e) => {
+            e.stopPropagation();
+            if (history.state && history.state.noteReturn) history.back();
+            else this.returnToText();
+        };
 
         const tocBtn = document.getElementById('tocButton');
         if (tocBtn) {
@@ -158,7 +221,9 @@ class UniversalReader {
 
         // Handle browser back button for TOC and menu
         window.addEventListener('popstate', (e) => {
-            if (this.tocVisible) {
+            if (this.noteReturn !== null) {
+                this.returnToText();
+            } else if (this.tocVisible) {
                 this.hideTOC();
             } else if (this.menuVisible) {
                 this.toggleMenu();
@@ -486,6 +551,10 @@ class UniversalReader {
         // IMPORTANT: Extract TOC FIRST - this sets up the ID map
         this.chapters = this.formatConverter.extractFB2TOC(xmlDoc);
 
+        // Notes before the text: the links to them are converted to note marks
+        this.formatConverter.strings = this.strings;
+        this.notes = this.formatConverter.extractFB2Notes(xmlDoc);
+
         // THEN Convert to HTML using corrected body selection logic
         const bodyNodes = xmlDoc.querySelectorAll('body');
         const escape = (text) => this.formatConverter.escapeXml(text);
@@ -495,6 +564,8 @@ class UniversalReader {
         // In FB2 format, the first body is always the main text content
         if (bodyNodes.length > 0) {
             htmlContent += this.formatConverter.convertFB2ToHTML(bodyNodes[0]);
+            // The notes after the text, as in a printed book: "More" of a long note leads there
+            htmlContent += this.formatConverter.notesHtml;
         } else {
             console.warn('No body elements found in FB2 document');
         }
@@ -529,8 +600,118 @@ class UniversalReader {
 
         this.currentChapterIndex = -1;
         this.isScrolling = false;
+        this.hideNote();
+        this.noteReturn = null;
+        this.noteBack.classList.remove('visible');
 
         window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // The note mark nearest to the point, if the point is within a finger's reach of it: a raised "1" is
+    // a few pixels wide
+    openNoteAt(x, y) {
+        const reachX = 14, reachY = 12;
+        let best = null, bestDistance = Infinity;
+        for (const ref of this.bookContent.querySelectorAll('[data-note]')) {
+            for (const r of ref.getClientRects()) {
+                if (r.bottom < -reachY || r.top > window.innerHeight + reachY) continue;
+                if (x < r.left - reachX || x > r.right + reachX || y < r.top - reachY || y > r.bottom + reachY) continue;
+                const dx = Math.max(r.left - x, 0, x - r.right), dy = Math.max(r.top - y, 0, y - r.bottom);
+                const distance = dx * dx + dy * dy;
+                if (distance < bestDistance) {
+                    best = ref;
+                    bestDistance = distance;
+                }
+            }
+        }
+        if (!best) return false;
+        this.showNote(best.getAttribute('data-note'), best);
+        return true;
+    }
+
+    // A phone shows the note at the bottom for a few seconds (as FBReader does), a computer with a mouse in
+    // a popup at the note mark until a click elsewhere
+    showNote(id, anchor) {
+        const note = this.notes[id];
+        if (!note) return;
+        clearTimeout(this.noteTimer);
+        this.currentNoteId = id;
+        this.noteAnchor = anchor || null;
+        this.noteScrollY = window.scrollY;
+        this.noteMode = window.matchMedia('(hover: none)').matches || !anchor ? 'toast' : 'popup';
+
+        this.noteText.innerHTML = note.html || (note.label ? `<p>${this.formatConverter.escapeXml(note.label)}</p>` : '');
+        // The font of the book, the size a bit smaller
+        this.noteText.style.fontFamily = getComputedStyle(this.bookContent).fontFamily;
+        this.noteText.style.fontSize = Math.max(13, this.fontSize - 1) + 'px';
+        this.noteText.scrollTop = 0;
+        this.noteText.classList.remove('clamped');
+        this.noteText.style.maxHeight = '';
+        this.noteSheet.removeAttribute('style');
+        this.noteOverlay.className = 'note-overlay visible ' + this.noteMode;
+
+        if (this.noteMode === 'popup') {
+            this.placePopup(anchor);
+            this.noteMore.style.display = 'none';
+        } else {
+            const long = this.noteText.scrollHeight > this.noteText.clientHeight + 4;
+            this.noteText.classList.toggle('clamped', long);
+            this.noteMore.style.display = long ? 'block' : 'none';
+            // Time to read it: about 1 s for 15 words, 4 to 12 s
+            const words = this.noteText.textContent.split(/\s+/).length;
+            this.noteTimer = setTimeout(() => this.hideNote(), Math.min(12000, Math.max(4000, 2000 + words * 250)));
+        }
+        if (this.menuVisible) this.toggleMenu();
+    }
+
+    // The popup below the mark, or above it if there is more room there; a long note scrolls inside it
+    placePopup(anchor) {
+        const margin = 12, gap = 8;
+        const r = anchor.getBoundingClientRect();
+        const width = Math.min(460, window.innerWidth - 2 * margin);
+        const left = Math.min(Math.max(r.left + r.width / 2 - width / 2, margin), window.innerWidth - width - margin);
+        const below = window.innerHeight - r.bottom - gap - margin;
+        const above = r.top - gap - margin;
+        const sheet = this.noteSheet.style;
+        sheet.width = width + 'px';
+        sheet.left = left + 'px';
+        if (below >= 160 || below >= above) {
+            sheet.top = (r.bottom + gap) + 'px';
+            this.noteText.style.maxHeight = Math.max(80, Math.min(below, window.innerHeight * 0.5) - 28) + 'px';
+        } else {
+            sheet.bottom = (window.innerHeight - r.top + gap) + 'px';
+            this.noteText.style.maxHeight = Math.max(80, Math.min(above, window.innerHeight * 0.5) - 28) + 'px';
+        }
+    }
+
+    hideNote() {
+        clearTimeout(this.noteTimer);
+        this.currentNoteId = null;
+        this.noteOverlay.classList.remove('visible');
+    }
+
+    goToNote() {
+        const id = this.currentNoteId;
+        this.hideNote();
+        const element = id !== null && document.getElementById(this.formatConverter.noteElementId(id));
+        if (!element) return;
+
+        if (this.noteReturn === null) {
+            this.noteReturn = window.scrollY;
+            // The back button of a phone returns to the text too
+            history.pushState({ noteReturn: true }, '');
+        }
+        window.scrollTo({ top: element.getBoundingClientRect().top + window.scrollY - 20 });
+        element.classList.add('highlight');
+        setTimeout(() => element.classList.remove('highlight'), 1500);
+        this.noteBack.classList.add('visible');
+    }
+
+    returnToText() {
+        if (this.noteReturn === null) return;
+        window.scrollTo({ top: this.noteReturn });
+        this.noteReturn = null;
+        this.noteBack.classList.remove('visible');
     }
 
     applyHyphenation() {
@@ -627,6 +808,12 @@ class UniversalReader {
     }
 
     handleKeyboard(e) {
+        if (e.key === 'Escape' && this.currentNoteId !== null) {
+            e.preventDefault();
+            this.hideNote();
+            return;
+        }
+
         if (e.key === 'Escape' && this.tocVisible) {
             e.preventDefault();
             this.hideTOC();

@@ -52,7 +52,10 @@ namespace TinyOPDS.Server
 
                 if (imageObject != null)
                 {
-                    SendImageToClient(processor, imageObject, getCover, bookID);
+                    // A versioned URL (?v=) changes with a new version of the book: the image may be kept by the
+                    // browser for good. Private: the images are behind the login, shared caches must not keep them
+                    SendImageToClient(processor, imageObject, getCover, bookID,
+                        processor.HttpUrl.Contains(".jpeg?v=") ? "private, max-age=31536000, immutable" : null);
                 }
                 else
                 {
@@ -161,7 +164,7 @@ namespace TinyOPDS.Server
         /// <summary>
         /// Sends image to client without cancellation support (legacy)
         /// </summary>
-        private void SendImageToClient(HttpProcessor processor, object imageObject, bool getCover, string bookID)
+        private void SendImageToClient(HttpProcessor processor, object imageObject, bool getCover, string bookID, string cacheControl)
         {
             Stream imageStream = null;
             bool hasImages = false;
@@ -194,7 +197,7 @@ namespace TinyOPDS.Server
                         return;
                     }
 
-                    processor.WriteSuccess("image/jpeg");
+                    processor.WriteSuccess("image/jpeg", cacheControl: cacheControl);
 
                     const int bufferSize = 8192;
                     byte[] buffer = new byte[bufferSize];

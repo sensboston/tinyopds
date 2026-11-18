@@ -336,7 +336,10 @@ namespace TinyOPDS.Server
                 locStrings.AppendFormat("'errorLoading':'{0}',", OPDSUtilities.EscapeJsString(Localizer.Text("Error loading file")));
                 locStrings.AppendFormat("'noTitle':'{0}',", OPDSUtilities.EscapeJsString(Localizer.Text("Untitled")));
                 locStrings.AppendFormat("'unknownAuthor':'{0}',", OPDSUtilities.EscapeJsString(Localizer.Text("Unknown Author")));
-                locStrings.AppendFormat("'noChapters':'{0}'", OPDSUtilities.EscapeJsString(Localizer.Text("No chapters available")));
+                locStrings.AppendFormat("'noChapters':'{0}',", OPDSUtilities.EscapeJsString(Localizer.Text("No chapters available")));
+                locStrings.AppendFormat("'notes':'{0}',", OPDSUtilities.EscapeJsString(Localizer.Text("Notes")));
+                locStrings.AppendFormat("'more':'{0}',", OPDSUtilities.EscapeJsString(Localizer.Text("More")));
+                locStrings.AppendFormat("'backToText':'{0}'", OPDSUtilities.EscapeJsString(Localizer.Text("Back to text")));
                 locStrings.Append("}");
 
                 string scriptInjection = string.Format(@"

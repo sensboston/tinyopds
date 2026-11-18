@@ -1,9 +1,18 @@
-# TinyOPDS 3.21
+# TinyOPDS 3.22
 Lightweight and powerful OPDS server for home libraries
 
 ![](https://github.com/sensboston/tinyopds/blob/master/wiki/ss1.png?raw=true)
 
 TinyOPDS is a simple and lightweight OPDS server written in C#. Works on Windows, Linux and macOS via .NET or Mono.
+
+## What's new in 3.22
+
+- **Notes in the web reader**: note marks are shown raised above the line, a click shows the note in a popup at the mark; on a phone the note appears at the bottom for a few seconds, a tap on a long note opens it whole and **Back to text** returns. The notes are also shown after the text, as in a printed book. FB2 and EPUB
+- **Covers of a new version of a book**: a book deleted and uploaded again (a translation in progress) shows its new cover in the browser and in reader apps; covers are kept by the browser, so lists of books open faster
+- The web reader shows superscripts and subscripts (H₂O, x²); EPUB books with horizontal rules open again
+- Fixes published as updates of 3.21: a book of several authors shows its first author (not the first in the alphabet); requests coming through a tunnel (Cloudflare) no longer count as failed logins and don't lead to a ban
+
+The first visit downloads all covers once more: their addresses have changed.
 
 ## What's new in 3.21
 
@@ -97,10 +106,19 @@ If TinyOPDS helped organize your library, you can support development - donation
 
 ---
 
-## TinyOPDS 3.21
+## TinyOPDS 3.22
 Легкий та потужний OPDS сервер для домашніх бібліотек
 
 TinyOPDS - це простий та легкий OPDS сервер, написаний на C#. Працює на Windows, Linux та macOS через .NET або Mono.
+
+## Що нового у 3.22
+
+- **Примітки у веб-читачі**: позначки приміток показуються над рядком, клік показує примітку у віконці біля позначки; на телефоні примітка з'являється внизу на кілька секунд, дотик до довгої примітки відкриває її повністю, а **Назад до тексту** повертає назад. Примітки також показуються після тексту, як у паперовій книзі. FB2 та EPUB
+- **Обкладинки нової версії книги**: книга, видалена й завантажена знову (переклад у процесі), показує нову обкладинку в браузері та програмах для читання; обкладинки зберігаються браузером, тому списки книг відкриваються швидше
+- Веб-читач показує верхні та нижні індекси (H₂O, x²); книги EPUB з горизонтальними лініями знову відкриваються
+- Виправлення, випущені як оновлення 3.21: книга кількох авторів показує свого першого автора (а не першого за алфавітом); запити через тунель (Cloudflare) більше не вважаються невдалими входами і не призводять до бану
+
+Перший візит ще раз завантажить усі обкладинки: їхні адреси змінилися.
 
 ## Що нового у 3.21
 
@@ -194,10 +212,19 @@ services:
 
 ---
 
-## TinyOPDS 3.21
+## TinyOPDS 3.22
 Легкий, но мощный OPDS сервер для домашних библиотек
 
 TinyOPDS - это простой OPDS сервер, написанный на C#. Работает на Windows, Linux и macOS через .NET или Mono.
+
+## Что нового в 3.22
+
+- **Примечания в веб-читалке**: значки примечаний показываются над строкой, клик показывает примечание в окошке у значка; на телефоне примечание появляется внизу на несколько секунд, касание длинного примечания открывает его целиком, а **Назад к тексту** возвращает обратно. Примечания также показываются после текста, как в бумажной книге. FB2 и EPUB
+- **Обложки новой версии книги**: книга, удалённая и загруженная снова (перевод в процессе), показывает новую обложку в браузере и в программах для чтения; обложки сохраняются браузером, поэтому списки книг открываются быстрее
+- Веб-читалка показывает верхние и нижние индексы (H₂O, x²); книги EPUB с горизонтальными линиями снова открываются
+- Исправления, выпущенные как обновления 3.21: книга нескольких авторов показывает своего первого автора (а не первого по алфавиту); запросы через туннель (Cloudflare) больше не считаются неудачными входами и не приводят к бану
+
+Первое посещение ещё раз загрузит все обложки: их адреса изменились.
 
 ## Что нового в 3.21
 

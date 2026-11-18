@@ -1913,6 +1913,33 @@
 			<text lang="fr">Aucun chapitre disponible</text>
 			<text lang="pl">Brak rozdziałów</text>
 		</property>
+		<property>
+			<text lang="en">Notes</text>
+			<text lang="ru">Примечания</text>
+			<text lang="uk">Примітки</text>
+			<text lang="de">Anmerkungen</text>
+			<text lang="es">Notas</text>
+			<text lang="fr">Notes</text>
+			<text lang="pl">Przypisy</text>
+		</property>
+		<property>
+			<text lang="en">More</text>
+			<text lang="ru">Далее</text>
+			<text lang="uk">Далі</text>
+			<text lang="de">Weiter</text>
+			<text lang="es">Más</text>
+			<text lang="fr">Suite</text>
+			<text lang="pl">Więcej</text>
+		</property>
+		<property>
+			<text lang="en">Back to text</text>
+			<text lang="ru">Назад к тексту</text>
+			<text lang="uk">Назад до тексту</text>
+			<text lang="de">Zurück zum Text</text>
+			<text lang="es">Volver al texto</text>
+			<text lang="fr">Retour au texte</text>
+			<text lang="pl">Powrót do tekstu</text>
+		</property>
 
 		<!-- OPDS Structure -->
 		<property name="Root">

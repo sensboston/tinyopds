@@ -193,10 +193,10 @@ namespace TinyOPDS.OPDS
 
                 entry.Add(
                     // Adding cover page and thumbnail links
-                    new XElement("link", new XAttribute("href", "/cover/" + book.ID + ".jpeg"), new XAttribute("rel", "http://opds-spec.org/image"), new XAttribute("type", "image/jpeg")),
-                    new XElement("link", new XAttribute("href", "/cover/" + book.ID + ".jpeg"), new XAttribute("rel", "x-stanza-cover-image"), new XAttribute("type", "image/jpeg")),
-                    new XElement("link", new XAttribute("href", "/thumbnail/" + book.ID + ".jpeg"), new XAttribute("rel", "http://opds-spec.org/thumbnail"), new XAttribute("type", "image/jpeg")),
-                    new XElement("link", new XAttribute("href", "/thumbnail/" + book.ID + ".jpeg"), new XAttribute("rel", "x-stanza-cover-image-thumbnail"), new XAttribute("type", "image/jpeg"))
+                    new XElement("link", new XAttribute("href", book.CoverUrl), new XAttribute("rel", "http://opds-spec.org/image"), new XAttribute("type", "image/jpeg")),
+                    new XElement("link", new XAttribute("href", book.CoverUrl), new XAttribute("rel", "x-stanza-cover-image"), new XAttribute("type", "image/jpeg")),
+                    new XElement("link", new XAttribute("href", book.ThumbnailUrl), new XAttribute("rel", "http://opds-spec.org/thumbnail"), new XAttribute("type", "image/jpeg")),
+                    new XElement("link", new XAttribute("href", book.ThumbnailUrl), new XAttribute("rel", "x-stanza-cover-image-thumbnail"), new XAttribute("type", "image/jpeg"))
                 // Adding download links
                 );
 
